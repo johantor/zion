@@ -2,6 +2,10 @@
 
 This repository is a Claude Code plugin pack. It provides a ready-to-use `.claude/` setup with agents, commands, hooks, and skills.
 
+## Marketplace compatibility
+
+This repository now includes a Claude plugin manifest at `.claude-plugin/plugin.json` so plugin marketplaces can discover and install it directly from GitHub.
+
 ## Install
 
 ### Option A: Use this repository directly

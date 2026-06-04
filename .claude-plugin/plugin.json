@@ -1,0 +1,14 @@
+{
+  "name": "matrix-team",
+  "version": "1.0.0",
+  "description": "Claude Code crew/plugin pack with orchestrated agents, commands, hooks, and skills for feature delivery.",
+  "author": {
+    "name": "johantor"
+  },
+  "homepage": "https://github.com/johantor/Matrix-team",
+  "repository": "https://github.com/johantor/Matrix-team",
+  "commands": "./.claude/commands",
+  "agents": "./.claude/agents",
+  "skills": "./.claude/skills",
+  "hooks": "./.claude/hooks"
+}

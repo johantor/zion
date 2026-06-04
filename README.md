@@ -7,7 +7,7 @@ A Claude Code plugin pack with orchestrated agents, commands, hooks, and skills 
 Add this marketplace repository first:
 
 ```bash
-claude plugin marketplace add johantor/Matrix-team
+claude plugin marketplace add johantor/zion-link
 ```
 
 Then install from the marketplace (`<plugin-name>@<marketplace-name>`). Use the marketplace name returned by `claude plugin marketplace add` (or confirm with `claude plugin marketplace list`) after `@`:

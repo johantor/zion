@@ -1,4 +1,4 @@
-# Matrix Team Claude Plugin
+# Zion Link
 
 This repository is a Claude Code plugin pack. It provides a ready-to-use `.claude/` setup with agents, commands, hooks, and skills.
 

@@ -13,10 +13,10 @@ claude plugin marketplace add johantor/zion-link
 Then install from the marketplace (`<plugin-name>@<marketplace-name>`). Use the marketplace name returned by `claude plugin marketplace add` (or confirm with `claude plugin marketplace list`) after `@`:
 
 ```bash
-claude plugin install matrix-team@matrix-team
+claude plugin install team@zion-link
 ```
 
-Here, the first `matrix-team` is the plugin name from `.claude-plugin/plugin.json`, and the second is the marketplace name.
+Here, `team` is the plugin name from `.claude-plugin/plugin.json`, and `zion-link` is the marketplace name.
 
 Or browse in Claude Code under `/plugin > Discover` after adding the marketplace.
 

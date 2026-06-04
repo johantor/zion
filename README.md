@@ -4,13 +4,19 @@ A Claude Code plugin pack with orchestrated agents, commands, hooks, and skills 
 
 ## Install
 
-Install via the Claude plugin marketplace:
+Add this marketplace repository first:
 
 ```bash
-claude plugin install matrix-team
+claude plugin marketplace add johantor/Matrix-team
 ```
 
-Or browse for `matrix-team` in Claude Code under `/plugin > Discover`.
+Then install from the marketplace:
+
+```bash
+claude plugin install matrix-team@matrix-team
+```
+
+Or browse in Claude Code under `/plugin > Discover` after adding the marketplace.
 
 ## Usage
 

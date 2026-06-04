@@ -10,7 +10,7 @@ Add this marketplace repository first:
 claude plugin marketplace add johantor/Matrix-team
 ```
 
-Then install from the marketplace (`<plugin-name>@<marketplace-name>`). Use the marketplace name returned by `claude plugin marketplace add` (or confirm with `/plugin marketplace list`) after `@`:
+Then install from the marketplace (`<plugin-name>@<marketplace-name>`). Use the marketplace name returned by `claude plugin marketplace add` (or confirm with `claude plugin marketplace list`) after `@`:
 
 ```bash
 claude plugin install matrix-team@matrix-team

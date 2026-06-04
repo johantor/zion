@@ -1,7 +1,7 @@
 ---
 name: oracle
 description: Backend test author/runner (xUnit / integration tests for the .NET layer). Runs the suite and reports only failures. Invoked by the morpheus orchestrator. Not for standalone or automatic use.
-tools: Read, Edit, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Grep, Glob
 model: sonnet
 maxTurns: 30
 color: blue

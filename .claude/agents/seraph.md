@@ -11,6 +11,8 @@ model: sonnet
 maxTurns: 20
 color: yellow
 memory: local
+skills:
+  - context-discipline
 hooks:
   PreToolUse:
     - matcher: "Write|Edit"

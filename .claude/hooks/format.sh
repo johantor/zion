@@ -5,7 +5,7 @@ lane="${1:-}"
 case "$lane" in
   dotnet)
     if command -v dotnet >/dev/null 2>&1; then
-      if ! dotnet format >/dev/null 2>&1; then
+      if ! dotnet format >/dev/null; then
         echo "format hook: dotnet format failed" >&2
       fi
     fi

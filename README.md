@@ -1,27 +1,16 @@
 # Matrix Team Claude Plugin
 
-This repository is a Claude Code plugin pack. It provides a ready-to-use `.claude/` setup with agents, commands, hooks, and skills.
-
-## Marketplace compatibility
-
-This repository now includes a Claude plugin manifest at `.claude-plugin/plugin.json` so plugin marketplaces can discover and install it directly from GitHub.
+A Claude Code plugin pack with orchestrated agents, commands, hooks, and skills for feature delivery.
 
 ## Install
 
-### Option A: Use this repository directly
-1. Clone this repository.
-2. Open it in Claude Code.
-3. Run:
-   - `claude --agent morpheus`
+Install via the Claude plugin marketplace:
 
-### Option B: Install into another repository
-1. Copy the `.claude/` folder from this repository into your target repository root.
-2. Copy `CLAUDE.md` into the target repository root.
-3. Ensure hook scripts are executable in the target repository:
-   - `chmod +x .claude/hooks/*.sh`
-4. Open the target repository in Claude Code.
-5. Run:
-   - `claude --agent morpheus`
+```bash
+claude plugin install matrix-team
+```
+
+Or browse for `matrix-team` in Claude Code under `/plugin > Discover`.
 
 ## Usage
 
@@ -36,18 +25,6 @@ This repository now includes a Claude plugin manifest at `.claude-plugin/plugin.
 - `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
 - `hooks/`: path guard, read guard, bash safety, formatter entrypoint
 - `commands/`: `/feature`, `/review`, `/ship`
-- `settings.json`: hook wiring
-- `CLAUDE.md`: crew configuration
-
-## Verify installation
-
-After install, confirm these paths exist in your repository:
-- `.claude/settings.json`
-- `.claude/agents/morpheus.md`
-- `.claude/commands/feature.md`
-- `.claude/hooks/bash-safety.sh`
-
-If they exist and `claude --agent morpheus` starts, installation is complete.
 
 ## Notes
 

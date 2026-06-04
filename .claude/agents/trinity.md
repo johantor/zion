@@ -12,6 +12,7 @@ color: cyan
 memory: local
 skills:
   - engineering-principles
+  - context-discipline
 hooks:
   PreToolUse:
     - matcher: "Edit|Write"

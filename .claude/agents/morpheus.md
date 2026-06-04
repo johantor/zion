@@ -26,6 +26,7 @@ Standard flow:
 Anti-drift rules:
 1. Maintain a written plan in `.claude/plan-<feature>.md` with per-step acceptance criteria and cite the exact step in every delegation.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, and explicit out-of-scope notes.
+   Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
 4. Treat test/design failures and “improvements noticed” as drift signals; fold them back into the plan deliberately.
 

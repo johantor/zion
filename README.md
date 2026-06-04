@@ -16,6 +16,8 @@ Then install from the marketplace (`<plugin-name>@<marketplace-name>`). Use the 
 claude plugin install matrix-team@matrix-team
 ```
 
+Here, the first `matrix-team` is the plugin name from `.claude-plugin/plugin.json`, and the second is the marketplace name.
+
 Or browse in Claude Code under `/plugin > Discover` after adding the marketplace.
 
 ## Usage

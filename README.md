@@ -35,7 +35,7 @@ Agents, hooks, and optional MCP setup are documented in
 
 ```bash
 claude plugin marketplace update zion-link
-claude plugin update crew
+claude plugin update crew@zion-link
 ```
 
 ---

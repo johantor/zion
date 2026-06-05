@@ -5,6 +5,20 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-06-05
+
+### Added
+- **Git workflow.** `morpheus` now owns version control: it resolves the project's **base
+  branch** and **branch-naming** convention (`CLAUDE.md` crew config → memory → ask),
+  creates a feature branch off the base, and commits each *verified* step. Workers never run
+  git. New `CLAUDE.md` crew-config slots: **Base branch**, **Branch naming**.
+- **`/crew:pr` command** — pushes the feature branch and opens a pull request via a git-host
+  MCP (GitHub / Azure DevOps), host-agnostic, with confirmation; falls back to printing the
+  `git push` command + a ready-to-paste PR body when no host MCP is present. The crew still
+  stops at the local ship gate by default; push/PR is this explicit step.
+- **`bash-safety` refuses `git commit` on a protected base branch** (`main`/`master`/`develop`)
+  — the crew branches first. (Applies to every Bash command, including the main session.)
+
 ## [1.1.3] - 2026-06-05
 
 ### Fixed
@@ -127,6 +141,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.2.0]: https://github.com/johantor/zion-link/compare/crew--v1.1.3...crew--v1.2.0
 [1.1.3]: https://github.com/johantor/zion-link/compare/crew--v1.1.2...crew--v1.1.3
 [1.1.2]: https://github.com/johantor/zion-link/compare/crew--v1.1.1...crew--v1.1.2
 [1.1.1]: https://github.com/johantor/zion-link/compare/crew--v1.1.0...crew--v1.1.1

@@ -30,6 +30,17 @@ if echo "$normalized" | grep -Eq 'rm -rf (/|~|\*)|git push .*--force([^-]|$)|>>?
   exit 2
 fi
 
+# Never commit onto a protected base branch — the crew works on feature branches
+# (morpheus owns branching). Catches plain `git commit ...`.
+if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)git[[:space:]]+commit([[:space:]]|$)'; then
+  branch="$(git branch --show-current 2>/dev/null || true)"
+  case "$branch" in
+    main|master|develop)
+      echo "Blocked: refusing to commit on protected branch '$branch'. Create a feature branch first (morpheus owns branching)." >&2
+      exit 2 ;;
+  esac
+fi
+
 if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)(less|more)[[:space:]]+'; then
   echo "Blocked: interactive raw reads are disallowed. Use targeted grep/rg/jq/scripted summaries instead." >&2
   exit 2

@@ -14,6 +14,7 @@ You write and run frontend e2e tests.
 
 Rules:
 - Edit test files only; never modify production code.
+- Never run `git` — `crew:morpheus` owns branching and commits.
 - Apply `context-discipline`: surface only failing specs and errors.
 - Keep full run logs in your own context.
 - Consult/update local memory.

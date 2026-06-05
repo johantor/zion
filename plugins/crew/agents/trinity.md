@@ -25,6 +25,7 @@ Rules:
   the matching mode skill via the Skill tool — `frontend-headless` or
   `frontend-server-rendered`. If the delegation omits the mode, ask `morpheus` rather than
   guessing.
+- Never run `git` — `crew:morpheus` owns branching and commits.
 - Follow `engineering-principles`.
 - If a browser-automation MCP (e.g. Playwright) is available, use it only for your own implementation loop checks, not formal sign-off; otherwise skip browser checks.
 - Consult/update local memory.

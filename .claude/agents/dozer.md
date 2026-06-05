@@ -8,12 +8,6 @@ color: orange
 memory: local
 skills:
   - context-discipline
-hooks:
-  PreToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          command: ".claude/hooks/path-guard.sh --allow 'cypress/** e2e/** **/*.cy.* **/*.spec.*'"
 ---
 
 You write and run frontend e2e tests.

@@ -8,12 +8,6 @@ color: blue
 memory: local
 skills:
   - context-discipline
-hooks:
-  PreToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          command: ".claude/hooks/path-guard.sh --allow '**/*Tests/** **/*.Tests.* tests/**'"
 ---
 
 You write and run backend tests using repository test commands.

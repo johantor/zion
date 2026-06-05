@@ -1,0 +1,13 @@
+{
+  "name": "zion-link",
+  "owner": {
+    "name": "johantor"
+  },
+  "plugins": [
+    {
+      "name": "team",
+      "source": ".",
+      "description": "Orchestrated agents, commands, hooks, and skills for feature delivery."
+    }
+  ]
+}

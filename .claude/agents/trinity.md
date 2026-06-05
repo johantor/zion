@@ -13,17 +13,6 @@ memory: local
 skills:
   - engineering-principles
   - context-discipline
-hooks:
-  PreToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          command: ".claude/hooks/path-guard.sh --deny '*.cs *.cshtml *.csproj'"
-  PostToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          command: ".claude/hooks/format.sh web"
 ---
 
 You are a frontend engineer owning React/Redux/SCSS.

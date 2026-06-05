@@ -1,6 +1,16 @@
 #!/usr/bin/env bash
+# Post-edit formatter, routed on the `agent_type` from the hook payload so the
+# backend lane formats .NET and the frontend lane formats web. Runs as a single
+# plugin/session-level PostToolUse(Edit|Write) hook; agents without a formatting
+# lane (and the main session) are no-ops.
 set -e
-lane="${1:-}"
+
+agent_type="$(jq -r '.agent_type // empty')"
+case "$agent_type" in
+  tank)    lane="dotnet" ;;
+  trinity) lane="web" ;;
+  *)       exit 0 ;;
+esac
 
 case "$lane" in
   dotnet)
@@ -22,7 +32,5 @@ case "$lane" in
         echo "format hook: no runnable npm format/lint script found" >&2
       fi
     fi
-    ;;
-  *)
     ;;
 esac

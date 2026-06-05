@@ -1,14 +1,9 @@
 #!/usr/bin/env bash
-# Centralized per-agent file-write lane enforcement.
-#
-# Runs as a single plugin/session-level PreToolUse(Edit|Write) hook and routes
-# on the `agent_type` field the harness adds to the payload when a sub-agent
-# makes the tool call. Plugin-shipped agents cannot carry hooks in their own
-# frontmatter, so the lanes live here instead and apply equally to local dev
-# (registered in .claude/settings.json) and installed use (hooks/hooks.json).
+# Per-agent file-write lane enforcement for PreToolUse(Edit|Write). Routes on the
+# `agent_type` the harness adds to the payload; plugin agents can't carry their
+# own hooks, so the lanes are centralized here.
 
-# Fail closed: a guard that can't read its input must block, not silently
-# allow. Missing jq or an unparseable payload is treated as a denial.
+# Fail closed: a guard that can't read its input must block, not allow.
 if ! command -v jq >/dev/null 2>&1; then
   echo "Blocked: lane-guard needs jq to enforce write lanes." >&2
   exit 2
@@ -32,15 +27,12 @@ case "$agent_type" in
   *) exit 0 ;;  # main session or any agent without a lane: no restriction
 esac
 
-# Disable filename expansion so $patterns word-splits into literal glob
-# patterns for [[ ]] below, instead of expanding against the filesystem.
+# set -f keeps $patterns as literal globs for [[ ]] instead of expanding them
+# against the filesystem. The */ prefix lets repo-relative patterns (tests/**)
+# match an absolute file_path; in [[ ]] a single * already spans '/'.
 set -f
 match=0
 for g in $patterns; do
-  # In [[ ]] a single * already spans '/', so ** behaves the same as * here.
-  # file_path is usually absolute, so also try the pattern with a leading */
-  # — that lets repo-relative patterns like tests/** or cypress/** match an
-  # absolute /abs/repo/tests/x path.
   # shellcheck disable=SC2053
   if [[ "$path" == $g || "$path" == */$g ]]; then
     match=1

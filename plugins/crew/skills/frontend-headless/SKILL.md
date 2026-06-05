@@ -1,6 +1,6 @@
 ---
 name: frontend-headless
-description: Conventions for decoupled/headless frontends — a React SPA (or Next.js) consuming Optimizely's Content Delivery API / Optimizely Graph (GraphQL) rather than Razor server rendering. Load when the repo's frontend mode is "headless".
+description: Conventions for decoupled/headless frontends — a React SPA (or Next.js) consuming Optimizely's Content Delivery API / Optimizely Graph (GraphQL) rather than Razor server rendering. Use for tasks involving a headless/decoupled Optimizely frontend, Content Delivery API or Optimizely Graph, or a React/Next.js SPA against a CMS. Load when the repo's frontend mode is "headless".
 ---
 
 # Headless frontend conventions

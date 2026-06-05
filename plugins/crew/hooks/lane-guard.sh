@@ -27,7 +27,8 @@ case "$agent_type" in
   trinity) mode="--deny";  patterns='*.cs *.csproj' ;;
   oracle)  mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/**' ;;
   dozer)   mode="--allow"; patterns='cypress/** e2e/** **/*.cy.* **/*.spec.*' ;;
-  seraph)  mode="--allow"; patterns='.claude/agent-memory-local/seraph/*' ;;
+  # seraph is a read-only reviewer with no edit/write tools, so it never reaches
+  # this Edit|Write hook — no lane entry needed.
   *) exit 0 ;;  # main session or any agent without a lane: no restriction
 esac
 

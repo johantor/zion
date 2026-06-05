@@ -5,6 +5,33 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.2] - 2026-06-05
+
+Addresses findings from a review by Anthropic's `plugin-dev` agents (plugin-validator,
+skill-reviewer) and a best-practice review of the agents/hooks.
+
+### Fixed
+- **`dozer` could not create new test files** — it authors Cypress specs but its tools
+  listed only `Edit`, not `Write`. Added `Write` (lane-guard already confines it to
+  `cypress/**`/spec paths).
+- `read-guard.sh`: replaced a fragile mixed `||`/`&&` line with an explicit `if`, and
+  documented that this guard intentionally fails open (it's context-hygiene, not security).
+- `format.sh`: read the hook payload once (it previously risked consuming stdin twice).
+
+### Changed
+- **`format.sh` is now project-aware.** For backend it scopes `dotnet format` to the changed
+  file instead of the whole solution (slow on large repos). For frontend it discovers the
+  project's own format/fix script from `package.json` (e.g. `format`, `format:fix`,
+  `lint:fix`, `biome:format`) by preference order rather than guessing, and skips when the
+  repo only exposes check-only scripts. Added a `timeout` to the format hook in `hooks.json`.
+- **`seraph` is now strictly read-only**: removed its `memory: local` and the stale
+  "memory edits allowed" rule (it has no write tools), and dropped its now-unreachable
+  `lane-guard` entry.
+- `dozer` `color: orange` → `magenta` (orange isn't in the documented agent palette).
+- Added keyword triggers to the `frontend-headless` / `frontend-server-rendered` skill
+  descriptions so they trigger outside crew preload too; aligned the `engineering-principles`
+  description wording ("DRY with judgment").
+
 ## [1.1.1] - 2026-06-05
 
 ### Fixed
@@ -89,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.1.2]: https://github.com/johantor/zion-link/compare/crew--v1.1.1...crew--v1.1.2
 [1.1.1]: https://github.com/johantor/zion-link/compare/crew--v1.1.0...crew--v1.1.1
 [1.1.0]: https://github.com/johantor/zion-link/compare/crew--v1.0.2...crew--v1.1.0
 [1.0.2]: https://github.com/johantor/zion-link/compare/crew--v1.0.1...crew--v1.0.2

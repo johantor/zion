@@ -21,7 +21,13 @@ while IFS= read -r f; do
 done < <(git ls-files '*.json')
 
 manifest=".claude-plugin/plugin.json"
-if [ -f "$manifest" ]; then
+if [ ! -f "$manifest" ]; then
+  err "$manifest not found"
+elif ! jq empty "$manifest" >/dev/null 2>&1; then
+  # Malformed JSON is already reported above; skip content checks so the
+  # run still reaches the summary instead of exiting under `set -e`.
+  err "$manifest is not valid JSON; skipping manifest content checks"
+else
   # 2. Manifest declares the required identity fields.
   for key in name version; do
     if [ "$(jq -r --arg k "$key" 'has($k)' "$manifest")" != "true" ]; then
@@ -41,8 +47,6 @@ if [ -f "$manifest" ]; then
       err "$key -> $path declared in $manifest but not found"
     fi
   done
-else
-  err "$manifest not found"
 fi
 
 # 4. Hook scripts are syntactically valid and executable.

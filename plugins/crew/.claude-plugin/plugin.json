@@ -6,8 +6,8 @@
   "author": {
     "name": "johantor"
   },
-  "homepage": "https://github.com/johantor/zion-link",
-  "repository": "https://github.com/johantor/zion-link",
+  "homepage": "https://github.com/johantor/zion",
+  "repository": "https://github.com/johantor/zion",
   "commands": "./commands",
   "skills": "./skills"
 }

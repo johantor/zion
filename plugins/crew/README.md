@@ -1,13 +1,13 @@
 # crew
 
 A Claude Code plugin: orchestrated agents, commands, hooks, and skills for
-feature delivery. Part of the [Zion Link](../../README.md) marketplace.
+feature delivery. Part of the [Zion](../../README.md) marketplace.
 
 ## Install
 
 ```bash
-claude plugin marketplace add johantor/zion-link
-claude plugin install crew@zion-link
+claude plugin marketplace add johantor/zion
+claude plugin install crew@zion
 ```
 
 Or browse in Claude Code under `/plugin > Discover` after adding the marketplace.

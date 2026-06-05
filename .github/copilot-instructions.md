@@ -1,6 +1,6 @@
 # Copilot instructions for guided reviews
 
-These instructions mirror how the Zion Link crew reviews code (`/crew:review` plus the
+These instructions mirror how the Zion crew reviews code (`/crew:review` plus the
 `engineering-principles` skill). Reviews look at three pillars — **code quality**,
 **security**, and **design conformance** — and classify every finding by severity.
 

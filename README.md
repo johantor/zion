@@ -23,16 +23,20 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
 ## Usage
 
 1. Start orchestrator: `claude --agent morpheus`
-2. Run `/zion-feature <ticket-or-task>` to plan and execute feature work.
-3. Run `/zion-review` for consolidated code + security + design review.
-4. Run `/zion-ship` for pre-PR go/no-go checks.
+2. Run `/crew:feature <ticket-or-task>` to plan and execute feature work.
+3. Run `/crew:review` for consolidated code + security + design review.
+4. Run `/crew:ship` for pre-PR go/no-go checks.
+
+Commands are namespaced under the plugin name (`crew:`) once installed, so they
+read as `crew:feature` / `crew:review` / `crew:ship` rather than colliding with
+any built-in or other-plugin commands of the same short name.
 
 ## What is included
 
 - `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
 - `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
-- `commands/`: `/zion-feature`, `/zion-review`, `/zion-ship`
+- `commands/`: `/crew:feature`, `/crew:review`, `/crew:ship`
 - `.github/copilot-instructions.md`: guided review instructions for GitHub Copilot
 
 ## Hooks & enforcement

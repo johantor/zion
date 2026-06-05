@@ -7,6 +7,8 @@ path="$(jq -r '.tool_input.file_path // .tool_input.path // empty')"
 [ -z "$path" ] && exit 0
 match=0
 for g in $patterns; do
+  # Glob match is intentional: $g is a path pattern, not a literal.
+  # shellcheck disable=SC2053
   if [[ "$path" == $g ]]; then
     match=1
     break

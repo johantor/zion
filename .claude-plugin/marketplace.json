@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "crew",
-      "source": ".",
+      "source": "./plugins/crew",
       "description": "Orchestrated agents, commands, hooks, and skills for feature delivery."
     }
   ]

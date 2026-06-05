@@ -12,7 +12,7 @@ When asked to review changes in this repository, use this sequence:
    - **Warnings**: should fix soon (maintainability or clarity risks).
    - **Passed**: checks that were explicitly reviewed and look good.
 3. Evaluate code quality against the `engineering-principles` skill
-   (`.claude/skills/engineering-principles/`). These are defaults, not dogma —
+   (`plugins/crew/skills/engineering-principles/`). These are defaults, not dogma —
    when a rule conflicts with the repo's established patterns, the repo wins:
    - **Match the repo**: follow existing conventions, structure, and idioms.
    - **YAGNI**: no speculative abstractions, unused params, or future-proofing; flag dead code.
@@ -35,20 +35,24 @@ When asked to review changes in this repository, use this sequence:
 8. Avoid noise:
    - Do not block on style-only nits unless they violate existing repository conventions.
 
-Repo-specific note: this repository is a Claude Code plugin (shell hooks, Markdown
-agent/command/skill definitions, JSON manifests) with no application build. Hold shell
-hooks to shellcheck-clean standards, and check that `.claude-plugin` manifests stay
-valid (`bash .claude/scripts/validate-plugin.sh`). Agents are auto-discovered from the
-root `agents/` directory (not declared in the manifest); commands/skills/hooks are pointed
-at via manifest path fields.
+Repo-specific note: this repository is a Claude Code plugin **marketplace monorepo**
+(shell hooks, Markdown agent/command/skill definitions, JSON manifests) with no
+application build. Each plugin lives under `plugins/<name>/` (its plugin root), with its
+manifest at `plugins/<name>/.claude-plugin/plugin.json` and `agents/`/`commands/`/`skills/`/`hooks/`
+beneath it. Hold shell hooks to shellcheck-clean standards, and validate every plugin's
+manifest/structure with `bash plugins/crew/scripts/validate-plugin.sh` (it checks all
+`plugins/*`). Agents are auto-discovered from each plugin's `agents/` directory (not
+declared in the manifest); commands/skills/hooks are pointed at via manifest path fields
+relative to the plugin root.
 
 Versioning: when a PR changes plugin behavior — agents, commands, skills, hooks, or the
-manifest — it must bump `version` in `.claude-plugin/plugin.json` (semver: patch for fixes,
-minor for additive features, major for breaking changes) and add a matching `CHANGELOG.md`
-entry. Users only receive changes via `claude plugin update`, which keys on `version`, so an
-unbumped version ships silently. Flag a missing bump/changelog entry as a **Warning**
-(or **Blocking** if it would prevent users from receiving a fix). Pure docs/CI/test-only
-changes that don't affect installed behavior do not require a bump.
+manifest — it must bump `version` in that plugin's `plugins/<name>/.claude-plugin/plugin.json`
+(semver: patch for fixes, minor for additive features, major for breaking changes) and add
+a matching `CHANGELOG.md` entry. Version each plugin independently. Users only receive
+changes via `claude plugin update`, which keys on `version`, so an unbumped version ships
+silently. Flag a missing bump/changelog entry as a **Warning** (or **Blocking** if it would
+prevent users from receiving a fix). Pure docs/CI/test-only changes that don't affect
+installed behavior do not require a bump.
 
 For review responses, use this exact heading structure:
 

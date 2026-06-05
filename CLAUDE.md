@@ -19,12 +19,19 @@ Keep them accurate; update them if this repo ever gains app code.
 
 ## Repository layout
 
-- `.claude-plugin/` — `plugin.json` (plugin manifest, name `crew`) and `marketplace.json`.
-- `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`. (Root-level so the plugin installer auto-discovers them; the `agents` manifest field is not used for discovery.)
-- `.claude/commands/` — `/feature`, `/review`, `/ship` (namespaced as `crew:feature` etc. once installed).
-- `.claude/skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
-- `.claude/hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks.json`.
-- `.claude/scripts/validate-plugin.sh` — manifest validation.
+This is a **monorepo marketplace**: `.claude-plugin/marketplace.json` lists the plugins,
+each of which lives in its own directory under `plugins/<name>/` (its plugin root). Adding
+a plugin is additive — create `plugins/<name>/` and add an entry to `marketplace.json`.
+
+- `.claude-plugin/marketplace.json` — the marketplace; lists each plugin and its `source`.
+- `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
+  - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
+  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`. Auto-discovered from this dir; not declared in the manifest.
+  - `commands/` — `/feature`, `/review`, `/ship` (namespaced as `crew:feature` etc. once installed).
+  - `skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
+  - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks.json`.
+  - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
+- `.claude/settings.json` — this repo's own dev-time hooks (point at `plugins/crew/hooks/` so the guards run while developing here).
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
 - `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation.
 
@@ -41,7 +48,7 @@ Keep them accurate; update them if this repo ever gains app code.
 Reviews — whether by `/crew:review`, the crew, or GitHub Copilot — judge code against
 the `engineering-principles` skill and classify every finding as **Blocking**,
 **Warning**, or **Passed**. The same three pillars apply: code quality, security,
-and design conformance. See `.claude/skills/engineering-principles/SKILL.md` for the
+and design conformance. See `plugins/crew/skills/engineering-principles/SKILL.md` for the
 full rules and `.github/copilot-instructions.md` for the review contract.
 
 Core principles (defaults, not dogma — the repo's established patterns win on conflict):
@@ -53,8 +60,8 @@ names, fail-fast error handling, and minimal-scope diffs.
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck .claude/hooks/*.sh .claude/scripts/*.sh
-bash .claude/scripts/validate-plugin.sh
+shellcheck plugins/*/hooks/*.sh plugins/*/scripts/*.sh
+bash plugins/crew/scripts/validate-plugin.sh
 ```
 
 ## Conventions

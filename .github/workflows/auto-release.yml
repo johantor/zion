@@ -1,8 +1,7 @@
-name: Auto-tag
+name: Auto-release
 
-# Push a release tag (<plugin>--v<version>) when a plugin's version is bumped
+# Create a GitHub Release (and its tag) when a plugin's version is bumped
 # on main AND the CHANGELOG contains an entry for that version.
-# The tag then triggers the release workflow to create a GitHub Release.
 
 on:
   push:
@@ -13,7 +12,7 @@ permissions:
   contents: write
 
 jobs:
-  tag:
+  release:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -22,12 +21,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Create tags for updated plugin versions
+      - name: Create releases for updated plugin versions
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          tagged=0
+          released=0
 
           for manifest in plugins/*/.claude-plugin/plugin.json; do
             plugin_dir="${manifest%/.claude-plugin/plugin.json}"
@@ -35,7 +34,7 @@ jobs:
             version="$(jq -r '.version' "$manifest")"
             tag="${plugin}--v${version}"
 
-            # Skip if the tag already exists
+            # Skip if the tag already exists (release already created)
             if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
               echo "Tag $tag already exists – skipping."
               continue
@@ -51,10 +50,20 @@ jobs:
               continue
             fi
 
-            echo "Creating tag $tag"
-            git tag "$tag"
-            git push origin "$tag"
-            tagged=$((tagged + 1))
+            # Extract release notes for this version from CHANGELOG.md
+            notes="$(awk -v ver="## [${version}]" '
+              /^## \[/ { if (found) exit; if (index($0, ver) == 1) { found = 1; print; next } }
+              found { print }
+            ' "$changelog")"
+            [ -z "$notes" ] && notes="Release ${tag}."
+
+            echo "Creating release $tag"
+            printf '%s' "$notes" > /tmp/release-notes.md
+            gh release create "${tag}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${plugin} v${version}" \
+              --notes-file /tmp/release-notes.md
+            released=$((released + 1))
           done
 
-          echo "Tags created: $tagged"
+          echo "Releases created: $released"

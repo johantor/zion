@@ -40,6 +40,14 @@ agent/command/skill definitions, JSON manifests) with no application build. Hold
 hooks to shellcheck-clean standards, and check that `.claude-plugin` manifests stay
 valid (`bash .claude/scripts/validate-plugin.sh`).
 
+Versioning: when a PR changes plugin behavior — agents, commands, skills, hooks, or the
+manifest — it must bump `version` in `.claude-plugin/plugin.json` (semver: patch for fixes,
+minor for additive features, major for breaking changes) and add a matching `CHANGELOG.md`
+entry. Users only receive changes via `claude plugin update`, which keys on `version`, so an
+unbumped version ships silently. Flag a missing bump/changelog entry as a **Warning**
+(or **Blocking** if it would prevent users from receiving a fix). Pure docs/CI/test-only
+changes that don't affect installed behavior do not require a bump.
+
 For review responses, use this exact heading structure:
 
 ## Blocking

@@ -37,9 +37,12 @@ esac
 set -f
 match=0
 for g in $patterns; do
-  # Glob match is intentional: $g is a path pattern, not a literal.
+  # In [[ ]] a single * already spans '/', so ** behaves the same as * here.
+  # file_path is usually absolute, so also try the pattern with a leading */
+  # — that lets repo-relative patterns like tests/** or cypress/** match an
+  # absolute /abs/repo/tests/x path.
   # shellcheck disable=SC2053
-  if [[ "$path" == $g ]]; then
+  if [[ "$path" == $g || "$path" == */$g ]]; then
     match=1
     break
   fi

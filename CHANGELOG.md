@@ -142,11 +142,11 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
-[1.2.0]: https://github.com/johantor/zion-link/compare/crew--v1.1.3...crew--v1.2.0
-[1.1.3]: https://github.com/johantor/zion-link/compare/crew--v1.1.2...crew--v1.1.3
-[1.1.2]: https://github.com/johantor/zion-link/compare/crew--v1.1.1...crew--v1.1.2
-[1.1.1]: https://github.com/johantor/zion-link/compare/crew--v1.1.0...crew--v1.1.1
-[1.1.0]: https://github.com/johantor/zion-link/compare/crew--v1.0.2...crew--v1.1.0
-[1.0.2]: https://github.com/johantor/zion-link/compare/crew--v1.0.1...crew--v1.0.2
-[1.0.1]: https://github.com/johantor/zion-link/compare/crew--v1.0.0...crew--v1.0.1
-[1.0.0]: https://github.com/johantor/zion-link/releases/tag/crew--v1.0.0
+[1.2.0]: https://github.com/johantor/zion/compare/crew--v1.1.3...crew--v1.2.0
+[1.1.3]: https://github.com/johantor/zion/compare/crew--v1.1.2...crew--v1.1.3
+[1.1.2]: https://github.com/johantor/zion/compare/crew--v1.1.1...crew--v1.1.2
+[1.1.1]: https://github.com/johantor/zion/compare/crew--v1.1.0...crew--v1.1.1
+[1.1.0]: https://github.com/johantor/zion/compare/crew--v1.0.2...crew--v1.1.0
+[1.0.2]: https://github.com/johantor/zion/compare/crew--v1.0.1...crew--v1.0.2
+[1.0.1]: https://github.com/johantor/zion/compare/crew--v1.0.0...crew--v1.0.1
+[1.0.0]: https://github.com/johantor/zion/releases/tag/crew--v1.0.0

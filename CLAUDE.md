@@ -1,4 +1,4 @@
-# Zion Link
+# Zion
 
 A Claude Code plugin pack ("crew") of orchestrated agents, commands, hooks, and
 skills for feature delivery. This repository **is the plugin** — there is no

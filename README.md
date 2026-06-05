@@ -1,4 +1,4 @@
-# Zion Link
+# Zion
 
 Claude Code plugins for feature delivery — a small **crew** of orchestrated agents
 that plan, build, test, and review your work, with guardrails that keep them on task.
@@ -8,8 +8,8 @@ that plan, build, test, and review your work, with guardrails that keep them on 
 Add the marketplace, then install a plugin:
 
 ```bash
-claude plugin marketplace add johantor/zion-link
-claude plugin install crew@zion-link
+claude plugin marketplace add johantor/zion
+claude plugin install crew@zion
 ```
 
 Or browse the plugins under `/plugin > Discover` in Claude Code.
@@ -18,7 +18,7 @@ Or browse the plugins under `/plugin > Discover` in Claude Code.
 
 ### crew
 
-> `claude plugin install crew@zion-link`
+> `claude plugin install crew@zion`
 
 Orchestrated, multi-agent feature delivery. An orchestrator (`morpheus`) plans the
 work and delegates to specialist workers — backend, frontend, tests, and visual
@@ -34,8 +34,8 @@ Agents, hooks, and optional MCP setup are documented in
 ## Staying up to date
 
 ```bash
-claude plugin marketplace update zion-link
-claude plugin update crew@zion-link
+claude plugin marketplace update zion
+claude plugin update crew@zion
 ```
 
 ---
@@ -47,9 +47,9 @@ Contributing a plugin or hacking on the crew? See **[CLAUDE.md](CLAUDE.md)**.
 <details>
 <summary>Trivia — what's with the names?</summary>
 
-Everything here is named from *The Matrix*. **Zion** is humanity's last city and a
-**Link** is the crew's operator/tether — together, the marketplace. The agents are the
-*Nebuchadnezzar*'s crew, mapped loosely to what they do:
+Everything here is named from *The Matrix*. **Zion** is humanity's last city — the home
+that houses the resistance, and a fitting name for a marketplace of crews. The agents are
+the *Nebuchadnezzar*'s crew, mapped loosely to what they do:
 
 - **morpheus** — the captain: plans and leads, writes no code himself (orchestrator).
 - **tank** & **dozer** — the operators: **tank** runs the backend, **dozer** runs the e2e tests.

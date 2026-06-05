@@ -1,0 +1,67 @@
+name: Release
+
+# Create a GitHub Release whenever a plugin release tag is pushed. Tags follow the
+# `<plugin>--v<version>` format produced by `claude plugin tag` (e.g. `crew--v1.1.2`).
+# The release notes are pulled from that version's section in CHANGELOG.md.
+
+on:
+  push:
+    tags:
+      - "*--v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Derive plugin and version from tag
+        id: meta
+        run: |
+          tag="${GITHUB_REF_NAME}"          # e.g. crew--v1.1.2
+          plugin="${tag%%--v*}"
+          version="${tag##*--v}"
+          if [ -z "$plugin" ] || [ -z "$version" ] || [ "$plugin" = "$tag" ]; then
+            echo "::error::Tag '$tag' is not in <plugin>--v<version> form"; exit 1
+          fi
+          echo "plugin=$plugin"   >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+
+      - name: Verify tag matches the plugin manifest version
+        run: |
+          manifest="plugins/${{ steps.meta.outputs.plugin }}/.claude-plugin/plugin.json"
+          if [ ! -f "$manifest" ]; then
+            echo "::error::No manifest at $manifest for tag $GITHUB_REF_NAME"; exit 1
+          fi
+          mver="$(jq -r '.version' "$manifest")"
+          if [ "$mver" != "${{ steps.meta.outputs.version }}" ]; then
+            echo "::error::Tag version ${{ steps.meta.outputs.version }} != $manifest version $mver"; exit 1
+          fi
+
+      - name: Extract release notes from CHANGELOG.md
+        id: notes
+        run: |
+          ver="${{ steps.meta.outputs.version }}"
+          notes="$(awk -v ver="## [$ver]" '
+            /^## \[/ { if (found) exit; if (index($0, ver) == 1) { found = 1; print; next } }
+            found { print }
+          ' CHANGELOG.md)"
+          [ -z "$notes" ] && notes="Release ${GITHUB_REF_NAME}."
+          {
+            echo "body<<RELEASE_NOTES_EOF"
+            printf '%s\n' "$notes"
+            echo "RELEASE_NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "${{ steps.meta.outputs.plugin }} v${{ steps.meta.outputs.version }}" \
+            --notes "${{ steps.notes.outputs.body }}" \
+            --verify-tag

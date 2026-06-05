@@ -66,6 +66,17 @@ shellcheck plugins/*/hooks/*.sh plugins/*/scripts/*.sh
 bash plugins/crew/scripts/validate-plugin.sh
 ```
 
+## Releasing
+
+Versions are per-plugin. To cut a release:
+
+1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a `CHANGELOG.md`
+   entry (a PR that changes plugin behavior must do this — see `copilot-instructions.md`).
+2. After it merges to `main`, tag the release with `claude plugin tag` (it creates a
+   `<plugin>--v<version>` tag and validates that `plugin.json` and the marketplace entry agree).
+3. Push the tag. `.github/workflows/release.yml` then creates the GitHub Release
+   automatically, with notes pulled from that version's `CHANGELOG.md` section.
+
 ## Conventions
 
 - Hooks are POSIX shell run via `bash`; keep them shellcheck-clean.

@@ -5,7 +5,10 @@
 # lane (and the main session) are no-ops.
 set -e
 
-agent_type="$(jq -r '.agent_type // empty')"
+# Fail open: formatting is best-effort, so a missing jq or unreadable payload
+# is a no-op rather than a hook failure.
+command -v jq >/dev/null 2>&1 || exit 0
+agent_type="$(jq -r '.agent_type // empty' 2>/dev/null || true)"
 case "$agent_type" in
   tank)    lane="dotnet" ;;
   trinity) lane="web" ;;

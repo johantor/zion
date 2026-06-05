@@ -7,7 +7,17 @@
 # frontmatter, so the lanes live here instead and apply equally to local dev
 # (registered in .claude/settings.json) and installed use (hooks/hooks.json).
 
+# Fail closed: a guard that can't read its input must block, not silently
+# allow. Missing jq or an unparseable payload is treated as a denial.
+if ! command -v jq >/dev/null 2>&1; then
+  echo "Blocked: lane-guard needs jq to enforce write lanes." >&2
+  exit 2
+fi
 payload="$(cat)"
+if ! printf '%s' "$payload" | jq empty >/dev/null 2>&1; then
+  echo "Blocked: lane-guard could not parse the hook payload." >&2
+  exit 2
+fi
 agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty')"
 path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty')"
 [ -z "$path" ] && exit 0

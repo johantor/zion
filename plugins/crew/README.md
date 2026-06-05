@@ -14,13 +14,16 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
 
 ## Usage
 
-1. Start orchestrator: `claude --agent morpheus`
-2. Run `/crew:feature <ticket-or-task>` to plan and execute feature work.
+1. Start orchestrator: `claude --agent crew:morpheus`
+2. Run `/crew:feature <ticket-or-task>` to plan and execute feature work. `morpheus` creates
+   a feature branch off your base branch and commits each verified step (workers never run git).
 3. Run `/crew:review` for consolidated code + security + design review.
 4. Run `/crew:ship` for pre-PR go/no-go checks.
+5. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
+   available, else prints the push command + PR body; outward action — it confirms first).
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
-read as `crew:feature` / `crew:review` / `crew:ship` rather than colliding with
+read as `crew:feature` / `crew:review` / `crew:ship` / `crew:pr` rather than colliding with
 any built-in or other-plugin commands of the same short name.
 
 ## What is included
@@ -28,7 +31,7 @@ any built-in or other-plugin commands of the same short name.
 - `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
 - `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
-- `commands/`: `/crew:feature`, `/crew:review`, `/crew:ship`
+- `commands/`: `/crew:feature`, `/crew:review`, `/crew:ship`, `/crew:pr`
 
 ## Hooks & enforcement
 
@@ -37,16 +40,21 @@ The hooks run as `PreToolUse`/`PostToolUse` guards (registered in
 plugin):
 
 - **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the
-  other stack's files, and `oracle`/`dozer`/`seraph` may only write their test
-  or memory paths. It routes on the `agent_type` in the payload, so the main
-  session is unrestricted. Fails closed.
+  other stack's files, and `oracle`/`dozer` may only write their test paths
+  (`seraph` is read-only, so it has no write lane). It routes on the `agent_type`
+  in the payload, so the main session is unrestricted. Fails closed.
 - **read-guard** blocks raw reads of files over 64 KiB (65536 bytes) —
   grep/jq/script them instead (see the `context-discipline` skill).
 - **bash-safety** blocks destructive commands (`rm -rf /`, force-push, redirects
   into `.env`, and redirects or `rm` into `.git/`) and raw/streaming reads
-  (`cat`, `less`, `tail -f`).
-- **format** runs the matching formatter after an edit (`dotnet format` for
-  `tank`, npm lint/format for `trinity`). Best-effort — fails open.
+  (`cat`, `less`, `tail -f`). For **crew agents** it also **refuses `git commit`
+  while HEAD is a common protected branch** (`main`/`master`/`develop`) — a fixed backstop.
+  Whatever your *resolved* base branch is (e.g. `develop` or `trunk`), `morpheus` and
+  `/crew:pr` keep the crew off it too. Scoped via `agent_type`, so your own main session is
+  never intercepted.
+- **format** discovers and runs the project's formatter after an edit
+  (`dotnet format` scoped to the changed file for `tank`; for `trinity`, the
+  project's own `package.json` format/fix script). Best-effort — fails open.
 
 ## Recommended MCP servers
 

@@ -20,6 +20,7 @@ Scope:
   (structure, classes, ARIA, presentation); coordinate the view-model contract rather
   than reworking the markup yourself. In **headless** mode, Razor is entirely yours.
 - Never edit frontend files (`.ts`/`.tsx`/`.jsx`/`.js`/`.html`/`.scss`/`.css`).
+- Never run `git` — `crew:morpheus` owns branching and commits.
 - Follow repository conventions and `engineering-principles`.
 - Consult local memory before starting and update it after finishing.
 - Return a concise file-change summary and rationale.

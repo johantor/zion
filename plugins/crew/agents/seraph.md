@@ -5,7 +5,6 @@ tools: Read, Grep, Glob, mcp__playwright__browser_navigate, mcp__playwright__bro
 model: sonnet
 maxTurns: 20
 color: yellow
-memory: local
 skills:
   - context-discipline
 ---
@@ -17,7 +16,6 @@ Given a running URL and design reference from delegation:
 - Return prioritized visual mismatches (layout, spacing, color, typography, states).
 
 Rules:
-- Edit no code.
-- Only memory-directory edits are allowed.
+- Read-only: you have no edit/write tools and persist nothing — return findings in your response.
 - If no browser MCP is available, say so and report only what the static references support — do not guess at rendered output.
 - Apply `context-discipline`: request targeted snapshots/elements, not broad dumps.

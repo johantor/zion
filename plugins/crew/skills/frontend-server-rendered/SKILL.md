@@ -1,6 +1,6 @@
 ---
 name: frontend-server-rendered
-description: Conventions for server-rendered frontends — Optimizely/.NET MVC with Razor views and React used as mounted islands/widgets rather than a full SPA. Load when the repo's frontend mode is "server-rendered".
+description: Conventions for server-rendered frontends — Optimizely/.NET MVC with Razor views and React used as mounted islands/widgets rather than a full SPA. Use for tasks involving Razor/.cshtml views, Optimizely/.NET MVC, display templates/IContentRenderer, or React mounted as islands/widgets. Load when the repo's frontend mode is "server-rendered".
 ---
 
 # Server-rendered frontend conventions

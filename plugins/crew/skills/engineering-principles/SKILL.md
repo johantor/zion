@@ -1,6 +1,6 @@
 ---
 name: engineering-principles
-description: Core code-quality rules — YAGNI, KISS, DRY-in-moderation, small single-purpose units, clear naming, minimal-scope diffs. Preload into implementer agents and consult during any code review. Use whenever writing, refactoring, or reviewing code.
+description: Core code-quality rules — YAGNI, KISS, DRY with judgment, small single-purpose units, clear naming, minimal-scope diffs. Preload into implementer agents and consult during any code review. Use whenever writing, refactoring, or reviewing code.
 ---
 
 # Engineering principles

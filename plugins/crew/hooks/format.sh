@@ -29,6 +29,7 @@ case "$lane" in
     ;;
   web)
     [ -f package.json ] || exit 0
+    command -v npm >/dev/null 2>&1 || exit 0  # fail open if npm isn't available
     # The format/fix script name varies per project, so discover it from
     # package.json rather than hardcoding. Prefer write/fix scripts in order;
     # skip check-only scripts (a PostToolUse hook should fix, not just report).

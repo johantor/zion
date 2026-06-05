@@ -19,8 +19,8 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
    a feature branch off your base branch and commits each verified step (workers never run git).
 3. Run `/crew:review` for consolidated code + security + design review.
 4. Run `/crew:ship` for pre-PR go/no-go checks.
-5. Run `/crew:pr` to push the branch and open a pull request (needs a git-host MCP; outward
-   action — it confirms first).
+5. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
+   available, else prints the push command + PR body; outward action — it confirms first).
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
 read as `crew:feature` / `crew:review` / `crew:ship` / `crew:pr` rather than colliding with

@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/bash-safety.sh"
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/bash-safety.sh"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/read-guard.sh"
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/read-guard.sh"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/lane-guard.sh"
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/lane-guard.sh"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PROJECT_DIR}\"/.claude/hooks/format.sh"
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/format.sh"
           }
         ]
       }

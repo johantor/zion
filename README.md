@@ -16,7 +16,7 @@ Then install from the marketplace (`<plugin-name>@<marketplace-name>`). Use the 
 claude plugin install crew@zion-link
 ```
 
-Here, `crew` is the plugin name from `.claude-plugin/plugin.json`, and `zion-link` is the marketplace name.
+Here, `crew` is the plugin name from `plugins/crew/.claude-plugin/plugin.json`, and `zion-link` is the marketplace name.
 
 Or browse in Claude Code under `/plugin > Discover` after adding the marketplace.
 
@@ -33,16 +33,18 @@ any built-in or other-plugin commands of the same short name.
 
 ## What is included
 
-- `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
-- `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
-- `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
-- `commands/`: `/crew:feature`, `/crew:review`, `/crew:ship`
+This repo is a marketplace; the `crew` plugin lives in `plugins/crew/`:
+
+- `plugins/crew/agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
+- `plugins/crew/skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
+- `plugins/crew/hooks/`: lane guard, read guard, bash safety, formatter entrypoint
+- `plugins/crew/commands/`: `/crew:feature`, `/crew:review`, `/crew:ship`
 - `.github/copilot-instructions.md`: guided review instructions for GitHub Copilot
 
 ## Hooks & enforcement
 
 The hooks run as `PreToolUse`/`PostToolUse` guards (registered in
-`.claude/settings.json` for local dev and `.claude/hooks/hooks.json` when
+`.claude/settings.json` for local dev and `plugins/crew/hooks/hooks.json` when
 installed as a plugin):
 
 - **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the

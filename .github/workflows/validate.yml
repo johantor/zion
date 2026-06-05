@@ -10,11 +10,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Lint hook & script shell files
-        run: shellcheck .claude/hooks/*.sh .claude/scripts/*.sh
+        run: shellcheck plugins/*/hooks/*.sh plugins/*/scripts/*.sh
 
   plugin:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - name: Validate plugin manifest & structure
-        run: .claude/scripts/validate-plugin.sh
+        run: plugins/crew/scripts/validate-plugin.sh

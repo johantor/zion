@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/.claude/hooks/bash-safety.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/bash-safety.sh"
           }
         ]
       },
@@ -15,7 +15,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/.claude/hooks/read-guard.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/read-guard.sh"
           }
         ]
       },
@@ -24,7 +24,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/.claude/hooks/lane-guard.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/lane-guard.sh"
           }
         ]
       }
@@ -35,7 +35,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/.claude/hooks/format.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/format.sh"
           }
         ]
       }

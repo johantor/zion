@@ -5,6 +5,18 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.2] - 2026-06-05
+
+### Changed
+- **Repo restructured into a monorepo marketplace.** The `crew` plugin now lives in
+  `plugins/crew/` (its own plugin root) instead of the repo root, and
+  `marketplace.json` points at it via `source: "./plugins/crew"`. Adding future
+  plugins is now additive (`plugins/<name>/` + a marketplace entry) with no
+  collision between each plugin's `agents/`/`commands/`/`skills/`/`hooks/`.
+  The installed plugin's components are unchanged — same agents, commands, and hooks.
+- `validate-plugin.sh` now validates every plugin under `plugins/*`, and CI globs
+  were updated accordingly.
+
 ## [1.0.1] - 2026-06-05
 
 ### Fixed
@@ -40,5 +52,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.0.2]: https://github.com/johantor/zion-link/compare/crew--v1.0.1...crew--v1.0.2
 [1.0.1]: https://github.com/johantor/zion-link/compare/crew--v1.0.0...crew--v1.0.1
 [1.0.0]: https://github.com/johantor/zion-link/releases/tag/crew--v1.0.0

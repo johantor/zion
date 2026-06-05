@@ -1,0 +1,10 @@
+# Normalize all text files to LF in the repository, and check them out as LF
+# on every platform. This repo's shell hooks/scripts run on Linux CI and as
+# plugin hooks, where CRLF would break shebangs and JSON path parsing.
+* text=auto eol=lf
+
+# Be explicit about the file types that must stay LF.
+*.sh   text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+*.yml  text eol=lf

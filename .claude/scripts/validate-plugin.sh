@@ -38,14 +38,19 @@ else
   done
 
   # 3. Component paths the manifest points at actually exist.
+  #    A field may be a single path string or an array of paths (the `agents`
+  #    field must be an array of file paths; `commands`/`skills` are directories;
+  #    `hooks` is a file). Validate every path regardless of shape.
   for key in commands agents skills hooks; do
-    path="$(jq -r --arg k "$key" '.[$k] // empty' "$manifest")"
-    [ -z "$path" ] && continue
-    if [ -e "$path" ]; then
-      ok "$key -> $path exists"
-    else
-      err "$key -> $path declared in $manifest but not found"
-    fi
+    while IFS= read -r path; do
+      path="${path%$'\r'}"  # tolerate CRLF checkouts on Windows
+      [ -z "$path" ] && continue
+      if [ -e "$path" ]; then
+        ok "$key -> $path exists"
+      else
+        err "$key -> $path declared in $manifest but not found"
+      fi
+    done < <(jq -r --arg k "$key" '(.[$k] // empty) | if type == "array" then .[] else . end' "$manifest")
   done
 fi
 

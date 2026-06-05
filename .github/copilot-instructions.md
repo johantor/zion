@@ -1,5 +1,9 @@
 # Copilot instructions for guided reviews
 
+These instructions mirror how the Zion Link crew reviews code (`/zion-review` plus the
+`engineering-principles` skill). Reviews look at three pillars — **code quality**,
+**security**, and **design conformance** — and classify every finding by severity.
+
 When asked to review changes in this repository, use this sequence:
 
 1. Review only changed files first, then expand to impacted neighbors when needed.
@@ -7,18 +11,34 @@ When asked to review changes in this repository, use this sequence:
    - **Blocking**: must fix before merge (bugs, security flaws, broken behavior, missing required tests).
    - **Warnings**: should fix soon (maintainability or clarity risks).
    - **Passed**: checks that were explicitly reviewed and look good.
-3. Always evaluate changes against the `engineering-principles` skill in `.claude/skills/engineering-principles/`:
-   - YAGNI (You Aren't Gonna Need It), KISS, clear naming, focused/small diffs, and pragmatic DRY.
+3. Evaluate code quality against the `engineering-principles` skill
+   (`.claude/skills/engineering-principles/`). These are defaults, not dogma —
+   when a rule conflicts with the repo's established patterns, the repo wins:
+   - **Match the repo**: follow existing conventions, structure, and idioms.
+   - **YAGNI**: no speculative abstractions, unused params, or future-proofing; flag dead code.
+   - **KISS**: simplest solution that works; optimize for the next reader.
+   - **DRY with judgment**: rule of three before abstracting; don't couple unrelated lookalikes.
+   - **Small units & clear naming**: one reason to change; intention-revealing names; comments explain *why*.
+   - **Errors**: fail fast, validate at boundaries, never silently swallow.
+   - **Minimal-scope diffs**: smallest change that solves the problem; no unrelated sprawl.
 4. Always include a security pass:
-   - Input validation, auth/authorization checks, secrets exposure, injection risks, unsafe deserialization, and dependency risk.
-5. Prefer concrete, actionable feedback:
+   - Input validation, auth/authorization checks, secrets exposure, injection risks,
+     unsafe deserialization, open redirects, and dependency risk.
+5. Cover design conformance when UI changes are involved:
+   - Layout, spacing, color, typography, and component states versus the design reference.
+6. Prefer concrete, actionable feedback:
    - Point to exact files/areas and describe expected behavior.
    - Suggest minimal-scope fixes over broad rewrites.
-6. Call out test coverage impact:
-   - Identify missing or weak tests for behavior changes.
+7. Call out test coverage impact:
+   - Identify missing or weak tests for behavior changes; test behavior, not implementation.
    - Mark test-only issues as warnings unless they hide a correctness gap.
-7. Avoid noise:
+8. Avoid noise:
    - Do not block on style-only nits unless they violate existing repository conventions.
+
+Repo-specific note: this repository is a Claude Code plugin (shell hooks, Markdown
+agent/command/skill definitions, JSON manifests) with no application build. Hold shell
+hooks to shellcheck-clean standards, and check that `.claude-plugin` manifests stay
+valid (`bash .claude/scripts/validate-plugin.sh`).
 
 For review responses, use this exact heading structure:
 

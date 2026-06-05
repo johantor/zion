@@ -45,10 +45,11 @@ installed as a plugin):
   other stack's files, and `oracle`/`dozer`/`seraph` may only write their test
   or memory paths. It routes on the `agent_type` in the payload, so the main
   session is unrestricted. Fails closed.
-- **read-guard** blocks raw reads of files over 64 KB — grep/jq/script them
-  instead (see the `context-discipline` skill).
-- **bash-safety** blocks destructive commands (`rm -rf /`, force-push, writes
-  into `.git/` or `.env`) and raw/streaming reads (`cat`, `less`, `tail -f`).
+- **read-guard** blocks raw reads of files over 64 KiB (65536 bytes) —
+  grep/jq/script them instead (see the `context-discipline` skill).
+- **bash-safety** blocks destructive commands (`rm -rf /`, force-push, redirects
+  into `.env`, and redirects or `rm` into `.git/`) and raw/streaming reads
+  (`cat`, `less`, `tail -f`).
 - **format** runs the matching formatter after an edit (`dotnet format` for
   `tank`, npm lint/format for `trinity`). Best-effort — fails open.
 

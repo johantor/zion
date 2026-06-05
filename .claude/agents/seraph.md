@@ -13,12 +13,6 @@ color: yellow
 memory: local
 skills:
   - context-discipline
-hooks:
-  PreToolUse:
-    - matcher: "Write|Edit"
-      hooks:
-        - type: command
-          command: ".claude/hooks/path-guard.sh --allow '.claude/agent-memory-local/seraph/*'"
 ---
 
 You are a visual reviewer.

@@ -8,17 +8,6 @@ memory: local
 skills:
   - engineering-principles
   - context-discipline
-hooks:
-  PreToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          command: ".claude/hooks/path-guard.sh --deny '*.ts *.tsx *.jsx *.scss *.css'"
-  PostToolUse:
-    - matcher: "Edit|Write"
-      hooks:
-        - type: command
-          command: ".claude/hooks/format.sh dotnet"
 ---
 
 You are a senior .NET/Optimizely backend engineer.

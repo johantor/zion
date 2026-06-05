@@ -11,4 +11,4 @@ Confirm the actual setup from the repo first; follow its patterns over these def
 - **Progressive enhancement:** usable server-rendered first; React layers on top.
 - **State:** keep React/Redux state scoped to its island; don't SPA-ify the whole page.
 - **Styling:** SCSS via the .NET/front-end build pipeline per repo conventions.
-- The C#/Razor view-model + controller side is the backend agent's; coordinate the contract.
+- **Razor ownership is concern-split:** the *markup/DOM* inside views (element structure, classes, ARIA, presentation) is the frontend agent's; the C# view-model + controller side is the backend agent's. Coordinate the contract rather than crossing into each other's concern.

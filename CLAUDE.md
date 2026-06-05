@@ -10,7 +10,9 @@ definitions, hooks, and docs.
 These values are read by the `morpheus` orchestrator and the frontend skills.
 Keep them accurate; update them if this repo ever gains app code.
 
-- **Frontend mode:** headless
+- **Frontend mode:** *unset* — optional here. Pin it (`headless` or `server-rendered`)
+  only to force a choice; otherwise `morpheus` resolves it per project (its memory, or by
+  asking you and then remembering). This repo is the plugin itself and has no frontend.
 - **Backend test command:** none (no backend test project detected)
 - **Frontend test command:** none (no frontend e2e suite detected)
 - **Build command:** none (no build manifest detected)
@@ -39,7 +41,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 
 - `morpheus` plans and delegates; it writes no production code. Workers stay idle until delegated to.
 - `morpheus` maintains a written plan at `.claude/plan-<feature>.md` with per-step acceptance criteria.
-- Worker lanes: `tank` = backend (C#/.NET/Optimizely/Razor), `trinity` = frontend (React/Redux/SCSS),
+- Worker lanes: `tank` = backend (C#/.NET/Optimizely, Razor server-side), `trinity` = frontend (React/Redux/JS/HTML/SCSS, plus Razor markup in server-rendered mode),
   `oracle` = backend tests only, `dozer` = frontend e2e only, `seraph` = visual design conformance (read-only).
 - All workers apply `context-discipline`: process bulk output with code, return only concise findings.
 

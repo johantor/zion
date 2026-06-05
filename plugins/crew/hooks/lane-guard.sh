@@ -18,9 +18,13 @@ path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.pat
 [ -z "$path" ] && exit 0
 
 # agent_type -> mode + space-separated glob patterns.
+# Note: .cshtml is intentionally NOT denied to either tank or trinity. Razor is
+# shared by concern (trinity = markup/DOM in server-rendered mode, tank = C#/server
+# logic), and the mode/concern split is enforced by the agent prompts, not here —
+# file globs can't see inside a file.
 case "$agent_type" in
-  tank)    mode="--deny";  patterns='*.ts *.tsx *.jsx *.scss *.css' ;;
-  trinity) mode="--deny";  patterns='*.cs *.cshtml *.csproj' ;;
+  tank)    mode="--deny";  patterns='*.ts *.tsx *.jsx *.js *.mjs *.scss *.css *.html' ;;
+  trinity) mode="--deny";  patterns='*.cs *.csproj' ;;
   oracle)  mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/**' ;;
   dozer)   mode="--allow"; patterns='cypress/** e2e/** **/*.cy.* **/*.spec.*' ;;
   seraph)  mode="--allow"; patterns='.claude/agent-memory-local/seraph/*' ;;

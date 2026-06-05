@@ -47,9 +47,9 @@ plugin):
   grep/jq/script them instead (see the `context-discipline` skill).
 - **bash-safety** blocks destructive commands (`rm -rf /`, force-push, redirects
   into `.env`, and redirects or `rm` into `.git/`) and raw/streaming reads
-  (`cat`, `less`, `tail -f`). It also **refuses `git commit` while HEAD is a
-  protected base branch** (`main`/`master`/`develop`) — the crew works on feature
-  branches; branch first.
+  (`cat`, `less`, `tail -f`). For **crew agents** it also **refuses `git commit`
+  while HEAD is a protected base branch** (`main`/`master`/`develop`) — they work on
+  feature branches. Scoped via `agent_type`, so your own main session is never intercepted.
 - **format** discovers and runs the project's formatter after an edit
   (`dotnet format` scoped to the changed file for `tank`; for `trinity`, the
   project's own `package.json` format/fix script). Best-effort — fails open.

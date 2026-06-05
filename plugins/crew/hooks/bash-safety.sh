@@ -20,6 +20,7 @@ fi
 # GNU-only \s so the guard also holds on BSD/macOS grep.
 cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')"
 normalized="$(printf '%s' "$cmd" | tr '\n' ' ')"
+agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty')"
 
 # Destructive ops, in order: rm -rf of /, ~ or *; force-push (but not the safe
 # --force-with-lease / --force-if-includes); redirect (> or >>) into .env;
@@ -30,13 +31,14 @@ if echo "$normalized" | grep -Eq 'rm -rf (/|~|\*)|git push .*--force([^-]|$)|>>?
   exit 2
 fi
 
-# Never commit onto a protected base branch — the crew works on feature branches
-# (morpheus owns branching). Catches plain `git commit ...`.
-if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)git[[:space:]]+commit([[:space:]]|$)'; then
+# Crew agents must not commit onto a protected base branch — they work on feature
+# branches (morpheus owns branching). Scoped to crew agents via agent_type so a
+# normal main session (no agent_type) is never intercepted. Catches plain `git commit`.
+if [ -n "$agent_type" ] && echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)git[[:space:]]+commit([[:space:]]|$)'; then
   branch="$(git branch --show-current 2>/dev/null || true)"
   case "$branch" in
     main|master|develop)
-      echo "Blocked: refusing to commit on protected branch '$branch'. Create a feature branch first (morpheus owns branching)." >&2
+      echo "Blocked: ${agent_type} may not commit on protected branch '$branch'. Work on a feature branch (morpheus owns branching)." >&2
       exit 2 ;;
   esac
 fi

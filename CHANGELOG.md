@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `git push` command + a ready-to-paste PR body when no host MCP is present. The crew still
   stops at the local ship gate by default; push/PR is this explicit step.
 - **`bash-safety` refuses `git commit` on a protected base branch** (`main`/`master`/`develop`)
-  — the crew branches first. (Applies to every Bash command, including the main session.)
+  for crew agents — they branch first. Scoped via `agent_type`, so a normal main session is
+  never intercepted.
 
 ## [1.1.3] - 2026-06-05
 

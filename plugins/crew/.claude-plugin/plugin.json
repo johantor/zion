@@ -1,6 +1,6 @@
 {
   "name": "crew",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "license": "MIT",
   "description": "Claude Code crew/plugin pack with orchestrated agents, commands, hooks, and skills for feature delivery.",
   "author": {
@@ -9,6 +9,5 @@
   "homepage": "https://github.com/johantor/zion-link",
   "repository": "https://github.com/johantor/zion-link",
   "commands": "./commands",
-  "skills": "./skills",
-  "hooks": "./hooks/hooks.json"
+  "skills": "./skills"
 }

@@ -41,7 +41,10 @@ while IFS= read -r manifest; do
 
   # 2b. Component paths the manifest points at actually exist. A field may be a
   #     single path string or an array of paths; validate every path.
-  for key in commands skills hooks; do
+  #     Note: `hooks` is intentionally NOT validated here — the standard
+  #     hooks/hooks.json is auto-loaded, so it must NOT be declared in the
+  #     manifest (doing so triggers a "Duplicate hooks file" load error).
+  for key in commands skills; do
     while IFS= read -r path; do
       path="${path%$'\r'}"  # tolerate CRLF checkouts on Windows
       [ -z "$path" ] && continue
@@ -53,12 +56,34 @@ while IFS= read -r manifest; do
     done < <(jq -r --arg k "$key" '(.[$k] // empty) | if type == "array" then .[] else . end' "$manifest")
   done
 
-  # 2c. Agents are auto-discovered from the plugin's `agents/` directory, not the
+  # 2c. The manifest may declare *additional* hook files, but must NOT declare the
+  #     standard hooks/hooks.json — it is auto-loaded, so declaring it triggers a
+  #     "Duplicate hooks file" load error. Validate that additional files exist.
+  while IFS= read -r path; do
+    path="${path%$'\r'}"  # tolerate CRLF checkouts on Windows
+    [ -z "$path" ] && continue
+    if [ "${path#./}" = "hooks/hooks.json" ]; then
+      err "$plugin_dir declares the auto-loaded hooks/hooks.json in its manifest; remove it (only additional hook files belong in manifest.hooks)"
+    elif [ -e "$plugin_dir/$path" ]; then
+      ok "$plugin_dir hooks -> $path exists (additional hook file)"
+    else
+      err "$plugin_dir hooks -> $path declared in $manifest but not found"
+    fi
+  done < <(jq -r '(.hooks // empty) | if type == "array" then .[] else . end' "$manifest")
+
+  # 2d. Agents are auto-discovered from the plugin's `agents/` directory, not the
   #     manifest (declaring them there passes validation but they never load).
   if [ -d "$plugin_dir/agents" ] && ls "$plugin_dir"/agents/*.md >/dev/null 2>&1; then
     ok "$plugin_dir agents/ exists with agent files"
   else
     err "$plugin_dir agents/ missing or empty (agents are auto-discovered from there)"
+  fi
+
+  # 2e. The auto-loaded hooks file should exist at the plugin root.
+  if [ -f "$plugin_dir/hooks/hooks.json" ]; then
+    ok "$plugin_dir hooks/hooks.json exists (auto-loaded)"
+  else
+    err "$plugin_dir hooks/hooks.json missing"
   fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 

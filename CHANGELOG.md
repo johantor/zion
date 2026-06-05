@@ -5,6 +5,17 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-06-05
+
+### Fixed
+- **Hooks no longer fail to load with "Duplicate hooks file detected."** The standard
+  `hooks/hooks.json` at the plugin root is auto-loaded, but the manifest also declared
+  `"hooks": "./hooks/hooks.json"`, so it was loaded twice. Removed the `hooks` field from
+  `plugin.json` (the manifest's `hooks` is only for *additional* hook files).
+- `validate-plugin.sh` now rejects only the auto-loaded `hooks/hooks.json` in the manifest
+  (additional hook files are still allowed and existence-checked) and asserts the root
+  `hooks/hooks.json` is present.
+
 ## [1.1.0] - 2026-06-05
 
 ### Changed
@@ -78,6 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.1.1]: https://github.com/johantor/zion-link/compare/crew--v1.1.0...crew--v1.1.1
 [1.1.0]: https://github.com/johantor/zion-link/compare/crew--v1.0.2...crew--v1.1.0
 [1.0.2]: https://github.com/johantor/zion-link/compare/crew--v1.0.1...crew--v1.0.2
 [1.0.1]: https://github.com/johantor/zion-link/compare/crew--v1.0.0...crew--v1.0.1

@@ -7,8 +7,8 @@ When asked to review changes in this repository, use this sequence:
    - **Blocking**: must fix before merge (bugs, security flaws, broken behavior, missing required tests).
    - **Warnings**: should fix soon (maintainability or clarity risks).
    - **Passed**: checks that were explicitly reviewed and look good.
-3. Always evaluate changes against `.claude/skills/engineering-principles/SKILL.md`:
-   - YAGNI, KISS, clear naming, focused/small diffs, and pragmatic DRY.
+3. Always evaluate changes against the `engineering-principles` skill in `.claude/skills/engineering-principles/`:
+   - YAGNI (You Aren't Gonna Need It), KISS, clear naming, focused/small diffs, and pragmatic DRY.
 4. Always include a security pass:
    - Input validation, auth/authorization checks, secrets exposure, injection risks, unsafe deserialization, and dependency risk.
 5. Prefer concrete, actionable feedback:

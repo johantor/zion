@@ -2,7 +2,7 @@
 cmd="$(jq -r '.tool_input.command // empty')"
 normalized="$(printf '%s' "$cmd" | tr '\n' ' ')"
 
-if echo "$normalized" | grep -Eq 'rm -rf (/|~|\*)|git push .*--force|>\s*\.env|(>>?|\brm\b)[^|;&]*\.git/'; then
+if echo "$normalized" | grep -Eq 'rm -rf (/|~|\*)|git push .*--force([^-]|$)|>\s*\.env|(>>?|\brm\b)[^|;&]*\.git/'; then
   echo "Blocked: unsafe command." >&2
   exit 2
 fi

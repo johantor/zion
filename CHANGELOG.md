@@ -5,6 +5,17 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.3] - 2026-06-05
+
+### Fixed
+- **`morpheus` could not delegate to workers when installed** ("Agent type 'tank' not
+  found"). Installed plugin agents are namespaced, so `morpheus` now delegates to and
+  allowlists `crew:tank` / `crew:trinity` / `crew:oracle` / `crew:dozer` / `crew:seraph`,
+  and its launch hint is `claude --agent crew:morpheus`.
+- **Hardened `morpheus` against improvising.** Planning/delegation/synthesis are its only
+  outputs; if a delegation can't be launched it must stop and report rather than copy files,
+  invent project conventions, or do the worker's job itself.
+
 ## [1.1.2] - 2026-06-05
 
 Addresses findings from a review by Anthropic's `plugin-dev` agents (plugin-validator,
@@ -116,6 +127,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.1.3]: https://github.com/johantor/zion-link/compare/crew--v1.1.2...crew--v1.1.3
 [1.1.2]: https://github.com/johantor/zion-link/compare/crew--v1.1.1...crew--v1.1.2
 [1.1.1]: https://github.com/johantor/zion-link/compare/crew--v1.1.0...crew--v1.1.1
 [1.1.0]: https://github.com/johantor/zion-link/compare/crew--v1.0.2...crew--v1.1.0

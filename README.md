@@ -78,10 +78,10 @@ strips `mcpServers` from plugin-shipped agent frontmatter for security. Without
 it, `seraph` reports that visual checks need a browser MCP and `trinity` skips
 its browser loop-checks — nothing breaks.
 
-> Note: `seraph`/`trinity` ship with a restricted `tools:` allowlist. If you add
-> a browser MCP and want them to call it, also grant the relevant `mcp__*` tool
-> names in those agents (or run them from your own `.claude/agents/`, where
-> `mcpServers:` frontmatter is honored).
+> Note: `seraph` and `trinity` already allowlist the major Playwright tools
+> (`mcp__playwright__browser_*`), so adding the server above named `playwright`
+> is all that's needed. If you run a different browser MCP — or name the server
+> something else — grant its `mcp__<server>__*` tool names in those agents.
 
 ## Notes
 

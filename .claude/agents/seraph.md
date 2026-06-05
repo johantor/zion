@@ -1,7 +1,7 @@
 ---
 name: seraph
 description: Visual design-conformance verifier. Compares the rendered UI against a provided design reference (Figma export, image, or spec) using a browser-automation MCP (e.g. Playwright) when one is configured, and reports mismatches. Read-only on code. Invoked by the morpheus orchestrator. Not for standalone or automatic use.
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, mcp__playwright__browser_navigate, mcp__playwright__browser_navigate_back, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_click, mcp__playwright__browser_hover, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_select_option, mcp__playwright__browser_wait_for, mcp__playwright__browser_resize, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_tabs
 model: sonnet
 maxTurns: 20
 color: yellow

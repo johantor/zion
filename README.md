@@ -55,11 +55,17 @@ installed as a plugin):
 ## Recommended MCP servers
 
 The plugin bundles no MCP servers — agents use one only when it's present in
-your session, and degrade gracefully when it isn't. For full capability, add the
+your session, and degrade gracefully when it isn't. MCP config lives in your own
+session (project `.mcp.json` or `claude mcp add`) rather than the plugin, because
+the harness strips `mcpServers` from plugin-shipped agent frontmatter for
+security. All of the below are optional.
+
+### Browser automation (Playwright)
+
+For full visual capability, add the
 [Playwright MCP](https://github.com/microsoft/playwright-mcp) so `trinity`
 (implementation loop-checks) and `seraph` (visual conformance) can drive a real
-browser. Add it to your own config — e.g. `claude mcp add`, or a project
-`.mcp.json`:
+browser:
 
 ```json
 {
@@ -73,15 +79,43 @@ browser. Add it to your own config — e.g. `claude mcp add`, or a project
 }
 ```
 
-This lives in your session config rather than the plugin because the harness
-strips `mcpServers` from plugin-shipped agent frontmatter for security. Without
-it, `seraph` reports that visual checks need a browser MCP and `trinity` skips
-its browser loop-checks — nothing breaks.
+Without it, `seraph` reports that visual checks need a browser MCP and `trinity`
+skips its browser loop-checks — nothing breaks.
 
 > Note: `seraph` and `trinity` already allowlist the major Playwright tools
 > (`mcp__playwright__browser_*`), so adding the server above named `playwright`
 > is all that's needed. If you run a different browser MCP — or name the server
 > something else — grant its `mcp__<server>__*` tool names in those agents.
+
+### Git hosting (optional, for ticket-in / PR-out)
+
+The crew is host-agnostic and stops at the local **GO/NO-GO** ship gate — it does
+not open PRs or read tickets on its own. If you want the orchestrator to fetch a
+work item or open the PR with the ship summary, add the MCP for your host. These
+are **not wired into the commands yet** — they just make the host tools available
+when you ask for them.
+
+GitHub — official [github/github-mcp-server](https://github.com/github/github-mcp-server)
+(remote, needs a GitHub PAT):
+
+```bash
+claude mcp add-json github '{"type":"http","url":"https://api.githubcopilot.com/mcp/","headers":{"Authorization":"Bearer YOUR_GITHUB_PAT"}}'
+```
+
+Azure DevOps — official [microsoft/azure-devops-mcp](https://github.com/microsoft/azure-devops-mcp)
+(stdio, uses your `az login`; pass your org name):
+
+```json
+{
+  "mcpServers": {
+    "ado": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@azure-devops/mcp", "YOUR_ADO_ORG"]
+    }
+  }
+}
+```
 
 ## Notes
 

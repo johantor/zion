@@ -33,6 +33,7 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
 - `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
 - `commands/`: `/zion-feature`, `/zion-review`, `/zion-ship`
+- `.github/copilot-instructions.md`: guided review instructions for GitHub Copilot
 
 ## Notes
 

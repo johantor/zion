@@ -5,7 +5,7 @@
   },
   "plugins": [
     {
-      "name": "team",
+      "name": "crew",
       "source": ".",
       "description": "Orchestrated agents, commands, hooks, and skills for feature delivery."
     }

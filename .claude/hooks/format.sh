@@ -1,12 +1,9 @@
 #!/usr/bin/env bash
-# Post-edit formatter, routed on the `agent_type` from the hook payload so the
-# backend lane formats .NET and the frontend lane formats web. Runs as a single
-# plugin/session-level PostToolUse(Edit|Write) hook; agents without a formatting
-# lane (and the main session) are no-ops.
+# PostToolUse(Edit|Write) formatter, routed on `agent_type`: tank formats .NET,
+# trinity formats web. Other agents and the main session are no-ops.
 set -e
 
-# Fail open: formatting is best-effort, so a missing jq or unreadable payload
-# is a no-op rather than a hook failure.
+# Fail open: formatting is best-effort, so a missing jq is a no-op, not an error.
 command -v jq >/dev/null 2>&1 || exit 0
 agent_type="$(jq -r '.agent_type // empty' 2>/dev/null || true)"
 case "$agent_type" in

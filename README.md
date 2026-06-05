@@ -35,6 +35,23 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
 - `commands/`: `/zion-feature`, `/zion-review`, `/zion-ship`
 - `.github/copilot-instructions.md`: guided review instructions for GitHub Copilot
 
+## Hooks & enforcement
+
+The hooks run as `PreToolUse`/`PostToolUse` guards (registered in
+`.claude/settings.json` for local dev and `.claude/hooks/hooks.json` when
+installed as a plugin):
+
+- **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the
+  other stack's files, and `oracle`/`dozer`/`seraph` may only write their test
+  or memory paths. It routes on the `agent_type` in the payload, so the main
+  session is unrestricted. Fails closed.
+- **read-guard** blocks raw reads of files over 64 KB — grep/jq/script them
+  instead (see the `context-discipline` skill).
+- **bash-safety** blocks destructive commands (`rm -rf /`, force-push, writes
+  into `.git/` or `.env`) and raw/streaming reads (`cat`, `less`, `tail -f`).
+- **format** runs the matching formatter after an edit (`dotnet format` for
+  `tank`, npm lint/format for `trinity`). Best-effort — fails open.
+
 ## Notes
 
 - Worker agents stay idle until `morpheus` delegates.

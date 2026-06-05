@@ -6,7 +6,7 @@ Given `$ARGUMENTS` (ticket ID, task description, or free-form requirement):
 
 1. Read `CLAUDE.md` crew configuration and any relevant existing plan files under `.claude/`.
 2. Explore the codebase to understand affected areas (do not modify anything yet).
-3. Write `.claude/plan-<slug>.md` with:
+3. Write `.claude/plan-<feature>.md` with:
    - Feature summary and scope boundary
    - Ordered steps, each with explicit acceptance criteria
    - Known constraints (backend lane, frontend lane, tests required, design ref if any)

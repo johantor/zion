@@ -2,11 +2,6 @@
 name: trinity
 description: Frontend implementer for React, Redux (slices/selectors), and SCSS. Invoked by the morpheus orchestrator. Not for standalone or automatic use.
 tools: Read, Edit, Write, Grep, Glob, Bash
-mcpServers:
-  - playwright:
-      type: stdio
-      command: npx
-      args: ["-y", "@playwright/mcp@latest"]
 model: sonnet
 color: cyan
 memory: local
@@ -23,6 +18,6 @@ Rules:
   - `frontend-headless` or
   - `frontend-server-rendered`
 - Follow `engineering-principles`.
-- Use Playwright only for your own implementation loop checks, not formal sign-off.
+- If a browser-automation MCP (e.g. Playwright) is available, use it only for your own implementation loop checks, not formal sign-off; otherwise skip browser checks.
 - Consult/update local memory.
 - Return implementation summary and design assumptions.

@@ -52,6 +52,37 @@ installed as a plugin):
 - **format** runs the matching formatter after an edit (`dotnet format` for
   `tank`, npm lint/format for `trinity`). Best-effort — fails open.
 
+## Recommended MCP servers
+
+The plugin bundles no MCP servers — agents use one only when it's present in
+your session, and degrade gracefully when it isn't. For full capability, add the
+[Playwright MCP](https://github.com/microsoft/playwright-mcp) so `trinity`
+(implementation loop-checks) and `seraph` (visual conformance) can drive a real
+browser. Add it to your own config — e.g. `claude mcp add`, or a project
+`.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    }
+  }
+}
+```
+
+This lives in your session config rather than the plugin because the harness
+strips `mcpServers` from plugin-shipped agent frontmatter for security. Without
+it, `seraph` reports that visual checks need a browser MCP and `trinity` skips
+its browser loop-checks — nothing breaks.
+
+> Note: `seraph`/`trinity` ship with a restricted `tools:` allowlist. If you add
+> a browser MCP and want them to call it, also grant the relevant `mcp__*` tool
+> names in those agents (or run them from your own `.claude/agents/`, where
+> `mcpServers:` frontmatter is honored).
+
 ## Notes
 
 - Worker agents stay idle until `morpheus` delegates.

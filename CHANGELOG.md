@@ -17,6 +17,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `validate-plugin.sh` now validates every plugin under `plugins/*`, and CI globs
   were updated accordingly.
 
+### Added
+- Per-plugin `plugins/crew/README.md`; the root `README.md` is now a marketplace
+  overview with a plugin index.
+
 ## [1.0.1] - 2026-06-05
 
 ### Fixed

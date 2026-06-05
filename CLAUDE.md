@@ -20,8 +20,8 @@ Keep them accurate; update them if this repo ever gains app code.
 ## Repository layout
 
 - `.claude-plugin/` — `plugin.json` (plugin manifest, name `crew`) and `marketplace.json`.
-- `.claude/agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`.
-- `.claude/commands/` — `/zion-feature`, `/zion-review`, `/zion-ship`.
+- `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`. (Root-level so the plugin installer auto-discovers them; the `agents` manifest field is not used for discovery.)
+- `.claude/commands/` — `/feature`, `/review`, `/ship` (namespaced as `crew:feature` etc. once installed).
 - `.claude/skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
 - `.claude/hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks.json`.
 - `.claude/scripts/validate-plugin.sh` — manifest validation.
@@ -38,7 +38,7 @@ Keep them accurate; update them if this repo ever gains app code.
 
 ## How we look at code (the crew reviewer)
 
-Reviews — whether by `/zion-review`, the crew, or GitHub Copilot — judge code against
+Reviews — whether by `/crew:review`, the crew, or GitHub Copilot — judge code against
 the `engineering-principles` skill and classify every finding as **Blocking**,
 **Warning**, or **Passed**. The same three pillars apply: code quality, security,
 and design conformance. See `.claude/skills/engineering-principles/SKILL.md` for the

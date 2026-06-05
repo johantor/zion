@@ -38,10 +38,9 @@ else
   done
 
   # 3. Component paths the manifest points at actually exist.
-  #    A field may be a single path string or an array of paths (the `agents`
-  #    field must be an array of file paths; `commands`/`skills` are directories;
-  #    `hooks` is a file). Validate every path regardless of shape.
-  for key in commands agents skills hooks; do
+  #    A field may be a single path string or an array of paths. Validate every
+  #    path regardless of shape.
+  for key in commands skills hooks; do
     while IFS= read -r path; do
       path="${path%$'\r'}"  # tolerate CRLF checkouts on Windows
       [ -z "$path" ] && continue
@@ -52,9 +51,17 @@ else
       fi
     done < <(jq -r --arg k "$key" '(.[$k] // empty) | if type == "array" then .[] else . end' "$manifest")
   done
+
+  # 4. Agents are auto-discovered from the root `agents/` directory, not the
+  #    manifest (declaring them there passes validation but they never load).
+  if [ -d agents ] && ls agents/*.md >/dev/null 2>&1; then
+    ok "agents/ directory exists with agent files"
+  else
+    err "agents/ directory missing or empty (agents are auto-discovered from there)"
+  fi
 fi
 
-# 4. Hook scripts are syntactically valid and executable.
+# 5. Hook scripts are syntactically valid and executable.
 while IFS= read -r h; do
   if bash -n "$h" 2>/dev/null; then
     ok "syntax: $h"

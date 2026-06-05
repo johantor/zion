@@ -1,6 +1,6 @@
 # Copilot instructions for guided reviews
 
-These instructions mirror how the Zion Link crew reviews code (`/zion-review` plus the
+These instructions mirror how the Zion Link crew reviews code (`/crew:review` plus the
 `engineering-principles` skill). Reviews look at three pillars — **code quality**,
 **security**, and **design conformance** — and classify every finding by severity.
 
@@ -38,7 +38,9 @@ When asked to review changes in this repository, use this sequence:
 Repo-specific note: this repository is a Claude Code plugin (shell hooks, Markdown
 agent/command/skill definitions, JSON manifests) with no application build. Hold shell
 hooks to shellcheck-clean standards, and check that `.claude-plugin` manifests stay
-valid (`bash .claude/scripts/validate-plugin.sh`).
+valid (`bash .claude/scripts/validate-plugin.sh`). Agents are auto-discovered from the
+root `agents/` directory (not declared in the manifest); commands/skills/hooks are pointed
+at via manifest path fields.
 
 Versioning: when a PR changes plugin behavior — agents, commands, skills, hooks, or the
 manifest — it must bump `version` in `.claude-plugin/plugin.json` (semver: patch for fixes,

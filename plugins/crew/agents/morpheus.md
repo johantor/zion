@@ -1,7 +1,7 @@
 ---
 name: morpheus
 description: Orchestrator for multi-agent feature work — invoke via `/crew:feature` from a normal session. Optionally launch a dedicated orchestration session with `claude --agent crew:morpheus`; that session is scoped to crew work and won't run general/config tasks (e.g. statusline) — do those in a normal session. Plans work, delegates to specialist workers, synthesizes results.
-tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph), Read, Write, Edit, Bash, Grep, Glob
+tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph), Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github
 model: opus
 color: green
 maxTurns: 80

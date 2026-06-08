@@ -99,11 +99,15 @@ skips its browser loop-checks — nothing breaks.
 
 ### Git hosting (optional, for ticket-in / PR-out)
 
-The crew is host-agnostic and stops at the local **GO/NO-GO** ship gate — it does
-not open PRs or read tickets on its own. If you want the orchestrator to fetch a
-work item or open the PR with the ship summary, add the MCP for your host. These
-are **not wired into the commands yet** — they just make the host tools available
-when you ask for them.
+The crew is host-agnostic and stops at the local **GO/NO-GO** ship gate — opening
+the PR is the explicit `/crew:pr` step. If you want the orchestrator to fetch a
+work item or open the PR with the ship summary, add the MCP for your host.
+
+`morpheus` already allowlists the `mcp__ado` and `mcp__github` servers (plus
+`ToolSearch`, which loads their deferred tool schemas, and `Bash` for `az` / `gh`),
+so once you add the server below it can drive PR work — including from a
+`claude --agent crew:morpheus` session. If you name your host server something
+other than `ado` / `github`, add its `mcp__<server>` to `morpheus`'s `tools`.
 
 GitHub — official [github/github-mcp-server](https://github.com/github/github-mcp-server)
 (remote, needs a GitHub PAT):

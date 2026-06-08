@@ -5,6 +5,16 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-06-08
+
+### Added
+- **`morpheus` can drive a git-host MCP for PR work.** It now allowlists `ToolSearch` (to load
+  deferred MCP tool schemas — without it the host MCP can't be invoked) and the `mcp__ado` /
+  `mcp__github` servers (server-scoped, matching the hosts the README documents). Combined with
+  its existing unrestricted `Bash` (`az` / `gh`), this lets `/crew:pr` open and manage pull
+  requests from a `claude --agent crew:morpheus` session. If your host MCP is named something
+  other than `ado` / `github`, add its `mcp__<server>` to morpheus's `tools`.
+
 ## [1.3.0] - 2026-06-08
 
 ### Added

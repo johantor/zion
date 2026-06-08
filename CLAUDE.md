@@ -16,6 +16,10 @@ Keep them accurate; update them if this repo ever gains app code.
 - **Backend test command:** none (no backend test project detected)
 - **Frontend test command:** none (no frontend e2e suite detected)
 - **Build command:** none (no build manifest detected)
+- **Backend lint command:** none (no backend project detected) — e.g. `dotnet format --verify-no-changes`,
+  plus `dotnet csharpier check` when a `.csharpierrc` is present.
+- **Frontend lint command:** none (no frontend project detected) — e.g. the project's
+  `lint` script (`eslint`, `biome check`, `stylelint`, etc.) in report/verify mode.
 - **Base branch:** *unset* — the branch `morpheus` branches off (e.g. `main` / `develop` /
   trunk). If unset, `morpheus` resolves it per project (its memory, or by asking you).
 - **Branch naming:** *unset* — convention for crew feature branches (e.g. `feature/<ticket>-<slug>`).

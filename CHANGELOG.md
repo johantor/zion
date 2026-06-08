@@ -5,6 +5,32 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-06-08
+
+### Added
+- **Backend `format.sh` now runs CSharpier.** `dotnet format` doesn't invoke CSharpier, so
+  when the solution configures it (`.csharpierrc`), the formatter hook also runs
+  `dotnet csharpier format <file>` for `tank` — best-effort, scoped to the changed file.
+- **Diff-aware ship gate.** `/crew:ship` now scopes to the branch diff vs. the base branch:
+  `morpheus` classifies changed files into backend (`*.cs`/`*.csproj`/`.cshtml`) and frontend
+  (`*.ts`/`*.tsx`/`*.js`/`*.scss`/`*.css`/`*.html`/`.cshtml`) lanes and runs only the gates a
+  changed lane can affect — a backend-only diff no longer runs the full e2e suite. Skips are
+  reported explicitly (never silent); `/crew:ship full` forces every gate.
+- **Backend lint gate** added to `/crew:ship`, symmetric to the frontend one (verify mode —
+  e.g. `dotnet format --verify-no-changes` plus `dotnet csharpier check`). New `CLAUDE.md`
+  crew-config slots: **Backend lint command**, **Frontend lint command**.
+
+### Changed
+- **Frontend `format.sh` applies every configured tool, not just the first match.** It now
+  detects and runs Biome, Prettier, ESLint, and Stylelint (each in fix mode, scoped to the
+  changed file, only when installed locally) instead of stopping at the first `package.json`
+  script it found — so projects using both a formatter and linters get all of them applied.
+- **`morpheus` entry-point guidance.** `/crew:feature` (run from a normal session) is now the
+  documented entry point; launching a terminal *as* `claude --agent crew:morpheus` is an
+  optional, explicitly scoped orchestration session that won't run general/config tasks (e.g.
+  statusline) — do those in a normal session. Resolves the prior contradiction between the
+  launch hint and the orchestrator's delegate-only design.
+
 ## [1.2.0] - 2026-06-05
 
 ### Added

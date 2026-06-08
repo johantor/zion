@@ -15,36 +15,75 @@ case "$agent_type" in
   *)       exit 0 ;;
 esac
 
+# True if any given path exists (config-file detection; unmatched globs pass
+# through literally and simply fail the -e test).
+cfg() { for _p in "$@"; do [ -e "$_p" ] && return 0; done; return 1; }
+
 case "$lane" in
   dotnet)
+    command -v dotnet >/dev/null 2>&1 || exit 0  # fail open if dotnet isn't available
+    # dotnet format applies whitespace + style + analyzer fixes from .editorconfig.
     # Scope to the changed file so we don't reformat the whole solution on every
     # edit (slow on large repos); fall back to the project if the path is unknown.
-    if command -v dotnet >/dev/null 2>&1; then
-      if [ -n "$path" ]; then
-        dotnet format --include "$path" >/dev/null 2>&1 || echo "format hook: dotnet format failed" >&2
+    if [ -n "$path" ]; then
+      dotnet format --include "$path" >/dev/null 2>&1 || echo "format hook: dotnet format failed" >&2
+    else
+      dotnet format >/dev/null 2>&1 || echo "format hook: dotnet format failed" >&2
+    fi
+    # CSharpier is a separate opinionated formatter that dotnet format does not run.
+    # When the solution configures it (.csharpierrc), apply it too — best-effort:
+    # if the tool isn't restored, report and move on rather than failing the edit.
+    if [ -n "$path" ] && cfg .csharpierrc .csharpierrc.* ; then
+      if dotnet csharpier format "$path" >/dev/null 2>&1; then
+        echo "format hook: ran csharpier on $path" >&2
       else
-        dotnet format >/dev/null 2>&1 || echo "format hook: dotnet format failed" >&2
+        echo "format hook: csharpier configured but failed (is it restored? 'dotnet tool restore')" >&2
       fi
     fi
     ;;
   web)
     [ -f package.json ] || exit 0
-    command -v npm >/dev/null 2>&1 || exit 0  # fail open if npm isn't available
-    # The format/fix script name varies per project, so discover it from
-    # package.json rather than hardcoding. Prefer write/fix scripts in order;
-    # skip check-only scripts (a PostToolUse hook should fix, not just report).
-    fmt=""
-    for cand in format format:fix format:write fix lint:fix biome:format prettier:write prettier; do
-      if jq -e --arg s "$cand" '.scripts[$s]' package.json >/dev/null 2>&1; then
-        fmt="$cand"; break
-      fi
-    done
-    if [ -n "$fmt" ]; then
-      npm run -s "$fmt" >/dev/null 2>&1 \
-        && echo "format hook: ran npm run -s $fmt" >&2 \
-        || echo "format hook: npm run -s $fmt failed" >&2
-    else
-      echo "format hook: no write-mode format script in package.json; skipped" >&2
-    fi
+    [ -n "$path" ] || { echo "format hook: no file path; skipped" >&2; exit 0; }
+    # Apply every formatter/linter the solution configures (not just the first
+    # match): Biome, Prettier, ESLint, Stylelint. Detect each by its config,
+    # run it in fix mode scoped to the changed file, and only invoke the tool if
+    # it's installed locally — so a missing tool is a no-op, never an npx download.
+    ext="${path##*.}"
+    bin="node_modules/.bin"
+    ran=""
+    # Run a locally-installed tool in fix mode; record it, report failures.
+    runfix() {
+      _t="$1"; shift
+      [ -x "$bin/$_t" ] || return 0
+      if "$bin/$_t" "$@" >/dev/null 2>&1; then ran="$ran $_t"
+      else echo "format hook: $_t failed on $path" >&2; fi
+    }
+
+    # Biome formats + lints JS/TS/JSON/CSS in one pass when configured.
+    cfg biome.json biome.jsonc && runfix biome check --write "$path"
+
+    # Prettier — formatter for most file types.
+    { cfg .prettierrc .prettierrc.* prettier.config.* \
+      || jq -e '.prettier' package.json >/dev/null 2>&1; } \
+      && runfix prettier --write "$path"
+
+    # ESLint — JS/TS autofix.
+    case "$ext" in
+      js|jsx|ts|tsx|mjs|cjs|vue|svelte)
+        { cfg .eslintrc .eslintrc.* eslint.config.* \
+          || jq -e '.eslintConfig' package.json >/dev/null 2>&1; } \
+          && runfix eslint --fix "$path" ;;
+    esac
+
+    # Stylelint — CSS/SCSS/LESS autofix.
+    case "$ext" in
+      css|scss|sass|less)
+        { cfg .stylelintrc .stylelintrc.* stylelint.config.* \
+          || jq -e '.stylelint' package.json >/dev/null 2>&1; } \
+          && runfix stylelint --fix "$path" ;;
+    esac
+
+    if [ -n "$ran" ]; then echo "format hook: applied$ran on $path" >&2
+    else echo "format hook: no configured formatter/linter for $path; skipped" >&2; fi
     ;;
 esac

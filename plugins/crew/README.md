@@ -14,13 +14,19 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
 
 ## Usage
 
-1. Start orchestrator: `claude --agent crew:morpheus`
-2. Run `/crew:feature <ticket-or-task>` to plan and execute feature work. `morpheus` creates
+1. Run `/crew:feature <ticket-or-task>` to plan and execute feature work. `morpheus` creates
    a feature branch off your base branch and commits each verified step (workers never run git).
-3. Run `/crew:review` for consolidated code + security + design review.
-4. Run `/crew:ship` for pre-PR go/no-go checks.
-5. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
+   Run it from a **normal** Claude Code session — that keeps all your built-ins (statusline, etc.)
+   available while the crew handles the feature.
+2. Run `/crew:review` for consolidated code + security + design review.
+3. Run `/crew:ship` for pre-PR go/no-go checks.
+4. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
    available, else prints the push command + PR body; outward action — it confirms first).
+
+> **Optional — dedicated orchestration session:** `claude --agent crew:morpheus` launches an
+> isolated session that *is* the orchestrator (its own tools, lane guards, and memory). It's
+> intentionally scoped to crew work and will **not** run general/config tasks like statusline —
+> do those in a normal session. Most users don't need this; `/crew:feature` above is the entry point.
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
 read as `crew:feature` / `crew:review` / `crew:ship` / `crew:pr` rather than colliding with

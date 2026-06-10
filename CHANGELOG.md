@@ -5,6 +5,39 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-06-10
+
+### Fixed
+- **`/crew:feature` now actually launches `crew:morpheus`.** The command told the *current
+  session* to plan and delegate to workers itself, so the orchestrator — its anti-drift
+  rules, opus model, memory, and git ownership — never ran. The command now delegates the
+  whole feature to the `crew:morpheus` agent and relays its consolidated status.
+- **`/crew:review` and `/crew:ship` delegate with namespaced agent types** (`crew:seraph`,
+  `crew:oracle`, `crew:dozer`). The bare names don't resolve for installed plugins — the
+  same failure mode fixed for `morpheus` in 1.1.3.
+- **`bash-safety` bypass gaps closed:** recursive+force `rm` is now caught in any flag
+  spelling (`-fr`, `-rfv`, `-r -f`, `--recursive --force`), including with other flag
+  tokens interleaved or a `--` separator before the target (`rm -r -v -f /`,
+  `rm -rf -- /`), force-push via short `-f` is
+  blocked alongside `--force` (`--force-with-lease` still allowed), and the protected-branch
+  commit check now catches git global flags before the subcommand (`git -c k=v commit`,
+  `git -C dir commit`).
+- **`lane-guard` allow-lanes now match repo-relative paths** (e.g. `MyApp.Tests/Foo.cs`);
+  previously `**/`-anchored patterns only matched absolute paths, blocking `oracle`/`dozer`
+  from legitimate test files if the harness passed a relative path.
+
+### Changed
+- `validate-plugin.sh`: `agents/` and `hooks/` are now optional per plugin (a
+  commands/skills-only plugin validates clean, matching the "adding a plugin is additive"
+  contract), while an *existing* dir still requires its contents (`agents/*.md`,
+  `hooks/hooks.json`). New check: every `marketplace.json` entry's `source` must exist and
+  its `plugin.json` name must match the entry.
+- `auto-release.yml` prefers a per-plugin `plugins/<name>/CHANGELOG.md` over the shared
+  root one (shared changelogs risk cross-matching versions once more plugins exist).
+- Docs aligned with reality: `CLAUDE.md`'s release flow no longer instructs manual
+  tagging (the workflow creates the tag + release on merge to `main`), and the plugin
+  README's **format** hook description matches the 1.3.0 multi-tool behavior.
+
 ## [1.4.0] - 2026-06-08
 
 ### Added
@@ -178,6 +211,9 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.4.1]: https://github.com/johantor/zion/compare/crew--v1.4.0...crew--v1.4.1
+[1.4.0]: https://github.com/johantor/zion/compare/crew--v1.3.0...crew--v1.4.0
+[1.3.0]: https://github.com/johantor/zion/compare/crew--v1.2.0...crew--v1.3.0
 [1.2.0]: https://github.com/johantor/zion/compare/crew--v1.1.3...crew--v1.2.0
 [1.1.3]: https://github.com/johantor/zion/compare/crew--v1.1.2...crew--v1.1.3
 [1.1.2]: https://github.com/johantor/zion/compare/crew--v1.1.1...crew--v1.1.2

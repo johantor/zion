@@ -73,19 +73,56 @@ while IFS= read -r manifest; do
 
   # 2d. Agents are auto-discovered from the plugin's `agents/` directory, not the
   #     manifest (declaring them there passes validation but they never load).
-  if [ -d "$plugin_dir/agents" ] && ls "$plugin_dir"/agents/*.md >/dev/null 2>&1; then
-    ok "$plugin_dir agents/ exists with agent files"
+  #     The directory itself is optional — a commands/skills-only plugin is fine —
+  #     but if it exists it must contain agent files (an empty dir means drift).
+  if [ -d "$plugin_dir/agents" ]; then
+    if ls "$plugin_dir"/agents/*.md >/dev/null 2>&1; then
+      ok "$plugin_dir agents/ exists with agent files"
+    else
+      err "$plugin_dir agents/ exists but has no .md agent files (agents are auto-discovered from there)"
+    fi
   else
-    err "$plugin_dir agents/ missing or empty (agents are auto-discovered from there)"
+    ok "$plugin_dir has no agents/ (optional)"
   fi
 
-  # 2e. The auto-loaded hooks file should exist at the plugin root.
-  if [ -f "$plugin_dir/hooks/hooks.json" ]; then
-    ok "$plugin_dir hooks/hooks.json exists (auto-loaded)"
+  # 2e. Hooks are optional, but a hooks/ directory without the auto-loaded
+  #     hooks/hooks.json means the hook scripts in it never run.
+  if [ -d "$plugin_dir/hooks" ]; then
+    if [ -f "$plugin_dir/hooks/hooks.json" ]; then
+      ok "$plugin_dir hooks/hooks.json exists (auto-loaded)"
+    else
+      err "$plugin_dir hooks/ exists but hooks/hooks.json missing (nothing wires the hooks)"
+    fi
   else
-    err "$plugin_dir hooks/hooks.json missing"
+    ok "$plugin_dir has no hooks/ (optional)"
   fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
+
+# 2f. Marketplace entries agree with the plugins on disk: every listed source
+#     exists, has a manifest, and its manifest name matches the entry name.
+marketplace=".claude-plugin/marketplace.json"
+if [ -f "$marketplace" ] && jq empty "$marketplace" >/dev/null 2>&1; then
+  while IFS=$'\t' read -r mname msource; do
+    src="${msource#./}"
+    if [ ! -d "$src" ]; then
+      err "$marketplace entry '$mname': source $msource does not exist"
+      continue
+    fi
+    pmanifest="$src/.claude-plugin/plugin.json"
+    if [ ! -f "$pmanifest" ]; then
+      err "$marketplace entry '$mname': $pmanifest missing"
+      continue
+    fi
+    pname="$(jq -r '.name // empty' "$pmanifest")"
+    if [ "$pname" = "$mname" ]; then
+      ok "$marketplace entry '$mname' matches $pmanifest"
+    else
+      err "$marketplace entry '$mname' != plugin.json name '$pname' ($pmanifest)"
+    fi
+  done < <(jq -r '.plugins[] | select((.source | type) == "string") | [.name, .source] | @tsv' "$marketplace")
+else
+  err "$marketplace missing or invalid"
+fi
 
 # 3. Hook scripts are syntactically valid and executable.
 while IFS= read -r h; do

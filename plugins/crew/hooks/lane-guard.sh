@@ -34,12 +34,14 @@ esac
 
 # set -f keeps $patterns as literal globs for [[ ]] instead of expanding them
 # against the filesystem. The */ prefix lets repo-relative patterns (tests/**)
-# match an absolute file_path; in [[ ]] a single * already spans '/'.
+# match an absolute file_path; the ./ prefix lets **/-anchored patterns
+# (**/*Tests/**) match a repo-relative file_path (** needs a leading component
+# to consume); in [[ ]] a single * already spans '/'.
 set -f
 match=0
 for g in $patterns; do
   # shellcheck disable=SC2053
-  if [[ "$path" == $g || "$path" == */$g ]]; then
+  if [[ "$path" == $g || "$path" == */$g || "./$path" == $g ]]; then
     match=1
     break
   fi

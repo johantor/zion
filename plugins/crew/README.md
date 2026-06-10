@@ -48,19 +48,25 @@ plugin):
 - **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the
   other stack's files, and `oracle`/`dozer` may only write their test paths
   (`seraph` is read-only, so it has no write lane). It routes on the `agent_type`
-  in the payload, so the main session is unrestricted. Fails closed.
+  in the payload, so the main session is unrestricted. Fails closed. It guards the
+  `Edit`/`Write` tools only — file writes via Bash (`sed -i`, `tee`, redirects) are
+  governed by the agent prompts, not this hook.
 - **read-guard** blocks raw reads of files over 64 KiB (65536 bytes) —
   grep/jq/script them instead (see the `context-discipline` skill).
-- **bash-safety** blocks destructive commands (`rm -rf /`, force-push, redirects
+- **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*`
+  in any flag spelling, force-push via `--force` or `-f`, redirects
   into `.env`, and redirects or `rm` into `.git/`) and raw/streaming reads
   (`cat`, `less`, `tail -f`). For **crew agents** it also **refuses `git commit`
   while HEAD is a common protected branch** (`main`/`master`/`develop`) — a fixed backstop.
   Whatever your *resolved* base branch is (e.g. `develop` or `trunk`), `morpheus` and
   `/crew:pr` keep the crew off it too. Scoped via `agent_type`, so your own main session is
   never intercepted.
-- **format** discovers and runs the project's formatter after an edit
-  (`dotnet format` scoped to the changed file for `tank`; for `trinity`, the
-  project's own `package.json` format/fix script). Best-effort — fails open.
+- **format** discovers and runs the project's formatters after an edit, scoped to
+  the changed file. For `tank`: `dotnet format`, plus `dotnet csharpier format`
+  when the solution configures it (`.csharpierrc`). For `trinity`: every tool the
+  project configures — Biome, Prettier, ESLint, Stylelint — each detected by its
+  config file and run in fix mode, only when installed locally (never an `npx`
+  download). Best-effort — fails open.
 
 ## Recommended MCP servers
 

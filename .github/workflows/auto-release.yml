@@ -40,8 +40,10 @@ jobs:
               continue
             fi
 
-            # Require a matching CHANGELOG entry (## [<version>])
-            changelog="${plugin_dir}/../../CHANGELOG.md"
+            # Require a matching CHANGELOG entry (## [<version>]). Prefer the
+            # plugin's own CHANGELOG.md; fall back to the repo root one (shared
+            # changelogs risk cross-matching versions once more plugins exist).
+            changelog="${plugin_dir}/CHANGELOG.md"
             if [ ! -f "$changelog" ]; then
               changelog="CHANGELOG.md"
             fi

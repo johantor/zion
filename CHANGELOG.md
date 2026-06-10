@@ -16,7 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `crew:oracle`, `crew:dozer`). The bare names don't resolve for installed plugins — the
   same failure mode fixed for `morpheus` in 1.1.3.
 - **`bash-safety` bypass gaps closed:** recursive+force `rm` is now caught in any flag
-  spelling (`-fr`, `-rfv`, `-r -f`, `--recursive --force`), force-push via short `-f` is
+  spelling (`-fr`, `-rfv`, `-r -f`, `--recursive --force`), including with other flag
+  tokens interleaved or a `--` separator before the target (`rm -r -v -f /`,
+  `rm -rf -- /`), force-push via short `-f` is
   blocked alongside `--force` (`--force-with-lease` still allowed), and the protected-branch
   commit check now catches git global flags before the subcommand (`git -c k=v commit`,
   `git -C dir commit`).

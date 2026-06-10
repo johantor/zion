@@ -22,19 +22,23 @@ cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')"
 normalized="$(printf '%s' "$cmd" | tr '\n' ' ')"
 agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty')"
 
-# Destructive ops, in order: rm -rf of /, ~ or *; force-push (but not the safe
-# --force-with-lease / --force-if-includes); redirect (> or >>) into .env;
-# redirect or rm into .git/. \b is a backspace in ERE, so `rm` is anchored on a
-# separator/space rather than \brm\b.
-if echo "$normalized" | grep -Eq 'rm -rf (/|~|\*)|git push .*--force([^-]|$)|>>?[[:space:]]*\.env|>>?[^|;&]*\.git/|(^|[[:space:];|&(])rm[[:space:]][^|;&]*\.git/'; then
+# Destructive ops, in order: recursive+force rm of /, ~ or * — combined flags in
+# either order (-rf, -fr, -rfv) or as separate/long flags (-r -f, --recursive
+# --force); force-push via --force or short -f (but not the safe
+# --force-with-lease / --force-if-includes — `-[A-Za-z]*f` can't cross their
+# second dash); redirect (> or >>) into .env; redirect or rm into .git/. \b is a
+# backspace in ERE, so `rm` is anchored on a separator/space rather than \brm\b.
+rm_flag='(-[A-Za-z]*([rR][A-Za-z]*f|f[A-Za-z]*[rR])[A-Za-z]*|(-[A-Za-z]*[rR][A-Za-z]*|--recursive)[[:space:]]+(-[A-Za-z]*f[A-Za-z]*|--force)|(-[A-Za-z]*f[A-Za-z]*|--force)[[:space:]]+(-[A-Za-z]*[rR][A-Za-z]*|--recursive))'
+if echo "$normalized" | grep -Eq "rm[[:space:]]+${rm_flag}[[:space:]]+(/|~|\\*)|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|\$)|-[A-Za-z]*f)|>>?[[:space:]]*\\.env|>>?[^|;&]*\\.git/|(^|[[:space:];|&(])rm[[:space:]][^|;&]*\\.git/"; then
   echo "Blocked: unsafe command." >&2
   exit 2
 fi
 
 # Crew agents must not commit onto a protected base branch — they work on feature
 # branches (morpheus owns branching). Scoped to crew agents via agent_type so a
-# normal main session (no agent_type) is never intercepted. Catches plain `git commit`.
-if [ -n "$agent_type" ] && echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*git[[:space:]]+commit([[:space:]]|$)'; then
+# normal main session (no agent_type) is never intercepted. Catches plain `git commit`
+# and git global flags before the subcommand (`git -c k=v commit`, `git -C dir commit`).
+if [ -n "$agent_type" ] && echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*git[[:space:]]+(-[^[:space:]]+[[:space:]]+([^-[:space:]][^[:space:]]*[[:space:]]+)?)*commit([[:space:]]|$)'; then
   branch="$(git branch --show-current 2>/dev/null || true)"
   case "$branch" in
     main|master|develop)

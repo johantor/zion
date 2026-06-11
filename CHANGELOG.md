@@ -5,6 +5,23 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-06-11
+
+### Added
+- **Figma MCP support for design-driven work.** `seraph` (visual conformance) and `trinity`
+  (frontend implementation) now allowlist the `mcp__figma` and `mcp__claude_ai_Figma` servers
+  plus `ToolSearch` (to load their deferred tool schemas), so `seraph` pulls the canonical
+  design spec from Figma instead of a pasted export and `trinity` builds to exact
+  measurements/colors/type. `morpheus` passes the Figma link/node in design delegations (it
+  doesn't read Figma itself — the workers do, applying `context-discipline` to fetch the
+  specific node, not whole-file dumps). With no Figma MCP present, both fall back to the
+  delegation's reference — nothing breaks. README documents the Dev Mode and claude.ai options.
+
+### Changed
+- **Playwright tools are server-scoped.** `seraph`/`trinity` now allowlist the whole
+  `mcp__playwright` server instead of enumerating every `mcp__playwright__browser_*` tool —
+  shorter, and consistent with how the git-host and Figma servers are granted.
+
 ## [1.6.0] - 2026-06-11
 
 ### Changed
@@ -250,6 +267,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.7.0]: https://github.com/johantor/zion/compare/crew--v1.6.0...crew--v1.7.0
 [1.6.0]: https://github.com/johantor/zion/compare/crew--v1.5.0...crew--v1.6.0
 [1.5.0]: https://github.com/johantor/zion/compare/crew--v1.4.1...crew--v1.5.0
 [1.4.1]: https://github.com/johantor/zion/compare/crew--v1.4.0...crew--v1.4.1

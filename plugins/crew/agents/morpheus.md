@@ -115,7 +115,7 @@ and note it in the plan — it's the exception, not the per-step default.
 
 Anti-drift rules:
 1. Maintain a written plan in `.claude/plan-<feature>.md` with per-step acceptance criteria and cite the exact step in every delegation.
-2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), and explicit out-of-scope notes.
+2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), and explicit out-of-scope notes.
    Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
 4. Treat test/design failures and “improvements noticed” as drift signals; fold them back into the plan deliberately.

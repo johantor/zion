@@ -26,10 +26,10 @@ skip classification and run every gate regardless of the diff.
 
 Lane-scoped and **independent** — a gate whose lane has no changes is **skipped**, not run:
 
-1. **Backend tests** — *only if the backend lane changed*: delegate to `oracle`; run the suite, surface failures with file:line.
+1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
 2. **Build** — *only if the backend lane changed*: run the backend build command from `CLAUDE.md`; surface compiler errors.
 3. **Backend lint** — *only if the backend lane changed*: run the backend lint command from `CLAUDE.md` (verify mode — e.g. `dotnet format --verify-no-changes`, plus `dotnet csharpier check` when a `.csharpierrc` is present); surface lint/format violations.
-4. **Frontend e2e** — *only if the frontend lane changed*: delegate to `dozer`; run the spec suite, surface failures with spec:line.
+4. **Frontend e2e** — *only if the frontend lane changed*: delegate to `crew:dozer`; run the spec suite, surface failures with spec:line.
 5. **Frontend lint** — *only if the frontend lane changed*: run the frontend lint command from `CLAUDE.md`; surface lint errors.
 6. **Review** — **always**: run `/crew:review` and include its `## Blocking` section.
 

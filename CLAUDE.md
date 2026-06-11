@@ -82,10 +82,11 @@ Versions are per-plugin. To cut a release:
 
 1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a `CHANGELOG.md`
    entry (a PR that changes plugin behavior must do this — see `copilot-instructions.md`).
-2. After it merges to `main`, tag the release with `claude plugin tag` (it creates a
-   `<plugin>--v<version>` tag and validates that `plugin.json` and the marketplace entry agree).
-3. Push the tag. `.github/workflows/auto-release.yml` then creates the GitHub Release
-   automatically, with notes pulled from that version's `CHANGELOG.md` section.
+2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
+   version has no `<plugin>--v<version>` tag yet, and creates the tag and GitHub Release
+   automatically, with notes pulled from that version's `CHANGELOG.md` section. No
+   matching changelog entry → it skips with a warning. No manual tagging is needed
+   (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
 
 ## Conventions
 

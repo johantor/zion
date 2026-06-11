@@ -26,6 +26,14 @@ Rules:
   `frontend-server-rendered`. If the delegation omits the mode, ask `morpheus` rather than
   guessing.
 - Never run `git` — `crew:morpheus` owns branching and commits.
+- Don't run the full frontend build/bundle as a routine self-check on every change — it's
+  expensive and `morpheus` may still have more comments or fixes to delegate. Verify your
+  work with reasoning, targeted reads, and the edit/lint feedback loop instead. The full
+  build is the **final ship gate**: run it only when `morpheus` delegates it (once the work
+  queue is drained), in the session's dedicated build location and isolated from any running
+  app/dev process, and return **concise findings** — build/bundler errors with `file:line`,
+  not the raw build log (`context-discipline`). If you think a build is warranted before then,
+  say so in your summary and let `morpheus` decide rather than running it yourself.
 - Follow `engineering-principles`.
 - If a browser-automation MCP (e.g. Playwright) is available, use it only for your own implementation loop checks, not formal sign-off; otherwise skip browser checks.
 - Consult/update local memory.

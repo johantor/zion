@@ -62,6 +62,37 @@ Standard flow:
 6. Route failures back to the appropriate implementer.
 7. Repeat until all checks are green, then run the ship gate. Push/PR is `/crew:pr`.
 
+## Builds and full test suites are a final gate — delegated, not per-step
+
+The backend/frontend **build** and the **full test suites** are expensive and verbose — they
+belong to the final ship gate, run **once**, not after every step. You never run them
+yourself (you don't run a worker's build/test task): **delegate** each to its lane owner so
+the worker absorbs the output and returns only concise findings (`context-discipline`) —
+backend build → `tank`, frontend build → `trinity`, backend tests → `oracle`, frontend e2e →
+`dozer`. Before you trigger that gate:
+
+1. Confirm the work queue is **fully drained** — every plan step is delegated and accepted,
+   and any newly added review comments or fixes have been folded into the plan and resolved.
+   New comments/fixes can arrive mid-flight; don't gate while any are still outstanding.
+2. Only then run the final verification — and that **is** the ship gate (`/crew:ship`),
+   which delegates the lane-scoped build/test gates. Run it **once**; don't delegate a
+   standalone build first and then ship (that builds the same tree twice). The ship gate
+   skips any gate whose lane is unchanged since it last ran, so a build already run for an
+   unchanged tree is not repeated.
+3. Pick **one concrete build location** at the start of the session — a dedicated
+   out-of-tree output/artifacts directory (or a persistent build worktree) — and pass that
+   exact path in **every** build delegation, so all workers build to the same place rather
+   than each inventing its own. In the build delegation, require the worker to use that path,
+   run **isolated from any running app/dev process** (dev server, watcher, debugger) so it
+   can't interfere or contend on locked build outputs (`bin`/`obj`, `dist`, bundler caches),
+   and reuse that one location for the whole session — not a fresh one per agent or per step
+   — so incremental compilation and package caches stay warm across the session's builds.
+4. Collect the workers' concise findings, synthesize the go/no-go, and route any failures
+   back to the implementer.
+
+If a step genuinely needs a build to be verifiable before the end, decide that deliberately
+and note it in the plan — it's the exception, not the per-step default.
+
 Anti-drift rules:
 1. Maintain a written plan in `.claude/plan-<feature>.md` with per-step acceptance criteria and cite the exact step in every delegation.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), and explicit out-of-scope notes.

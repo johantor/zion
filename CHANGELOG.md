@@ -5,6 +5,30 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-06-11
+
+### Changed
+- **Builds are a final gate, not a per-step check.** `tank` and `trinity` no longer run the
+  full backend/frontend build as a routine self-check on every change; they verify their work
+  with reasoning, targeted reads, and the lint/edit loop.
+- `morpheus` holds the build and full test suites until the work queue is fully drained —
+  every plan step accepted and any newly added review comments or fixes folded in and
+  resolved — so a single pass covers all the work instead of re-running per round-trip.
+- `morpheus` **delegates** the gate rather than running it (it never runs a worker's
+  build/test task): backend build → `tank`, frontend build → `trinity`, tests → `oracle`/
+  `dozer`, so each worker absorbs the verbose output and returns concise findings. `/crew:ship`
+  now delegates the build **per lane** (backend → `crew:tank`, frontend → `crew:trinity`).
+- New `CLAUDE.md` crew-config slots **Backend build command** / **Frontend build command**
+  (the old single *Build command* split in two), so the frontend build gate is real and
+  symmetric with the lint pair.
+- The build runs **isolated from any running app/dev process** (so it can't interfere or
+  contend on locked build outputs), and `morpheus` picks **one concrete build location** at
+  the start and passes that exact path in every delegation — reused for the whole session, not
+  per agent or per step — so incremental and package caches stay warm.
+- The ship gate is **idempotent within a session**: it records the `HEAD` SHA (and a clean
+  tree) when a gate passes and skips re-running that gate while `HEAD` is unchanged and the
+  tree clean, so a build/suite that just ran as the final step isn't repeated.
+
 ## [1.4.1] - 2026-06-10
 
 ### Fixed
@@ -211,6 +235,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.5.0]: https://github.com/johantor/zion/compare/crew--v1.4.1...crew--v1.5.0
 [1.4.1]: https://github.com/johantor/zion/compare/crew--v1.4.0...crew--v1.4.1
 [1.4.0]: https://github.com/johantor/zion/compare/crew--v1.3.0...crew--v1.4.0
 [1.3.0]: https://github.com/johantor/zion/compare/crew--v1.2.0...crew--v1.3.0

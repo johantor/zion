@@ -15,7 +15,9 @@ Keep them accurate; update them if this repo ever gains app code.
   asking you and then remembering). This repo is the plugin itself and has no frontend.
 - **Backend test command:** none (no backend test project detected)
 - **Frontend test command:** none (no frontend e2e suite detected)
-- **Build command:** none (no build manifest detected)
+- **Backend build command:** none (no build manifest detected) — e.g. `dotnet build`.
+- **Frontend build command:** none (no build manifest detected) — e.g. the project's
+  `build` / `typecheck` script (`tsc --noEmit`, `vite build`, etc.).
 - **Backend lint command:** none (no backend project detected) — e.g. `dotnet format --verify-no-changes`,
   plus `dotnet csharpier check` when a `.csharpierrc` is present.
 - **Frontend lint command:** none (no frontend project detected) — e.g. the project's

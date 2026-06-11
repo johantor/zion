@@ -17,10 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `morpheus` **delegates** the gate rather than running it (it never runs a worker's
   build/test task): backend build → `tank`, frontend build → `trinity`, tests → `oracle`/
   `dozer`, so each worker absorbs the verbose output and returns concise findings. `/crew:ship`
-  now delegates the build to `crew:tank` too.
+  now delegates the build **per lane** (backend → `crew:tank`, frontend → `crew:trinity`).
+- New `CLAUDE.md` crew-config slots **Backend build command** / **Frontend build command**
+  (the old single *Build command* split in two), so the frontend build gate is real and
+  symmetric with the lint pair.
 - The build runs **isolated from any running app/dev process** (so it can't interfere or
-  contend on locked build outputs), but in **one dedicated build location reused for the whole
-  session** — not per agent or per step — so incremental and package caches stay warm.
+  contend on locked build outputs), and `morpheus` picks **one concrete build location** at
+  the start and passes that exact path in every delegation — reused for the whole session, not
+  per agent or per step — so incremental and package caches stay warm.
+- The ship gate is **idempotent within a session**: it records the `HEAD` SHA (and a clean
+  tree) when a gate passes and skips re-running that gate while `HEAD` is unchanged and the
+  tree clean, so a build/suite that just ran as the final step isn't repeated.
 
 ## [1.4.1] - 2026-06-10
 

@@ -79,11 +79,14 @@ backend build → `tank`, frontend build → `trinity`, backend tests → `oracl
    standalone build first and then ship (that builds the same tree twice). The ship gate
    skips any gate whose lane is unchanged since it last ran, so a build already run for an
    unchanged tree is not repeated.
-3. In the **build** delegation, require the worker to run it **isolated from any running
-   app/dev process** (dev server, watcher, debugger) so it can't interfere or contend on
-   locked build outputs (`bin`/`obj`, `dist`, bundler caches), and in **one dedicated build
-   location reused for the whole session** — not a fresh location per agent or per step — so
-   incremental compilation and package caches stay warm across the session's builds.
+3. Pick **one concrete build location** at the start of the session — a dedicated
+   out-of-tree output/artifacts directory (or a persistent build worktree) — and pass that
+   exact path in **every** build delegation, so all workers build to the same place rather
+   than each inventing its own. In the build delegation, require the worker to use that path,
+   run **isolated from any running app/dev process** (dev server, watcher, debugger) so it
+   can't interfere or contend on locked build outputs (`bin`/`obj`, `dist`, bundler caches),
+   and reuse that one location for the whole session — not a fresh one per agent or per step
+   — so incremental compilation and package caches stay warm across the session's builds.
 4. Collect the workers' concise findings, synthesize the go/no-go, and route any failures
    back to the implementer.
 

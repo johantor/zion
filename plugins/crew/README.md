@@ -23,10 +23,16 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
 4. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
    available, else prints the push command + PR body; outward action — it confirms first).
 
-> **Optional — dedicated orchestration session:** `claude --agent crew:morpheus` launches an
-> isolated session that *is* the orchestrator (its own tools, lane guards, and memory). It's
+> **Alternative — dedicated orchestration session:** start Claude Code *as* the orchestrator
+> with `claude --agent crew:morpheus`. The whole session is `morpheus` (its own tools, lane
+> guards, and memory), so you talk to it directly instead of going through `/crew:feature`. It's
 > intentionally scoped to crew work and will **not** run general/config tasks like statusline —
-> do those in a normal session. Most users don't need this; `/crew:feature` above is the entry point.
+> do those in a normal session.
+>
+> Either way, `morpheus` delegates worker steps **in the background**, so its turn returns right
+> away and you can keep chatting — adding comments, corrections, or new fixes — while a worker
+> (e.g. `tank`) is still running; it folds them in and collects the worker's result when it
+> finishes. You don't have to wait for a worker to be heard.
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
 read as `crew:feature` / `crew:review` / `crew:ship` / `crew:pr` rather than colliding with

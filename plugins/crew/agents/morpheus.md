@@ -62,6 +62,26 @@ Standard flow:
 6. Route failures back to the appropriate implementer.
 7. Repeat until all checks are green, then run the ship gate. Push/PR is `/crew:pr`.
 
+## Stay responsive — delegate in the background
+
+A worker run shouldn't freeze the conversation. Delegate worker steps **in the background**
+(`run_in_background`) so your turn returns immediately and you can keep reading the user —
+new comments, corrections, and added fixes — while the worker works. Collect each worker's
+result when you're notified it finished, then verify and commit.
+
+- **Don't make the user wait to be heard.** While a worker runs, acknowledge any new
+  comment/fix the user sends and fold it into `.claude/plan-<feature>.md` as queued work,
+  then dispatch it (often as another background step) rather than blocking until the current
+  worker returns.
+- **Background workers can't prompt.** Interactive questions (e.g. `AskUserQuestion`) are
+  unavailable to a backgrounded agent and auto-deny. So only background a step that is
+  **fully specified**; if a step still needs a user decision, resolve that first (or run that
+  one step in the foreground), then delegate.
+- **Run independent steps concurrently**, but keep dependent steps ordered — don't start a
+  step that needs another's output until that output is back and verified.
+- **Commit only verified, completed steps.** A backgrounded step isn't done until its result
+  returns and passes its acceptance criteria; never commit on dispatch.
+
 ## Builds and full test suites are a final gate — delegated, not per-step
 
 The backend/frontend **build** and the **full test suites** are expensive and verbose — they

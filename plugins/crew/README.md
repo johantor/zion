@@ -104,10 +104,35 @@ browser:
 Without it, `seraph` reports that visual checks need a browser MCP and `trinity`
 skips its browser loop-checks — nothing breaks.
 
-> Note: `seraph` and `trinity` already allowlist the major Playwright tools
-> (`mcp__playwright__browser_*`), so adding the server above named `playwright`
-> is all that's needed. If you run a different browser MCP — or name the server
-> something else — grant its `mcp__<server>__*` tool names in those agents.
+> Note: `seraph` and `trinity` allowlist the whole `mcp__playwright` server, so
+> adding the server above named `playwright` is all that's needed. If you run a
+> different browser MCP — or name the server something else — grant its
+> `mcp__<server>` to those agents.
+
+### Design reference (Figma)
+
+For design-driven work, add a Figma MCP so `seraph` (visual conformance) can pull
+the canonical design spec instead of relying on a pasted export, and `trinity`
+(frontend implementation) can build to exact measurements/colors/type. Pass the
+Figma link or node id in the delegation.
+
+`seraph` and `trinity` already allowlist the `mcp__figma` and `mcp__claude_ai_Figma`
+servers (plus `ToolSearch`, which loads their deferred tool schemas), so adding one
+of these is all that's needed:
+
+- **Figma Dev Mode MCP** (official, local) — enable it in the Figma desktop app
+  (Preferences → *Enable Dev Mode MCP Server*), then point Claude Code at it:
+
+  ```bash
+  claude mcp add-json figma '{"type":"http","url":"http://127.0.0.1:3845/mcp"}'
+  ```
+
+- **claude.ai Figma connector** — the hosted `claude.ai Figma` server (named
+  `claude_ai_Figma`), authorized via OAuth on first use.
+
+If you name your Figma server something other than `figma` / `claude_ai_Figma`, add
+its `mcp__<server>` to `seraph` and `trinity`. Without any Figma MCP, both agents
+fall back to the design reference provided in the delegation — nothing breaks.
 
 ### Git hosting (optional, for ticket-in / PR-out)
 

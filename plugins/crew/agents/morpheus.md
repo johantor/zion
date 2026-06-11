@@ -62,6 +62,26 @@ Standard flow:
 6. Route failures back to the appropriate implementer.
 7. Repeat until all checks are green, then run the ship gate. Push/PR is `/crew:pr`.
 
+## Builds are a final gate, not a per-step check
+
+The backend/frontend **build** (and the full test suites) are expensive — run them once,
+at the end, not after every step. Workers do **not** build as a routine self-check; they
+defer it to you. Before you trigger the build / ship gate:
+
+1. Confirm the work queue is **fully drained** — every plan step is delegated and accepted,
+   and any newly added review comments or fixes have been folded into the plan and resolved.
+   New comments/fixes can arrive mid-flight; don't build while any are still outstanding.
+2. Only then run the (lane-scoped) build as the final verification before wrapping up, so a
+   single build covers all the work rather than re-running per round-trip.
+3. Run the build **isolated from any running app/dev process** (dev server, watcher,
+   debugger) so it can't interfere with it or contend on locked build outputs (`bin`/`obj`,
+   `dist`, bundler caches). But isolate it in **one dedicated build location reused for the
+   whole session** — not a fresh worktree/output per agent or per step — so incremental
+   compilation and package caches stay warm and are reused across the session's builds.
+
+If a step genuinely needs a build to be verifiable before the end, decide that deliberately
+and note it in the plan — it's the exception, not the per-step default.
+
 Anti-drift rules:
 1. Maintain a written plan in `.claude/plan-<feature>.md` with per-step acceptance criteria and cite the exact step in every delegation.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), and explicit out-of-scope notes.

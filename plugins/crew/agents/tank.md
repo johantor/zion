@@ -24,9 +24,11 @@ Scope:
 - Don't run the full project build/compile as a routine self-check on every change — it's
   expensive and `morpheus` may still have more comments or fixes to delegate. Verify your
   work with reasoning, targeted reads, and the edit/lint feedback loop instead. The full
-  build is `morpheus`'s **final ship gate**, run once the work queue is drained — not per
-  delegation. If you think a build is genuinely warranted before then, say so in your
-  summary and let `morpheus` decide rather than running it yourself.
+  build is the **final ship gate**: run it only when `morpheus` delegates it (once the work
+  queue is drained), in the session's dedicated build location and isolated from any running
+  app/dev process, and return **concise findings** — compiler errors with `file:line`, not
+  the raw build log (`context-discipline`). If you think a build is warranted before then,
+  say so in your summary and let `morpheus` decide rather than running it yourself.
 - Follow repository conventions and `engineering-principles`.
 - Consult local memory before starting and update it after finishing.
 - Return a concise file-change summary and rationale.

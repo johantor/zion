@@ -24,10 +24,13 @@ skip classification and run every gate regardless of the diff.
 
 ## 2. Run only the affected gates
 
-Lane-scoped and **independent** — a gate whose lane has no changes is **skipped**, not run:
+Lane-scoped and **independent** — a gate whose lane has no changes is **skipped**, not run.
+Also skip a gate whose lane is **unchanged since that gate last ran this session**: if the
+build/tests already ran green on this exact tree (e.g. as the final step a moment ago), don't
+re-run the identical build/suite — report it as passed (already verified, tree unchanged).
 
 1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
-2. **Build** — *only if the backend lane changed*: run the backend build command from `CLAUDE.md`; surface compiler errors.
+2. **Build** — *only if the backend lane changed*: delegate to `crew:tank` to run the backend build command from `CLAUDE.md` — isolated from any running app/dev process and in the session's dedicated build location — and surface compiler errors with file:line (not the raw log).
 3. **Backend lint** — *only if the backend lane changed*: run the backend lint command from `CLAUDE.md` (verify mode — e.g. `dotnet format --verify-no-changes`, plus `dotnet csharpier check` when a `.csharpierrc` is present); surface lint/format violations.
 4. **Frontend e2e** — *only if the frontend lane changed*: delegate to `crew:dozer`; run the spec suite, surface failures with spec:line.
 5. **Frontend lint** — *only if the frontend lane changed*: run the frontend lint command from `CLAUDE.md`; surface lint errors.

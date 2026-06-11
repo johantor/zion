@@ -62,22 +62,30 @@ Standard flow:
 6. Route failures back to the appropriate implementer.
 7. Repeat until all checks are green, then run the ship gate. Push/PR is `/crew:pr`.
 
-## Builds are a final gate, not a per-step check
+## Builds and full test suites are a final gate — delegated, not per-step
 
-The backend/frontend **build** (and the full test suites) are expensive — run them once,
-at the end, not after every step. Workers do **not** build as a routine self-check; they
-defer it to you. Before you trigger the build / ship gate:
+The backend/frontend **build** and the **full test suites** are expensive and verbose — they
+belong to the final ship gate, run **once**, not after every step. You never run them
+yourself (you don't run a worker's build/test task): **delegate** each to its lane owner so
+the worker absorbs the output and returns only concise findings (`context-discipline`) —
+backend build → `tank`, frontend build → `trinity`, backend tests → `oracle`, frontend e2e →
+`dozer`. Before you trigger that gate:
 
 1. Confirm the work queue is **fully drained** — every plan step is delegated and accepted,
    and any newly added review comments or fixes have been folded into the plan and resolved.
-   New comments/fixes can arrive mid-flight; don't build while any are still outstanding.
-2. Only then run the (lane-scoped) build as the final verification before wrapping up, so a
-   single build covers all the work rather than re-running per round-trip.
-3. Run the build **isolated from any running app/dev process** (dev server, watcher,
-   debugger) so it can't interfere with it or contend on locked build outputs (`bin`/`obj`,
-   `dist`, bundler caches). But isolate it in **one dedicated build location reused for the
-   whole session** — not a fresh worktree/output per agent or per step — so incremental
-   compilation and package caches stay warm and are reused across the session's builds.
+   New comments/fixes can arrive mid-flight; don't gate while any are still outstanding.
+2. Only then run the final verification — and that **is** the ship gate (`/crew:ship`),
+   which delegates the lane-scoped build/test gates. Run it **once**; don't delegate a
+   standalone build first and then ship (that builds the same tree twice). The ship gate
+   skips any gate whose lane is unchanged since it last ran, so a build already run for an
+   unchanged tree is not repeated.
+3. In the **build** delegation, require the worker to run it **isolated from any running
+   app/dev process** (dev server, watcher, debugger) so it can't interfere or contend on
+   locked build outputs (`bin`/`obj`, `dist`, bundler caches), and in **one dedicated build
+   location reused for the whole session** — not a fresh location per agent or per step — so
+   incremental compilation and package caches stay warm across the session's builds.
+4. Collect the workers' concise findings, synthesize the go/no-go, and route any failures
+   back to the implementer.
 
 If a step genuinely needs a build to be verifiable before the end, decide that deliberately
 and note it in the plan — it's the exception, not the per-step default.

@@ -111,8 +111,8 @@ work item or open the PR with the ship summary, add the MCP for your host.
 
 `morpheus` already allowlists the `mcp__ado` and `mcp__github` servers (plus
 `ToolSearch`, which loads their deferred tool schemas, and `Bash` for `az` / `gh`),
-so once you add the server below it can drive PR work — including from a
-`claude --agent crew:morpheus` session. If you name your host server something
+so once you add one of the servers below (GitHub or ADO) it can drive PR work —
+including from a `claude --agent crew:morpheus` session. If you name your host server something
 other than `ado` / `github`, add its `mcp__<server>` to `morpheus`'s `tools`.
 
 GitHub — official [github/github-mcp-server](https://github.com/github/github-mcp-server)

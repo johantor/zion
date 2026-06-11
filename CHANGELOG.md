@@ -5,6 +5,21 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-06-11
+
+### Changed
+- **`morpheus` stays responsive — it delegates worker steps in the background**
+  (`run_in_background`) instead of blocking its turn until each worker returns. While a worker
+  (e.g. `tank`) runs, the user can keep chatting — adding comments, corrections, or new fixes —
+  and `morpheus` folds them into the plan and dispatches them rather than making the user wait
+  to be heard; it collects each worker's result when notified, then verifies and commits.
+  Backgrounded steps must be fully specified (background agents can't prompt the user), run
+  concurrently only when independent, and are committed only once their result returns verified.
+
+### Docs
+- README presents `claude --agent crew:morpheus` as a first-class alternative entry point (a
+  session that *is* the orchestrator), and documents the non-blocking background delegation.
+
 ## [1.5.0] - 2026-06-11
 
 ### Changed
@@ -235,6 +250,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[1.6.0]: https://github.com/johantor/zion/compare/crew--v1.5.0...crew--v1.6.0
 [1.5.0]: https://github.com/johantor/zion/compare/crew--v1.4.1...crew--v1.5.0
 [1.4.1]: https://github.com/johantor/zion/compare/crew--v1.4.0...crew--v1.4.1
 [1.4.0]: https://github.com/johantor/zion/compare/crew--v1.3.0...crew--v1.4.0

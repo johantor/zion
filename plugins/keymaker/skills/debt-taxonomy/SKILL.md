@@ -61,6 +61,18 @@ Classify every suppression *before* gating. Applied in order:
 4. **Needs investigation** — skipped tests, blanket suppressions without context, any suppression with no commit rationale and an unclear rule. Action: `git log -1 --format="%s %ae %ar" -- <file>` to surface committer/date; flag in report; do not auto-fix.
 5. **Environmental** — suppresses a tooling/build-environment quirk not fixable in application code (generated code, vendored files, CI-only paths). Action: mark legitimate; suggest a justification.
 
+## Behavior sensitivity (orthogonal to the rubric)
+
+Independently of the rubric class, tag every finding as **behavior-preserving** or
+**behavior-sensitive** — they need different verification:
+
+- **Behavior-preserving** — the fix cannot change runtime behavior: type-only changes, unused-symbol removal, formatting, stale suppressions whose diagnostic no longer fires. For these, "compiler/linter clean" is a **sufficient** acceptance gate.
+- **Behavior-sensitive** — the fix moves, adds, or reorders runtime logic, so a green linter does **not** prove correctness. For these, the acceptance gate **must be "tests green," not "lint clean."** Examples are tagged per stack (see the stack skills) — e.g. React hook placement/dependency rules.
+
+Which rules are behavior-sensitive is listed in each per-stack skill. When in doubt, treat a
+finding as behavior-sensitive — the cost of an unnecessary test run is far below the cost of a
+silent behavior regression.
+
 ## Blast-radius gate
 
 Enumerate with scripts — counts and file paths, never file bodies (`context-discipline`).
@@ -71,6 +83,11 @@ Then apply the gate:
 - **6–40 findings, cross-lane** → one background twin per lane, parallel dispatch
 - **> 40 findings for a single rule** → stop, present natural slices (by directory/project), ask user which to proceed with; remainder becomes an open item or handoff outline on request
 - **Platform migration detected** → classify as tier 2; produce handoff outline on user request; stop
+- **Behavior-sensitive findings with no test command configured** → warn the user explicitly ("these change runtime behavior and no test suite is configured — a green linter won't catch a regression") and require acknowledgement before proceeding. This is the same warning the upgrade path gives; it applies to any behavior-sensitive batch, not just upgrades.
+
+Behavior-sensitive batches commit **one logical unit per commit** (e.g. one component per
+commit for a hook-placement fix) so a behavior regression stays bisectable — don't bundle
+eight restructured components into one commit.
 
 A project-wide suppression (one config line, repo-wide effect) must be expanded to its
 **diagnostic count**, not its line count, before gating.

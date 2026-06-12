@@ -77,7 +77,7 @@ Apply the `debt-taxonomy` blast-radius gate. Report the radius and your classifi
 - **Tier 1, within gate** → proceed to delegation
 - **Tier 1, > 40 findings** → present natural slices (by project/directory), ask user which to proceed with; stop until answered
 - **Tier 2 (platform migration)** → say so, give the evidence, offer to produce a handoff outline; stop until user responds
-- **Upgrade with no configured test command** → warn the user explicitly ("no test suite configured — proceeding means no automated regression check"); require acknowledgement before continuing
+- **Behavior-sensitive findings (or an upgrade) with no configured test command** → warn the user explicitly ("these change runtime behavior and no test suite is configured — proceeding means no automated regression check"); require acknowledgement before continuing. Tag every finding behavior-preserving vs behavior-sensitive per the stack skill before this gate. This warning is not upgrade-only — it fires for any behavior-sensitive batch (e.g. `react-hooks/rules-of-hooks`).
 - **Transitive/peer conflicts detected** → report them and stop; never silently pin or add `--legacy-peer-deps`
 
 ### 4. Resolve remaining decisions (foreground)
@@ -96,7 +96,7 @@ Each delegation must include:
 - The suppression text or call-site pattern to target
 - The rule / package being addressed
 - The safe-removal recipe for this mechanism (from the stack skill)
-- Acceptance criteria with a verifiable gate (e.g. "compile `src/Orders/Orders.csproj` with no CS8602 errors", "eslint `src/checkout/` reports zero `no-explicit-any` errors")
+- Acceptance criteria with a verifiable gate. For **behavior-preserving** findings, "compiler/linter clean" is sufficient (e.g. "eslint `src/checkout/` reports zero `no-explicit-any` errors"). For **behavior-sensitive** findings, the gate **must be tests-green** (e.g. "the `MetricsPanel` test suite passes after the hooks are relifted") — a clean linter is not acceptable evidence. If there are no tests, that is the user-acknowledged risk from the gate; require the twin to describe the behavioral change it made so you can judge it.
 - Explicit out-of-scope: do not touch other suppressions, do not run full suite
 - `context-discipline` required on all output
 
@@ -117,7 +117,7 @@ Reject and re-delegate if any criterion is unmet. State the failure clearly in t
 
 Commit only verified, completed batches. Never commit on dispatch. Message shape: `chore(debt): remove CS8602 suppression in src/Orders/ (4 sites)`. For upgrades: `chore(deps): bump Newtonsoft.Json 12.0.3 → 13.0.3`.
 
-One commit per rule/batch — keep them bisectable.
+One commit per rule/batch — keep them bisectable. For **behavior-sensitive** batches, go finer: one logical unit per commit (e.g. one component per `react-hooks/rules-of-hooks` fix) so a behavior regression can be bisected to a single restructured unit.
 
 ### 8. Tier-2 handoff outline
 

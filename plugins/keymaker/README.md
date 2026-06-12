@@ -60,7 +60,8 @@ Returns a ranked, capped (~12 findings) read-only report. Every finding is forma
 - **Tiered upgrades.** Single-package bumps (patch/minor/major with migration notes) are tier 1 — keymaker handles them. Platform/framework migrations are tier 2 — keymaker outlines them for handoff and stops.
 - **Audit is strictly read-only.** No edit ever happens from an audit run.
 - **One commit per batch.** Diffs stay reviewable; regressions stay bisectable.
-- **No test suite → explicit warning.** Upgrades with no configured test command require your acknowledgement before proceeding.
+- **Behavior-sensitive fixes are gated on tests, not lint.** Some fixes change runtime behavior (e.g. React `rules-of-hooks` / `exhaustive-deps`, a C# null-guard) — a green linter doesn't prove those correct. keymaker tags them, requires tests-green as the acceptance gate, commits them one unit at a time, and warns you when no test suite is configured. Behavior-preserving fixes (type-only, formatting, stale suppressions) keep the cheaper "lint clean" gate.
+- **No test suite → explicit warning.** Upgrades *and* behavior-sensitive fixes with no configured test command require your acknowledgement before proceeding.
 
 ## Supported stacks
 

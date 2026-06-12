@@ -23,6 +23,20 @@ in the core `debt-taxonomy` skill.
 | `tsconfig.json` `"strict": false` or disabled checks (`noImplicitAny`, `strictNullChecks`) | Project-wide | Tier 2 — outline only. Flipping these surfaces a flood of errors. |
 | ESLint `rules: { "rule": "off" }` in config | Project-wide | Like a blanket disable — expand to **diagnostic count** before gating. |
 
+## Behavior sensitivity (which rules need tests, not just lint)
+
+Tag every frontend finding before delegating (see core `debt-taxonomy`):
+
+**Behavior-sensitive** — fixing these moves/reorders/adds runtime logic; acceptance gate
+**must be tests-green**, and with no test suite configured the orchestrator warns and requires
+acknowledgement:
+- `react-hooks/rules-of-hooks` — moving a hook out of a conditional/loop changes *when and how often it runs*. This is a structural refactor (lift state, split component, map a loop to child components), not a comment deletion — rubric class 3, behavior-sensitive.
+- `react-hooks/exhaustive-deps` — adding a missing dependency can change effect timing or cause re-render loops. Never just append the dep to silence it; understand why it was omitted.
+- Any suppression whose removal forces a logic change (not a type change).
+
+**Behavior-preserving** — type-only or cosmetic; "tsc/eslint clean" is a sufficient gate:
+- `@typescript-eslint/no-explicit-any`, `no-unused-vars`, unused `@ts-expect-error`, import ordering, formatting rules.
+
 ## TypeScript notes
 
 - `@ts-expect-error` removals are the highest-value, lowest-risk findings — always enumerate them first in an audit; many are stale.

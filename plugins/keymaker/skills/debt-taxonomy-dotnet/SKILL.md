@@ -27,6 +27,14 @@ gate are in the core `debt-taxonomy` skill.
 - **Obsolete-API warnings** (`CS0618`): frequently caused by an old dependency — the fix may be an upgrade pointer, not a code edit. Flag the link.
 - A suppression whose diagnostic no longer fires (`dotnet build` shows no warning at that line after removal) is class 2, stale — just delete it.
 
+## Behavior sensitivity (which fixes need tests, not just a clean build)
+
+Tag every finding before delegating (see core `debt-taxonomy`):
+
+**Behavior-preserving** — `<NoWarn>` removal of a stale diagnostic, an `any`-equivalent cast tightening, unused-using/variable cleanup, a justification-only edit. "Compiles clean" is a sufficient gate.
+
+**Behavior-sensitive** — adding a real **null-guard** for a `CS8602` fix changes control flow (an early return or default vs. a thrown `NullReferenceException`), so the *behavior under null* changes. Likewise re-enabling an analyzer that forces a logic change (e.g. `CA2007` ConfigureAwait, disposal fixes). Acceptance gate must be **tests-green**; with no test command configured, the orchestrator warns and requires acknowledgement.
+
 ## Package-manager variance (NuGet)
 
 - Check for **Central Package Management**: if `Directory.Packages.props` exists, the version is declared there via `<PackageVersion>`, not in individual `.csproj` `<PackageReference>` — update in **one place**.

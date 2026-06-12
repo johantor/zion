@@ -5,6 +5,11 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.1] - 2026-06-12
+
+### Changed
+- `/keymaker:open <pointer>` is now idempotent: when blast-radius enumeration finds 0 findings (suppression already removed, rule already silent, package already at target version), the orchestrator exits with a one-line "nothing to do" message before gating, branching, or dispatching twins. Re-running a successful `open` is now a safe no-op, making the command safe to script-wrap and safe to leave in checklists.
+
 ## [0.1.0] - 2026-06-12
 
 ### Added

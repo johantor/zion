@@ -5,12 +5,14 @@ feature delivery. Part of the [Zion](../../README.md) marketplace.
 
 ## Install
 
+Via the CLI:
+
 ```bash
 claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
 ```
 
-Prefer the UI? Add and install from `/plugin > Discover` in Claude Code instead.
+…or in the UI, from `/plugin > Discover` in Claude Code.
 
 ## Usage
 

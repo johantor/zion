@@ -20,12 +20,14 @@ guardrails that keep every agent in its lane.
 
 ## Get started
 
+Install the plugin — via the CLI:
+
 ```bash
 claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
 ```
 
-Prefer the UI? Add and install from `/plugin > Discover` in Claude Code instead.
+…or in the UI, from `/plugin > Discover` in Claude Code.
 
 Then start a feature either way:
 

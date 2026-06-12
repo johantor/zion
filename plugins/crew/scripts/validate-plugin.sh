@@ -169,7 +169,7 @@ while IFS= read -r agent_file; do
     continue
   fi
   skills="$(printf '%s\n' "$frontmatter" \
-    | awk '/^skills:[[:space:]]*$/{f=1; next} f && /^[A-Za-z]/{f=0} f' \
+    | awk '/^skills:[[:space:]]*$/{f=1; next} f && /^[A-Za-z][A-Za-z0-9_-]*:/{f=0} f' \
     | sed -n 's/^[[:space:]]*-[[:space:]]*//p')"
   while IFS= read -r skill; do
     skill="${skill%$'\r'}"

@@ -18,9 +18,10 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
    a feature branch off your base branch and commits each verified step (workers never run git).
    Run it from a **normal** Claude Code session — that keeps all your built-ins (statusline, etc.)
    available while the crew handles the feature.
-2. Run `/crew:review` for consolidated code + security + design review.
-3. Run `/crew:ship` for pre-PR go/no-go checks.
-4. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
+2. Run `/crew:review` for the pre-PR **GO / NO-GO** gate — the consolidated code + security +
+   design review plus the diff-scoped build/test/lint checks (`/crew:review quick` for a
+   read-only review with no suites; `/crew:review full` to force every gate).
+3. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
    available, else prints the push command + PR body; outward action — it confirms first).
 
 > **Alternative — dedicated orchestration session:** start Claude Code *as* the orchestrator
@@ -35,7 +36,7 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
 > finishes. You don't have to wait for a worker to be heard.
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
-read as `crew:feature` / `crew:review` / `crew:ship` / `crew:pr` rather than colliding with
+read as `crew:feature` / `crew:review` / `crew:pr` rather than colliding with
 any built-in or other-plugin commands of the same short name.
 
 ## What is included
@@ -43,7 +44,7 @@ any built-in or other-plugin commands of the same short name.
 - `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
 - `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
-- `commands/`: `/crew:feature`, `/crew:review`, `/crew:ship`, `/crew:pr`
+- `commands/`: `/crew:feature`, `/crew:review`, `/crew:pr`
 
 ## Hooks & enforcement
 
@@ -136,9 +137,9 @@ fall back to the design reference provided in the delegation — nothing breaks.
 
 ### Git hosting (optional, for ticket-in / PR-out)
 
-The crew is host-agnostic and stops at the local **GO/NO-GO** ship gate — opening
+The crew is host-agnostic and stops at the local **GO/NO-GO** review gate — opening
 the PR is the explicit `/crew:pr` step. If you want the orchestrator to fetch a
-work item or open the PR with the ship summary, add the MCP for your host.
+work item or open the PR with the review-gate summary, add the MCP for your host.
 
 `morpheus` already allowlists the `mcp__ado` and `mcp__github` servers (plus
 `ToolSearch`, which loads their deferred tool schemas, and `Bash` for `az` / `gh`),

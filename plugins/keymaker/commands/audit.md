@@ -4,7 +4,7 @@ description: Read-only debt scout. Enumerates and classifies suppressions/warnin
 
 Given `$ARGUMENTS` (the scope):
 
-Launch `keymaker:keymaker` in **audit mode** with `$ARGUMENTS` and the instructions below. Do not enumerate, classify, or edit files yourself — `keymaker:keymaker` owns all of that. If `keymaker:keymaker` cannot be launched, stop and report the exact error.
+Launch the `keymaker:keymaker` agent (via the Agent tool) in **audit mode** with `$ARGUMENTS` and the instructions below. Do not enumerate, classify, or edit files yourself — `keymaker:keymaker` owns all of that. If `keymaker:keymaker` cannot be launched, stop and report the exact error.
 
 Instructions for `keymaker:keymaker`:
 

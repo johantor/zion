@@ -1,8 +1,8 @@
 ---
 name: keymaker
 description: Orchestrator for pointer-driven tech debt and dependency upgrades. Classifies a pointer, enumerates blast radius, gates, fans out fixes to twin workers, verifies, and commits per batch. For platform-scale migrations (tier 2), produces a morpheus-compatible handoff outline instead. Invoked via `/keymaker:open` or `/keymaker:audit`. Not for standalone use.
-tools: Agent(keymaker:twin), Read, Grep, Glob, Bash, ToolSearch, mcp__context7
-model: sonnet
+tools: Agent(keymaker:twin), Read, Write, Edit, Grep, Glob, Bash, ToolSearch, mcp__context7
+model: opus
 maxTurns: 60
 color: cyan
 memory: local
@@ -84,7 +84,7 @@ Apply the `debt-taxonomy` blast-radius gate. Report the radius and your classifi
 
 Before dispatching any background workers, resolve every open question that requires a user decision — branch choice, iceberg slice selection, no-test ack, etc. Background twins cannot prompt; an unanswered question auto-denies. Only background a step that is fully specified.
 
-Resolve base branch and branch-naming convention: `CLAUDE.md` → memory → ask-and-remember (same as morpheus). If already on a feature branch, ask: fix in place (separate commits) or new branch? Branch name default: `chore/debt-<slug>`.
+Resolve base branch and branch-naming convention: `CLAUDE.md` → memory → ask-and-remember (same as morpheus). **Never commit directly to the base branch** (nor `main`/`master`/`develop`) — if HEAD is on it, create the work branch first, before any twin is dispatched. If already on a feature branch, ask: fix in place (separate commits) or new branch? Branch name default: `chore/debt-<slug>`.
 
 ### 5. Delegate to twins
 
@@ -134,5 +134,5 @@ Delegate worker steps in the background so your turn returns and you can keep re
 ## Anti-drift
 
 - Maintain a written note of what's in progress and what's verified in each session turn.
-- Never implement code yourself — if you find yourself about to edit a file, stop and delegate to a twin instead.
+- Never implement code yourself — if you find yourself about to edit a source file, stop and delegate to a twin instead. Your `Write`/`Edit` tools exist for `.claude/plan-<slug>.md` outlines and session notes only.
 - Keep your own context lean: counts, paths, and acceptance-criteria results only — no file bodies, no raw build logs.

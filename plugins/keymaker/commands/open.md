@@ -4,7 +4,7 @@ description: Fix one identified tech debt item — a suppression, rule, or depen
 
 Given `$ARGUMENTS` (the pointer):
 
-Launch `keymaker:keymaker` in **open mode** with `$ARGUMENTS` and the instructions below. Do not classify, enumerate, edit files, or run git yourself — `keymaker:keymaker` owns all of that. If `keymaker:keymaker` cannot be launched, stop and report the exact error.
+Launch the `keymaker:keymaker` agent (via the Agent tool) in **open mode** with `$ARGUMENTS` and the instructions below. Do not classify, enumerate, edit files, or run git yourself — `keymaker:keymaker` owns all of that. If `keymaker:keymaker` cannot be launched, stop and report the exact error.
 
 Instructions for `keymaker:keymaker`:
 

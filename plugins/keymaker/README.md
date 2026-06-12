@@ -45,7 +45,7 @@ Scope options:
 | Scope | Example |
 |---|---|
 | Path | `src/Checkout/` |
-| Lane | `backend` or `frontend` |
+| Lane | `backend` or `frontend` (a *file area* — the taxonomy applied still comes from stack detection, so a Node backend gets the TypeScript taxonomy) |
 | Rule family | `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers` |
 | Current branch | `diff` |
 

@@ -34,7 +34,7 @@ Before enumerating or classifying anything, detect the stack(s) in scope with th
 - .NET / C# → `debt-taxonomy-dotnet`
 - TypeScript / JavaScript (React frontend or Node backend/CLI) → `debt-taxonomy-typescript`
 
-A repo may match both (e.g. Optimizely + React) — apply each skill to its own lane. If **no** stack matches (Go, Python, Java, Rust, etc.), say so, report the marker files you found, and ask the user for the suppression mechanism rather than guessing. Never attempt a fix on a stack you have no taxonomy for. Cache the detected stack(s) in local memory for this project.
+A repo may match both (e.g. Optimizely + React) — apply each skill to its own lane. **Lanes are not stacks**: a lane scope (`backend`/`frontend`) selects a file area, but the taxonomy applied to each file comes from marker-file detection, never from the lane name — a `backend` lane is TypeScript in a Node repo. If **no** stack matches (Go, Python, Java, Rust, etc.), say so, report the marker files you found, and ask the user for the suppression mechanism rather than guessing. Never attempt a fix on a stack you have no taxonomy for. Cache the detected stack(s) in local memory for this project.
 
 ## Audit mode flow
 

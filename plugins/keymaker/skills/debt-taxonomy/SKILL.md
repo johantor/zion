@@ -30,6 +30,12 @@ find . -maxdepth 3 -name '*.csproj' -o -name 'package.json' -o -name 'tsconfig.j
 A repo may match more than one stack (a typical Optimizely + React solution matches both) —
 that is expected; apply each stack's skill to its own lane.
 
+**Lanes are not stacks.** A lane (`backend`/`frontend`) names a *file area* used for scoping
+and delegation; a stack names a *language*. Never infer the taxonomy from the lane name — a
+`backend` lane is C# in an Optimizely repo but TypeScript in a Node repo. The skill applied to
+a file always comes from the marker-file detection above, regardless of which lane the file
+sits in.
+
 **If no stack matches** (Go, Python, Java, Rust, etc.): say so plainly, report what marker
 files you *did* find, and ask the user for the suppression mechanism rather than guessing.
 Do not attempt to fix a stack keymaker has no taxonomy for — a wrong suppression edit is

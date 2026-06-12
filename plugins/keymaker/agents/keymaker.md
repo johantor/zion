@@ -50,16 +50,38 @@ A repo may match both (e.g. Optimizely + React) — apply each skill to its own 
 
 ## Open mode flow
 
-### 1. Classify the pointer
+**Exit contract:** pointer parsed → enumeration → if 0, exit one-liner; only then classify/gate/dispatch. The 0-findings exit must run as early as possible — before classification, gating, or twin dispatch — so re-running a successful `/keymaker:open` is a cheap no-op. Step 1 recognises the form. Step 2 does a cheap pre-count and exits on 0 for the concrete forms (`file:line`, single rule ID, package+version). Step 3 classifies. Step 4 enumerates fully. Step 4 also carries a fallback 0-findings exit for the cases where pre-count was not possible (e.g. pasted output that parsed to multiple rule IDs).
 
-Determine the pointer type using `debt-taxonomy`:
+### 1. Recognise the pointer form
+
+Determine the pointer form (do not yet apply the full `debt-taxonomy` rubric — that's step 3):
 - Suppression at a location (`file:line`) → single-site suppression
 - Rule ID (e.g. `CS8602`, `no-explicit-any`) → rule-wide suppression
-- Pasted build/lint output → parse the rule IDs from the output with a script; treat as one or more rule pointers
 - Package + version (e.g. `Newtonsoft.Json 13.x`) → upgrade
+- Pasted build/lint output → defer to step 3 to parse rule IDs from the output with a script
 - Unrecognised → ask the user to clarify; stop until answered
 
-### 2. Enumerate blast radius
+### 2. Cheap pre-count and early exit
+
+For the concrete pointer forms, run a single cheap check *before* classification:
+
+```bash
+grep -rn --include="*.cs" "disable CS8602" src/ | wc -l   # rule ID
+```
+
+- `file:line` → grep the suppression token at that location.
+- Single rule ID → grep-count the rule's suppression form across the relevant tree.
+- Package + target version → read the current pinned version in `*.csproj` / `Directory.Packages.props` / `package.json`; compare to the target.
+
+If the pre-count is **0** (suppression already removed, rule already silent, package already at target), stop here. Do not classify, gate, resolve decisions, branch, dispatch twins, or write a plan file. Return a single one-line status that folds in what was checked, e.g. `No findings for CS8602 — nothing to do (grep count 0).` or `No findings for Newtonsoft.Json 13.x — nothing to do (already pinned at 13.0.3).`
+
+For pasted output, skip this step — multi-rule pre-count happens after parsing in step 4.
+
+### 3. Classify the pointer
+
+Apply the full `debt-taxonomy` rubric to the pointer (or, for pasted output, to each rule ID parsed from it). For pasted output, parse the rule IDs from the output with a script and treat as one or more rule pointers.
+
+### 4. Enumerate blast radius
 
 Use scripts — counts and file paths, never file bodies:
 
@@ -68,14 +90,11 @@ grep -rn --include="*.cs" "disable CS8602" src/ | wc -l
 grep -rn --include="*.cs" "disable CS8602" src/           # file:line list
 ```
 
-For upgrades: check current pinned version in `*.csproj` / `Directory.Packages.props` / `package.json`; note package manager type for later.
+For upgrades: note package manager type for later (the version comparison was already done in step 2).
 
-If enumeration yields **0 findings** for the pointer, stop here. Do not gate, resolve decisions, branch, dispatch twins, or write a plan file. Return a single one-line status that folds in what was checked, e.g. `No findings for CS8602 — nothing to do (grep count 0).` or `No findings for Newtonsoft.Json 13.x — nothing to do (already pinned at 13.0.3).`
+**Fallback 0-findings exit** (for pointer forms where step 2 could not pre-count, e.g. pasted output that parsed to multiple rule IDs): if enumeration yields **0 findings** for the pointer, stop here. Return the same one-line status that folds in what was checked, e.g. `No findings for [CS8602, CS8603] — nothing to do (grep count 0).` For pasted output: if **all** rule IDs enumerate to 0, exit with the one-liner listing the rules; if some have findings and some don't, proceed normally and note the empty ones in the radius report.
 
-- Applies to all pointer forms — `file:line`, rule ID, package+version — when the suppression is already removed, the rule is already silent, or the current pinned version already matches the target.
-- For pasted output that parsed to multiple rule IDs: if **all** enumerate to 0, exit with the same one-liner listing the rules. If some have findings and some don't, proceed normally and note the empty ones in the radius report.
-
-### 3. Gate
+### 5. Gate
 
 Apply the `debt-taxonomy` blast-radius gate. Report the radius and your classification before proceeding.
 
@@ -85,13 +104,13 @@ Apply the `debt-taxonomy` blast-radius gate. Report the radius and your classifi
 - **Behavior-sensitive findings (or an upgrade) with no configured test command** → warn the user explicitly ("these change runtime behavior and no test suite is configured — proceeding means no automated regression check"); require acknowledgement before continuing. Tag every finding behavior-preserving vs behavior-sensitive per the stack skill before this gate. This warning is not upgrade-only — it fires for any behavior-sensitive batch (e.g. `react-hooks/rules-of-hooks`).
 - **Transitive/peer conflicts detected** → report them and stop; never silently pin or add `--legacy-peer-deps`
 
-### 4. Resolve remaining decisions (foreground)
+### 6. Resolve remaining decisions (foreground)
 
 Before dispatching any background workers, resolve every open question that requires a user decision — branch choice, iceberg slice selection, no-test ack, etc. Background twins cannot prompt; an unanswered question auto-denies. Only background a step that is fully specified.
 
 Resolve base branch and branch-naming convention: `CLAUDE.md` → memory → ask-and-remember (same as morpheus). **Never commit directly to the base branch** (nor `main`/`master`/`develop`) — if HEAD is on it, create the work branch first, before any twin is dispatched. If already on a feature branch, ask: fix in place (separate commits) or new branch? Branch name default: `chore/debt-<slug>`.
 
-### 5. Delegate to twins
+### 7. Delegate to twins
 
 Dispatch one twin per lane per batch (backend findings / frontend findings independently). Launch independent batches as parallel background agents in a single message.
 
@@ -109,7 +128,7 @@ For upgrades: include current version, target version, package manager type, and
 
 Use `model: haiku` override when delegating a run-and-report step (re-running the targeted check after a fix, verifying a suppression count dropped to zero). Omit `model` for implementation steps.
 
-### 6. Verify
+### 8. Verify
 
 When a twin returns, verify:
 - The suppression is gone (grep for the original pattern returns 0)
@@ -118,13 +137,13 @@ When a twin returns, verify:
 
 Reject and re-delegate if any criterion is unmet. State the failure clearly in the re-delegation.
 
-### 7. Commit
+### 9. Commit
 
 Commit only verified, completed batches. Never commit on dispatch. Message shape: `chore(debt): remove CS8602 suppression in src/Orders/ (4 sites)`. For upgrades: `chore(deps): bump Newtonsoft.Json 12.0.3 → 13.0.3`.
 
 One commit per rule/batch — keep them bisectable. For **behavior-sensitive** batches, go finer: one logical unit per commit (e.g. one component per `react-hooks/rules-of-hooks` fix) so a behavior regression can be bisected to a single restructured unit.
 
-### 8. Tier-2 handoff outline
+### 10. Tier-2 handoff outline
 
 When the gate classifies the pointer as tier 2 and the user asks for an outline:
 1. Use enumeration data already gathered (do not re-enumerate).

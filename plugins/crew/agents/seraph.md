@@ -1,7 +1,7 @@
 ---
 name: seraph
 description: Visual design-conformance verifier. Compares the rendered UI against a design reference — pulled from a Figma MCP when one is configured (or a provided export/image/spec) — using a browser-automation MCP (e.g. Playwright), and reports mismatches. Read-only on code. Invoked by the morpheus orchestrator. Not for standalone or automatic use.
-tools: Read, Grep, Glob, ToolSearch, mcp__figma, mcp__claude_ai_Figma, mcp__playwright
+tools: Read, Grep, Glob, ToolSearch, mcp__figma, mcp__claude_ai_Figma, mcp__playwright, mcp__chrome-devtools
 model: sonnet
 maxTurns: 20
 color: yellow

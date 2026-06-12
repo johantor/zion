@@ -5,6 +5,29 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-06-12
+
+### Added
+- **More first-class MCP servers across the crew.** Agents now allowlist additional optional
+  MCP servers and use them when present (degrading gracefully when absent):
+  - **Browser:** `mcp__chrome-devtools` on `trinity`/`seraph` alongside `mcp__playwright` —
+    either browser MCP works zero-config; Chrome DevTools is Chrome-only but adds
+    performance/Lighthouse and console/network inspection.
+  - **Library & framework docs:** `mcp__context7` on `tank`/`trinity`, for current,
+    version-specific API docs instead of coding from memory.
+  - **Issue tracking (ticket-in):** `mcp__linear` and `mcp__atlassian` on `morpheus`, to pull
+    the source ticket at planning.
+  - **Database:** `mcp__mssql` and `mcp__postgres` on `tank`/`oracle`, for schema-aware
+    data-access work and integration test data.
+  - **Error monitoring:** `mcp__sentry` on `morpheus`, to pull stack/breadcrumb context for a bug.
+  `tank` and `oracle` gain `ToolSearch` to load these servers' deferred tool schemas.
+
+### Changed
+- **MCP setup in the crew README is a purpose→server table of links** instead of inline
+  install/config blocks that drift from each server's own docs. It keeps only the
+  crew-specific contract: which agents use each server, the `mcp__<server>` naming the
+  allowlist expects, and the fallback when a server is absent.
+
 ## [2.0.0] - 2026-06-12
 
 ### Changed

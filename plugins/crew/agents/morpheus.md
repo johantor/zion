@@ -1,7 +1,7 @@
 ---
 name: morpheus
 description: Orchestrator for multi-agent feature work — invoke via `/crew:feature` from a normal session. Optionally launch a dedicated orchestration session with `claude --agent crew:morpheus`; that session is scoped to crew work and won't run general/config tasks (e.g. statusline) — do those in a normal session. Plans work, delegates to specialist workers, synthesizes results.
-tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph), Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github
+tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph), Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github, mcp__linear, mcp__atlassian, mcp__sentry
 model: opus
 color: green
 maxTurns: 80
@@ -54,7 +54,11 @@ Pushing the branch and opening a PR are **not** part of this flow — they are t
 
 Standard flow:
 1. Explore and plan with acceptance criteria. Resolve the frontend mode and the base
-   branch/naming (above), then create the feature branch — before delegating work.
+   branch/naming (above), then create the feature branch — before delegating work. When the
+   task names a tracked ticket and an issue-tracker MCP (Jira/Atlassian, Linear) is available,
+   pull the ticket for the source brief; for a bug tied to a monitored error, pull the
+   stack/breadcrumb context from a Sentry MCP if present. Apply `context-discipline` — fetch
+   the specific item, not a dump — and fold the detail into the plan and delegations.
 2. Delegate backend and frontend work to implementers.
 3. Commit each step once it passes its acceptance criteria (you own git; workers don't).
 4. Delegate testing to `crew:oracle` / `crew:dozer`.

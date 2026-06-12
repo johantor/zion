@@ -126,6 +126,47 @@ else
   err "$marketplace missing or invalid"
 fi
 
+# 2g. Every skill referenced in an agent's YAML frontmatter `skills:` list must
+#     resolve to some plugins/*/skills/<name>/SKILL.md in the repo. Skills are
+#     referenced unqualified (per the existing convention), so resolution is
+#     "exists anywhere under any plugin's skills/ directory". A typo here would
+#     otherwise fail silently at runtime — the skill just doesn't load.
+declare -A skill_index=()
+while IFS= read -r skill_md; do
+  skill_name="$(basename "$(dirname "$skill_md")")"
+  skill_index["$skill_name"]=1
+done < <(git ls-files 'plugins/*/skills/*/SKILL.md')
+
+while IFS= read -r agent; do
+  while IFS= read -r skill_ref; do
+    [ -z "$skill_ref" ] && continue
+    if [ -n "${skill_index[$skill_ref]:-}" ]; then
+      ok "$agent skills -> $skill_ref resolves"
+    else
+      err "$agent skills -> $skill_ref does not resolve to any plugins/*/skills/$skill_ref/SKILL.md"
+    fi
+  done < <(awk '
+    BEGIN { in_fm = 0; in_skills = 0 }
+    /^---[[:space:]]*$/ {
+      if (in_fm == 0) { in_fm = 1; next }
+      else { exit }
+    }
+    in_fm && in_skills {
+      if ($0 ~ /^[[:space:]]+-[[:space:]]+/) {
+        sub(/^[[:space:]]+-[[:space:]]+/, "")
+        sub(/[[:space:]]+#.*$/, "")
+        sub(/[[:space:]]+$/, "")
+        gsub(/^["'\'']|["'\'']$/, "")
+        if (length($0)) print
+        next
+      } else if ($0 !~ /^[[:space:]]*$/) {
+        in_skills = 0
+      }
+    }
+    in_fm && /^skills:[[:space:]]*$/ { in_skills = 1 }
+  ' "$agent")
+done < <(git ls-files 'plugins/*/agents/*.md')
+
 # 3. Hook scripts are syntactically valid and executable.
 while IFS= read -r h; do
   if bash -n "$h" 2>/dev/null; then

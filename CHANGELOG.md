@@ -5,6 +5,16 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-06-12
+
+### Added
+- **Validator verifies each agent's `skills:` list resolves.** `plugins/crew/scripts/validate-plugin.sh`
+  now parses the YAML frontmatter of every `plugins/*/agents/*.md` file and verifies each entry in
+  its `skills:` list resolves to some `plugins/*/skills/<name>/SKILL.md` in the repo (unqualified,
+  per existing convention). A typo here previously failed silently at runtime — the skill just
+  didn't load and the agent guessed. CI now fails with a clear message:
+  `plugins/<plugin>/agents/<agent>.md skills -> <name> does not resolve to any plugins/*/skills/<name>/SKILL.md`.
+
 ## [2.1.1] - 2026-06-12
 
 ### Fixed

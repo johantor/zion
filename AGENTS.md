@@ -75,6 +75,11 @@ shellcheck plugins/*/hooks/*.sh plugins/*/scripts/*.sh
 bash plugins/crew/scripts/validate-plugin.sh
 ```
 
+`validate-plugin.sh` parses each `plugins/*/agents/*.md` YAML frontmatter and verifies every
+entry in its `skills:` list resolves to some `plugins/*/skills/<name>/SKILL.md` in the repo
+(skills are referenced unqualified, per existing convention). A typo here would otherwise fail
+silently at runtime — the skill just doesn't load and the agent guesses.
+
 ## Releasing
 
 Versions are per-plugin. To cut a release:

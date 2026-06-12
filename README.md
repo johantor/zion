@@ -16,7 +16,7 @@ guardrails that keep every agent in its lane.
 - **Review and ship built in.** A consolidated code + security + design review and a pre-PR
   **GO / NO-GO** gate run before anything leaves your machine.
 - **Your git, your rules.** The crew branches and commits each verified step, stops at the
-  ship gate, and opens the PR only when you say so.
+  review gate, and opens the PR only when you say so.
 
 ## Get started
 
@@ -33,8 +33,7 @@ under `/plugin > Discover`.
 ### crew — orchestrated, multi-agent feature delivery
 
 - `/crew:feature <task>` — plan and build a feature
-- `/crew:review` — consolidated code + security + design review
-- `/crew:ship` — pre-PR **GO / NO-GO** gate
+- `/crew:review` — pre-PR **GO / NO-GO** gate: code + security + design review, plus build/test/lint
 - `/crew:pr` — push the branch and open the pull request
 
 Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma, GitHub/ADO)

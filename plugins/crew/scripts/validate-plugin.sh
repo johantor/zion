@@ -141,19 +141,21 @@ while IFS= read -r h; do
 done < <(git ls-files 'plugins/*/hooks/*.sh')
 
 # 4. Skill drift: any skill that the crew plugin owns canonically must be
-#    byte-for-byte identical when shipped by another plugin. Catches the
-#    duplicated-skill drift policy automatically instead of relying on review.
-while IFS= read -r canonical; do
-  rel="${canonical#plugins/crew/}"  # e.g. skills/engineering-principles/SKILL.md
-  while IFS= read -r shipped; do
-    [ "$shipped" = "$canonical" ] && continue
-    if cmp -s "$canonical" "$shipped"; then
-      ok "skill in sync: $shipped == $canonical"
+#    byte-for-byte identical when shipped by another plugin. Compares the whole
+#    skill directory so missing or extra reference files count as drift too,
+#    not just SKILL.md changes.
+for canonical_dir in plugins/crew/skills/*/; do
+  skill="$(basename "$canonical_dir")"
+  for shipped_dir in plugins/*/skills/"$skill"/; do
+    [ -d "$shipped_dir" ] || continue
+    [ "$shipped_dir" = "$canonical_dir" ] && continue
+    if diff -rq "$canonical_dir" "$shipped_dir" >/dev/null 2>&1; then
+      ok "skill in sync: ${shipped_dir%/} == ${canonical_dir%/}"
     else
-      err "skill drift: $shipped differs from canonical $canonical"
+      err "skill drift: ${shipped_dir%/} differs from canonical ${canonical_dir%/}"
     fi
-  done < <(git ls-files "plugins/*/$rel")
-done < <(git ls-files 'plugins/crew/skills/*/SKILL.md')
+  done
+done
 
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2

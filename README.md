@@ -18,11 +18,9 @@ guardrails that keep every agent in its lane.
 - **Your git, your rules.** The crew branches and commits each verified step, stops at the
   review gate, and opens the PR only when you say so.
 
-## Plugins
+## Get started
 
-### crew — orchestrated, multi-agent feature delivery
-
-Install:
+Install the plugin — via the CLI:
 
 ```bash
 claude plugin marketplace add johantor/zion
@@ -31,35 +29,35 @@ claude plugin install crew@zion
 
 …or in the UI, from `/plugin > Discover` in Claude Code.
 
-- `/crew:feature <task>` — plan and build a feature
-- `/crew:review` — pre-PR **GO / NO-GO** gate: code + security + design review, plus build/test/lint
-- `/crew:pr` — push the branch and open the pull request
-
-Start a feature either way:
+Then start a feature either way:
 
 - **Normal session** — run `/crew:feature <task>`; keeps all your built-ins (statusline, etc.)
   available while the crew works.
 - **Dedicated session** — launch `claude --agent crew:morpheus` to talk to the orchestrator
-  directly, scoped to crew work.
+  directly, scoped to crew work. More in **[plugins/crew/README.md](plugins/crew/README.md)**.
+
+## Plugins
+
+### crew — orchestrated, multi-agent feature delivery
+
+- `/crew:feature <task>` — plan and build a feature
+- `/crew:review` — pre-PR **GO / NO-GO** gate: code + security + design review, plus build/test/lint
+- `/crew:pr` — push the branch and open the pull request
 
 Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma, GitHub/ADO)
 are documented in **[plugins/crew/README.md](plugins/crew/README.md)**.
 
-### engineering-principles — standalone review principles plugin
+### engineering-principles — the review rubric, standalone
 
-Install:
+For users who want the engineering-principles review rubric without the full crew
+orchestration: this plugin ships just the skill, nothing else.
 
 ```bash
 claude plugin marketplace add johantor/zion
 claude plugin install engineering-principles@zion
 ```
 
-For users who only want the review rubric and not the full crew orchestration, Zion also
-ships a standalone `engineering-principles` plugin. The scope is intentionally narrow:
-it exists to ship the principles skill by itself.
-
-Plugin-specific documentation lives in
-**[plugins/engineering-principles/README.md](plugins/engineering-principles/README.md)**.
+Details in **[plugins/engineering-principles/README.md](plugins/engineering-principles/README.md)**.
 
 ## Staying up to date
 

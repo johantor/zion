@@ -59,9 +59,9 @@ Core principles (defaults, not dogma — the repo's established patterns win on 
 YAGNI, KISS, pragmatic DRY (rule of three), small single-purpose units, intention-revealing
 names, fail-fast error handling, and minimal-scope diffs.
 
-If a second plugin is added that ships a copy of `engineering-principles`, treat
-`plugins/crew/skills/engineering-principles/SKILL.md` as the canonical source and keep
-the duplicate copy byte-for-byte in sync. Drift is enforced automatically by
+The standalone `engineering-principles` plugin ships a copy of this skill;
+`plugins/crew/skills/engineering-principles/SKILL.md` is the canonical source and every
+shipped copy must stay byte-for-byte in sync. Drift is enforced automatically by
 `plugins/crew/scripts/validate-plugin.sh` (CI fails on mismatch); reviewers should
 still flag any drift that slips through as at least a **Warning**, and **Blocking**
 when it would change reviewer behavior.

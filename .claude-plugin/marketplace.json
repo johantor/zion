@@ -12,7 +12,7 @@
     {
       "name": "engineering-principles",
       "source": "./plugins/engineering-principles",
-      "description": "Standalone engineering-principles skill plugin for focused review standards."
+      "description": "Standalone engineering-principles skill plugin for focused code review standards."
     }
   ]
 }

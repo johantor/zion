@@ -20,13 +20,21 @@ guardrails that keep every agent in its lane.
 
 ## Get started
 
+Install the plugin — via the CLI:
+
 ```bash
 claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
 ```
 
-Then run `/crew:feature <task>` from a normal Claude Code session — or browse the plugins
-under `/plugin > Discover`.
+…or in the UI, from `/plugin > Discover` in Claude Code.
+
+Then start a feature either way:
+
+- **Normal session** — run `/crew:feature <task>`; keeps all your built-ins (statusline, etc.)
+  available while the crew works.
+- **Dedicated session** — launch `claude --agent crew:morpheus` to talk to the orchestrator
+  directly, scoped to crew work. More in **[plugins/crew/README.md](plugins/crew/README.md)**.
 
 ## Plugins
 

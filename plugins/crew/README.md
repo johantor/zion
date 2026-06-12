@@ -10,7 +10,7 @@ claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
 ```
 
-Or browse in Claude Code under `/plugin > Discover` after adding the marketplace.
+Prefer the UI? Add and install from `/plugin > Discover` in Claude Code instead.
 
 ## Usage
 

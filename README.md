@@ -25,8 +25,14 @@ claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
 ```
 
-Then run `/crew:feature <task>` from a normal Claude Code session — or browse the plugins
-under `/plugin > Discover`.
+Prefer the UI? Add and install from `/plugin > Discover` in Claude Code instead.
+
+Then start a feature either way:
+
+- **Normal session** — run `/crew:feature <task>`; keeps all your built-ins (statusline, etc.)
+  available while the crew works.
+- **Dedicated session** — launch `claude --agent crew:morpheus` to talk to the orchestrator
+  directly, scoped to crew work. More in **[plugins/crew/README.md](plugins/crew/README.md)**.
 
 ## Plugins
 

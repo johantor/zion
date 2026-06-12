@@ -15,13 +15,13 @@ Defaults, not dogma — when a rule conflicts with the repo's established patter
 - **Errors.** Fail fast, handle explicitly, validate at boundaries; never silently swallow.
 - **Minimal-scope diffs.** Smallest change that solves the problem; don't sprawl refactors into unrelated files; list unrelated improvements instead of doing them.
 - **Dependencies.** Prefer stdlib/existing deps; don't add a package for something trivial.
-- **Reach for new code last.** Before writing any, walk this in order and stop at the first that resolves it (always subordinate to *match the repo* — the house pattern wins over a shorter clever one):
-  1. Is it actually needed? If not, don't build it.
-  2. Does the standard library or runtime already do it? Use that.
-  3. Does a native platform/framework feature cover it? Use that.
-  4. Does an already-installed dependency solve it? Use that.
-  5. Can it collapse to a line or two without hurting readability? Do that.
-  6. Only then write new code — the minimum that works. When two equal-size options exist, take the one that handles the edge cases.
+- **Reach for new code last.** Before writing any, check these in order and stop at the first that applies. Subordinate to *match the repo*: never pick a shorter option over the house pattern.
+  1. Not needed → don't build it.
+  2. Stdlib or runtime covers it → use that.
+  3. Native platform/framework feature covers it → use that.
+  4. Installed dependency covers it → use that; don't add a new one.
+  5. Collapses to a line or two without hurting readability → do that.
+  6. Else write the minimum that works. On a tie between equal-size options, take the one that handles the edge cases.
 - **Performance.** Clarity first; measure before optimizing.
 - **Tests.** Test behavior, not implementation; meaningful assertions; no coverage theater.
 - **Before finishing.** Re-read your diff as a reviewer; remove anything unneeded; confirm it follows repo conventions.

@@ -103,6 +103,7 @@ done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 marketplace=".claude-plugin/marketplace.json"
 if [ -f "$marketplace" ] && jq empty "$marketplace" >/dev/null 2>&1; then
   while IFS=$'\t' read -r mname msource; do
+    msource="${msource%$'\r'}"  # tolerate CRLF checkouts on Windows
     src="${msource#./}"
     if [ ! -d "$src" ]; then
       err "$marketplace entry '$mname': source $msource does not exist"
@@ -114,6 +115,7 @@ if [ -f "$marketplace" ] && jq empty "$marketplace" >/dev/null 2>&1; then
       continue
     fi
     pname="$(jq -r '.name // empty' "$pmanifest")"
+    pname="${pname%$'\r'}"  # tolerate CRLF checkouts on Windows
     if [ "$pname" = "$mname" ]; then
       ok "$marketplace entry '$mname' matches $pmanifest"
     else

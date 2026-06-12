@@ -77,10 +77,24 @@ result when you're notified it finished, then verify and commit.
   unavailable to a backgrounded agent and auto-deny. So only background a step that is
   **fully specified**; if a step still needs a user decision, resolve that first (or run that
   one step in the foreground), then delegate.
-- **Run independent steps concurrently**, but keep dependent steps ordered — don't start a
-  step that needs another's output until that output is back and verified.
+- **Dispatch every unblocked step each round.** When delegating, launch all steps whose
+  dependencies are met in a single message — never serialize steps the plan marks as
+  independent. Keep dependent steps ordered: don't start a step that needs another's
+  output until that output is back and verified.
 - **Commit only verified, completed steps.** A backgrounded step isn't done until its result
   returns and passes its acceptance criteria; never commit on dispatch.
+
+## Right-size the model per delegation
+
+The Agent tool's `model` parameter overrides the worker's default model. Use it to keep
+mechanical steps fast without spending quality where it isn't needed:
+
+- Pass `model: haiku` for **run-and-report** steps: running an existing test suite
+  (`oracle`/`dozer`), the ship-gate build/lint runs, or re-running a suite after a fix
+  lands. These execute a known command and report failures — they need speed, not depth.
+- Omit `model` (worker default) for anything that **authors or diagnoses**: implementing
+  code, writing new tests, investigating a failure, visual conformance judgment.
+- When in doubt, omit the override — a wrong fast result costs more than the seconds saved.
 
 ## Builds and full test suites are a final gate — delegated, not per-step
 
@@ -114,8 +128,8 @@ If a step genuinely needs a build to be verifiable before the end, decide that d
 and note it in the plan — it's the exception, not the per-step default.
 
 Anti-drift rules:
-1. Maintain a written plan in `.claude/plan-<feature>.md` with per-step acceptance criteria and cite the exact step in every delegation.
-2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), and explicit out-of-scope notes.
+1. Maintain a written plan in `.claude/plan-<feature>.md` with per-step acceptance criteria and cite the exact step in every delegation. Mark each step's dependencies explicitly (`depends-on: <step>` or `independent`) so every unblocked step is dispatchable at a glance.
+2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
    Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
 4. Treat test/design failures and “improvements noticed” as drift signals; fold them back into the plan deliberately.

@@ -3,6 +3,7 @@ name: tank
 description: Backend implementer for C#/.NET and Optimizely CMS (content types, blocks, IContentRepository, scheduled jobs, init modules), MVC controllers, and Razor views. Invoked by the morpheus orchestrator. Not for standalone or automatic use.
 tools: Read, Edit, Write, Grep, Glob, Bash
 model: sonnet
+maxTurns: 40
 color: red
 memory: local
 skills:

@@ -5,6 +5,31 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-06-12
+
+### Changed
+- **`morpheus` right-sizes the model per delegation.** The Agent tool's `model` override is
+  now part of the delegation contract: mechanical run-and-report steps (running an existing
+  suite, ship-gate build/lint runs, post-fix re-runs) go out as `haiku` for speed, while
+  anything that authors or diagnoses (implementation, new tests, failure investigation,
+  visual judgment) keeps the worker's default model. When in doubt, the override is omitted.
+- **Parallel dispatch is the default, not a suggestion.** Plan steps in
+  `.claude/plan-<feature>.md` must declare dependencies explicitly (`depends-on: <step>` or
+  `independent`), and `morpheus` dispatches every currently-unblocked step in a single
+  message each round instead of serializing independent work.
+- **Delegations carry the planning context.** Delegation prompts must now include the exact
+  file paths to touch and the relevant snippets/contracts `morpheus` already found while
+  planning, so workers start editing instead of re-exploring the repo on every spawn.
+- **`tank` and `trinity` get `maxTurns: 40`.** The implementers were the only workers with
+  unbounded turns; a stuck retry loop is now a bounded wait that returns a partial finding
+  `morpheus` can route, matching the caps already on `oracle`/`dozer`/`seraph`.
+
+### Fixed
+- **`validate-plugin.sh` marketplace check works on Windows.** Native Windows `jq` emits
+  CRLF, so the marketplace source path and plugin name carried a trailing `\r` and the
+  check failed locally (`source ./plugins/crew does not exist`). The 2f loop now strips
+  `\r` like the manifest-path loops already did.
+
 ## [1.7.0] - 2026-06-11
 
 ### Added

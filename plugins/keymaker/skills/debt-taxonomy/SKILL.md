@@ -23,8 +23,9 @@ pass — do not assume. Apply the matching per-stack skill for each detected sta
 
 ```bash
 # One pass — presence only, no file bodies
-ls *.sln Directory.Packages.props global.json 2>/dev/null
-find . -maxdepth 3 -name '*.csproj' -o -name 'package.json' -o -name 'tsconfig.json' 2>/dev/null | head
+ls *.sln Directory.Packages.props Directory.Build.props global.json 2>/dev/null
+find . -maxdepth 3 \( -name '*.csproj' -o -name 'package.json' -o -name 'tsconfig.json' \
+  -o -name '.eslintrc*' -o -name 'biome.json' \) 2>/dev/null | head
 ```
 
 A repo may match more than one stack (a typical Optimizely + React solution matches both) —

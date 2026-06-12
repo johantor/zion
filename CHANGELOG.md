@@ -5,19 +5,45 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.10.0] - 2026-06-12
+## [2.1.0] - 2026-06-12
 
 ### Added
-- **Chrome DevTools MCP is a first-class browser option.** `trinity` and `seraph` now
-  allowlist `mcp__chrome-devtools` alongside `mcp__playwright`, so either browser MCP works
-  zero-config for visual checks and frontend loop-checks. Chrome DevTools is Chrome-only but
-  adds performance/Lighthouse and console/network inspection.
+- **More first-class MCP servers across the crew.** Agents now allowlist additional optional
+  MCP servers and use them when present (degrading gracefully when absent):
+  - **Browser:** `mcp__chrome-devtools` on `trinity`/`seraph` alongside `mcp__playwright` —
+    either browser MCP works zero-config; Chrome DevTools is Chrome-only but adds
+    performance/Lighthouse and console/network inspection.
+  - **Library & framework docs:** `mcp__context7` on `tank`/`trinity`, for current,
+    version-specific API docs instead of coding from memory.
+  - **Issue tracking (ticket-in):** `mcp__linear` and `mcp__atlassian` on `morpheus`, to pull
+    the source ticket at planning.
+  - **Database:** `mcp__mssql` and `mcp__postgres` on `tank`/`oracle`, for schema-aware
+    data-access work and integration test data.
+  - **Error monitoring:** `mcp__sentry` on `morpheus`, to pull stack/breadcrumb context for a bug.
+  `tank` and `oracle` gain `ToolSearch` to load these servers' deferred tool schemas.
 
 ### Changed
-- **MCP setup in the crew README is now a purpose→server table of links** instead of inline
+- **MCP setup in the crew README is a purpose→server table of links** instead of inline
   install/config blocks that drift from each server's own docs. It keeps only the
-  crew-specific contract (which agents use each server, the `mcp__<server>` naming the
-  allowlist expects, and the fallback when a server is absent).
+  crew-specific contract: which agents use each server, the `mcp__<server>` naming the
+  allowlist expects, and the fallback when a server is absent.
+
+## [2.0.0] - 2026-06-12
+
+### Changed
+- **`/crew:ship` is folded into `/crew:review`.** The crew flow is now `feature → review → pr`.
+  `/crew:review` is the single pre-PR **GO / NO-GO** gate: it runs the diff-scoped executable
+  checks the ship gate used to own (lane-scoped build, backend tests, frontend e2e, backend/
+  frontend lint — idempotent within a session) **and** the consolidated review (code quality,
+  security, design conformance via `seraph`), then emits the `## Blocking` / `## Warnings` /
+  `## Passed` sections followed by GO/NO-GO. The previous read-only review is preserved as
+  `/crew:review quick` (judgment only, no suites); `/crew:review full` forces every gate
+  regardless of the diff. `morpheus`, `tank`, `trinity`, and `/crew:pr` now reference the
+  **review gate** instead of the ship gate, and `/crew:pr` requires `/crew:review` → GO.
+
+### Removed
+- **`/crew:ship` command.** Its behavior now lives in `/crew:review` (above). **Breaking** for
+  anyone scripting or invoking `/crew:ship` directly — run `/crew:review` instead.
 
 ## [1.9.0] - 2026-06-12
 

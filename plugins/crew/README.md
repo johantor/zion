@@ -18,9 +18,10 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
    a feature branch off your base branch and commits each verified step (workers never run git).
    Run it from a **normal** Claude Code session — that keeps all your built-ins (statusline, etc.)
    available while the crew handles the feature.
-2. Run `/crew:review` for consolidated code + security + design review.
-3. Run `/crew:ship` for pre-PR go/no-go checks.
-4. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
+2. Run `/crew:review` for the pre-PR **GO / NO-GO** gate — the consolidated code + security +
+   design review plus the diff-scoped build/test/lint checks (`/crew:review quick` for a
+   read-only review with no suites; `/crew:review full` to force every gate).
+3. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
    available, else prints the push command + PR body; outward action — it confirms first).
 
 > **Alternative — dedicated orchestration session:** start Claude Code *as* the orchestrator
@@ -35,7 +36,7 @@ Or browse in Claude Code under `/plugin > Discover` after adding the marketplace
 > finishes. You don't have to wait for a worker to be heard.
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
-read as `crew:feature` / `crew:review` / `crew:ship` / `crew:pr` rather than colliding with
+read as `crew:feature` / `crew:review` / `crew:pr` rather than colliding with
 any built-in or other-plugin commands of the same short name.
 
 ## What is included
@@ -43,7 +44,7 @@ any built-in or other-plugin commands of the same short name.
 - `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
 - `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
-- `commands/`: `/crew:feature`, `/crew:review`, `/crew:ship`, `/crew:pr`
+- `commands/`: `/crew:feature`, `/crew:review`, `/crew:pr`
 
 ## Hooks & enforcement
 
@@ -86,16 +87,22 @@ Install each from its own docs (linked below):
 | --- | --- | --- | --- |
 | Browser automation & visual checks | [Playwright](https://github.com/microsoft/playwright-mcp) or [Chrome DevTools](https://github.com/ChromeDevTools/chrome-devtools-mcp) | `trinity`, `seraph` | `seraph` reports a browser MCP is needed; `trinity` skips its browser loop-checks |
 | Design reference | [Figma MCP](https://developers.figma.com/docs/figma-mcp-server/) — Dev Mode (local) or the hosted `claude.ai Figma` connector | `trinity`, `seraph` | both fall back to the design reference passed in the delegation |
-| Git hosting (ticket-in / PR-out) | [GitHub](https://github.com/github/github-mcp-server) or [Azure DevOps](https://github.com/microsoft/azure-devops-mcp) | `morpheus` | crew stops at the local **GO/NO-GO** ship gate; open the PR with `/crew:pr` |
+| Library & framework docs | [Context7](https://github.com/upstash/context7) | `tank`, `trinity` | implementers code from memory instead of current, version-specific API docs |
+| Issue tracking (ticket-in) | [Atlassian (Jira/Confluence)](https://www.atlassian.com/platform/remote-mcp-server) or [Linear](https://linear.app/docs/mcp) | `morpheus` | `morpheus` plans from the prompt alone; paste ticket details in by hand |
+| Git hosting (ticket-in / PR-out) | [GitHub](https://github.com/github/github-mcp-server) or [Azure DevOps](https://github.com/microsoft/azure-devops-mcp) | `morpheus` | crew stops at the local **GO/NO-GO** review gate; open the PR with `/crew:pr` |
+| Database (schema & test data) | [SQL Server](https://learn.microsoft.com/en-us/sql/mcp/) or [Postgres](https://github.com/crystaldba/postgres-mcp) | `tank`, `oracle` | data-access code and integration tests work from assumed schema |
+| Error monitoring | [Sentry](https://mcp.sentry.dev/) | `morpheus` | bug context (stack, breadcrumbs) must be pasted in by hand |
 
 Playwright and Chrome DevTools are interchangeable for the crew's needs — Chrome DevTools
 is Chrome-only but adds performance/Lighthouse and console/network inspection.
 
 **Server names must match the allowlist.** Agents allowlist servers by name:
-`mcp__playwright` / `mcp__chrome-devtools` (browser, on `trinity` + `seraph`),
-`mcp__figma` / `mcp__claude_ai_Figma` (design, on `trinity` + `seraph`), and
-`mcp__github` / `mcp__ado` (git host, on `morpheus`). Name your server one of these and it
-works as-is; name it something else and grant its `mcp__<server>` to the relevant agent(s).
+`mcp__playwright` / `mcp__chrome-devtools` (browser) and `mcp__figma` / `mcp__claude_ai_Figma`
+(design) on `trinity` + `seraph`; `mcp__context7` (docs) on `tank` + `trinity`;
+`mcp__mssql` / `mcp__postgres` (database) on `tank` + `oracle`; and `mcp__github` / `mcp__ado`
+(git host), `mcp__linear` / `mcp__atlassian` (issue tracking), and `mcp__sentry` (errors) on
+`morpheus`. Name your server one of these and it works as-is; otherwise grant its
+`mcp__<server>` to the relevant agent(s).
 
 ## Notes
 

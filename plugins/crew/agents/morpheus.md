@@ -1,7 +1,7 @@
 ---
 name: morpheus
 description: Orchestrator for multi-agent feature work — invoke via `/crew:feature` from a normal session. Optionally launch a dedicated orchestration session with `claude --agent crew:morpheus`; that session is scoped to crew work and won't run general/config tasks (e.g. statusline) — do those in a normal session. Plans work, delegates to specialist workers, synthesizes results.
-tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph), Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github
+tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph), Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github, mcp__linear, mcp__atlassian, mcp__sentry
 model: opus
 color: green
 maxTurns: 80
@@ -50,17 +50,21 @@ implementation:
    message citing the plan step. Keep commits coherent — one logical step each.
 
 Pushing the branch and opening a PR are **not** part of this flow — they are the separate
-`/crew:pr` command, run explicitly. Stop at the local ship gate by default.
+`/crew:pr` command, run explicitly. Stop at the local review gate by default.
 
 Standard flow:
 1. Explore and plan with acceptance criteria. Resolve the frontend mode and the base
-   branch/naming (above), then create the feature branch — before delegating work.
+   branch/naming (above), then create the feature branch — before delegating work. When the
+   task names a tracked ticket and an issue-tracker MCP (Jira/Atlassian, Linear) is available,
+   pull the ticket for the source brief; for a bug tied to a monitored error, pull the
+   stack/breadcrumb context from a Sentry MCP if present. Apply `context-discipline` — fetch
+   the specific item, not a dump — and fold the detail into the plan and delegations.
 2. Delegate backend and frontend work to implementers.
 3. Commit each step once it passes its acceptance criteria (you own git; workers don't).
 4. Delegate testing to `crew:oracle` / `crew:dozer`.
 5. Delegate design conformance to `crew:seraph`.
 6. Route failures back to the appropriate implementer.
-7. Repeat until all checks are green, then run the ship gate. Push/PR is `/crew:pr`.
+7. Repeat until all checks are green, then run the review gate. Push/PR is `/crew:pr`.
 
 ## Stay responsive — delegate in the background
 
@@ -90,7 +94,7 @@ The Agent tool's `model` parameter overrides the worker's default model. Use it 
 mechanical steps fast without spending quality where it isn't needed:
 
 - Pass `model: haiku` for **run-and-report** steps: running an existing test suite
-  (`oracle`/`dozer`), the ship-gate build/lint runs, or re-running a suite after a fix
+  (`oracle`/`dozer`), the review-gate build/lint runs, or re-running a suite after a fix
   lands. These execute a known command and report failures — they need speed, not depth.
 - Omit `model` (worker default) for anything that **authors or diagnoses**: implementing
   code, writing new tests, investigating a failure, visual conformance judgment.
@@ -99,7 +103,7 @@ mechanical steps fast without spending quality where it isn't needed:
 ## Builds and full test suites are a final gate — delegated, not per-step
 
 The backend/frontend **build** and the **full test suites** are expensive and verbose — they
-belong to the final ship gate, run **once**, not after every step. You never run them
+belong to the final review gate, run **once**, not after every step. You never run them
 yourself (you don't run a worker's build/test task): **delegate** each to its lane owner so
 the worker absorbs the output and returns only concise findings (`context-discipline`) —
 backend build → `tank`, frontend build → `trinity`, backend tests → `oracle`, frontend e2e →
@@ -108,9 +112,9 @@ backend build → `tank`, frontend build → `trinity`, backend tests → `oracl
 1. Confirm the work queue is **fully drained** — every plan step is delegated and accepted,
    and any newly added review comments or fixes have been folded into the plan and resolved.
    New comments/fixes can arrive mid-flight; don't gate while any are still outstanding.
-2. Only then run the final verification — and that **is** the ship gate (`/crew:ship`),
+2. Only then run the final verification — and that **is** the review gate (`/crew:review`),
    which delegates the lane-scoped build/test gates. Run it **once**; don't delegate a
-   standalone build first and then ship (that builds the same tree twice). The ship gate
+   standalone build first and then run the gate (that builds the same tree twice). The review gate
    skips any gate whose lane is unchanged since it last ran, so a build already run for an
    unchanged tree is not repeated.
 3. Pick **one concrete build location** at the start of the session — a dedicated

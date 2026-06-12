@@ -1,32 +1,30 @@
 # engineering-principles
 
-Standalone Zion plugin documentation for teams that want only the engineering principles
-skill without the full `crew` orchestration stack.
+A Claude Code plugin: the engineering-principles review rubric as a standalone
+skill, for users who want the rubric without the full `crew` orchestration. Part
+of the [Zion](../../README.md) marketplace.
 
 ## Install
+
+Via the CLI:
 
 ```bash
 claude plugin marketplace add johantor/zion
 claude plugin install engineering-principles@zion
 ```
 
-## Purpose
+…or in the UI, from `/plugin > Discover` in Claude Code.
 
-- Provide the `engineering-principles` review rubric as a focused plugin surface.
-- Keep adoption simple for users who do not need worker agents, hooks, or crew commands.
+## Usage
 
-## Plugin setup (repo structure)
+Once installed, Claude Code auto-loads the skill and consults it when you write,
+refactor, or review code. No commands or agents are added.
 
-- `.claude-plugin/plugin.json` defines plugin metadata and points `skills` to `./skills`.
-- `skills/engineering-principles/SKILL.md` contains the shipped skill.
-- `CHANGELOG.md` tracks released versions for this plugin.
+## What is included
 
-## Source of truth and drift policy
+- `skills/engineering-principles` — core code-quality rules (YAGNI, KISS, DRY
+  with judgment, small single-purpose units, clear naming, minimal-scope diffs).
 
-- Canonical source: `plugins/crew/skills/engineering-principles/SKILL.md`
-- If this plugin carries a duplicated skill file, it must remain byte-for-byte in sync with
-  the canonical source.
-- Any drift should be flagged in review as at least a **Warning**, and **Blocking** when the
-  drift changes reviewer behavior.
+## Notes
 
-This policy is also documented in `../../AGENTS.md`.
+- Contributing or hacking on this plugin? See **[AGENTS.md](../../AGENTS.md)**.

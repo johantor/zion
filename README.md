@@ -55,10 +55,8 @@ claude plugin install engineering-principles@zion
 ```
 
 For users who only want the review rubric and not the full crew orchestration, Zion also
-tracks a standalone `engineering-principles` plugin path. The scope is intentionally narrow:
+ships a standalone `engineering-principles` plugin. The scope is intentionally narrow:
 it exists to ship the principles skill by itself.
-
-Release and contributor governance details are documented in **[AGENTS.md](AGENTS.md)**.
 
 Plugin-specific documentation lives in
 **[plugins/engineering-principles/README.md](plugins/engineering-principles/README.md)**.

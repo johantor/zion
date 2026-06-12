@@ -61,8 +61,10 @@ names, fail-fast error handling, and minimal-scope diffs.
 
 If a second plugin is added that ships a copy of `engineering-principles`, treat
 `plugins/crew/skills/engineering-principles/SKILL.md` as the canonical source and keep
-the duplicate copy byte-for-byte in sync. During reviews, flag any drift between copies as
-at least a **Warning**, and **Blocking** when drift would change reviewer behavior.
+the duplicate copy byte-for-byte in sync. Drift is enforced automatically by
+`plugins/crew/scripts/validate-plugin.sh` (CI fails on mismatch); reviewers should
+still flag any drift that slips through as at least a **Warning**, and **Blocking**
+when it would change reviewer behavior.
 
 ## Validating changes
 

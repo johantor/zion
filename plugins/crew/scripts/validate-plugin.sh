@@ -140,6 +140,21 @@ while IFS= read -r h; do
   fi
 done < <(git ls-files 'plugins/*/hooks/*.sh')
 
+# 4. Skill drift: any skill that the crew plugin owns canonically must be
+#    byte-for-byte identical when shipped by another plugin. Catches the
+#    duplicated-skill drift policy automatically instead of relying on review.
+while IFS= read -r canonical; do
+  rel="${canonical#plugins/crew/}"  # e.g. skills/engineering-principles/SKILL.md
+  while IFS= read -r shipped; do
+    [ "$shipped" = "$canonical" ] && continue
+    if cmp -s "$canonical" "$shipped"; then
+      ok "skill in sync: $shipped == $canonical"
+    else
+      err "skill drift: $shipped differs from canonical $canonical"
+    fi
+  done < <(git ls-files "plugins/*/$rel")
+done < <(git ls-files 'plugins/crew/skills/*/SKILL.md')
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

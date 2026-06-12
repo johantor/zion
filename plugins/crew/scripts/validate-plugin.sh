@@ -157,6 +157,32 @@ for canonical_dir in plugins/crew/skills/*/; do
   done
 done
 
+# 5. Agent skills resolve: every skill in an agent's frontmatter `skills:` list
+#    must ship as plugins/<plugin>/skills/<skill>/SKILL.md in the agent's own
+#    plugin. A typo silently means the skill never loads at runtime.
+while IFS= read -r agent_file; do
+  agent_file="${agent_file%$'\r'}"  # tolerate CRLF checkouts on Windows
+  plugin_dir="$(dirname "$(dirname "$agent_file")")"  # plugins/<name>
+  frontmatter="$(awk '/^---[[:space:]]*$/{c++; next} c==1' "$agent_file")"
+  if ! printf '%s\n' "$frontmatter" | grep -q '^skills:[[:space:]]*$'; then
+    ok "$agent_file has no skills: key (optional)"
+    continue
+  fi
+  skills="$(printf '%s\n' "$frontmatter" \
+    | awk '/^skills:[[:space:]]*$/{f=1; next} f && /^[A-Za-z]/{f=0} f' \
+    | sed -n 's/^[[:space:]]*-[[:space:]]*//p')"
+  while IFS= read -r skill; do
+    skill="${skill%$'\r'}"
+    [ -z "$skill" ] && continue
+    skill_path="$plugin_dir/skills/$skill/SKILL.md"
+    if [ -f "$skill_path" ]; then
+      ok "$agent_file skill -> $skill resolves to $skill_path"
+    else
+      err "$agent_file references skill '$skill' but $skill_path does not exist"
+    fi
+  done <<< "$skills"
+done < <(git ls-files 'plugins/*/agents/*.md')
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

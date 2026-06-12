@@ -76,97 +76,26 @@ plugin):
 
 ## Recommended MCP servers
 
-The plugin bundles no MCP servers — agents use one only when it's present in
-your session, and degrade gracefully when it isn't. MCP config lives in your own
-session (project `.mcp.json` or `claude mcp add`) rather than the plugin, because
-the harness strips `mcpServers` from plugin-shipped agent frontmatter for
-security. All of the below are optional.
+The plugin bundles no MCP servers. Agents use one only when it's present in your
+session and degrade gracefully when it isn't, so all of these are optional. Add MCP
+config in your own session (project `.mcp.json` or `claude mcp add`), not the plugin —
+the harness strips `mcpServers` from plugin-shipped agent frontmatter for security.
+Install each from its own docs (linked below):
 
-### Browser automation (Playwright)
+| Purpose | MCP server | Used by | Without it |
+| --- | --- | --- | --- |
+| Browser automation & visual checks | [Playwright](https://github.com/microsoft/playwright-mcp) or [Chrome DevTools](https://github.com/ChromeDevTools/chrome-devtools-mcp) | `trinity`, `seraph` | `seraph` reports a browser MCP is needed; `trinity` skips its browser loop-checks |
+| Design reference | [Figma MCP](https://developers.figma.com/docs/figma-mcp-server/) — Dev Mode (local) or the hosted `claude.ai Figma` connector | `trinity`, `seraph` | both fall back to the design reference passed in the delegation |
+| Git hosting (ticket-in / PR-out) | [GitHub](https://github.com/github/github-mcp-server) or [Azure DevOps](https://github.com/microsoft/azure-devops-mcp) | `morpheus` | crew stops at the local **GO/NO-GO** ship gate; open the PR with `/crew:pr` |
 
-For full visual capability, add the
-[Playwright MCP](https://github.com/microsoft/playwright-mcp) so `trinity`
-(implementation loop-checks) and `seraph` (visual conformance) can drive a real
-browser:
+Playwright and Chrome DevTools are interchangeable for the crew's needs — Chrome DevTools
+is Chrome-only but adds performance/Lighthouse and console/network inspection.
 
-```json
-{
-  "mcpServers": {
-    "playwright": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@playwright/mcp@latest"]
-    }
-  }
-}
-```
-
-Without it, `seraph` reports that visual checks need a browser MCP and `trinity`
-skips its browser loop-checks — nothing breaks.
-
-> Note: `seraph` and `trinity` allowlist the whole `mcp__playwright` server, so
-> adding the server above named `playwright` is all that's needed. If you run a
-> different browser MCP — or name the server something else — grant its
-> `mcp__<server>` to those agents.
-
-### Design reference (Figma)
-
-For design-driven work, add a Figma MCP so `seraph` (visual conformance) can pull
-the canonical design spec instead of relying on a pasted export, and `trinity`
-(frontend implementation) can build to exact measurements/colors/type. Pass the
-Figma link or node id in the delegation.
-
-`seraph` and `trinity` already allowlist the `mcp__figma` and `mcp__claude_ai_Figma`
-servers (plus `ToolSearch`, which loads their deferred tool schemas), so adding one
-of these is all that's needed:
-
-- **Figma Dev Mode MCP** (official, local) — enable it in the Figma desktop app
-  (Preferences → *Enable Dev Mode MCP Server*), then point Claude Code at it:
-
-  ```bash
-  claude mcp add-json figma '{"type":"http","url":"http://127.0.0.1:3845/mcp"}'
-  ```
-
-- **claude.ai Figma connector** — the hosted `claude.ai Figma` server (named
-  `claude_ai_Figma`), authorized via OAuth on first use.
-
-If you name your Figma server something other than `figma` / `claude_ai_Figma`, add
-its `mcp__<server>` to `seraph` and `trinity`. Without any Figma MCP, both agents
-fall back to the design reference provided in the delegation — nothing breaks.
-
-### Git hosting (optional, for ticket-in / PR-out)
-
-The crew is host-agnostic and stops at the local **GO/NO-GO** ship gate — opening
-the PR is the explicit `/crew:pr` step. If you want the orchestrator to fetch a
-work item or open the PR with the ship summary, add the MCP for your host.
-
-`morpheus` already allowlists the `mcp__ado` and `mcp__github` servers (plus
-`ToolSearch`, which loads their deferred tool schemas, and `Bash` for `az` / `gh`),
-so once you add one of the servers below (GitHub or ADO) it can drive PR work —
-including from a `claude --agent crew:morpheus` session. If you name your host server something
-other than `ado` / `github`, add its `mcp__<server>` to `morpheus`'s `tools`.
-
-GitHub — official [github/github-mcp-server](https://github.com/github/github-mcp-server)
-(remote, needs a GitHub PAT):
-
-```bash
-claude mcp add-json github '{"type":"http","url":"https://api.githubcopilot.com/mcp/","headers":{"Authorization":"Bearer YOUR_GITHUB_PAT"}}'
-```
-
-Azure DevOps — official [microsoft/azure-devops-mcp](https://github.com/microsoft/azure-devops-mcp)
-(stdio, uses your `az login`; pass your org name):
-
-```json
-{
-  "mcpServers": {
-    "ado": {
-      "type": "stdio",
-      "command": "npx",
-      "args": ["-y", "@azure-devops/mcp", "YOUR_ADO_ORG"]
-    }
-  }
-}
-```
+**Server names must match the allowlist.** Agents allowlist servers by name:
+`mcp__playwright` / `mcp__chrome-devtools` (browser, on `trinity` + `seraph`),
+`mcp__figma` / `mcp__claude_ai_Figma` (design, on `trinity` + `seraph`), and
+`mcp__github` / `mcp__ado` (git host, on `morpheus`). Name your server one of these and it
+works as-is; name it something else and grant its `mcp__<server>` to the relevant agent(s).
 
 ## Notes
 

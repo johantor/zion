@@ -5,6 +5,20 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2026-06-12
+
+### Added
+- **Chrome DevTools MCP is a first-class browser option.** `trinity` and `seraph` now
+  allowlist `mcp__chrome-devtools` alongside `mcp__playwright`, so either browser MCP works
+  zero-config for visual checks and frontend loop-checks. Chrome DevTools is Chrome-only but
+  adds performance/Lighthouse and console/network inspection.
+
+### Changed
+- **MCP setup in the crew README is now a purpose→server table of links** instead of inline
+  install/config blocks that drift from each server's own docs. It keeps only the
+  crew-specific contract (which agents use each server, the `mcp__<server>` naming the
+  allowlist expects, and the fallback when a server is absent).
+
 ## [1.9.0] - 2026-06-12
 
 ### Added

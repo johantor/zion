@@ -1,7 +1,7 @@
 ---
 name: trinity
 description: Frontend implementer for React, Redux (slices/selectors), vanilla JS, HTML, and SCSS/CSS — plus the markup/DOM of Razor views in server-rendered mode. Invoked by the morpheus orchestrator. Not for standalone or automatic use.
-tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, mcp__figma, mcp__claude_ai_Figma, mcp__playwright
+tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, mcp__figma, mcp__claude_ai_Figma, mcp__playwright, mcp__chrome-devtools
 model: sonnet
 maxTurns: 40
 color: cyan

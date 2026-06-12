@@ -5,6 +5,11 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.2] - 2026-06-12
+
+### Changed
+- `/keymaker:open <pointer>` 0-findings exit is now a single one-line status that folds "what was checked" into the same line (e.g. `No findings for CS8602 — nothing to do (grep count 0).`), instead of a two-sentence message. Keeps the idempotent re-run path truly one-line in both the orchestrator agent (`agents/keymaker.md`) and the command (`commands/open.md`).
+
 ## [0.1.1] - 2026-06-12
 
 ### Changed

@@ -5,6 +5,16 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-06-12
+
+### Added
+- **`engineering-principles` gains a "reach for new code last" ladder.** The skill listed
+  YAGNI/KISS/dependency preferences as values but no procedure. It now carries an ordered,
+  stop-at-first-match ladder — not needed → don't build; stdlib/runtime → use it; native
+  platform feature → use it; installed dependency → use it; collapses to a line or two → do
+  that; else write the minimum that works — so implementer agents have an explicit check to
+  run before writing code. Kept subordinate to *match the repo*.
+
 ## [1.8.0] - 2026-06-12
 
 ### Changed

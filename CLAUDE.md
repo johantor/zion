@@ -97,3 +97,6 @@ Versions are per-plugin. To cut a release:
   shape of existing files in the same directory.
 - Local agent memory lives in `.claude/agent-memory-local/` and is gitignored. Don't commit it.
 - Keep diffs minimal-scope; list unrelated improvements rather than bundling them.
+- PR titles follow Conventional Commits: `type(scope): summary`, with a `(vX.Y.Z)` suffix
+  when the PR bumps a plugin version. Use `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope
+  the plugin when the change is plugin-specific (e.g. `feat(crew): … (v1.9.0)`).

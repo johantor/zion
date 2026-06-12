@@ -47,11 +47,24 @@ Then start a feature either way:
 Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma, GitHub/ADO)
 are documented in **[plugins/crew/README.md](plugins/crew/README.md)**.
 
+### engineering-principles — the review rubric, standalone
+
+For users who want the engineering-principles review rubric without the full crew
+orchestration: this plugin ships just the skill, nothing else.
+
+```bash
+claude plugin marketplace add johantor/zion
+claude plugin install engineering-principles@zion
+```
+
+Details in **[plugins/engineering-principles/README.md](plugins/engineering-principles/README.md)**.
+
 ## Staying up to date
 
 ```bash
 claude plugin marketplace update zion
 claude plugin update crew@zion
+claude plugin update engineering-principles@zion
 ```
 
 ---

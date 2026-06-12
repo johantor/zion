@@ -38,7 +38,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`. Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/feature`, `/review`, `/ship`, `/pr` (namespaced as `crew:feature` etc. once installed).
+  - `commands/` — `/feature`, `/review`, `/pr` (namespaced as `crew:feature` etc. once installed). `/review` is the pre-PR GO/NO-GO gate (review + build/test/lint).
   - `skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks.json`.
   - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
@@ -51,7 +51,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `morpheus` plans and delegates; it writes no production code. Workers stay idle until delegated to.
 - `morpheus` maintains a written plan at `.claude/plan-<feature>.md` with per-step acceptance criteria.
 - `morpheus` is the sole owner of git: it branches off the resolved base branch and commits each
-  verified step; workers never run git. The crew stops at the local ship gate by default —
+  verified step; workers never run git. The crew stops at the local review gate by default —
   pushing and opening a PR is the separate `/crew:pr` command.
 - Worker lanes: `tank` = backend (C#/.NET/Optimizely, Razor server-side), `trinity` = frontend (React/Redux/JS/HTML/SCSS, plus Razor markup in server-rendered mode),
   `oracle` = backend tests only, `dozer` = frontend e2e only, `seraph` = visual design conformance (read-only).

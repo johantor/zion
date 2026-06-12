@@ -19,7 +19,7 @@ Pointer forms accepted:
 
 1. Classify the pointer using `debt-taxonomy`. If the form is unrecognised, ask the user to clarify and stop.
 2. Enumerate blast radius with scripts (counts and file paths only — `context-discipline`).
-3. If enumeration yields 0 findings for the pointer (or for all rule IDs parsed from pasted output), report `No findings for <pointer> — nothing to do.` and stop. Do not gate, branch, or dispatch.
+3. If enumeration yields 0 findings for the pointer (or for all rule IDs parsed from pasted output), report a single one-line status that folds in what was checked, e.g. `No findings for CS8602 — nothing to do (grep count 0).`, and stop. Do not gate, branch, or dispatch.
 4. Gate using the `debt-taxonomy` blast-radius gate. Report the classification and radius before proceeding.
 5. Resolve any required user decisions in the foreground before dispatching background workers.
 6. For tier-1 pointers within gate: delegate to `keymaker:twin` workers, verify, commit per batch.

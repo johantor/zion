@@ -70,7 +70,7 @@ grep -rn --include="*.cs" "disable CS8602" src/           # file:line list
 
 For upgrades: check current pinned version in `*.csproj` / `Directory.Packages.props` / `package.json`; note package manager type for later.
 
-If enumeration yields **0 findings** for the pointer, stop here. Do not gate, resolve decisions, branch, dispatch twins, or write a plan file. Return a one-line status: `No findings for <pointer> — nothing to do.` Include what was checked (e.g. `grep` count was 0, or `Newtonsoft.Json` is already at `13.0.3`).
+If enumeration yields **0 findings** for the pointer, stop here. Do not gate, resolve decisions, branch, dispatch twins, or write a plan file. Return a single one-line status that folds in what was checked, e.g. `No findings for CS8602 — nothing to do (grep count 0).` or `No findings for Newtonsoft.Json 13.x — nothing to do (already pinned at 13.0.3).`
 
 - Applies to all pointer forms — `file:line`, rule ID, package+version — when the suppression is already removed, the rule is already silent, or the current pinned version already matches the target.
 - For pasted output that parsed to multiple rule IDs: if **all** enumerate to 0, exit with the same one-liner listing the rules. If some have findings and some don't, proceed normally and note the empty ones in the radius report.

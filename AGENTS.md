@@ -21,7 +21,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`. Auto-discovered from this dir; not declared in the manifest.
   - `commands/` — `/feature`, `/review`, `/pr` (namespaced as `crew:feature` etc. once installed). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint).
   - `skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
-  - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks.json`.
+  - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
   - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
 - `.claude/settings.json` — this repo's own dev-time hooks (point at `plugins/crew/hooks/` so the guards run while developing here).
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
@@ -69,7 +69,7 @@ bash plugins/crew/scripts/validate-plugin.sh
 Versions are per-plugin. To cut a release:
 
 1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a `CHANGELOG.md`
-   entry (a PR that changes plugin behavior must do this — see `copilot-instructions.md`).
+   entry (a PR that changes plugin behavior must do this — see `.github/copilot-instructions.md`).
 2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
    version has no `<plugin>--v<version>` tag yet, and creates the tag and GitHub Release
    automatically, with notes pulled from that version's `CHANGELOG.md` section. No
@@ -78,7 +78,7 @@ Versions are per-plugin. To cut a release:
 
 ## Conventions
 
-- Hooks are POSIX shell run via `bash`; keep them shellcheck-clean.
+- Hooks are Bash scripts (`#!/usr/bin/env bash`); keep them shellcheck-clean.
 - Agent/command/skill definitions are Markdown with YAML frontmatter — match the field
   shape of existing files in the same directory.
 - Local agent memory lives in `.claude/agent-memory-local/` and is gitignored. Don't commit it.

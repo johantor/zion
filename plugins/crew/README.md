@@ -96,13 +96,18 @@ Install each from its own docs (linked below):
 Playwright and Chrome DevTools are interchangeable for the crew's needs — Chrome DevTools
 is Chrome-only but adds performance/Lighthouse and console/network inspection.
 
-**Server names must match the allowlist.** Agents allowlist servers by name:
-`mcp__playwright` / `mcp__chrome-devtools` (browser) and `mcp__figma` / `mcp__claude_ai_Figma`
-(design) on `trinity` + `seraph`; `mcp__context7` (docs) on `tank` + `trinity`;
-`mcp__mssql` / `mcp__postgres` (database) on `tank` + `oracle`; and `mcp__github` / `mcp__ado`
-(git host), `mcp__linear` / `mcp__atlassian` (issue tracking), and `mcp__sentry` (errors) on
-`morpheus`. Name your server one of these and it works as-is; otherwise grant its
-`mcp__<server>` to the relevant agent(s).
+**Server keys map to tool namespaces.** When you add a server you choose its *key* — e.g.
+`playwright` in `.mcp.json` (or `claude mcp add playwright …`). Claude Code exposes that
+server's tools under the matching `mcp__<key>` namespace, and that namespace is what the
+agents allowlist. Use these keys (each becomes `mcp__<key>`) so the allowlist matches out of
+the box:
+
+- `playwright` / `chrome-devtools` (browser) and `figma` / `claude_ai_Figma` (design) — on `trinity` + `seraph`
+- `context7` (docs) — on `tank` + `trinity`
+- `mssql` / `postgres` (database) — on `tank` + `oracle`
+- `github` / `ado` (git host), `linear` / `atlassian` (issue tracking), `sentry` (errors) — on `morpheus`
+
+If you give a server a different key, grant the matching `mcp__<key>` to the relevant agent(s).
 
 ## Notes
 

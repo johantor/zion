@@ -5,6 +5,15 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2026-06-12
+
+### Fixed
+- **MCP README no longer conflates a server's config key with its tool namespace.** The
+  allowlist note listed `mcp__`-prefixed namespaces under "name your server one of these,"
+  which could lead users to name the server `mcp__playwright`. It now distinguishes the *key*
+  you set in `.mcp.json` (e.g. `playwright`) from the `mcp__<key>` namespace agents allowlist,
+  and lists the expected keys without the prefix.
+
 ## [2.1.0] - 2026-06-12
 
 ### Added

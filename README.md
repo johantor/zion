@@ -40,7 +40,7 @@ claude plugin update crew@zion
 
 ---
 
-Contributing a plugin or hacking on the crew? See **[CLAUDE.md](CLAUDE.md)**.
+Contributing a plugin or hacking on the crew? See **[AGENTS.md](AGENTS.md)**.
 
 ---
 

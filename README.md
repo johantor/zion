@@ -1,35 +1,44 @@
 # Zion
 
-Claude Code plugins for feature delivery — a small **crew** of orchestrated agents
-that plan, build, test, and review your work, with guardrails that keep them on task.
+**Ship features with a crew, not a single assistant.** Zion is a Claude Code
+marketplace whose flagship plugin, **crew**, turns one prompt into an orchestrated
+team: a captain that plans and delegates, specialists that build and test, and
+guardrails that keep every agent in its lane.
+
+## Why crew
+
+- **One prompt, a whole team.** `morpheus` plans the work and delegates to specialists —
+  backend, frontend, tests, and visual review — instead of one assistant juggling everything.
+- **It keeps moving while you talk.** Workers run in the background, so you can add
+  corrections or new asks mid-flight without waiting for a turn to finish.
+- **Guardrails, not vibes.** Lane guards pin each worker to its own files, safety hooks block
+  destructive commands and commits to protected branches, and formatters run after every edit.
+- **Review and ship built in.** A consolidated code + security + design review and a pre-PR
+  **GO / NO-GO** gate run before anything leaves your machine.
+- **Your git, your rules.** The crew branches and commits each verified step, stops at the
+  ship gate, and opens the PR only when you say so.
 
 ## Get started
-
-Add the marketplace, then install a plugin:
 
 ```bash
 claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
 ```
 
-Or browse the plugins under `/plugin > Discover` in Claude Code.
+Then run `/crew:feature <task>` from a normal Claude Code session — or browse the plugins
+under `/plugin > Discover`.
 
 ## Plugins
 
-### crew
-
-> `claude plugin install crew@zion`
-
-Orchestrated, multi-agent feature delivery. An orchestrator (`morpheus`) plans the
-work and delegates to specialist workers — backend, frontend, tests, and visual
-review — then runs a consolidated review and a pre-PR ship gate.
+### crew — orchestrated, multi-agent feature delivery
 
 - `/crew:feature <task>` — plan and build a feature
 - `/crew:review` — consolidated code + security + design review
 - `/crew:ship` — pre-PR **GO / NO-GO** gate
+- `/crew:pr` — push the branch and open the pull request
 
-Agents, hooks, and optional MCP setup are documented in
-**[plugins/crew/README.md](plugins/crew/README.md)**.
+Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma, GitHub/ADO)
+are documented in **[plugins/crew/README.md](plugins/crew/README.md)**.
 
 ## Staying up to date
 
@@ -58,4 +67,3 @@ the *Nebuchadnezzar*'s crew, mapped loosely to what they do:
 - **seraph** — the guardian who knows you by testing you ("you do not truly know someone until you fight them"): visual design conformance.
 
 </details>
-

@@ -62,6 +62,18 @@ Returns a ranked, capped (~12 findings) read-only report. Every finding is forma
 - **One commit per batch.** Diffs stay reviewable; regressions stay bisectable.
 - **No test suite → explicit warning.** Upgrades with no configured test command require your acknowledgement before proceeding.
 
+## Supported stacks
+
+keymaker detects the stack(s) in scope by marker file before doing anything, and applies the
+matching taxonomy:
+
+- **.NET / C#** (`*.csproj`, `*.sln`, `Directory.Packages.props`) — `#pragma`, `[SuppressMessage]`, `<NoWarn>`, `.editorconfig` severity, `GlobalSuppressions.cs`; NuGet incl. Central Package Management.
+- **TypeScript / JavaScript** (`package.json`, `tsconfig.json`, `.eslintrc*`, `biome.json`) — `eslint-disable`, `biome-ignore`, `@ts-ignore`, `@ts-expect-error`; npm/pnpm/yarn.
+
+A repo can match both (e.g. Optimizely + React) — each lane gets its own taxonomy. On a stack
+keymaker doesn't yet know (Go, Python, Java, Rust), it says so and asks rather than guessing.
+Adding a stack is additive: a new `debt-taxonomy-<stack>` skill plus one detection-table row.
+
 ## What keymaker reads from your project
 
 Keymaker reads the same `CLAUDE.md` **Crew configuration** slots that the `crew` plugin uses — build, test, and lint commands, and the base branch. If these are unset, keymaker asks once and remembers. No separate configuration needed.

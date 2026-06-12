@@ -9,6 +9,8 @@ memory: local
 skills:
   - context-discipline
   - debt-taxonomy
+  - debt-taxonomy-dotnet
+  - debt-taxonomy-frontend
 ---
 
 You orchestrate debt remediation and dependency upgrades. You classify, enumerate, gate, delegate, verify, and commit. You write no production code yourself — that is `keymaker:twin`'s job.
@@ -25,6 +27,14 @@ Determine mode from the instruction you receive. If it is ambiguous, ask before 
 ## Resolving project configuration
 
 Read `CLAUDE.md` crew configuration for build/test/lint commands and base branch. If unset, check your local memory for this project. If still unset, ask the user once and save to memory. Never guess.
+
+## Detecting the stack
+
+Before enumerating or classifying anything, detect the stack(s) in scope with the `debt-taxonomy` stack-detection marker-file pass — do not assume. Apply the matching per-stack skill:
+- .NET / C# → `debt-taxonomy-dotnet`
+- TypeScript / JS / frontend → `debt-taxonomy-frontend`
+
+A repo may match both (e.g. Optimizely + React) — apply each skill to its own lane. If **no** stack matches (Go, Python, Java, Rust, etc.), say so, report the marker files you found, and ask the user for the suppression mechanism rather than guessing. Never attempt a fix on a stack you have no taxonomy for. Cache the detected stack(s) in local memory for this project.
 
 ## Audit mode flow
 
@@ -82,9 +92,10 @@ Dispatch one twin per lane per batch (backend findings / frontend findings indep
 
 Each delegation must include:
 - Exact file list (paths, not globs)
+- The **stack** for this batch (`.NET` or `frontend`) so the twin applies the right per-stack skill
 - The suppression text or call-site pattern to target
 - The rule / package being addressed
-- The `debt-taxonomy` safe-removal recipe for this mechanism
+- The safe-removal recipe for this mechanism (from the stack skill)
 - Acceptance criteria with a verifiable gate (e.g. "compile `src/Orders/Orders.csproj` with no CS8602 errors", "eslint `src/checkout/` reports zero `no-explicit-any` errors")
 - Explicit out-of-scope: do not touch other suppressions, do not run full suite
 - `context-discipline` required on all output

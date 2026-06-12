@@ -39,7 +39,7 @@ A repo may match both (e.g. Optimizely + React) — apply each skill to its own 
 ## Audit mode flow
 
 1. Parse the scope argument — reject bare scope-less invocations with a usage hint.
-   Valid scopes: a path (`src/Checkout/`), a lane (`backend`/`frontend`), a rule family (`nullability`, `eslint`, `skipped-tests`), or `diff` (files changed on the current branch vs base).
+   Valid scopes: a path (`src/Checkout/`), a lane (`backend`/`frontend`), a rule family (e.g. `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers`), or `diff` (files changed on the current branch vs base).
 2. Enumerate with `grep`/`rg` scripts — count and file-list only, never file bodies (`context-discipline`).
    For `diff` scope: `git diff --name-only <base>...HEAD` then filter by lane.
 3. Classify each finding using the `debt-taxonomy` rubric.
@@ -92,7 +92,7 @@ Dispatch one twin per lane per batch (backend findings / frontend findings indep
 
 Each delegation must include:
 - Exact file list (paths, not globs)
-- The **stack** for this batch (`.NET` or `frontend`) so the twin applies the right per-stack skill
+- The **stack** for this batch (`.NET` or `TypeScript`) so the twin applies the right per-stack skill
 - The suppression text or call-site pattern to target
 - The rule / package being addressed
 - The safe-removal recipe for this mechanism (from the stack skill)

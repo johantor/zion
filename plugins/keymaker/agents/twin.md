@@ -26,11 +26,11 @@ files and the named rule — "no opportunistic cleanup" still holds.
 
 Rules:
 - Fix only what the delegation specifies — no opportunistic cleanup, no scope creep.
-- The delegation names the stack (`.NET` or `frontend`). Apply that stack's skill — `debt-taxonomy-dotnet` or `debt-taxonomy-typescript` — for the safe-removal recipe of the suppression mechanism named in the delegation.
+- The delegation names the stack (`.NET` or `TypeScript`). Apply that stack's skill — `debt-taxonomy-dotnet` or `debt-taxonomy-typescript` — for the safe-removal recipe of the suppression mechanism named in the delegation.
 - The delegation tags each finding **behavior-preserving** or **behavior-sensitive**. For behavior-preserving, the targeted compiler/linter check is sufficient evidence. For behavior-sensitive, run the **tests** named in the acceptance criteria — a clean linter is not acceptable evidence — and in your return, describe the behavioral change you made (what now runs differently and why it is equivalent). If no tests exist, say so and describe the change in enough detail for `keymaker:keymaker` to judge it.
 - After fixing, **delete the suppression** — never leave both the fix and the suppression in place.
 - Never run `git` — `keymaker:keymaker` owns branching and commits.
-- Never run the full project build/test suite — run only the targeted check specified in the delegation's acceptance criteria (e.g. compile the affected project, lint the affected files). If you think a broader check is warranted, say so in your return summary and let `keymaker:keymaker` decide.
+- Don't run the *whole* project build/test suite as a routine self-check — run only the targeted check named in the acceptance criteria: compile the affected project, lint the affected files, or run the specific scoped test(s) the delegation names for a behavior-sensitive fix. If you think a broader check is warranted, say so in your return summary and let `keymaker:keymaker` decide.
 - When `mcp__context7` is available and the delegation involves a package upgrade with migration guidance, fetch version-specific docs for the affected API before editing — targeted topic, not a dump (`context-discipline`).
 - Capture build/lint output to a file and grep it — never stream verbose output into context (`context-discipline`).
 - Return: changed files with before/after suppression count, targeted check result (pass/fail with evidence pointer), any open questions.

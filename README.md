@@ -25,6 +25,7 @@ Install the plugin — via the CLI:
 ```bash
 claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
+claude plugin install engineering-principles@zion
 ```
 
 …or in the UI, from `/plugin > Discover` in Claude Code.
@@ -65,6 +66,7 @@ Plugin-specific documentation lives in
 ```bash
 claude plugin marketplace update zion
 claude plugin update crew@zion
+claude plugin update engineering-principles@zion
 ```
 
 ---

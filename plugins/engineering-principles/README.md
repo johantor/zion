@@ -3,10 +3,23 @@
 Standalone Zion plugin documentation for teams that want only the engineering principles
 skill without the full `crew` orchestration stack.
 
+## Install
+
+```bash
+claude plugin marketplace add johantor/zion
+claude plugin install engineering-principles@zion
+```
+
 ## Purpose
 
 - Provide the `engineering-principles` review rubric as a focused plugin surface.
 - Keep adoption simple for users who do not need worker agents, hooks, or crew commands.
+
+## Plugin setup (repo structure)
+
+- `.claude-plugin/plugin.json` defines plugin metadata and points `skills` to `./skills`.
+- `skills/engineering-principles/SKILL.md` contains the shipped skill.
+- `CHANGELOG.md` tracks released versions for this plugin.
 
 ## Source of truth and drift policy
 

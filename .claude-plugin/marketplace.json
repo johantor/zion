@@ -8,6 +8,11 @@
       "name": "crew",
       "source": "./plugins/crew",
       "description": "Orchestrated agents, commands, hooks, and skills for feature delivery."
+    },
+    {
+      "name": "engineering-principles",
+      "source": "./plugins/engineering-principles",
+      "description": "Standalone engineering-principles skill plugin for focused review standards."
     }
   ]
 }

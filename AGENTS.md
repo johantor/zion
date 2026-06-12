@@ -23,6 +23,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
   - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
+- `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:
+  - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
+  - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
+  - `CHANGELOG.md` — release notes for this plugin's versions.
 - `.claude/settings.json` — this repo's own dev-time hooks (point at `plugins/crew/hooks/` so the guards run while developing here).
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
 - `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation.

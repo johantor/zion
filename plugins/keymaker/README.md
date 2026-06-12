@@ -47,11 +47,14 @@ Scope options:
 | Path | `src/Checkout/` |
 | Lane | `backend` or `frontend` (a *file area* — the taxonomy applied still comes from stack detection, so a Node backend gets the TypeScript taxonomy) |
 | Rule family | `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers` |
+| Stale suppressions | `stale` — fans out across every suppression mechanism the loaded stack skills know about, filtered to candidates that look removable. The cheapest wins in the repo. |
 | Current branch | `diff` |
 
 Returns a ranked, capped (~12 findings) read-only report. Every finding is formatted as a ready-to-paste `/keymaker:open` invocation — audit finds the doors, you decide which to open.
 
 **`diff` is the boy-scout scope:** run it after any feature branch to see what debt you're standing next to before opening a PR.
+
+**`stale` is the cheap-wins scope:** it surfaces suppressions whose underlying diagnostic likely no longer fires — `@ts-expect-error` removals (always safe to attempt, since TS reports unused directives), `#pragma warning disable` blocks over lines with no obvious trigger, `eslint-disable-next-line` over lines that no longer match the rule. Audit stays grep-only, so `stale` reports *candidates*; `/keymaker:open` does the actual proof via the twin (compile or lint).
 
 ## Guardrails
 

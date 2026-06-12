@@ -58,6 +58,32 @@ Concrete per-stack examples (EF Core, React, .NET TFM, Node major) live in the s
 **The rule:** a version bump is a pointer; a platform migration is a project. Pointers
 keymaker fixes. Projects keymaker outlines and hands off.
 
+## Stale-suppression heuristic (audit `stale` scope)
+
+The `/keymaker:audit stale` scope fans out across every suppression mechanism each loaded
+per-stack skill declares, filtered to suppressions that look removable. Audit is grep-only
+(`context-discipline`) — true staleness requires a compile, which is too expensive for a
+scout pass. So `stale` reports **candidates**; final proof is left to `/keymaker:open`,
+where a twin can compile/build and confirm.
+
+Each `debt-taxonomy-<stack>` skill is responsible for declaring, per mechanism, a
+**grep-only stale heuristic** — a textual signal that suggests the suppression is likely
+removable without reading the diagnostic state. Rule of thumb when authoring one: it must
+be checkable from a `grep`/`rg` invocation alone, with no parser, no compiler, no AST.
+Examples (non-exhaustive — the per-stack skill is the source of truth):
+
+- `@ts-expect-error` with no description after the directive — the TS skill calls these
+  the highest-value, lowest-risk findings; many are stale.
+- `#pragma warning disable CSxxxx` whose surrounded line has no obvious trigger for that
+  diagnostic (e.g. a `disable CS8602` block over a line with no `.` member access).
+- `// eslint-disable-next-line` over a line that no longer matches the rule's syntactic
+  shape (e.g. `no-explicit-any` over a line with no `any`).
+
+Findings from `stale` scope are classified through the same rubric as any other audit —
+typically rubric class 2 (trivially fixable) and behavior-preserving — and ranked the same
+way. Every finding still emits a ready-to-paste `/keymaker:open <pointer>` so the user can
+ask a twin to prove the candidate stale and remove it.
+
 ## Classification rubric
 
 Classify every suppression *before* gating. Applied in order:

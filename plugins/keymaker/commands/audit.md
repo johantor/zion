@@ -14,12 +14,13 @@ Valid scopes:
 - A path: `src/Checkout/` or `src/`
 - A lane: `backend` or `frontend`
 - A rule family: `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers`
+- `stale` — candidate-stale suppressions across every mechanism the loaded `debt-taxonomy-<stack>` skills declare (cheapest wins; grep-only, candidate-only — proof is left to `/keymaker:open` per finding)
 - `diff` — only files changed on the current branch vs base branch
 
 If `$ARGUMENTS` is empty or not a recognised scope, refuse with a usage hint and stop:
-> Usage: `/keymaker:audit <scope>` — scope is a path, `backend`, `frontend`, a rule family, or `diff`
+> Usage: `/keymaker:audit <scope>` — scope is a path, `backend`, `frontend`, a rule family, `stale`, or `diff`
 
-1. Enumerate findings within the scope using `grep`/`rg` scripts. Count and file-list only — no file bodies (`context-discipline`). For `diff` scope: `git diff --name-only <base>...HEAD` then filter by lane.
+1. Enumerate findings within the scope using `grep`/`rg` scripts. Count and file-list only — no file bodies (`context-discipline`). For `diff` scope: `git diff --name-only <base>...HEAD` then filter by lane. For `stale` scope: fan out across every suppression mechanism the loaded `debt-taxonomy-<stack>` skills declare, applying that skill's grep-only stale heuristic per mechanism — never compile or build to prove staleness; report candidates only.
 2. Classify each finding using the `debt-taxonomy` rubric.
 3. Rank: trivially-fixable → needs-real-work → needs-investigation. Within each tier, smaller blast radius ranks higher.
 4. Cap at ~12 findings in the report. If a single rule exceeds 50+, surface it as one entry with the count.

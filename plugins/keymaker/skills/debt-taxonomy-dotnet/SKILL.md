@@ -27,6 +27,22 @@ gate are in the core `debt-taxonomy` skill.
 - **Obsolete-API warnings** (`CS0618`): frequently caused by an old dependency — the fix may be an upgrade pointer, not a code edit. Flag the link.
 - A suppression whose diagnostic no longer fires (`dotnet build` shows no warning at that line after removal) is class 2, stale — just delete it.
 
+## Stale heuristics (grep-only, for audit `stale` scope)
+
+Per the core skill: audit must not build. These are grep-only signals that a suppression
+is a *candidate* for removal; `/keymaker:open` proves it via the twin (`dotnet build` of
+the affected project, then check the diagnostic is absent).
+
+| Mechanism | Grep-only stale heuristic |
+|---|---|
+| `#pragma warning disable CSxxxx` … `restore` | Candidate when the surrounded line(s) have no obvious trigger for that diagnostic — e.g. a `disable CS8602` (nullable deref) block over a line with no `.` member access; a `disable CS0168` (unused variable) block over a line with no declaration. Also candidate when `restore` is missing or far from `disable`, suggesting cargo-cult retention. |
+| `[SuppressMessage("category", "id", Justification = "…")]` | Candidate when the targeted member has no obvious construct that triggers the rule (e.g. `CA1062` argument-null check on a member with no parameters). A meaningful `Justification` may still be legitimate (rubric class 1) — flag, do not assume. |
+| `<NoWarn>CSxxxx;…</NoWarn>` in `.csproj` | Candidate when `grep -rn "CSxxxx" <project>` finds zero comment/code references to that rule in the project's source — suggests the warning may no longer fire anywhere. Project-wide blast radius — expand to **diagnostic count** before gating. |
+| `<NoWarn>` in `Directory.Build.props` | Same heuristic as `.csproj` `<NoWarn>` but solution-wide; treat as tier 2 unless the diagnostic count is tiny. |
+| `.editorconfig` `dotnet_diagnostic.CSxxxx.severity = none/silent` | Candidate when the rule has no occurrences in source under that folder (rough grep on the rule ID). Final proof requires a build. |
+| `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Each entry is a separate candidate. Heuristic: the `Target` member referenced no longer exists in source (grep for the target symbol returns 0). |
+| `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | Never a stale candidate — skipped tests are rubric class 4 (needs-investigation), not removable without confirmation. |
+
 ## Behavior sensitivity (which fixes need tests, not just a clean build)
 
 Tag every finding before delegating (see core `debt-taxonomy`):

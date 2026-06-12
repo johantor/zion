@@ -18,45 +18,47 @@ guardrails that keep every agent in its lane.
 - **Your git, your rules.** The crew branches and commits each verified step, stops at the
   review gate, and opens the PR only when you say so.
 
-## Get started
-
-Install the plugin — via the CLI:
-
-```bash
-claude plugin marketplace add johantor/zion
-claude plugin install crew@zion
-claude plugin install engineering-principles@zion
-```
-
-…or in the UI, from `/plugin > Discover` in Claude Code.
-
-Then start a feature either way:
-
-- **Normal session** — run `/crew:feature <task>`; keeps all your built-ins (statusline, etc.)
-  available while the crew works.
-- **Dedicated session** — launch `claude --agent crew:morpheus` to talk to the orchestrator
-  directly, scoped to crew work. More in **[plugins/crew/README.md](plugins/crew/README.md)**.
-
 ## Plugins
 
 ### crew — orchestrated, multi-agent feature delivery
 
+Install:
+
+```bash
+claude plugin marketplace add johantor/zion
+claude plugin install crew@zion
+```
+
+…or in the UI, from `/plugin > Discover` in Claude Code.
+
 - `/crew:feature <task>` — plan and build a feature
 - `/crew:review` — pre-PR **GO / NO-GO** gate: code + security + design review, plus build/test/lint
 - `/crew:pr` — push the branch and open the pull request
+
+Start a feature either way:
+
+- **Normal session** — run `/crew:feature <task>`; keeps all your built-ins (statusline, etc.)
+  available while the crew works.
+- **Dedicated session** — launch `claude --agent crew:morpheus` to talk to the orchestrator
+  directly, scoped to crew work.
 
 Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma, GitHub/ADO)
 are documented in **[plugins/crew/README.md](plugins/crew/README.md)**.
 
 ### engineering-principles — standalone review principles plugin
 
+Install:
+
+```bash
+claude plugin marketplace add johantor/zion
+claude plugin install engineering-principles@zion
+```
+
 For users who only want the review rubric and not the full crew orchestration, Zion also
 tracks a standalone `engineering-principles` plugin path. The scope is intentionally narrow:
 it exists to ship the principles skill by itself.
 
-- Canonical source remains `plugins/crew/skills/engineering-principles/SKILL.md`.
-- Any duplicated copy in the standalone plugin must stay byte-for-byte in sync.
-- Drift is reviewable and should be flagged (see **[AGENTS.md](AGENTS.md)**).
+Release and contributor governance details are documented in **[AGENTS.md](AGENTS.md)**.
 
 Plugin-specific documentation lives in
 **[plugins/engineering-principles/README.md](plugins/engineering-principles/README.md)**.

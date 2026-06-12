@@ -70,6 +70,8 @@ grep -rn --include="*.cs" "disable CS8602" src/           # file:line list
 
 For upgrades: check current pinned version in `*.csproj` / `Directory.Packages.props` / `package.json`; note package manager type for later.
 
+If enumeration yields **0 findings** for the pointer (suppression already removed, rule already silent, current pinned version already matches the target), stop here. Do not gate, do not resolve decisions, do not branch, do not dispatch twins, do not write a plan file. Return a one-line status: `No findings for <pointer> — nothing to do.` Include what was checked (e.g. `grep` count was 0, or `Newtonsoft.Json` is already at `13.0.3`). For pasted output that parsed to multiple rule IDs, apply this per rule: if **all** of them enumerate to 0, exit with the same one-liner listing the rules; if some have findings and some don't, proceed normally and note the empty ones in the radius report.
+
 ### 3. Gate
 
 Apply the `debt-taxonomy` blast-radius gate. Report the radius and your classification before proceeding.

@@ -55,6 +55,11 @@ Core principles (defaults, not dogma — the repo's established patterns win on 
 YAGNI, KISS, pragmatic DRY (rule of three), small single-purpose units, intention-revealing
 names, fail-fast error handling, and minimal-scope diffs.
 
+If a second plugin is added that ships a copy of `engineering-principles`, treat
+`plugins/crew/skills/engineering-principles/SKILL.md` as the canonical source and keep
+the duplicate copy byte-for-byte in sync. During reviews, flag any drift between copies as
+at least a **Warning**, and **Blocking** when drift would change reviewer behavior.
+
 ## Validating changes
 
 This repo has no app build. Before opening a PR, run what CI runs:

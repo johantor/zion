@@ -1,0 +1,12 @@
+{
+  "name": "engineering-principles",
+  "version": "1.0.0",
+  "license": "MIT",
+  "description": "Standalone engineering-principles skill plugin for focused code review standards.",
+  "author": {
+    "name": "johantor"
+  },
+  "homepage": "https://github.com/johantor/zion",
+  "repository": "https://github.com/johantor/zion",
+  "skills": "./skills"
+}

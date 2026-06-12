@@ -1,6 +1,6 @@
 ---
 name: debt-taxonomy
-description: Stack-neutral core for the keymaker crew — stack detection, classification rubric, blast-radius gate, upgrade tiers, batch commit shape, and handoff-outline format. Pairs with a per-stack taxonomy skill (debt-taxonomy-dotnet, debt-taxonomy-frontend). Load into keymaker and twin.
+description: Stack-neutral core for the keymaker crew — stack detection, classification rubric, blast-radius gate, upgrade tiers, batch commit shape, and handoff-outline format. Pairs with a per-stack taxonomy skill (debt-taxonomy-dotnet, debt-taxonomy-typescript). Load into keymaker and twin.
 ---
 
 # Debt taxonomy (core)
@@ -9,7 +9,7 @@ This is the stack-neutral core. The suppression mechanisms, package-manager vari
 upgrade examples for a specific stack live in that stack's skill:
 
 - **.NET / C#** → `debt-taxonomy-dotnet`
-- **TypeScript / JavaScript / frontend** → `debt-taxonomy-frontend`
+- **TypeScript / JavaScript** (React frontend or Node backend/CLI) → `debt-taxonomy-typescript`
 
 ## Stack detection
 
@@ -19,7 +19,7 @@ pass — do not assume. Apply the matching per-stack skill for each detected sta
 | Marker file(s) | Stack | Skill to apply |
 |---|---|---|
 | `*.csproj`, `*.sln`, `Directory.Packages.props`, `Directory.Build.props`, `global.json` | .NET / C# | `debt-taxonomy-dotnet` |
-| `package.json`, `tsconfig.json`, `.eslintrc*`, `biome.json` | TypeScript / JS | `debt-taxonomy-frontend` |
+| `package.json`, `tsconfig.json`, `.eslintrc*`, `biome.json` | TypeScript / JS | `debt-taxonomy-typescript` |
 
 ```bash
 # One pass — presence only, no file bodies

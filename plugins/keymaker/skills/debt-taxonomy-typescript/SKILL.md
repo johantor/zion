@@ -1,13 +1,15 @@
 ---
-name: debt-taxonomy-frontend
-description: TypeScript / JavaScript / frontend suppression mechanisms, safe-removal recipes, npm/pnpm/yarn package-manager variance, and upgrade-tier examples for the keymaker crew. Apply when stack detection (debt-taxonomy) finds a JS/TS project. Load into keymaker and twin.
+name: debt-taxonomy-typescript
+description: TypeScript / JavaScript suppression mechanisms, safe-removal recipes, npm/pnpm/yarn package-manager variance, and upgrade-tier examples for the keymaker crew. Covers any JS/TS project — React frontend or Node backend/CLI. Apply when stack detection (debt-taxonomy) finds a JS/TS project. Load into keymaker and twin.
 ---
 
-# Debt taxonomy — TypeScript / JavaScript / frontend
+# Debt taxonomy — TypeScript / JavaScript
 
 Apply this skill when `debt-taxonomy` stack detection finds a JS/TS project (`package.json`,
-`tsconfig.json`, `.eslintrc*`, `biome.json`). Classification rubric and blast-radius gate are
-in the core `debt-taxonomy` skill.
+`tsconfig.json`, `.eslintrc*`, `biome.json`) — this covers any JavaScript/TypeScript code,
+whether a React frontend or a Node backend/CLI. The React-specific rows below apply only when
+React is present. Classification rubric and blast-radius gate are in the core `debt-taxonomy`
+skill.
 
 ## Suppression mechanisms
 
@@ -25,7 +27,7 @@ in the core `debt-taxonomy` skill.
 
 ## Behavior sensitivity (which rules need tests, not just lint)
 
-Tag every frontend finding before delegating (see core `debt-taxonomy`):
+Tag every JS/TS finding before delegating (see core `debt-taxonomy`):
 
 **Behavior-sensitive** — fixing these moves/reorders/adds runtime logic; acceptance gate
 **must be tests-green**, and with no test suite configured the orchestrator warns and requires
@@ -56,7 +58,7 @@ Detect by lockfile, then update `package.json` **and commit the matching lockfil
 - `peerDependencies` conflicts → report and stop; never silently pass `--legacy-peer-deps` or `--force`.
 - In a monorepo, a version may be pinned at the workspace root — update there, not in the leaf package.
 
-## Upgrade-tier examples (frontend)
+## Upgrade-tier examples (JS/TS)
 
 | Upgrade | Tier | Notes |
 |---|---|---|

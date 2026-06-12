@@ -73,7 +73,46 @@ matching taxonomy:
 
 A repo can match both (e.g. Optimizely + React) — each lane gets its own taxonomy. On a stack
 keymaker doesn't yet know (Go, Python, Java, Rust), it says so and asks rather than guessing.
-Adding a stack is additive: a new `debt-taxonomy-<stack>` skill plus one detection-table row.
+
+## Adding a stack
+
+Stacks are named by **ecosystem/language**, not by role — `debt-taxonomy-dotnet`,
+`debt-taxonomy-typescript`, and so on (not `debt-taxonomy-backend`). The lane vocabulary
+(`backend`/`frontend`) is separate: it names file areas for delegation, while a stack skill
+names the language whose suppression mechanisms it documents.
+
+Adding a stack is additive — no agent logic changes, only data:
+
+1. **Create `skills/debt-taxonomy-<stack>/SKILL.md`.** Name it after the language/ecosystem
+   (`debt-taxonomy-go`, `debt-taxonomy-python`). Frontmatter `name` must match the directory.
+   The `description` must state which marker files trigger it and that it loads into keymaker
+   and twin. Model it on an existing stack skill and include all four required sections:
+   - **Suppression mechanisms** — a table of every suppression form in the stack, its scope,
+     and the *safe-removal recipe* (e.g. Go `//nolint:rule`, `//nolint`; Python `# type: ignore`,
+     `# noqa`, `# pragma: no cover`). This is the load-bearing part — the twin acts on it.
+   - **Behavior sensitivity** — tag which rules are behavior-preserving (lint/compile-clean is a
+     sufficient gate) vs behavior-sensitive (acceptance gate must be tests-green). When unsure,
+     tag behavior-sensitive.
+   - **Package-manager variance** — how versions are declared and which lockfile to commit
+     (e.g. Go modules `go.mod`/`go.sum`; Python `pyproject.toml`/`poetry.lock`/`requirements.txt`),
+     plus how transitive/peer conflicts surface — which must be reported, never silently pinned.
+   - **Upgrade-tier examples** — concrete tier-1 (pointer) vs tier-2 (project → outline only)
+     bumps for the stack.
+   - Keep the classification rubric, blast-radius gate, and commit/outline format **out** of the
+     stack skill — those live once in the core `debt-taxonomy` skill.
+2. **Add one row to the detection table** in `skills/debt-taxonomy/SKILL.md` mapping the
+   stack's marker file(s) → the new skill.
+3. **Wire the skill into both agents** — add `debt-taxonomy-<stack>` to the `skills:` list in
+   `agents/keymaker.md` and `agents/twin.md`, and add a line to the orchestrator's
+   "Detecting the stack" list so it knows to apply it.
+4. **Document and version** — add a row to the "Supported stacks" list above, a
+   `CHANGELOG.md` entry, and bump the plugin `version` in `.claude-plugin/plugin.json`.
+5. **Validate** — `plugins/crew/scripts/validate-plugin.sh` confirms the skill path resolves
+   and JSON is well-formed.
+
+That is the whole contract: one new skill file, one detection row, two agent wirings. The
+orchestrator and twin need no behavioral changes because they drive off the taxonomy data,
+not hard-coded stack knowledge.
 
 ## What keymaker reads from your project
 

@@ -47,6 +47,19 @@ Then start a feature either way:
 Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma, GitHub/ADO)
 are documented in **[plugins/crew/README.md](plugins/crew/README.md)**.
 
+### engineering-principles — standalone review principles plugin
+
+For users who only want the review rubric and not the full crew orchestration, Zion also
+tracks a standalone `engineering-principles` plugin path. The scope is intentionally narrow:
+it exists to ship the principles skill by itself.
+
+- Canonical source remains `plugins/crew/skills/engineering-principles/SKILL.md`.
+- Any duplicated copy in the standalone plugin must stay byte-for-byte in sync.
+- Drift is reviewable and should be flagged (see **[AGENTS.md](AGENTS.md)**).
+
+Plugin-specific documentation lives in
+**[plugins/engineering-principles/README.md](plugins/engineering-principles/README.md)**.
+
 ## Staying up to date
 
 ```bash

@@ -39,9 +39,10 @@ A repo may match both (e.g. Optimizely + React) — apply each skill to its own 
 ## Audit mode flow
 
 1. Parse the scope argument — reject bare scope-less invocations with a usage hint.
-   Valid scopes: a path (`src/Checkout/`), a lane (`backend`/`frontend`), a rule family (e.g. `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers`), or `diff` (files changed on the current branch vs base).
+   Valid scopes: a path (`src/Checkout/`), a lane (`backend`/`frontend`), a rule family (e.g. `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers`), `stale` (candidate-stale suppressions across every mechanism the loaded stack skills declare — grep-only, never compile), or `diff` (files changed on the current branch vs base).
 2. Enumerate with `grep`/`rg` scripts — count and file-list only, never file bodies (`context-discipline`).
    For `diff` scope: `git diff --name-only <base>...HEAD` then filter by lane.
+   For `stale` scope: fan out across every suppression mechanism in each loaded `debt-taxonomy-<stack>` skill, applying that skill's grep-only **stale heuristic** per mechanism (e.g. `@ts-expect-error` is always a candidate, `#pragma warning disable` with no obvious trigger on the surrounded line, `eslint-disable-next-line` over a line with no obvious trigger). Report **candidates** only — final proof of staleness happens in `/keymaker:open`, where the twin can compile/build. Never run the compiler in audit mode.
 3. Classify each finding using the `debt-taxonomy` rubric.
 4. Rank by effort-to-impact: trivially-fixable → needs-real-work → needs-investigation. Within each tier, smaller blast radius ranks higher.
 5. Cap at ~12 findings. If enumeration hits 50+ for a single rule, surface "50+ for rule X — run `/keymaker:open CS####` to address it directly" as one entry.

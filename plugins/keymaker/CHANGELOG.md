@@ -5,17 +5,13 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-<<<<<<< HEAD
 ## [0.2.0] - 2026-06-12
 
 ### Added
 - `/keymaker:audit stale` — new first-class scope that fans out across every suppression mechanism the loaded `debt-taxonomy-<stack>` skills declare, filtered to candidates that look removable. Surfaces the cheapest wins in the repo (`@ts-expect-error` removals, `#pragma warning disable` blocks over lines with no obvious trigger, `eslint-disable-next-line` over lines that no longer match the rule) without the user having to know which family to grep for. Audit stays grep-only — `stale` reports *candidates*; final proof of staleness is left to `/keymaker:open` per finding, which can compile/build via the twin. Each per-stack skill (`debt-taxonomy-dotnet`, `debt-taxonomy-typescript`) declares its grep-only stale heuristic per mechanism, and the core `debt-taxonomy` skill documents the contract. README usage section updated. Existing scopes' behavior unchanged.
-=======
-## [0.1.3] - 2026-06-12
 
 ### Changed
-- `/keymaker:open <pointer>` 0-findings exit is now short-circuited at the earliest point: for concrete pointer forms (`file:line`, single rule ID, package+version) a cheap pre-count runs *before* classification, gating, or twin dispatch, and exits with the existing one-liner if the count is 0. Re-running a successful `/keymaker:open` for these forms (e.g. from a `.claude/plan-*.md` checklist or a wrapper script) now skips classification entirely. Pasted output still requires classification to parse rule IDs before enumeration; the post-classification fallback exit is retained for that case. The exit contract — for concrete forms: pointer parsed → cheap pre-count → if 0, exit one-liner — is documented explicitly in `commands/open.md` and mirrored in `agents/keymaker.md`.
->>>>>>> origin/main
+- `/keymaker:open <pointer>` 0-findings exit is now short-circuited at the earliest point: for concrete pointer forms (`file:line`, single rule ID, package+version) a cheap pre-count runs *before* classification, gating, or twin dispatch, and exits with the existing one-liner if the count is 0. Re-running a successful `/keymaker:open` for these forms (e.g. from a `.claude/plan-*.md` checklist or a wrapper script) now skips classification entirely. Pasted output still requires classification to parse rule IDs before enumeration; the post-classification fallback exit is retained for that case.
 
 ## [0.1.2] - 2026-06-12
 

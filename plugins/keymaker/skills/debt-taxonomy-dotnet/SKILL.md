@@ -35,12 +35,11 @@ the affected project, then check the diagnostic is absent).
 
 | Mechanism | Grep-only stale heuristic |
 |---|---|
-| `#pragma warning disable CSxxxx` … `restore` | Candidate when the surrounded line(s) have no obvious trigger for that diagnostic — e.g. a `disable CS8602` (nullable deref) block over a line with no `.` member access; a `disable CS0168` (unused variable) block over a line with no declaration. Also candidate when `restore` is missing or far from `disable`, suggesting cargo-cult retention. |
+| `#pragma warning disable CS####` … `restore` | Candidate when the surrounded line(s) have no obvious trigger for that diagnostic — e.g. a `disable CS8602` (nullable deref) block over a line with no `.` member access; a `disable CS0168` (unused variable) block over a line with no declaration. Also candidate when `restore` is missing or far from `disable`, suggesting cargo-cult retention. |
 | `[SuppressMessage("category", "id", Justification = "…")]` | Candidate when the targeted member has no obvious construct that triggers the rule (e.g. `CA1062` argument-null check on a member with no parameters). A meaningful `Justification` may still be legitimate (rubric class 1) — flag, do not assume. |
-| `<NoWarn>CSxxxx;…</NoWarn>` in `.csproj` | Candidate when `grep -rn "CSxxxx" <project>` finds zero comment/code references to that rule in the project's source — suggests the warning may no longer fire anywhere. Project-wide blast radius — expand to **diagnostic count** before gating. |
-| `<NoWarn>` in `Directory.Build.props` | Same heuristic as `.csproj` `<NoWarn>` but solution-wide; treat as tier 2 unless the diagnostic count is tiny. |
-| `.editorconfig` `dotnet_diagnostic.CSxxxx.severity = none/silent` | Candidate when the rule has no occurrences in source under that folder (rough grep on the rule ID). Final proof requires a build. |
-| `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Each entry is a separate candidate. Heuristic: the `Target` member referenced no longer exists in source (grep for the target symbol returns 0). |
+| `<NoWarn>` in `.csproj` / `Directory.Build.props` | **Out of scope for `stale` audit (v1).** Grep for a rule ID in source returns zero for virtually any active project-wide warning (the ID lives in pragmas, not in the code the diagnostic fires on), so the signal is structurally inverted and high-noise. Proof of staleness requires a build; defer to `/keymaker:open` where the twin can run `dotnet build`. |
+| `.editorconfig` `dotnet_diagnostic.CS####.severity = none/silent` | **Out of scope for `stale` audit (v1).** Same inversion as `<NoWarn>`: the rule ID does not appear in the source the diagnostic fires on. Final proof requires a build; defer to `/keymaker:open`. |
+| `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Each entry is a separate candidate. Heuristic: grep the `Target` symbol in `*.cs` source files (`grep -rn --include="*.cs" "<symbol>" src/`) — if the target member no longer exists in source, the suppression is a strong candidate. |
 | `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | Never a stale candidate — skipped tests are rubric class 4 (needs-investigation), not removable without confirmation. |
 
 ## Behavior sensitivity (which fixes need tests, not just a clean build)

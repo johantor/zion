@@ -72,9 +72,10 @@ removable without reading the diagnostic state. Rule of thumb when authoring one
 be checkable from a `grep`/`rg` invocation alone, with no parser, no compiler, no AST.
 Examples (non-exhaustive — the per-stack skill is the source of truth):
 
-- `@ts-expect-error` with no description after the directive — the TS skill calls these
-  the highest-value, lowest-risk findings; many are stale.
-- `#pragma warning disable CSxxxx` whose surrounded line has no obvious trigger for that
+- `@ts-expect-error` — the TS skill calls these the highest-value, lowest-risk findings;
+  TypeScript self-reports unused directives, so any that are truly stale already error at
+  compile time. All are candidates; TS self-proves staleness.
+- `#pragma warning disable CS####` whose surrounded line has no obvious trigger for that
   diagnostic (e.g. a `disable CS8602` block over a line with no `.` member access).
 - `// eslint-disable-next-line` over a line that no longer matches the rule's syntactic
   shape (e.g. `no-explicit-any` over a line with no `any`).

@@ -5,6 +5,11 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.3] - 2026-06-12
+
+### Changed
+- `/keymaker:open <pointer>` 0-findings exit is now short-circuited at the earliest point: for concrete pointer forms (`file:line`, single rule ID, package+version) a cheap pre-count runs *before* classification, gating, or twin dispatch, and exits with the existing one-liner if the count is 0. Re-running a successful `/keymaker:open` for these forms (e.g. from a `.claude/plan-*.md` checklist or a wrapper script) now skips classification entirely. Pasted output still requires classification to parse rule IDs before enumeration; the post-classification fallback exit is retained for that case. The exit contract — for concrete forms: pointer parsed → cheap pre-count → if 0, exit one-liner — is documented explicitly in `commands/open.md` and mirrored in `agents/keymaker.md`.
+
 ## [0.1.2] - 2026-06-12
 
 ### Changed

@@ -17,7 +17,7 @@ Pointer forms accepted:
 - Pasted build/lint output containing rule IDs
 - A review comment or description of a specific warning
 
-**Exit contract:** pointer parsed → enumeration → if 0, exit one-liner; only then classify/gate/dispatch. The 0-findings exit must run as early as possible — before any classification, gating, or twin dispatch — so re-running a successful `/keymaker:open` (e.g. from a `.claude/plan-*.md` checklist) is a cheap no-op.
+**Exit contract:** for concrete pointer forms (`file:line`, single rule ID, package+version): pointer parsed → cheap pre-count → if 0, exit one-liner — before any classification, gating, or twin dispatch. For pasted output, classification runs first (to parse rule IDs), then per-rule enumeration, then the fallback 0-findings exit. Re-running a successful `/keymaker:open` (e.g. from a `.claude/plan-*.md` checklist) is a cheap no-op.
 
 1. Recognise the pointer form (`file:line`, rule ID, package+version, pasted output, or unrecognised). If unrecognised, ask the user to clarify and stop.
 2. Pre-count when cheap, before classification:

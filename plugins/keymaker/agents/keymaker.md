@@ -50,7 +50,7 @@ A repo may match both (e.g. Optimizely + React) — apply each skill to its own 
 
 ## Open mode flow
 
-**Exit contract:** pointer parsed → enumeration → if 0, exit one-liner; only then classify/gate/dispatch. The 0-findings exit must run as early as possible — before classification, gating, or twin dispatch — so re-running a successful `/keymaker:open` is a cheap no-op. Step 1 recognises the form. Step 2 does a cheap pre-count and exits on 0 for the concrete forms (`file:line`, single rule ID, package+version). Step 3 classifies. Step 4 enumerates fully. Step 4 also carries a fallback 0-findings exit for the cases where pre-count was not possible (e.g. pasted output that parsed to multiple rule IDs).
+**Exit contract:** for concrete pointer forms (`file:line`, single rule ID, package+version): pointer parsed → cheap pre-count → if 0, exit one-liner — before classification, gating, or twin dispatch. For pasted output, classification runs first (to parse rule IDs from the output), then full per-rule enumeration, then the fallback 0-findings exit. Re-running a successful `/keymaker:open` is a cheap no-op. Step 1 recognises the form. Step 2 does the cheap pre-count and exits on 0 for the concrete forms. Step 3 classifies (and for pasted output, parses rule IDs). Step 4 enumerates fully and carries the fallback 0-findings exit for pointer forms where step 2 could not pre-count.
 
 ### 1. Recognise the pointer form
 
@@ -75,7 +75,7 @@ grep -rn --include="*.cs" "disable CS8602" src/ | wc -l   # rule ID
 
 If the pre-count is **0** (suppression already removed, rule already silent, package already at target), stop here. Do not classify, gate, resolve decisions, branch, dispatch twins, or write a plan file. Return a single one-line status that folds in what was checked, e.g. `No findings for CS8602 — nothing to do (grep count 0).` or `No findings for Newtonsoft.Json 13.x — nothing to do (already pinned at 13.0.3).`
 
-For pasted output, skip this step — multi-rule pre-count happens after parsing in step 4.
+For pasted output, skip this step — rule IDs are parsed in step 3, then fully enumerated in step 4.
 
 ### 3. Classify the pointer
 

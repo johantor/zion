@@ -1,5 +1,7 @@
 # keymaker
 
+> **Beta** — keymaker's agents, taxonomy, and commands are defined but have not yet been run in a live project. The design is intentional and the guardrails are in place, but expect rough edges and breaking changes before v1.0. Feedback and bug reports are welcome.
+
 A Claude Code plugin: pointer-driven tech debt remediation and dependency upgrades. Part of the [Zion](../../README.md) marketplace.
 
 > The Keymaker opens locked doors — one at a time, with precision.

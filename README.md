@@ -10,7 +10,7 @@ keep what you ship healthy.
 | Plugin | What it does | Start with |
 |---|---|---|
 | **[crew](plugins/crew/README.md)** | Orchestrated, multi-agent feature delivery — a captain that plans and delegates to backend, frontend, tests, and visual-review specialists. | `/crew:feature <task>` |
-| **[keymaker](plugins/keymaker/README.md)** | Pointer-driven tech debt remediation and dependency upgrades — fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:open <pointer>` |
+| **[keymaker](plugins/keymaker/README.md)** *(beta)* | Pointer-driven tech debt remediation and dependency upgrades — fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:open <pointer>` |
 | **[engineering-principles](plugins/engineering-principles/README.md)** | The review rubric used across the suite, shipped standalone for teams who just want the standards. | Skill-only — no commands |
 
 Pick one, mix them, or install the lot. They share conventions (the same
@@ -70,7 +70,7 @@ the guardrails behind every gate.
 Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma,
 GitHub/ADO) are documented in **[plugins/crew/README.md](plugins/crew/README.md)**.
 
-### keymaker — pointer-driven tech debt and dependency upgrades
+### keymaker — pointer-driven tech debt and dependency upgrades *(beta)*
 
 - `/keymaker:open <pointer>` — fix one identified item: a suppression at a line,
   a whole rule (e.g. `CS8602`, `eslint no-explicit-any`), or a package bump

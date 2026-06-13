@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   its `skills:` list resolves to some `plugins/*/skills/<name>/SKILL.md` in the repo (unqualified,
   per existing convention). A typo here previously failed silently at runtime — the skill just
   didn't load and the agent guessed. CI now fails with a clear message:
-  `plugins/<plugin>/agents/<agent>.md skills -> <name> does not resolve to any plugins/*/skills/<name>/SKILL.md`.
+  `FAIL: plugins/<plugin>/agents/<agent>.md skills -> <name> does not resolve to any plugins/*/skills/<name>/SKILL.md`.
 
 ## [2.1.1] - 2026-06-12
 

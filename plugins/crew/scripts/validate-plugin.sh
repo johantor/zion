@@ -156,7 +156,7 @@ while IFS= read -r agent; do
         sub(/^[[:space:]]+-[[:space:]]+/, "")
         sub(/[[:space:]]+#.*$/, "")
         sub(/[[:space:]]+$/, "")
-        gsub(/^["'\'']|["'\'']$/, "")
+        gsub(/^["\047]|["\047]$/, "")
         if (length($0)) print
         next
       } else if ($0 !~ /^[[:space:]]*$/) {

@@ -173,14 +173,56 @@ backend build → `tank`, frontend build → `trinity`, backend tests → `oracl
 If a step genuinely needs a build to be verifiable before the end, decide that deliberately
 and note it in the plan — it's the exception, not the per-step default.
 
+## The plan file is durable state — resume, don't restart
+
+`<plan-dir>/plan-<feature>.md` (the resolved plan directory; `.claude/` when unset) is the run's
+source of truth, written to survive a crashed or context-reset session. Keep it parseable and
+current so a fresh `morpheus` can reconstruct the run from the file and git alone — the user
+never re-explains a feature that's already in flight.
+
+**Schema.** A header plus one block per step:
+
+- Header: `feature:`, `base-branch:`, `feature-branch:` — so resume can re-establish git context.
+- Each step: `id:` (stable), `status:` one of `pending` | `in-progress` | `done` | `blocked`,
+  `depends-on:` (step `id`s or `independent`), `acceptance:` (the pass criteria), and — once
+  done — `evidence:` — the **commit SHA first** (so it maps deterministically to a commit),
+  optionally followed by the proof that satisfied acceptance.
+
+`status` transitions: `pending` → `in-progress` (dispatched to a worker) → `done` (result
+returned, acceptance met, **and** committed), or → `blocked` (failed verification / needs a user
+decision). Only a committed step is `done`; a backgrounded or dispatched step is `in-progress`,
+never `done`.
+
+**On (re)start, resume from the plan before planning or delegating:**
+
+1. **Match by header, not by guesswork.** A plan matches only when its `feature:` /
+   `feature-branch:` header identifies this task. If no plan in `<plan-dir>` matches, plan fresh
+   (the standard flow, including the plan checkpoint). If more than one could match or the match is
+   ambiguous, ask the user which to resume — never guess.
+2. If exactly one matches, **resume it** — don't re-plan, re-run the plan checkpoint, or ask the
+   user to re-explain (the plan was already approved):
+   1. **Ensure a clean working tree before touching branches.** A crashed session may have left
+      uncommitted changes; checking out over them can fail or mix them into the resumed run.
+      Reconcile first — commit changes against the step they belong to, or stash — then check out
+      the `feature-branch` from the header (you own git) and confirm `base-branch` matches the
+      resolved base.
+   2. Reconcile each step against git. A `done` step must map to its `evidence` commit — confirm
+      that commit is present. An `in-progress` step is **unconfirmed** (its worker round-trip may
+      have been lost on the crash): re-verify its acceptance against the working tree/commits, and
+      if unmet, reset it to `pending`.
+   3. Resume from the first unblocked step (`depends-on` satisfied) that isn't `done`, and continue
+      the standard flow.
+   4. Only ask the user if the plan is genuinely ambiguous or git contradicts it (e.g. a `done`
+      step's `evidence` commit is missing) — otherwise pick up silently.
+
 Anti-drift rules:
-1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` (the resolved plan directory; `.claude/` when unset) with per-step acceptance criteria and cite the exact step in every delegation. Mark each step's dependencies explicitly (`depends-on: <step>` or `independent`) so every unblocked step is dispatchable at a glance.
+1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` (the resolved plan directory; `.claude/` when unset) and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
    Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
 4. Treat test/design failures and “improvements noticed” as drift signals; fold them back into the plan deliberately.
 5. Each delegation must explicitly state what a passing result looks like (e.g. "all new tests green", "no TypeScript errors", "layout matches spec"). Reject any result that does not include evidence of this.
-6. After each worker round-trip, update `<plan-dir>/plan-<feature>.md` with pass/fail status for that step before proceeding.
+6. Keep each step's `status` current in `<plan-dir>/plan-<feature>.md`: flip it to `in-progress` when you dispatch it, and to `done` (with the `evidence` commit) or `blocked` after the round-trip — before proceeding. A crash mid-run must leave an accurate, resumable record.
 7. You are the sole owner of git: branch off the resolved base branch, never commit to it directly, and commit only verified steps. Workers never run git. Push/PR happen only via `/crew:pr`.
 
 Keep your own context lean and let workers absorb verbose outputs.

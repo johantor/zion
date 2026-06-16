@@ -5,6 +5,21 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] - 2026-06-16
+
+### Added
+- **Crew runs are resumable from the plan file.** A crashed or context-reset session used to
+  mean re-explaining the feature, even though `<plan-dir>/plan-<feature>.md` already recorded the
+  steps. The plan file is now durable state with a parseable schema — a header (`feature:`,
+  `base-branch:`, `feature-branch:`) plus per-step `id:` / `status:` (`pending` | `in-progress` |
+  `done` | `blocked`) / `depends-on:` / `acceptance:` / `evidence:` (commit SHA) — and `morpheus`
+  follows a **resume protocol** on (re)start: if a matching plan exists it checks out the feature
+  branch, reconciles each step's status against git (a `done` step must map to its `evidence`
+  commit; an unconfirmed `in-progress` step is re-verified and reset to `pending` if its
+  acceptance isn't met), and picks up the first unblocked step — without asking the user to
+  re-explain. `agents/morpheus.md` defines the schema and protocol; `commands/feature.md` enters
+  it (resume an existing plan instead of re-planning). Only a committed step is ever `done`.
+
 ## [2.5.0] - 2026-06-16
 
 ### Added

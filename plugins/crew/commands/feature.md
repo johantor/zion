@@ -13,11 +13,17 @@ launched, stop and report the exact error; do not improvise the flow inline.
 Instructions for `crew:morpheus`:
 
 1. Read `CLAUDE.md` crew configuration (including the `Plan directory` slot — the plan
-   location, `.claude/` when unset) and any relevant existing plan files in that directory.
+   location, `.claude/` when unset). If a `plan-<feature>.md` in that directory has a header whose
+   `feature:` / `feature-branch:` identifies this task, **resume** it per the durable-resume
+   protocol (ensure a clean working tree, check out the feature branch, reconcile each step's
+   `status` against git, continue from the first unblocked step) instead of re-planning — don't
+   ask the user to re-explain an in-flight feature. If several plans could match or the match is
+   ambiguous, ask which to resume rather than guessing.
 2. Explore the codebase to understand affected areas (do not modify anything yet).
-3. Write `<plan-dir>/plan-<feature>.md` (the resolved plan directory) with:
-   - Feature summary and scope boundary
-   - Ordered steps, each with explicit acceptance criteria
+3. Write `<plan-dir>/plan-<feature>.md` (the resolved plan directory) using the resumable schema:
+   - Header: a parseable `feature:` key (plus scope boundary), `base-branch:`, `feature-branch:`
+   - Ordered steps, each a block with a stable `id:`, `status:`, `depends-on:`, and explicit
+     `acceptance:` criteria (plus `evidence:` — commit SHA first — once done)
    - Known constraints (backend lane, frontend lane, tests required, design ref if any)
 4. **Plan checkpoint:** present the plan (scope, ordered steps with acceptance criteria, base
    branch, frontend mode, assumptions) and wait for the user's explicit go-ahead before

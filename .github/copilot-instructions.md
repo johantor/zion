@@ -21,6 +21,7 @@ When asked to review changes in this repository, use this sequence:
    - **Small units & clear naming**: one reason to change; intention-revealing names; comments explain *why*.
    - **Errors**: fail fast, validate at boundaries, never silently swallow.
    - **Minimal-scope diffs**: smallest change that solves the problem; no unrelated sprawl.
+   - **Reach for code last**: prefer the stdlib, a native feature, or an existing dependency over new code or a new package; flag a clever one-liner that loses to the house pattern.
 4. Always include a security pass:
    - Input validation, auth/authorization checks, secrets exposure, injection risks,
      unsafe deserialization, open redirects, and dependency risk.
@@ -42,8 +43,10 @@ manifest at `plugins/<name>/.claude-plugin/plugin.json` and `agents/`/`commands/
 beneath it. Hold shell hooks to shellcheck-clean standards, and validate every plugin's
 manifest/structure with `bash plugins/crew/scripts/validate-plugin.sh` (it checks all
 `plugins/*`). Agents are auto-discovered from each plugin's `agents/` directory (not
-declared in the manifest); commands/skills/hooks are pointed at via manifest path fields
-relative to the plugin root.
+declared in the manifest); commands and skills are pointed at via manifest path fields
+relative to the plugin root; hooks are auto-loaded from each plugin's `hooks/hooks.json`
+(not a manifest field). See `AGENTS.md` for the full contributor guide — layout,
+validating, releasing, and conventions.
 
 Versioning: when a PR changes plugin behavior — agents, commands, skills, hooks, or the
 manifest — it must bump `version` in that plugin's `plugins/<name>/.claude-plugin/plugin.json`

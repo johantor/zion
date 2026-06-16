@@ -5,6 +5,100 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-06-12
+
+### Added
+- **Validator verifies each agent's `skills:` list resolves.** `plugins/crew/scripts/validate-plugin.sh`
+  now parses the YAML frontmatter of every `plugins/*/agents/*.md` file and verifies each entry in
+  its `skills:` list resolves to some `plugins/*/skills/<name>/SKILL.md` in the repo (unqualified,
+  per existing convention). A typo here previously failed silently at runtime — the skill just
+  didn't load and the agent guessed. CI now fails with a clear message:
+  `FAIL: plugins/<plugin>/agents/<agent>.md skills -> <name> does not resolve to any plugins/*/skills/<name>/SKILL.md`.
+
+## [2.1.1] - 2026-06-12
+
+### Fixed
+- **MCP README no longer conflates a server's config key with its tool namespace.** The
+  allowlist note listed `mcp__`-prefixed namespaces under "name your server one of these,"
+  which could lead users to name the server `mcp__playwright`. It now distinguishes the *key*
+  you set in `.mcp.json` (e.g. `playwright`) from the `mcp__<key>` namespace agents allowlist,
+  and lists the expected keys without the prefix.
+
+## [2.1.0] - 2026-06-12
+
+### Added
+- **More first-class MCP servers across the crew.** Agents now allowlist additional optional
+  MCP servers and use them when present (degrading gracefully when absent):
+  - **Browser:** `mcp__chrome-devtools` on `trinity`/`seraph` alongside `mcp__playwright` —
+    either browser MCP works zero-config; Chrome DevTools is Chrome-only but adds
+    performance/Lighthouse and console/network inspection.
+  - **Library & framework docs:** `mcp__context7` on `tank`/`trinity`, for current,
+    version-specific API docs instead of coding from memory.
+  - **Issue tracking (ticket-in):** `mcp__linear` and `mcp__atlassian` on `morpheus`, to pull
+    the source ticket at planning.
+  - **Database:** `mcp__mssql` and `mcp__postgres` on `tank`/`oracle`, for schema-aware
+    data-access work and integration test data.
+  - **Error monitoring:** `mcp__sentry` on `morpheus`, to pull stack/breadcrumb context for a bug.
+  `tank` and `oracle` gain `ToolSearch` to load these servers' deferred tool schemas.
+
+### Changed
+- **MCP setup in the crew README is a purpose→server table of links** instead of inline
+  install/config blocks that drift from each server's own docs. It keeps only the
+  crew-specific contract: which agents use each server, the `mcp__<server>` naming the
+  allowlist expects, and the fallback when a server is absent.
+
+## [2.0.0] - 2026-06-12
+
+### Changed
+- **`/crew:ship` is folded into `/crew:review`.** The crew flow is now `feature → review → pr`.
+  `/crew:review` is the single pre-PR **GO / NO-GO** gate: it runs the diff-scoped executable
+  checks the ship gate used to own (lane-scoped build, backend tests, frontend e2e, backend/
+  frontend lint — idempotent within a session) **and** the consolidated review (code quality,
+  security, design conformance via `seraph`), then emits the `## Blocking` / `## Warnings` /
+  `## Passed` sections followed by GO/NO-GO. The previous read-only review is preserved as
+  `/crew:review quick` (judgment only, no suites); `/crew:review full` forces every gate
+  regardless of the diff. `morpheus`, `tank`, `trinity`, and `/crew:pr` now reference the
+  **review gate** instead of the ship gate, and `/crew:pr` requires `/crew:review` → GO.
+
+### Removed
+- **`/crew:ship` command.** Its behavior now lives in `/crew:review` (above). **Breaking** for
+  anyone scripting or invoking `/crew:ship` directly — run `/crew:review` instead.
+
+## [1.9.0] - 2026-06-12
+
+### Added
+- **`engineering-principles` gains a "reach for new code last" ladder.** The skill listed
+  YAGNI/KISS/dependency preferences as values but no procedure. It now carries an ordered,
+  stop-at-first-match ladder — not needed → don't build; stdlib/runtime → use it; native
+  platform feature → use it; installed dependency → use it; collapses to a line or two → do
+  that; else write the minimum that works — so implementer agents have an explicit check to
+  run before writing code. Kept subordinate to *match the repo*.
+
+## [1.8.0] - 2026-06-12
+
+### Changed
+- **`morpheus` right-sizes the model per delegation.** The Agent tool's `model` override is
+  now part of the delegation contract: mechanical run-and-report steps (running an existing
+  suite, ship-gate build/lint runs, post-fix re-runs) go out as `haiku` for speed, while
+  anything that authors or diagnoses (implementation, new tests, failure investigation,
+  visual judgment) keeps the worker's default model. When in doubt, the override is omitted.
+- **Parallel dispatch is the default, not a suggestion.** Plan steps in
+  `.claude/plan-<feature>.md` must declare dependencies explicitly (`depends-on: <step>` or
+  `independent`), and `morpheus` dispatches every currently-unblocked step in a single
+  message each round instead of serializing independent work.
+- **Delegations carry the planning context.** Delegation prompts must now include the exact
+  file paths to touch and the relevant snippets/contracts `morpheus` already found while
+  planning, so workers start editing instead of re-exploring the repo on every spawn.
+- **`tank` and `trinity` get `maxTurns: 40`.** The implementers were the only workers with
+  unbounded turns; a stuck retry loop is now a bounded wait that returns a partial finding
+  `morpheus` can route, matching the caps already on `oracle`/`dozer`/`seraph`.
+
+### Fixed
+- **`validate-plugin.sh` marketplace check works on Windows.** Native Windows `jq` emits
+  CRLF, so the marketplace source path and plugin name carried a trailing `\r` and the
+  check failed locally (`source ./plugins/crew does not exist`). The 2f loop now strips
+  `\r` like the manifest-path loops already did.
+
 ## [1.7.0] - 2026-06-11
 
 ### Added

@@ -1,0 +1,13 @@
+{
+  "name": "keymaker",
+  "version": "0.2.0",
+  "license": "MIT",
+  "description": "Pointer-driven tech debt and dependency upgrade crew. Fixes one identified suppression, rule, or package at a time; produces handoff outlines for platform-scale migrations.",
+  "author": {
+    "name": "johantor"
+  },
+  "homepage": "https://github.com/johantor/zion",
+  "repository": "https://github.com/johantor/zion",
+  "commands": "./commands",
+  "skills": "./skills"
+}

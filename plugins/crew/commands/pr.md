@@ -6,7 +6,7 @@ Push the feature branch the crew worked on and open a pull request. Pushing and 
 PR are **outward actions** — confirm with the user before pushing.
 
 1. **Preconditions.** Confirm you are on a feature branch with the crew's work committed,
-   and that `/crew:ship` returned **GO**. If the gate hasn't run, run it first and stop on
+   and that `/crew:review` returned **GO**. If the gate hasn't run, run it first and stop on
    **NO-GO**, surfacing the blocking items.
    **Hard stop:** if the current branch is the resolved base branch — or any of `main`,
    `master`, `develop` — do not commit, push, or PR from it. Warn the user that work landed
@@ -18,7 +18,7 @@ PR are **outward actions** — confirm with the user before pushing.
    morpheus branched from) using the configured git-host MCP:
    - GitHub MCP, or
    - Azure DevOps MCP.
-   Build the title and body from `.claude/plan-<feature>.md` and the ship summary: what
+   Build the title and body from `.claude/plan-<feature>.md` and the review-gate summary: what
    changed, which acceptance criteria are met, and the `## Blocking` / `## Warnings` review
    notes. Report the PR URL when done.
 4. **No host MCP available?** Do not guess. Print the exact `git push` command and a

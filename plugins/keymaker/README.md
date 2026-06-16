@@ -52,7 +52,7 @@ Scope options:
 | Stale suppressions | `stale` — fans out across every suppression mechanism the loaded stack skills know about, filtered to candidates that look removable. The cheapest wins in the repo. |
 | Current branch | `diff` |
 
-Returns a ranked, capped (~12 findings) report. Every finding is formatted as a ready-to-paste `/keymaker:open` invocation, and audit then offers an interactive pick — choose one or more of the top-ranked findings and it hands each to `/keymaker:open` in turn (or pick *None* to just keep the report). Audit finds the doors; you decide which to open. In a non-interactive run it simply returns the report.
+Returns a ranked, capped (~12 findings) report. Every finding is formatted as a ready-to-paste `/keymaker:open` invocation, and audit then offers an interactive pick — choose one or more of the **top 3** ranked findings and it hands each to `/keymaker:open` in turn (or pick *None* to just keep the report). The picker is capped at the top 3 by the question tool's option limit; the full ~12-finding report is still shown above it, and you can name any other pointer via *Other*. Audit finds the doors; you decide which to open. In a non-interactive run it simply returns the report.
 
 **`diff` is the boy-scout scope:** run it after any feature branch to see what debt you're standing next to before opening a PR.
 

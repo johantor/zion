@@ -35,10 +35,14 @@ When `keymaker:keymaker` returns:
 
 1. Relay its ranked report to the user verbatim (all findings).
 2. **Offer an interactive pick** (this happens in your main session — the audit agent can't prompt).
-   Present an `AskUserQuestion` with `multiSelect: true` whose options are the **top-ranked findings**
-   from the report — up to 3, since the tool allows ≤4 options — each labelled with its
-   classification, count, and pointer, plus a final **"None — just the report"** option. The
-   always-available "Other" lets the user name any other pointer from the report by hand.
+   Present an `AskUserQuestion` with `multiSelect: true`. Build its options from the **first 3
+   findings in the report's existing rank order** (trivial → needs-investigation, smaller blast
+   radius first); label each with its classification and count, and keep each option's
+   `/keymaker:open <pointer>` line so a selection maps deterministically back to that exact pointer.
+   Add a final **"None — just the report"** option (3 findings + None = the tool's 4-option max).
+   `AskUserQuestion` always supplies its own free-text **"Other"** entry — it is *not* one of your
+   options and does not count toward the 4 — through which the user can name any other pointer from
+   the full report; treat that the same as a selected finding.
 3. For each finding the user selects, run `/keymaker:open <pointer>` — **one at a time**, finishing
    one fully (including its own gating and branch decisions) before starting the next. If the user
    picks "None", stop after the report.

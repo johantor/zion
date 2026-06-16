@@ -22,6 +22,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   one-line suggestion to run `/crew:init` to persist and reconcile the configuration. It never
   rewrites `CLAUDE.md` config itself mid-feature.
 
+## [2.2.1] - 2026-06-16
+
+### Fixed
+- **`morpheus` no longer freezes the conversation while a worker runs.** The
+  "delegate in the background" guidance was soft, and the dependency-ordering rule pulled
+  `morpheus` toward running a worker in the *foreground* whenever the next step needed its
+  output — freezing the whole turn for the worker's entire run (often minutes) and queuing the
+  user's messages unheard. `plugins/crew/agents/morpheus.md` now makes `run_in_background: true` the hard
+  default for every worker delegation and spells out that backgrounding is not abandoning and
+  waiting is not blocking: for a dependency, background the worker, **end the turn**, and
+  dispatch the dependent step on the completion notification — never hold the turn open just to
+  wait.
+
 ## [2.2.0] - 2026-06-12
 
 ### Added

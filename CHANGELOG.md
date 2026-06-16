@@ -5,6 +5,23 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2026-06-16
+
+### Added
+- **`/crew:init` — detect and write the crew configuration.** A new command that inspects the
+  project (.NET / Node tooling, git default branch, frontend stack) and proposes values for
+  every crew-config slot — build/test/lint commands, base branch, branch naming, frontend
+  mode, run URL — then, after the user confirms, writes them to the **Crew configuration**
+  block in `CLAUDE.md` (the source `morpheus` and the `crew:*` commands already read first).
+  It's **idempotent**: the first run bootstraps the block; a re-run reconciles it, adding slots
+  introduced by a newer plugin version and filling placeholders **without overwriting values
+  the user has already set**. If the user prefers not to commit config, it reports the detected
+  values and leaves resolution to `morpheus`'s existing per-session memory.
+- **`morpheus` nudges toward `/crew:init` when config is missing.** When a slot it needs is
+  absent from `CLAUDE.md`, `morpheus` resolves it as before (memory → ask) and adds a single
+  one-line suggestion to run `/crew:init` to persist and reconcile the configuration. It never
+  rewrites `CLAUDE.md` config itself mid-feature.
+
 ## [2.2.0] - 2026-06-12
 
 ### Added

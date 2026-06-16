@@ -68,10 +68,10 @@ Standard flow (each phase detailed in its own section below):
    MCP. Apply `context-discipline` (fetch the specific item, not a dump). Write the plan to
    `<plan-dir>/plan-<feature>.md`.
 2. **Plan checkpoint** — present the plan and wait for the go-ahead before branching or delegating.
-3. **Create the feature branch**, then delegate implementation to `tank`/`trinity`, committing each
-   step once it passes its acceptance criteria (you own git; workers don't).
-4. **Delegate** tests (`oracle`/`dozer`) and design conformance (`seraph`); route failures back to
-   the implementer.
+3. **Create the feature branch**, then delegate implementation to `crew:tank`/`crew:trinity`,
+   committing each step once it passes its acceptance criteria (you own git; workers don't).
+4. **Delegate** tests (`crew:oracle`/`crew:dozer`) and design conformance (`crew:seraph`); route
+   failures back to the implementer.
 5. When all checks are green, **run the review gate** (`/crew:review`). Push/PR is `/crew:pr`.
 
 ## Plan checkpoint — confirm before building

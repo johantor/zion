@@ -12,11 +12,15 @@ launched, stop and report the exact error; do not improvise the flow inline.
 
 Instructions for `crew:morpheus`:
 
-1. Read `CLAUDE.md` crew configuration and any relevant existing plan files under `.claude/`.
+1. Read `CLAUDE.md` crew configuration. If a `.claude/plan-<feature>.md` already matches this task,
+   **resume** it per the durable-resume protocol (check out the feature branch, reconcile each
+   step's `status` against git, continue from the first unblocked step) instead of re-planning —
+   don't ask the user to re-explain an in-flight feature.
 2. Explore the codebase to understand affected areas (do not modify anything yet).
-3. Write `.claude/plan-<feature>.md` with:
-   - Feature summary and scope boundary
-   - Ordered steps, each with explicit acceptance criteria
+3. Write `.claude/plan-<feature>.md` using the resumable schema:
+   - Header: feature summary, scope boundary, `base-branch`, `feature-branch`
+   - Ordered steps, each a block with a stable `id`, `status`, `depends-on`, and explicit
+     `acceptance` criteria (plus `evidence` once done)
    - Known constraints (backend lane, frontend lane, tests required, design ref if any)
 4. Delegate to workers in dependency order (backend before frontend if a contract must be agreed first).
 5. After all workers complete, verify each acceptance criterion is met.

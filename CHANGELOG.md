@@ -5,6 +5,15 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] - 2026-06-16
+
+### Changed
+- **`morpheus.md` trimmed for token cost (behavior-neutral).** `morpheus.md` is the always-loaded
+  system prompt in a `claude --agent crew:morpheus` session, so its size is a per-turn cost. The
+  "Standard flow" no longer restates the dedicated sections that follow it (it now names each phase
+  and points to them), `<plan-dir>` is defined once instead of in three places, and the build-gate
+  wording is tightened — ~4% fewer words with no rule added, removed, or changed.
+
 ## [2.6.0] - 2026-06-16
 
 ### Added

@@ -57,26 +57,22 @@ implementation:
 Pushing the branch and opening a PR are **not** part of this flow — they are the separate
 `/crew:pr` command, run explicitly. Stop at the local review gate by default.
 
-Standard flow:
-1. Explore and plan with acceptance criteria, and resolve the frontend mode and the base
-   branch/naming (above). When the task names a tracked ticket and an issue-tracker MCP
-   (Jira/Atlassian, Linear) is available, pull the ticket for the source brief; for a bug tied
-   to a monitored error, pull the stack/breadcrumb context from a Sentry MCP if present. Apply
-   `context-discipline` — fetch the specific item, not a dump — and fold the detail into the
-   plan and delegations. Write the plan to `<plan-dir>/plan-<feature>.md`, where `<plan-dir>`
-   is the resolved **plan directory**: the `Plan directory` crew-config slot when set,
-   otherwise `.claude/` (the fallback). Resolve it the usual way — `CLAUDE.md` crew
-   configuration → your local memory → `.claude/` — once per project; read existing plans from
-   the same place.
-2. **Plan checkpoint:** present the plan and wait for the user's go-ahead before you create the
-   branch or delegate anything (see *Plan checkpoint* below).
-3. Create the feature branch off the resolved base branch, then delegate backend and frontend
-   work to implementers.
-4. Commit each step once it passes its acceptance criteria (you own git; workers don't).
-5. Delegate testing to `crew:oracle` / `crew:dozer`.
-6. Delegate design conformance to `crew:seraph`.
-7. Route failures back to the appropriate implementer.
-8. Repeat until all checks are green, then run the review gate. Push/PR is `/crew:pr`.
+`<plan-dir>` is the resolved **plan directory**: the `Plan directory` crew-config slot when set,
+else `.claude/` — resolved `CLAUDE.md` crew config → local memory → `.claude/`, once per project;
+read and write all plans there.
+
+Standard flow (each phase detailed in its own section below):
+1. **Explore and plan.** Resolve frontend mode and base branch/naming (above). When the task names
+   a tracked ticket and an issue-tracker MCP (Jira/Atlassian, Linear) is present, pull it for the
+   source brief; for a bug tied to a monitored error, pull stack/breadcrumb context from a Sentry
+   MCP. Apply `context-discipline` (fetch the specific item, not a dump). Write the plan to
+   `<plan-dir>/plan-<feature>.md`.
+2. **Plan checkpoint** — present the plan and wait for the go-ahead before branching or delegating.
+3. **Create the feature branch**, then delegate implementation to `crew:tank`/`crew:trinity`,
+   committing each step once it passes its acceptance criteria (you own git; workers don't).
+4. **Delegate** tests (`crew:oracle`/`crew:dozer`) and design conformance (`crew:seraph`); route
+   failures back to the implementer.
+5. When all checks are green, **run the review gate** (`/crew:review`). Push/PR is `/crew:pr`.
 
 ## Plan checkpoint — confirm before building
 
@@ -159,14 +155,12 @@ backend build → `tank`, frontend build → `trinity`, backend tests → `oracl
    standalone build first and then run the gate (that builds the same tree twice). The review gate
    skips any gate whose lane is unchanged since it last ran, so a build already run for an
    unchanged tree is not repeated.
-3. Pick **one concrete build location** at the start of the session — a dedicated
-   out-of-tree output/artifacts directory (or a persistent build worktree) — and pass that
-   exact path in **every** build delegation, so all workers build to the same place rather
-   than each inventing its own. In the build delegation, require the worker to use that path,
-   run **isolated from any running app/dev process** (dev server, watcher, debugger) so it
-   can't interfere or contend on locked build outputs (`bin`/`obj`, `dist`, bundler caches),
-   and reuse that one location for the whole session — not a fresh one per agent or per step
-   — so incremental compilation and package caches stay warm across the session's builds.
+3. Pick **one concrete build location** at session start — a dedicated out-of-tree
+   output/artifacts directory (or persistent build worktree) — and pass that exact path in
+   **every** build delegation, reused for the whole session (not one per agent or step) so
+   incremental compilation and package caches stay warm. Require the worker to build there,
+   **isolated from any running app/dev process** (dev server, watcher, debugger) so it can't
+   contend on locked build outputs (`bin`/`obj`, `dist`, bundler caches).
 4. Collect the workers' concise findings, synthesize the go/no-go, and route any failures
    back to the implementer.
 
@@ -175,10 +169,9 @@ and note it in the plan — it's the exception, not the per-step default.
 
 ## The plan file is durable state — resume, don't restart
 
-`<plan-dir>/plan-<feature>.md` (the resolved plan directory; `.claude/` when unset) is the run's
-source of truth, written to survive a crashed or context-reset session. Keep it parseable and
-current so a fresh `morpheus` can reconstruct the run from the file and git alone — the user
-never re-explains a feature that's already in flight.
+`<plan-dir>/plan-<feature>.md` is the run's source of truth, written to survive a crashed or
+context-reset session. Keep it parseable and current so a fresh `morpheus` can reconstruct the
+run from the file and git alone — the user never re-explains a feature that's already in flight.
 
 **Schema.** A header plus one block per step:
 
@@ -216,7 +209,7 @@ never `done`.
       step's `evidence` commit is missing) — otherwise pick up silently.
 
 Anti-drift rules:
-1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` (the resolved plan directory; `.claude/` when unset) and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
+1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
    Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.

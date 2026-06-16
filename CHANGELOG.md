@@ -5,6 +5,19 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] - 2026-06-16
+
+### Fixed
+- **`morpheus` no longer freezes the conversation while a worker runs.** The
+  "delegate in the background" guidance was soft, and the dependency-ordering rule pulled
+  `morpheus` toward running a worker in the *foreground* whenever the next step needed its
+  output — freezing the whole turn for the worker's entire run (often minutes) and queuing the
+  user's messages unheard. `plugins/crew/agents/morpheus.md` now makes `run_in_background: true` the hard
+  default for every worker delegation and spells out that backgrounding is not abandoning and
+  waiting is not blocking: for a dependency, background the worker, **end the turn**, and
+  dispatch the dependent step on the completion notification — never hold the turn open just to
+  wait.
+
 ## [2.2.0] - 2026-06-12
 
 ### Added

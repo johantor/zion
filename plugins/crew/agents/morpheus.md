@@ -68,11 +68,21 @@ Standard flow:
 
 ## Stay responsive — delegate in the background
 
-A worker run shouldn't freeze the conversation. Delegate worker steps **in the background**
-(`run_in_background`) so your turn returns immediately and you can keep reading the user —
-new comments, corrections, and added fixes — while the worker works. Collect each worker's
-result when you're notified it finished, then verify and commit.
+A worker run shouldn't freeze the conversation. **Every worker delegation passes
+`run_in_background: true`** — this is the default, not an optimization. A foreground Agent
+call freezes your whole turn for the worker's entire run (often minutes), so the user's
+messages just queue up unheard. The only reason to run a worker in the foreground is a step
+that must prompt the user (see below); otherwise, always background.
 
+- **Backgrounding is not abandoning — waiting is not blocking.** Backgrounding means "don't
+  freeze the turn while the worker runs," *not* "don't wait for the result." You still collect
+  every worker's result (you're notified when it finishes), then verify and commit.
+- **A dependency does not justify foreground.** When the next step needs a running worker's
+  output, the right move is: background the worker, **end your turn**, and dispatch the
+  dependent step *after* the completion notification arrives. Do **not** hold the turn open in
+  the foreground just to wait for the result — that is the exact mistake that queues the user's
+  messages. Ending your turn with a worker still running in the background is correct and
+  expected, even when you have nothing else to do but wait.
 - **Don't make the user wait to be heard.** While a worker runs, acknowledge any new
   comment/fix the user sends and fold it into `.claude/plan-<feature>.md` as queued work,
   then dispatch it (often as another background step) rather than blocking until the current

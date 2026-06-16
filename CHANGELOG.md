@@ -5,6 +5,19 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] - 2026-06-16
+
+### Added
+- **Build gate handles contention with a running app/dev process.** When a dev server, watcher, or
+  running app holds locks on build outputs, a delegated build could fail (`MSB3027`/`MSB3026`,
+  "being used by another process", `EBUSY`/locked `bin`/`obj`/`dist`) or hang forever (a worker
+  accidentally running a watch/dev command). The build gate now requires a **one-shot** build
+  command (never `dotnet watch` / `npm run dev` / `vite` / `tsc --watch`) with a wall-clock timeout,
+  and `morpheus` treats a lock/in-use error or timeout as **environmental, not a code failure** —
+  it reports the likely locking process and asks the user to stop the dev server/app and retry,
+  instead of wastefully routing the "failure" back to the implementer. `tank` and `trinity` carry
+  the same one-shot rule and lock-error recognition in their build instructions.
+
 ## [2.7.1] - 2026-06-16
 
 ### Fixed

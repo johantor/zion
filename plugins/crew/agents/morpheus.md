@@ -161,8 +161,17 @@ backend build → `tank`, frontend build → `trinity`, backend tests → `oracl
    incremental compilation and package caches stay warm. Require the worker to build there,
    **isolated from any running app/dev process** (dev server, watcher, debugger) so it can't
    contend on locked build outputs (`bin`/`obj`, `dist`, bundler caches).
-4. Collect the workers' concise findings, synthesize the go/no-go, and route any failures
-   back to the implementer.
+4. **One-shot build, bounded.** The delegation must use the project's **build** command, never a
+   watch/dev/serve command (`dotnet watch`, `npm run dev`, `vite`, `tsc --watch`) — those never
+   terminate and hang the worker. Give the build a wall-clock timeout so a hang fails fast instead
+   of eating the worker's turns.
+5. **Tell a contention failure from a code failure.** A lock/in-use error (`MSB3027`/`MSB3026`,
+   "being used by another process", `EBUSY`/`ELOCKED`, a locked `bin`/`obj`/`dist`) or a build
+   that times out is **environmental, not a code defect** — do **not** route it back to the
+   implementer. Report that a running process is likely locking the outputs (or the build hung),
+   ask the user to stop the dev server/app (or confirm the isolated build location), then retry.
+6. Collect the workers' concise findings, synthesize the go/no-go, and route **genuine
+   compile/test failures** back to the implementer.
 
 If a step genuinely needs a build to be verifiable before the end, decide that deliberately
 and note it in the plan — it's the exception, not the per-step default.

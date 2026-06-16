@@ -29,6 +29,9 @@ means — reconcile fills any of these that are missing:
 - **Base branch** — the branch `morpheus` branches off (`main` / `develop` / trunk).
 - **Branch naming** — convention for feature branches (e.g. `feature/<ticket>-<slug>`).
 - **Run/dev URL** — the local dev URL, if the project serves one.
+- **Plan directory** — where `morpheus` writes `plan-<feature>.md`. Optional; leave *unset* to
+  use the `.claude/` fallback. Set it (e.g. `docs/plans/`) to keep plans in a repo-specific,
+  committed location.
 - **Notable conventions** — short free-text notes for the crew.
 
 ## 2. Detect (read-only)
@@ -49,6 +52,9 @@ trust or correct it; never invent a command you can't see configured.
   unclear, leave unset and note that `morpheus` will resolve it, or ask.
 - **Run/dev URL, branch naming, notable conventions:** propose from dev scripts /
   `launchSettings.json` / existing branch names where visible; otherwise leave unset.
+- **Plan directory:** only propose a value if the repo has an obvious plans convention (an
+  existing `docs/plans/`, `plan-*.md` already tracked outside `.claude/`); otherwise leave
+  *unset* so the `.claude/` fallback applies. Don't invent a directory.
 
 When detection comes up empty, pick the placeholder by slot type — never write a value that
 makes the config unusable:

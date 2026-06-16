@@ -63,6 +63,15 @@ the guardrails behind every gate.
 
 ### crew — orchestrated, multi-agent feature delivery
 
+The simplest way to spin up the crew is a dedicated orchestration session — start
+Claude Code *as* `morpheus` and just talk to it:
+
+```bash
+claude --agent crew:morpheus
+```
+
+Or keep the crew on tap inside a normal session with the slash commands:
+
 - `/crew:feature <task>` — plan and build a feature
 - `/crew:review` — pre-PR **GO / NO-GO** gate: code + security + design review, plus build/test/lint
 - `/crew:pr` — push the branch and open the pull request

@@ -16,26 +16,37 @@ claude plugin install crew@zion
 
 ## Usage
 
-1. Run `/crew:feature <ticket-or-task>` to plan and execute feature work. `morpheus` creates
-   a feature branch off your base branch and commits each verified step (workers never run git).
-   Run it from a **normal** Claude Code session — that keeps all your built-ins (statusline, etc.)
-   available while the crew handles the feature.
-2. Run `/crew:review` for the pre-PR **GO / NO-GO** gate — the consolidated code + security +
-   design review plus the diff-scoped build/test/lint checks (`/crew:review quick` for a
-   read-only review with no suites; `/crew:review full` to force every gate).
-3. Run `/crew:pr` to push the branch and open a pull request (uses a git-host MCP if
-   available, else prints the push command + PR body; outward action — it confirms first).
+The recommended way to run the crew is a **dedicated orchestration session**: start Claude
+Code *as* the orchestrator with
 
-> **Alternative — dedicated orchestration session:** start Claude Code *as* the orchestrator
-> with `claude --agent crew:morpheus`. The whole session is `morpheus` (its own tools, lane
-> guards, and memory), so you talk to it directly instead of going through `/crew:feature`. It's
-> intentionally scoped to crew work and will **not** run general/config tasks like statusline —
-> do those in a normal session.
->
-> Either way, `morpheus` delegates worker steps **in the background**, so its turn returns right
-> away and you can keep chatting — adding comments, corrections, or new fixes — while a worker
-> (e.g. `tank`) is still running; it folds them in and collects the worker's result when it
-> finishes. You don't have to wait for a worker to be heard.
+```bash
+claude --agent crew:morpheus
+```
+
+The whole session **is** `morpheus` (its own tools, lane guards, and memory), so you just talk
+to it directly — describe the feature, paste a ticket, ask for a review — and it plans and
+delegates. No slash command needed. It's intentionally scoped to crew work and will **not** run
+general/config tasks like statusline, so do those in a normal session.
+
+**Alternative — in-session command:** from a **normal** Claude Code session, run
+`/crew:feature <ticket-or-task>`. This routes the same work through `morpheus` without taking
+over the session, so all your built-ins (statusline, etc.) stay available while the crew handles
+the feature. Use this when you want the crew on tap inside an ordinary session.
+
+Either way, `morpheus` creates a feature branch off your base branch and commits each verified
+step (workers never run git), and delegates worker steps **in the background** — its turn returns
+right away so you can keep chatting (adding comments, corrections, or new fixes) while a worker
+(e.g. `tank`) is still running; it folds them in and collects the worker's result when it
+finishes. You don't have to wait for a worker to be heard.
+
+The remaining commands work the same in either mode (run them as `/crew:…` in a normal session,
+or just ask for them in a `--agent` session):
+
+- `/crew:review` — pre-PR **GO / NO-GO** gate: the consolidated code + security + design review
+  plus the diff-scoped build/test/lint checks (`/crew:review quick` for a read-only review with
+  no suites; `/crew:review full` to force every gate).
+- `/crew:pr` — push the branch and open a pull request (uses a git-host MCP if available, else
+  prints the push command + PR body; outward action — it confirms first).
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
 read as `crew:feature` / `crew:review` / `crew:pr` rather than colliding with

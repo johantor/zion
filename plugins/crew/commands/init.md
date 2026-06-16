@@ -50,8 +50,9 @@ trust or correct it; never invent a command you can't see configured.
 - **Run/dev URL, branch naming, notable conventions:** propose from dev scripts /
   `launchSettings.json` / existing branch names where visible; otherwise leave unset.
 
-A slot with nothing detected stays `none` (no such tooling) or `unset` (defer to `morpheus`) —
-mirror the wording already used in the block. Don't guess to fill a blank.
+A slot with nothing detected stays *unset* (defer to `morpheus`) or none (no such tooling).
+Match the block's existing placeholder wording exactly — italic *unset* and plain none, never
+backticked — so reconcile reliably recognizes them later. Don't guess to fill a blank.
 
 ## 3. Confirm with the user
 
@@ -72,7 +73,7 @@ When the user picks the committed destination:
 - **No block yet** → add a `## Crew configuration` section containing every slot from §1 with
   the confirmed values.
 - **Block exists (reconcile)** → for each slot in §1: add it if missing; fill it if present but
-  still a placeholder (`unset`/`none`) and a value was detected and confirmed. **Never
+  still a placeholder (*unset* / none) and a value was detected and confirmed. **Never
   overwrite a slot the user has set to a real value** — show those as "kept" rather than
   changing them. Preserve the surrounding prose and slot wording.
 

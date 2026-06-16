@@ -5,6 +5,18 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-06-16
+
+### Added
+- **`/keymaker:audit` ends in an interactive pick.** Instead of just printing a ranked report you
+  then copy-paste from, audit now relays the report and presents an `AskUserQuestion` (multi-select)
+  of the top-ranked findings; the ones you select are handed to `/keymaker:open` one at a time, each
+  running its own blast-radius gate and branch decisions. Picking *None* keeps the report as before,
+  and a non-interactive/headless run (where the prompt auto-denies) falls back to just the report —
+  unchanged behavior. The picker lives in the command's main session (the read-only audit agent
+  can't prompt), and is capped at the top 3 findings since `AskUserQuestion` allows ≤4 options — the
+  full ranked report is still shown, and "Other" lets you name any other pointer by hand.
+
 ## [0.2.0] - 2026-06-12
 
 ### Added

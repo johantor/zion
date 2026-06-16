@@ -1,5 +1,5 @@
 ---
-description: Read-only debt scout. Enumerates and classifies suppressions/warnings within a required scope, returns a capped ranked report where every finding is a ready-to-run /keymaker:open invocation. Never edits anything.
+description: Debt scout. Enumerates and classifies suppressions/warnings within a required scope and returns a capped ranked report, then lets you pick findings to act on — handing each to /keymaker:open. The scouting itself is read-only and never edits.
 ---
 
 Given `$ARGUMENTS` (the scope):
@@ -31,4 +31,16 @@ If `$ARGUMENTS` is empty or not a recognised scope, refuse with a usage hint and
    - Ready-to-paste invocation: `/keymaker:open <pointer>`
 6. Return the report. **Do not edit any files.**
 
-When `keymaker:keymaker` returns, relay its report to the user verbatim.
+When `keymaker:keymaker` returns:
+
+1. Relay its ranked report to the user verbatim (all findings).
+2. **Offer an interactive pick** (this happens in your main session — the audit agent can't prompt).
+   Present an `AskUserQuestion` with `multiSelect: true` whose options are the **top-ranked findings**
+   from the report — up to 3, since the tool allows ≤4 options — each labelled with its
+   classification, count, and pointer, plus a final **"None — just the report"** option. The
+   always-available "Other" lets the user name any other pointer from the report by hand.
+3. For each finding the user selects, run `/keymaker:open <pointer>` — **one at a time**, finishing
+   one fully (including its own gating and branch decisions) before starting the next. If the user
+   picks "None", stop after the report.
+4. If the picker can't be shown (non-interactive/headless run, where the prompt auto-denies), just
+   leave the report as the result — same behavior as before.

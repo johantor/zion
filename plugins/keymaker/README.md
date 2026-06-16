@@ -52,7 +52,7 @@ Scope options:
 | Stale suppressions | `stale` — fans out across every suppression mechanism the loaded stack skills know about, filtered to candidates that look removable. The cheapest wins in the repo. |
 | Current branch | `diff` |
 
-Returns a ranked, capped (~12 findings) read-only report. Every finding is formatted as a ready-to-paste `/keymaker:open` invocation — audit finds the doors, you decide which to open.
+Returns a ranked, capped (~12 findings) report. Every finding is formatted as a ready-to-paste `/keymaker:open` invocation, and audit then offers an interactive pick — choose one or more of the top-ranked findings and it hands each to `/keymaker:open` in turn (or pick *None* to just keep the report). Audit finds the doors; you decide which to open. In a non-interactive run it simply returns the report.
 
 **`diff` is the boy-scout scope:** run it after any feature branch to see what debt you're standing next to before opening a PR.
 
@@ -63,7 +63,7 @@ Returns a ranked, capped (~12 findings) read-only report. Every finding is forma
 - **Pointer-driven, not sweep-driven.** No bare `/keymaker:audit` with no scope — a required scope argument prevents accidental full-codebase scans.
 - **Blast-radius gate.** The orchestrator enumerates and reports the radius *before* touching anything. > 40 findings for a single rule → present natural slices, you choose the scope.
 - **Tiered upgrades.** Single-package bumps (patch/minor/major with migration notes) are tier 1 — keymaker handles them. Platform/framework migrations are tier 2 — keymaker outlines them for handoff and stops.
-- **Audit is strictly read-only.** No edit ever happens from an audit run.
+- **Scouting is strictly read-only.** Enumeration/classification never edits; the only way an edit happens is when you pick a finding and audit hands it to `/keymaker:open`, which runs its own blast-radius gate first.
 - **One commit per batch.** Diffs stay reviewable; regressions stay bisectable.
 - **Behavior-sensitive fixes are gated on tests, not lint.** Some fixes change runtime behavior (e.g. React `rules-of-hooks` / `exhaustive-deps`, a C# null-guard) — a green linter doesn't prove those correct. keymaker tags them, requires tests-green as the acceptance gate, commits them one unit at a time, and warns you when no test suite is configured. Behavior-preserving fixes (type-only, formatting, stale suppressions) keep the cheaper "lint clean" gate.
 - **No test suite → explicit warning.** Upgrades *and* behavior-sensitive fixes with no configured test command require your acknowledgement before proceeding.

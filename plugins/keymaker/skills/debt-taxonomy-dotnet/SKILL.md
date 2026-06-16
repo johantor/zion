@@ -52,10 +52,17 @@ Tag every finding before delegating (see core `debt-taxonomy`):
 
 ## Package-manager variance (NuGet)
 
-- Check for **Central Package Management**: if `Directory.Packages.props` exists, the version is declared there via `<PackageVersion>`, not in individual `.csproj` `<PackageReference>` — update in **one place**.
-- Otherwise the version is on the `<PackageReference Include="X" Version="Y" />` in each `.csproj` — update every occurrence.
-- After bumping, restore: `dotnet restore`. Verify the targeted project compiles: `dotnet build <project>.csproj` — capture output to a file and grep for errors (`context-discipline`).
-- Transitive conflicts surface as `NU1605`/`NU1107` — report and stop; never silently add a binding redirect or downgrade pin.
+These are the concrete commands the core `debt-taxonomy` *Upgrade workflow* delegates here:
+
+| Step | Command / location |
+|---|---|
+| Discover outdated | `dotnet list package --outdated` (add `--include-transitive` to see pulled-in deps); `dotnet-outdated` if installed |
+| Version location | **Central Package Management** — if `Directory.Packages.props` exists, the version is the `<PackageVersion>` there, update in **one place**; otherwise it's the `<PackageReference Include="X" Version="Y" />` in **each** `.csproj` — update every occurrence |
+| Apply | edit the version, then `dotnet restore` |
+| Verify | `dotnet build <project>.csproj` — capture output to a file and grep for errors (`context-discipline`) |
+
+- **Conflict signal:** transitive conflicts surface as `NU1605` (downgrade) / `NU1107` (version conflict) → report and stop; never silently add a binding redirect or downgrade pin.
+- **Release-notes URL** (core workflow step 2 fallback when Context7 has nothing): the package's NuGet page `https://www.nuget.org/packages/<id>`, or its project/repo `/releases` page when the `.nuspec` `projectUrl` points at a Git host.
 
 ## Upgrade-tier examples (.NET)
 

@@ -50,6 +50,7 @@ Scope options:
 | Lane | `backend` or `frontend` (a *file area* — the taxonomy applied still comes from stack detection, so a Node backend gets the TypeScript taxonomy) |
 | Rule family | `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers` |
 | Stale suppressions | `stale` — fans out across every suppression mechanism the loaded stack skills know about, filtered to candidates that look removable. The cheapest wins in the repo. |
+| Outdated dependencies | `outdated` — runs each detected stack's discover-outdated command (npm/yarn/pnpm, NuGet) and triages every bump by risk (SAFE patch / REVIEW minor / CAUTION major). Optionally narrow with a trailing lane/path. |
 | Current branch | `diff` |
 
 Returns a ranked, capped (~12 findings) report. Every finding is formatted as a ready-to-paste `/keymaker:open` invocation, and audit then offers an interactive pick — choose one or more of the **top 3** ranked findings and it hands each to `/keymaker:open` in turn (or pick *None* to just keep the report). The picker is capped at the top 3 by the question tool's option limit; the full ~12-finding report is still shown above it, and you can name any other pointer via *Other*. Audit finds the doors; you decide which to open. In a non-interactive run it simply returns the report.
@@ -57,6 +58,8 @@ Returns a ranked, capped (~12 findings) report. Every finding is formatted as a 
 **`diff` is the boy-scout scope:** run it after any feature branch to see what debt you're standing next to before opening a PR.
 
 **`stale` is the cheap-wins scope:** it surfaces suppressions whose underlying diagnostic likely no longer fires — `@ts-expect-error` removals (always safe to attempt, since TS reports unused directives), `#pragma warning disable` blocks over lines with no obvious trigger, `eslint-disable-next-line` over lines that no longer match the rule. Audit stays grep-only, so `stale` reports *candidates*; `/keymaker:open` does the actual proof via the twin (compile or lint).
+
+**`outdated` is the dependency-hygiene scope:** it runs each detected stack's discover-outdated command and triages every package by version delta — **SAFE** (patch), **REVIEW** (minor, read release notes), **CAUTION** (major, migration guide). Pick the ones to bump and each goes to `/keymaker:open <pkg> <target>`, which pulls release notes (Context7 or the package's release page), applies the bump, stops on a peer/transitive conflict rather than forcing it, and verifies — patch is build-clean, minor/major is tests-green. Package-manager-agnostic: npm/yarn/pnpm and NuGet today, a new manager is one row in the stack skill. Audit itself never installs or builds.
 
 ## Guardrails
 

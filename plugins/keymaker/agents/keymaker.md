@@ -39,14 +39,15 @@ A repo may match both (e.g. Optimizely + React) — apply each skill to its own 
 ## Audit mode flow
 
 1. Parse the scope argument — reject bare scope-less invocations with a usage hint.
-   Valid scopes: a path (`src/Checkout/`), a lane (`backend`/`frontend`), a rule family (e.g. `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers`), `stale` (candidate-stale suppressions across every mechanism the loaded stack skills declare — grep-only, never compile), or `diff` (files changed on the current branch vs base).
+   Valid scopes: a path (`src/Checkout/`), a lane (`backend`/`frontend`), a rule family (e.g. `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers`), `stale` (candidate-stale suppressions across every mechanism the loaded stack skills declare — grep-only, never compile), `outdated` (outdated dependencies per detected stack/package manager, optionally narrowed by a trailing lane/path), or `diff` (files changed on the current branch vs base).
 2. Enumerate with `grep`/`rg` scripts — count and file-list only, never file bodies (`context-discipline`).
    For `diff` scope: `git diff --name-only <base>...HEAD` then filter by lane.
    For `stale` scope: fan out across every suppression mechanism in each loaded `debt-taxonomy-<stack>` skill, applying that skill's grep-only **stale heuristic** per mechanism (e.g. `@ts-expect-error` is always a candidate, `#pragma warning disable` with no obvious trigger on the surrounded line, `eslint-disable-next-line` over a line with no obvious trigger). Report **candidates** only — final proof of staleness happens in `/keymaker:open`, where the twin can compile/build. Never run the compiler in audit mode.
+   For `outdated` scope: run each detected stack's **discover-outdated** command from its `debt-taxonomy-<stack>` package-manager table (e.g. `npm outdated`, `dotnet list package --outdated`), parse the `current → target` deltas, and triage each package by the core *Upgrade workflow* risk levels (SAFE patch / REVIEW minor / CAUTION major). This reads metadata only — never install, restore, or build in audit mode.
 3. Classify each finding using the `debt-taxonomy` rubric.
-4. Rank by effort-to-impact: trivially-fixable → needs-real-work → needs-investigation. Within each tier, smaller blast radius ranks higher.
-5. Cap at ~12 findings. If enumeration hits 50+ for a single rule, surface "50+ for rule X — run `/keymaker:open CS####` to address it directly" as one entry.
-6. Format each finding as a one-liner with: classification, count, an evidence pointer (`file:line` or grep command), and the ready-to-paste `/keymaker:open` invocation.
+4. Rank by effort-to-impact: trivially-fixable → needs-real-work → needs-investigation (for `outdated`: SAFE patch → REVIEW minor → CAUTION major). Within each tier, smaller blast radius ranks higher.
+5. Cap at ~12 findings. If enumeration hits 50+ for a single rule, surface "50+ for rule X — run `/keymaker:open CS####` to address it directly" as one entry. For `outdated` with many packages, keep the ~12 cap by risk rank (SAFE/REVIEW first) and fold the long tail into one "N more outdated" entry.
+6. Format each finding as a one-liner with: classification, count, an evidence pointer (`file:line` or grep command; for `outdated`, the `current → target` delta), and the ready-to-paste `/keymaker:open` invocation (for `outdated`, `/keymaker:open <pkg> <target>`).
 7. Return the report. Do not edit anything.
 
 ## Open mode flow
@@ -91,7 +92,7 @@ grep -rn --include="*.cs" "disable CS8602" src/ | wc -l
 grep -rn --include="*.cs" "disable CS8602" src/           # file:line list
 ```
 
-For upgrades: note package manager type for later (the version comparison was already done in step 2).
+For upgrades: apply the core `debt-taxonomy` *Upgrade workflow*. Triage the `current → target` delta (SAFE patch / REVIEW minor / CAUTION major); for a non-patch bump, pull release/migration notes **before** delegating — Context7 first, else the per-stack release-notes URL — and grep this codebase for the breaking APIs so the delegation names concrete call sites, not a generic changelog. Note the package manager and its discover/apply/verify commands from the per-stack table (the version comparison was already done in step 2).
 
 **Fallback 0-findings exit** (for pointer forms where step 2 could not pre-count, e.g. pasted output that parsed to multiple rule IDs): if enumeration yields **0 findings** for the pointer, stop here. Return the same one-line status that folds in what was checked, e.g. `No findings for [CS8602, CS8603] — nothing to do (grep count 0).` For pasted output: if **all** rule IDs enumerate to 0, exit with the one-liner listing the rules; if some have findings and some don't, proceed normally and note the empty ones in the radius report.
 
@@ -125,7 +126,7 @@ Each delegation must include:
 - Explicit out-of-scope: do not touch other suppressions, do not run full suite
 - `context-discipline` required on all output
 
-For upgrades: include current version, target version, package manager type, and any Context7 migration notes you already retrieved.
+For upgrades: include current version, target version, package manager type, the per-stack apply + verify commands, and any release/migration notes you already retrieved. The acceptance gate follows the risk triage — a patch is build/lint-clean; a minor or major bump is **tests-green**. On a failed verify, the twin reverts the **single offending package** to its prior version (targeted, not a blanket rollback) and reports what broke. Commit the matching lockfile/manifest with the bump.
 
 Use `model: haiku` override when delegating a run-and-report step (re-running the targeted check after a fix, verifying a suppression count dropped to zero). Omit `model` for implementation steps.
 

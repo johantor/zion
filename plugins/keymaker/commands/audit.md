@@ -43,8 +43,9 @@ When `keymaker:keymaker` returns:
    `AskUserQuestion` always supplies its own free-text **"Other"** entry — it is *not* one of your
    options and does not count toward the 4 — through which the user can name any other pointer from
    the full report; treat that the same as a selected finding.
-3. For each finding the user selects, run `/keymaker:open <pointer>` — **one at a time**, finishing
-   one fully (including its own gating and branch decisions) before starting the next. If the user
-   picks "None", stop after the report.
+3. **"None" wins.** If "None — just the report" is among the selections — even alongside findings —
+   take no action beyond the report (note you treated the mixed pick as None so the user can re-pick).
+   Otherwise, for each selected finding run `/keymaker:open <pointer>` **one at a time**, finishing
+   one fully (including its own gating and branch decisions) before starting the next.
 4. If the picker can't be shown (non-interactive/headless run, where the prompt auto-denies), just
    leave the report as the result — same behavior as before.

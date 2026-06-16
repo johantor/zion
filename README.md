@@ -24,6 +24,15 @@ Orchestrated, multi-agent feature delivery. An orchestrator (`morpheus`) plans t
 work and delegates to specialist workers — backend, frontend, tests, and visual
 review — then runs a consolidated review and a pre-PR ship gate.
 
+The simplest way to spin up the crew is a dedicated orchestration session — start
+Claude Code *as* `morpheus` and just talk to it:
+
+```bash
+claude --agent crew:morpheus
+```
+
+Or keep the crew on tap inside a normal session with the slash commands:
+
 - `/crew:feature <task>` — plan and build a feature
 - `/crew:review` — consolidated code + security + design review
 - `/crew:ship` — pre-PR **GO / NO-GO** gate

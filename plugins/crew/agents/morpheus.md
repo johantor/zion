@@ -185,7 +185,8 @@ never re-explains a feature that's already in flight.
 - Header: `feature:`, `base-branch:`, `feature-branch:` — so resume can re-establish git context.
 - Each step: `id:` (stable), `status:` one of `pending` | `in-progress` | `done` | `blocked`,
   `depends-on:` (step `id`s or `independent`), `acceptance:` (the pass criteria), and — once
-  done — `evidence:` (the commit SHA and the proof that satisfied acceptance).
+  done — `evidence:` — the **commit SHA first** (so it maps deterministically to a commit),
+  optionally followed by the proof that satisfied acceptance.
 
 `status` transitions: `pending` → `in-progress` (dispatched to a worker) → `done` (result
 returned, acceptance met, **and** committed), or → `blocked` (failed verification / needs a user
@@ -194,12 +195,17 @@ never `done`.
 
 **On (re)start, resume from the plan before planning or delegating:**
 
-1. If no `<plan-dir>/plan-<feature>.md` matches the task, plan fresh (the standard flow, including
-   the plan checkpoint).
-2. If one exists, **resume it** — don't re-plan, re-run the plan checkpoint, or ask the user to
-   re-explain (the plan was already approved):
-   1. Check out the `feature-branch` from the header (you own git); confirm `base-branch` matches
-      the resolved base.
+1. **Match by header, not by guesswork.** A plan matches only when its `feature:` /
+   `feature-branch:` header identifies this task. If no plan in `<plan-dir>` matches, plan fresh
+   (the standard flow, including the plan checkpoint). If more than one could match or the match is
+   ambiguous, ask the user which to resume — never guess.
+2. If exactly one matches, **resume it** — don't re-plan, re-run the plan checkpoint, or ask the
+   user to re-explain (the plan was already approved):
+   1. **Ensure a clean working tree before touching branches.** A crashed session may have left
+      uncommitted changes; checking out over them can fail or mix them into the resumed run.
+      Reconcile first — commit changes against the step they belong to, or stash — then check out
+      the `feature-branch` from the header (you own git) and confirm `base-branch` matches the
+      resolved base.
    2. Reconcile each step against git. A `done` step must map to its `evidence` commit — confirm
       that commit is present. An `in-progress` step is **unconfirmed** (its worker round-trip may
       have been lost on the crash): re-verify its acceptance against the working tree/commits, and

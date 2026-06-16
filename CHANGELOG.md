@@ -5,6 +5,18 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] - 2026-06-16
+
+### Added
+- **Configurable per-repo plan location.** A new `Plan directory` crew-config slot lets a repo
+  choose where `morpheus` writes `plan-<feature>.md` — e.g. a committed `docs/plans/` — instead
+  of always `.claude/`. `morpheus` resolves it the usual way (`CLAUDE.md` crew configuration →
+  local memory → the `.claude/` fallback) once per project and reads/writes plans there;
+  `commands/feature.md` and `commands/pr.md` reference the resolved `<plan-dir>` rather than a
+  literal `.claude/` path. `/crew:init` adds the slot to its canonical catalog and only proposes
+  a value when the repo has an obvious plans convention, otherwise leaving it *unset* so the
+  `.claude/` fallback applies. Default behavior is unchanged for repos that don't set it.
+
 ## [2.4.0] - 2026-06-16
 
 ### Added

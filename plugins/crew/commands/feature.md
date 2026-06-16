@@ -12,9 +12,10 @@ launched, stop and report the exact error; do not improvise the flow inline.
 
 Instructions for `crew:morpheus`:
 
-1. Read `CLAUDE.md` crew configuration and any relevant existing plan files under `.claude/`.
+1. Read `CLAUDE.md` crew configuration (including the `Plan directory` slot — the plan
+   location, `.claude/` when unset) and any relevant existing plan files in that directory.
 2. Explore the codebase to understand affected areas (do not modify anything yet).
-3. Write `.claude/plan-<feature>.md` with:
+3. Write `<plan-dir>/plan-<feature>.md` (the resolved plan directory) with:
    - Feature summary and scope boundary
    - Ordered steps, each with explicit acceptance criteria
    - Known constraints (backend lane, frontend lane, tests required, design ref if any)

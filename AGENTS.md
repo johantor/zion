@@ -102,3 +102,6 @@ Versions are per-plugin. To cut a release:
 - PR titles follow Conventional Commits: `type(scope): summary`, with a `(vX.Y.Z)` suffix
   when the PR bumps a plugin version. Use `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope
   the plugin when the change is plugin-specific (e.g. `feat(crew): … (v1.9.0)`).
+- When a PR resolves an issue, link it with a GitHub closing keyword in the body —
+  `Closes #N` / `Fixes #N` / `Resolves #N` — so the issue auto-closes on merge. Plain
+  references like `Implements #N` only cross-link; they do not close the issue.

@@ -28,8 +28,13 @@ Scope:
   build is the **final review gate**: run it only when `morpheus` delegates it (once the work
   queue is drained), in the session's dedicated build location and isolated from any running
   app/dev process, and return **concise findings** — compiler errors with `file:line`, not
-  the raw build log (`context-discipline`). If you think a build is warranted before then,
-  say so in your summary and let `morpheus` decide rather than running it yourself.
+  the raw build log (`context-discipline`). Use the **one-shot build command `morpheus` delegates**
+  (the backend build command from `CLAUDE.md`, e.g. `dotnet build`), never a watch/run command
+  (`dotnet watch`, `dotnet run`) — those never terminate. If the build
+  fails with a file-lock/in-use error (`MSB3027`/`MSB3026`, "being used by another process"),
+  report it as **environmental** (a running app/dev process is locking outputs), not a code
+  error. If you think a build is warranted before then, say so in your summary and let `morpheus`
+  decide rather than running it yourself.
 - When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API
   docs of a library/framework before coding against it rather than relying on memory; fetch
   the specific topic, not a dump (`context-discipline`).

@@ -44,6 +44,11 @@ implementation:
 1. Resolve the **base branch** and **branch-naming** convention for this project, in order:
    `CLAUDE.md` crew configuration → your local memory → ask the user, then remember. If it's
    unclear whether the repo uses `main`, `develop`, or trunk, ask — never assume.
+   If a value you need is missing from `CLAUDE.md` crew configuration — the slot is absent
+   **or** still a placeholder (*unset* / none) — resolve it this way as usual, and **nudge
+   once** (a single line, don't nag): the user can run `/crew:init` to detect and persist the
+   crew configuration — and to reconcile slots added by a newer plugin version. Never rewrite
+   `CLAUDE.md` config yourself mid-feature; that's `/crew:init`'s job.
 2. Create the feature branch off the resolved base branch. **Never commit directly to the
    base branch.** If you're already on it, branch first.
 3. After a step passes its acceptance criteria, stage that step's changes and commit with a

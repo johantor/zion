@@ -72,6 +72,7 @@ claude --agent crew:morpheus
 
 Or keep the crew on tap inside a normal session with the slash commands:
 
+- `/crew:init` — detect and write this project's crew configuration to `CLAUDE.md` (idempotent reconcile)
 - `/crew:feature <task>` — plan and build a feature
 - `/crew:review` — pre-PR **GO / NO-GO** gate: code + security + design review, plus build/test/lint
 - `/crew:pr` — push the branch and open the pull request

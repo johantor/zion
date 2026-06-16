@@ -50,7 +50,15 @@ trust or correct it; never invent a command you can't see configured.
 - **Run/dev URL, branch naming, notable conventions:** propose from dev scripts /
   `launchSettings.json` / existing branch names where visible; otherwise leave unset.
 
-A slot with nothing detected stays *unset* (defer to `morpheus`) or none (no such tooling).
+When detection comes up empty, pick the placeholder by slot type — never write a value that
+makes the config unusable:
+
+- **Tooling slots** (backend/frontend test, build, and lint commands; run/dev URL): if the
+  project genuinely has no such tooling, use plain none.
+- **Project-identity slots** (base branch, branch naming, frontend mode): never none — a base
+  branch always exists, so none would be wrong. Leave these *unset* so `morpheus` resolves or
+  asks (for base branch, prefer asking — see above).
+
 Match the block's existing placeholder wording exactly — italic *unset* and plain none, never
 backticked — so reconcile reliably recognizes them later. Don't guess to fill a blank.
 

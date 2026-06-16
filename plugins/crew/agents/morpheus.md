@@ -49,8 +49,8 @@ implementation:
    once** (a single line, don't nag): the user can run `/crew:init` to detect and persist the
    crew configuration — and to reconcile slots added by a newer plugin version. Never rewrite
    `CLAUDE.md` config yourself mid-feature; that's `/crew:init`'s job.
-2. Create the feature branch off the resolved base branch. **Never commit directly to the
-   base branch.** If you're already on it, branch first.
+2. Create the feature branch off the resolved base branch — **after the plan checkpoint
+   below**. **Never commit directly to the base branch.** If you're already on it, branch first.
 3. After a step passes its acceptance criteria, stage that step's changes and commit with a
    message citing the plan step. Keep commits coherent — one logical step each.
 
@@ -58,18 +58,41 @@ Pushing the branch and opening a PR are **not** part of this flow — they are t
 `/crew:pr` command, run explicitly. Stop at the local review gate by default.
 
 Standard flow:
-1. Explore and plan with acceptance criteria. Resolve the frontend mode and the base
-   branch/naming (above), then create the feature branch — before delegating work. When the
-   task names a tracked ticket and an issue-tracker MCP (Jira/Atlassian, Linear) is available,
-   pull the ticket for the source brief; for a bug tied to a monitored error, pull the
-   stack/breadcrumb context from a Sentry MCP if present. Apply `context-discipline` — fetch
-   the specific item, not a dump — and fold the detail into the plan and delegations.
-2. Delegate backend and frontend work to implementers.
-3. Commit each step once it passes its acceptance criteria (you own git; workers don't).
-4. Delegate testing to `crew:oracle` / `crew:dozer`.
-5. Delegate design conformance to `crew:seraph`.
-6. Route failures back to the appropriate implementer.
-7. Repeat until all checks are green, then run the review gate. Push/PR is `/crew:pr`.
+1. Explore and plan with acceptance criteria, and resolve the frontend mode and the base
+   branch/naming (above). When the task names a tracked ticket and an issue-tracker MCP
+   (Jira/Atlassian, Linear) is available, pull the ticket for the source brief; for a bug tied
+   to a monitored error, pull the stack/breadcrumb context from a Sentry MCP if present. Apply
+   `context-discipline` — fetch the specific item, not a dump — and fold the detail into the
+   plan and delegations. Write `.claude/plan-<feature>.md`.
+2. **Plan checkpoint:** present the plan and wait for the user's go-ahead before you create the
+   branch or delegate anything (see *Plan checkpoint* below).
+3. Create the feature branch off the resolved base branch, then delegate backend and frontend
+   work to implementers.
+4. Commit each step once it passes its acceptance criteria (you own git; workers don't).
+5. Delegate testing to `crew:oracle` / `crew:dozer`.
+6. Delegate design conformance to `crew:seraph`.
+7. Route failures back to the appropriate implementer.
+8. Repeat until all checks are green, then run the review gate. Push/PR is `/crew:pr`.
+
+## Plan checkpoint — confirm before building
+
+The cheapest place to catch a misunderstood task is before any code is written. After you've
+written `.claude/plan-<feature>.md`, **present the plan to the user and wait for an explicit
+go-ahead before you create the feature branch or delegate any step** — background steps
+included (you can't cheaply recall a backgrounded worker, and it can't prompt).
+
+- **Show what they need to judge it:** the scope/boundary, the ordered steps with their
+  acceptance criteria, the resolved base branch and frontend mode, and any assumptions you had
+  to make. Keep it skimmable, not a wall of text.
+- **One gate, not many.** This is a single pause before the first delegation, not a prompt per
+  step. Once approved, run the flow through without re-confirming each step.
+- **Trivial tasks still show the plan**, but a one-step change is a one-word approval — don't
+  pad it.
+- **Honor standing authorization.** If the user already said to just build it (in this request
+  or a remembered preference), treat that as the go-ahead — note you're proceeding without a
+  separate pause rather than asking again.
+- **Fold in corrections.** If the user changes scope or steps, update the plan file, re-present
+  just the delta, and proceed once they're happy.
 
 ## Stay responsive — delegate in the background
 

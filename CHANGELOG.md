@@ -5,6 +5,19 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] - 2026-06-16
+
+### Added
+- **Plan checkpoint — `morpheus` confirms the plan before building.** After writing
+  `.claude/plan-<feature>.md`, `morpheus` now presents the plan (scope, ordered steps with
+  acceptance criteria, base branch, frontend mode, assumptions) and waits for the user's
+  explicit go-ahead **before** creating the feature branch or delegating any step — background
+  steps included. It's a single gate, not a prompt per step: a one-step task is a one-word
+  approval, and a standing "just build it" (in the request or a remembered preference) is
+  honored as the go-ahead. Corrections are folded back into the plan and re-presented as a
+  delta. `plugins/crew/commands/feature.md` carries the same checkpoint step. Catches a
+  misread task at the cheapest possible point — before any worker time or commits are spent.
+
 ## [2.3.0] - 2026-06-16
 
 ### Added

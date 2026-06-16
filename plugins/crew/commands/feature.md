@@ -18,8 +18,12 @@ Instructions for `crew:morpheus`:
    - Feature summary and scope boundary
    - Ordered steps, each with explicit acceptance criteria
    - Known constraints (backend lane, frontend lane, tests required, design ref if any)
-4. Delegate to workers in dependency order (backend before frontend if a contract must be agreed first).
-5. After all workers complete, verify each acceptance criterion is met.
-6. Return a consolidated status: ✅ done / ❌ blocked items with owner and next action.
+4. **Plan checkpoint:** present the plan (scope, ordered steps with acceptance criteria, base
+   branch, frontend mode, assumptions) and wait for the user's explicit go-ahead before
+   creating the branch or delegating any work. Honor a standing "just build it" as the
+   go-ahead; fold any corrections into the plan and re-present the delta.
+5. Delegate to workers in dependency order (backend before frontend if a contract must be agreed first).
+6. After all workers complete, verify each acceptance criterion is met.
+7. Return a consolidated status: ✅ done / ❌ blocked items with owner and next action.
 
 When `morpheus` returns, relay its consolidated status to the user verbatim.

@@ -33,7 +33,10 @@ general/config tasks like statusline, so do those in a normal session.
 over the session, so all your built-ins (statusline, etc.) stay available while the crew handles
 the feature. Use this when you want the crew on tap inside an ordinary session.
 
-Either way, `morpheus` creates a feature branch off your base branch and commits each verified
+Before it starts building, `morpheus` presents its plan and waits for your go-ahead — one quick
+gate to catch a misread task before any branch, commit, or worker time is spent (a one-step task
+is a one-word yes; tell it to just build and it skips the pause). Either way, `morpheus` then
+creates a feature branch off your base branch and commits each verified
 step (workers never run git), and delegates worker steps **in the background** — its turn returns
 right away so you can keep chatting (adding comments, corrections, or new fixes) while a worker
 (e.g. `tank`) is still running; it folds them in and collects the worker's result when it

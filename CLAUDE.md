@@ -32,4 +32,6 @@ Keep them accurate; update them if this repo ever gains app code.
   trunk). If unset, `morpheus` resolves it per project (its memory, or by asking you).
 - **Branch naming:** *unset* — convention for crew feature branches (e.g. `feature/<ticket>-<slug>`).
 - **Run/dev URL:** none configured
+- **Plan directory:** *unset* — where `morpheus` writes `plan-<feature>.md`. Falls back to
+  `.claude/` when unset; set it (e.g. `docs/plans/`) to keep plans in a committed location.
 - **Notable conventions:** Repository currently contains Claude crew/plugin configuration only.

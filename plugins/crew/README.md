@@ -33,7 +33,10 @@ general/config tasks like statusline, so do those in a normal session.
 over the session, so all your built-ins (statusline, etc.) stay available while the crew handles
 the feature. Use this when you want the crew on tap inside an ordinary session.
 
-Either way, `morpheus` creates a feature branch off your base branch and commits each verified
+Before it starts building, `morpheus` presents its plan and waits for your go-ahead — one quick
+gate to catch a misread task before any branch, commit, or worker time is spent (a one-step task
+is a one-word yes; tell it to just build and it skips the pause). Either way, `morpheus` then
+creates a feature branch off your base branch and commits each verified
 step (workers never run git), and delegates worker steps **in the background** — its turn returns
 right away so you can keep chatting (adding comments, corrections, or new fixes) while a worker
 (e.g. `tank`) is still running; it folds them in and collects the worker's result when it
@@ -42,6 +45,9 @@ finishes. You don't have to wait for a worker to be heard.
 The remaining commands work the same in either mode (run them as `/crew:…` in a normal session,
 or just ask for them in a `--agent` session):
 
+- `/crew:init` — detect this project's build/test/lint commands, base branch, and frontend
+  mode and write them to the **Crew configuration** block in `CLAUDE.md`. Idempotent: re-run
+  to reconcile slots added by a newer plugin version (existing values are kept).
 - `/crew:review` — pre-PR **GO / NO-GO** gate: the consolidated code + security + design review
   plus the diff-scoped build/test/lint checks (`/crew:review quick` for a read-only review with
   no suites; `/crew:review full` to force every gate).
@@ -57,7 +63,7 @@ any built-in or other-plugin commands of the same short name.
 - `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
 - `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
-- `commands/`: `/crew:feature`, `/crew:review`, `/crew:pr`
+- `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`
 
 ## Hooks & enforcement
 

@@ -19,7 +19,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`. Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/feature`, `/review`, `/pr` (namespaced as `crew:feature` etc. once installed). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint).
+  - `commands/` — `/init`, `/feature`, `/review`, `/pr` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint).
   - `skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
   - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
@@ -34,7 +34,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 ## How the crew works
 
 - `morpheus` plans and delegates; it writes no production code. Workers stay idle until delegated to.
-- `morpheus` maintains a written plan at `.claude/plan-<feature>.md` with per-step acceptance criteria.
+- `morpheus` maintains a written plan at `<plan-dir>/plan-<feature>.md` — `<plan-dir>` is the `Plan directory` crew-config slot, or `.claude/` when unset — with per-step acceptance criteria, and presents it for the user's go-ahead before creating the branch or delegating (the plan checkpoint — one gate, honoring a standing "just build it").
 - `morpheus` is the sole owner of git: it branches off the resolved base branch and commits each
   verified step; workers never run git. The crew stops at the local review gate by default —
   pushing and opening a PR is the separate `/crew:pr` command.
@@ -102,3 +102,6 @@ Versions are per-plugin. To cut a release:
 - PR titles follow Conventional Commits: `type(scope): summary`, with a `(vX.Y.Z)` suffix
   when the PR bumps a plugin version. Use `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope
   the plugin when the change is plugin-specific (e.g. `feat(crew): … (v1.9.0)`).
+- When a PR resolves an issue, link it with a GitHub closing keyword in the body —
+  `Closes #N` / `Fixes #N` / `Resolves #N` — so the issue auto-closes on merge. Plain
+  references like `Implements #N` only cross-link; they do not close the issue.

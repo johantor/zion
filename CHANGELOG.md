@@ -5,11 +5,11 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.3.0] - 2026-06-16
+## [2.6.0] - 2026-06-16
 
 ### Added
 - **Crew runs are resumable from the plan file.** A crashed or context-reset session used to
-  mean re-explaining the feature, even though `.claude/plan-<feature>.md` already recorded the
+  mean re-explaining the feature, even though `<plan-dir>/plan-<feature>.md` already recorded the
   steps. The plan file is now durable state with a parseable schema — a header (`feature`,
   `base-branch`, `feature-branch`) plus per-step `id` / `status` (`pending` | `in-progress` |
   `done` | `blocked`) / `depends-on` / `acceptance` / `evidence` (commit SHA) — and `morpheus`
@@ -19,6 +19,61 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   acceptance isn't met), and picks up the first unblocked step — without asking the user to
   re-explain. `agents/morpheus.md` defines the schema and protocol; `commands/feature.md` enters
   it (resume an existing plan instead of re-planning). Only a committed step is ever `done`.
+
+## [2.5.0] - 2026-06-16
+
+### Added
+- **Configurable per-repo plan location.** A new `Plan directory` crew-config slot lets a repo
+  choose where `morpheus` writes `plan-<feature>.md` — e.g. a committed `docs/plans/` — instead
+  of always `.claude/`. `morpheus` resolves it the usual way (`CLAUDE.md` crew configuration →
+  local memory → the `.claude/` fallback) once per project and reads/writes plans there;
+  `commands/feature.md` and `commands/pr.md` reference the resolved `<plan-dir>` rather than a
+  literal `.claude/` path. `/crew:init` adds the slot to its canonical catalog and only proposes
+  a value when the repo has an obvious plans convention, otherwise leaving it *unset* so the
+  `.claude/` fallback applies. Default behavior is unchanged for repos that don't set it.
+
+## [2.4.0] - 2026-06-16
+
+### Added
+- **Plan checkpoint — `morpheus` confirms the plan before building.** After writing
+  `.claude/plan-<feature>.md`, `morpheus` now presents the plan (scope, ordered steps with
+  acceptance criteria, base branch, frontend mode, assumptions) and waits for the user's
+  explicit go-ahead **before** creating the feature branch or delegating any step — background
+  steps included. It's a single gate, not a prompt per step: a one-step task is a one-word
+  approval, and a standing "just build it" (in the request or a remembered preference) is
+  honored as the go-ahead. Corrections are folded back into the plan and re-presented as a
+  delta. `plugins/crew/commands/feature.md` carries the same checkpoint step. Catches a
+  misread task at the cheapest possible point — before any worker time or commits are spent.
+
+## [2.3.0] - 2026-06-16
+
+### Added
+- **`/crew:init` — detect and write the crew configuration.** A new command that inspects the
+  project (.NET / Node tooling, git default branch, frontend stack) and proposes values for
+  every crew-config slot — build/test/lint commands, base branch, branch naming, frontend
+  mode, run URL — then, after the user confirms, writes them to the **Crew configuration**
+  block in `CLAUDE.md` (the source `morpheus` and the `crew:*` commands already read first).
+  It's **idempotent**: the first run bootstraps the block; a re-run reconciles it, adding slots
+  introduced by a newer plugin version and filling placeholders **without overwriting values
+  the user has already set**. If the user prefers not to commit config, it reports the detected
+  values and leaves resolution to `morpheus`'s existing per-session memory.
+- **`morpheus` nudges toward `/crew:init` when config is missing.** When a slot it needs is
+  absent from `CLAUDE.md`, `morpheus` resolves it as before (memory → ask) and adds a single
+  one-line suggestion to run `/crew:init` to persist and reconcile the configuration. It never
+  rewrites `CLAUDE.md` config itself mid-feature.
+
+## [2.2.1] - 2026-06-16
+
+### Fixed
+- **`morpheus` no longer freezes the conversation while a worker runs.** The
+  "delegate in the background" guidance was soft, and the dependency-ordering rule pulled
+  `morpheus` toward running a worker in the *foreground* whenever the next step needed its
+  output — freezing the whole turn for the worker's entire run (often minutes) and queuing the
+  user's messages unheard. `plugins/crew/agents/morpheus.md` now makes `run_in_background: true` the hard
+  default for every worker delegation and spells out that backgrounding is not abandoning and
+  waiting is not blocking: for a dependency, background the worker, **end the turn**, and
+  dispatch the dependent step on the completion notification — never hold the turn open just to
+  wait.
 
 ## [2.2.0] - 2026-06-12
 

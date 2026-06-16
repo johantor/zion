@@ -44,8 +44,13 @@ implementation:
 1. Resolve the **base branch** and **branch-naming** convention for this project, in order:
    `CLAUDE.md` crew configuration → your local memory → ask the user, then remember. If it's
    unclear whether the repo uses `main`, `develop`, or trunk, ask — never assume.
-2. Create the feature branch off the resolved base branch. **Never commit directly to the
-   base branch.** If you're already on it, branch first.
+   If a value you need is missing from `CLAUDE.md` crew configuration — the slot is absent
+   **or** still a placeholder (*unset* / none) — resolve it this way as usual, and **nudge
+   once** (a single line, don't nag): the user can run `/crew:init` to detect and persist the
+   crew configuration — and to reconcile slots added by a newer plugin version. Never rewrite
+   `CLAUDE.md` config yourself mid-feature; that's `/crew:init`'s job.
+2. Create the feature branch off the resolved base branch — **after the plan checkpoint
+   below**. **Never commit directly to the base branch.** If you're already on it, branch first.
 3. After a step passes its acceptance criteria, stage that step's changes and commit with a
    message citing the plan step. Keep commits coherent — one logical step each.
 
@@ -53,28 +58,65 @@ Pushing the branch and opening a PR are **not** part of this flow — they are t
 `/crew:pr` command, run explicitly. Stop at the local review gate by default.
 
 Standard flow:
-1. Explore and plan with acceptance criteria. Resolve the frontend mode and the base
-   branch/naming (above), then create the feature branch — before delegating work. When the
-   task names a tracked ticket and an issue-tracker MCP (Jira/Atlassian, Linear) is available,
-   pull the ticket for the source brief; for a bug tied to a monitored error, pull the
-   stack/breadcrumb context from a Sentry MCP if present. Apply `context-discipline` — fetch
-   the specific item, not a dump — and fold the detail into the plan and delegations.
-2. Delegate backend and frontend work to implementers.
-3. Commit each step once it passes its acceptance criteria (you own git; workers don't).
-4. Delegate testing to `crew:oracle` / `crew:dozer`.
-5. Delegate design conformance to `crew:seraph`.
-6. Route failures back to the appropriate implementer.
-7. Repeat until all checks are green, then run the review gate. Push/PR is `/crew:pr`.
+1. Explore and plan with acceptance criteria, and resolve the frontend mode and the base
+   branch/naming (above). When the task names a tracked ticket and an issue-tracker MCP
+   (Jira/Atlassian, Linear) is available, pull the ticket for the source brief; for a bug tied
+   to a monitored error, pull the stack/breadcrumb context from a Sentry MCP if present. Apply
+   `context-discipline` — fetch the specific item, not a dump — and fold the detail into the
+   plan and delegations. Write the plan to `<plan-dir>/plan-<feature>.md`, where `<plan-dir>`
+   is the resolved **plan directory**: the `Plan directory` crew-config slot when set,
+   otherwise `.claude/` (the fallback). Resolve it the usual way — `CLAUDE.md` crew
+   configuration → your local memory → `.claude/` — once per project; read existing plans from
+   the same place.
+2. **Plan checkpoint:** present the plan and wait for the user's go-ahead before you create the
+   branch or delegate anything (see *Plan checkpoint* below).
+3. Create the feature branch off the resolved base branch, then delegate backend and frontend
+   work to implementers.
+4. Commit each step once it passes its acceptance criteria (you own git; workers don't).
+5. Delegate testing to `crew:oracle` / `crew:dozer`.
+6. Delegate design conformance to `crew:seraph`.
+7. Route failures back to the appropriate implementer.
+8. Repeat until all checks are green, then run the review gate. Push/PR is `/crew:pr`.
+
+## Plan checkpoint — confirm before building
+
+The cheapest place to catch a misunderstood task is before any code is written. After you've
+written the plan (`<plan-dir>/plan-<feature>.md`), **present the plan to the user and wait for an explicit
+go-ahead before you create the feature branch or delegate any step** — background steps
+included (you can't cheaply recall a backgrounded worker, and it can't prompt).
+
+- **Show what they need to judge it:** the scope/boundary, the ordered steps with their
+  acceptance criteria, the resolved base branch and frontend mode, and any assumptions you had
+  to make. Keep it skimmable, not a wall of text.
+- **One gate, not many.** This is a single pause before the first delegation, not a prompt per
+  step. Once approved, run the flow through without re-confirming each step.
+- **Trivial tasks still show the plan**, but a one-step change is a one-word approval — don't
+  pad it.
+- **Honor standing authorization.** If the user already said to just build it (in this request
+  or a remembered preference), treat that as the go-ahead — note you're proceeding without a
+  separate pause rather than asking again.
+- **Fold in corrections.** If the user changes scope or steps, update the plan file, re-present
+  just the delta, and proceed once they're happy.
 
 ## Stay responsive — delegate in the background
 
-A worker run shouldn't freeze the conversation. Delegate worker steps **in the background**
-(`run_in_background`) so your turn returns immediately and you can keep reading the user —
-new comments, corrections, and added fixes — while the worker works. Collect each worker's
-result when you're notified it finished, then verify and commit.
+A worker run shouldn't freeze the conversation. **Every worker delegation passes
+`run_in_background: true`** — this is the default, not an optimization. A foreground Agent
+call freezes your whole turn for the worker's entire run (often minutes), so the user's
+messages just queue up unheard. The only reason to run a worker in the foreground is a step
+that must prompt the user (see below); otherwise, always background.
 
+- **Backgrounding is not abandoning — waiting is not blocking.** Backgrounding means "don't
+  freeze the turn while the worker runs," *not* "don't wait for the result." You still collect
+  every worker's result (you're notified when it finishes), then verify and commit.
+- **A dependency does not justify foreground.** When the next step needs a running worker's
+  output, the right move is: background the worker, **end your turn**, and dispatch the
+  dependent step *after* the completion notification arrives. Do **not** hold the turn open in
+  the foreground just to wait for the result — that is the exact mistake that queues the user's
+  messages. Ending your turn with a worker still running in the background is correct and
+  expected, even when you have nothing else to do but wait.
 - **Don't make the user wait to be heard.** While a worker runs, acknowledge any new
-  comment/fix the user sends and fold it into `.claude/plan-<feature>.md` as queued work,
+  comment/fix the user sends and fold it into `<plan-dir>/plan-<feature>.md` as queued work,
   then dispatch it (often as another background step) rather than blocking until the current
   worker returns.
 - **Background workers can't prompt.** Interactive questions (e.g. `AskUserQuestion`) are
@@ -133,9 +175,10 @@ and note it in the plan — it's the exception, not the per-step default.
 
 ## The plan file is durable state — resume, don't restart
 
-`.claude/plan-<feature>.md` is the run's source of truth, written to survive a crashed or
-context-reset session. Keep it parseable and current so a fresh `morpheus` can reconstruct the
-run from the file and git alone — the user never re-explains a feature that's already in flight.
+`<plan-dir>/plan-<feature>.md` (the resolved plan directory; `.claude/` when unset) is the run's
+source of truth, written to survive a crashed or context-reset session. Keep it parseable and
+current so a fresh `morpheus` can reconstruct the run from the file and git alone — the user
+never re-explains a feature that's already in flight.
 
 **Schema.** A header plus one block per step:
 
@@ -151,8 +194,10 @@ never `done`.
 
 **On (re)start, resume from the plan before planning or delegating:**
 
-1. If no `.claude/plan-<feature>.md` matches the task, plan fresh (the standard flow).
-2. If one exists, **resume it** — don't re-plan or ask the user to re-explain:
+1. If no `<plan-dir>/plan-<feature>.md` matches the task, plan fresh (the standard flow, including
+   the plan checkpoint).
+2. If one exists, **resume it** — don't re-plan, re-run the plan checkpoint, or ask the user to
+   re-explain (the plan was already approved):
    1. Check out the `feature-branch` from the header (you own git); confirm `base-branch` matches
       the resolved base.
    2. Reconcile each step against git. A `done` step must map to its `evidence` commit — confirm
@@ -165,13 +210,13 @@ never `done`.
       step's `evidence` commit is missing) — otherwise pick up silently.
 
 Anti-drift rules:
-1. Maintain a written plan in `.claude/plan-<feature>.md` and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
+1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` (the resolved plan directory; `.claude/` when unset) and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
    Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
 4. Treat test/design failures and “improvements noticed” as drift signals; fold them back into the plan deliberately.
 5. Each delegation must explicitly state what a passing result looks like (e.g. "all new tests green", "no TypeScript errors", "layout matches spec"). Reject any result that does not include evidence of this.
-6. Keep each step's `status` current in `.claude/plan-<feature>.md`: flip it to `in-progress` when you dispatch it, and to `done` (with the `evidence` commit) or `blocked` after the round-trip — before proceeding. A crash mid-run must leave an accurate, resumable record.
+6. Keep each step's `status` current in `<plan-dir>/plan-<feature>.md`: flip it to `in-progress` when you dispatch it, and to `done` (with the `evidence` commit) or `blocked` after the round-trip — before proceeding. A crash mid-run must leave an accurate, resumable record.
 7. You are the sole owner of git: branch off the resolved base branch, never commit to it directly, and commit only verified steps. Workers never run git. Push/PR happen only via `/crew:pr`.
 
 Keep your own context lean and let workers absorb verbose outputs.

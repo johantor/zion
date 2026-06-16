@@ -18,7 +18,8 @@ PR are **outward actions** — confirm with the user before pushing.
    morpheus branched from) using the configured git-host MCP:
    - GitHub MCP, or
    - Azure DevOps MCP.
-   Build the title and body from `.claude/plan-<feature>.md` and the review-gate summary: what
+   Build the title and body from `<plan-dir>/plan-<feature>.md` (the resolved plan directory —
+   the `Plan directory` crew-config slot, or `.claude/` when unset) and the review-gate summary: what
    changed, which acceptance criteria are met, and the `## Blocking` / `## Warnings` review
    notes. Report the PR URL when done.
 4. **No host MCP available?** Do not guess. Print the exact `git push` command and a

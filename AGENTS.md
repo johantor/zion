@@ -34,7 +34,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 ## How the crew works
 
 - `morpheus` plans and delegates; it writes no production code. Workers stay idle until delegated to.
-- `morpheus` maintains a written plan at `.claude/plan-<feature>.md` with per-step acceptance criteria.
+- `morpheus` maintains a written plan at `.claude/plan-<feature>.md` with per-step acceptance criteria, and presents it for the user's go-ahead before creating the branch or delegating (the plan checkpoint — one gate, honoring a standing "just build it").
 - `morpheus` is the sole owner of git: it branches off the resolved base branch and commits each
   verified step; workers never run git. The crew stops at the local review gate by default —
   pushing and opening a PR is the separate `/crew:pr` command.

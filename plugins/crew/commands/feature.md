@@ -21,9 +21,9 @@ Instructions for `crew:morpheus`:
    ambiguous, ask which to resume rather than guessing.
 2. Explore the codebase to understand affected areas (do not modify anything yet).
 3. Write `<plan-dir>/plan-<feature>.md` (the resolved plan directory) using the resumable schema:
-   - Header: a parseable `feature:` key (plus scope boundary), `base-branch`, `feature-branch`
-   - Ordered steps, each a block with a stable `id`, `status`, `depends-on`, and explicit
-     `acceptance` criteria (plus `evidence` — commit SHA first — once done)
+   - Header: a parseable `feature:` key (plus scope boundary), `base-branch:`, `feature-branch:`
+   - Ordered steps, each a block with a stable `id:`, `status:`, `depends-on:`, and explicit
+     `acceptance:` criteria (plus `evidence:` — commit SHA first — once done)
    - Known constraints (backend lane, frontend lane, tests required, design ref if any)
 4. **Plan checkpoint:** present the plan (scope, ordered steps with acceptance criteria, base
    branch, frontend mode, assumptions) and wait for the user's explicit go-ahead before

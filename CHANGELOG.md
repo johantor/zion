@@ -10,9 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Crew runs are resumable from the plan file.** A crashed or context-reset session used to
   mean re-explaining the feature, even though `<plan-dir>/plan-<feature>.md` already recorded the
-  steps. The plan file is now durable state with a parseable schema — a header (`feature`,
-  `base-branch`, `feature-branch`) plus per-step `id` / `status` (`pending` | `in-progress` |
-  `done` | `blocked`) / `depends-on` / `acceptance` / `evidence` (commit SHA) — and `morpheus`
+  steps. The plan file is now durable state with a parseable schema — a header (`feature:`,
+  `base-branch:`, `feature-branch:`) plus per-step `id:` / `status:` (`pending` | `in-progress` |
+  `done` | `blocked`) / `depends-on:` / `acceptance:` / `evidence:` (commit SHA) — and `morpheus`
   follows a **resume protocol** on (re)start: if a matching plan exists it checks out the feature
   branch, reconciles each step's status against git (a `done` step must map to its `evidence`
   commit; an unconfirmed `in-progress` step is re-verified and reset to `pending` if its

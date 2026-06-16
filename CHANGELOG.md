@@ -460,6 +460,8 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[2.7.1]: https://github.com/johantor/zion/compare/crew--v2.7.0...crew--v2.7.1
+[2.7.0]: https://github.com/johantor/zion/compare/crew--v2.6.1...crew--v2.7.0
 [2.6.1]: https://github.com/johantor/zion/compare/crew--v2.6.0...crew--v2.6.1
 [2.6.0]: https://github.com/johantor/zion/compare/crew--v2.5.0...crew--v2.6.0
 [2.5.0]: https://github.com/johantor/zion/compare/crew--v2.4.0...crew--v2.5.0

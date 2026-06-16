@@ -5,6 +5,15 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] - 2026-06-16
+
+### Fixed
+- **Anti-drift rule 1's schema list now includes `worker`.** The 2.7.0 run-summary change added
+  `worker` to the per-step plan schema but left rule 1's referenced field list at
+  `id`/`status`/`depends-on`/`acceptance`/`evidence`, making `morpheus`'s own prompt internally
+  inconsistent about which keys to maintain. Added `worker` to the list. Also tightened a changelog
+  sentence so `/recap` reads as the command, not a bare noun.
+
 ## [2.7.0] - 2026-06-16
 
 ### Added
@@ -14,7 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   done/blocked tally. Sourced from the plan file's parseable status (not a log dump), it survives a
   resume (when the live agent panel for earlier steps is gone) and deliberately doesn't restate the
   commit list or prose retrospective that Claude Code's `/recap` already covers — it's the
-  per-worker delegation view recap can't see. (Closes #64.)
+  per-worker delegation view that `/recap` can't see. (Closes #64.)
 
 ## [2.6.1] - 2026-06-16
 
@@ -451,6 +460,8 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[2.7.1]: https://github.com/johantor/zion/compare/crew--v2.7.0...crew--v2.7.1
+[2.7.0]: https://github.com/johantor/zion/compare/crew--v2.6.1...crew--v2.7.0
 [2.6.1]: https://github.com/johantor/zion/compare/crew--v2.6.0...crew--v2.6.1
 [2.6.0]: https://github.com/johantor/zion/compare/crew--v2.5.0...crew--v2.6.0
 [2.5.0]: https://github.com/johantor/zion/compare/crew--v2.4.0...crew--v2.5.0

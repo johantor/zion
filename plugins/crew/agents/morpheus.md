@@ -217,7 +217,7 @@ Worker · Outcome · Evidence** (`id` / `worker` / `status` / short `evidence` S
 It's the per-worker view the live agent panel loses on resume; don't restate `/recap`'s commit list.
 
 Anti-drift rules:
-1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
+1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`worker`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
    Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.

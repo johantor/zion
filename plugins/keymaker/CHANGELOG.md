@@ -5,6 +5,28 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-06-16
+
+### Added
+- **First-class, package-manager-agnostic dependency upgrades.** keymaker treated an upgrade as a
+  pointer but lacked the workflow depth to do it well. Now:
+  - The core `debt-taxonomy` skill gains a stack-neutral **Upgrade workflow** — risk triage by
+    version delta (**SAFE** patch / **REVIEW** minor / **CAUTION** major, layered onto the existing
+    tiers and behavior-sensitivity), release/migration-notes lookup for non-patch bumps (Context7,
+    else the per-stack release-notes URL), apply, peer/transitive **conflict → stop**, verify, and
+    **targeted revert** of the single offending package on failure. It names no package manager —
+    every concrete command comes from the per-stack table, so it's agnostic by construction.
+  - Each per-stack skill declares the workflow's commands per manager: `debt-taxonomy-typescript`
+    covers **npm / yarn / pnpm** (discover/apply/lockfile/peer-dependency conflict signal/release-notes URL),
+    `debt-taxonomy-dotnet` covers **NuGet** (`dotnet list package --outdated`, CPM vs per-`.csproj`
+    version location, `NU1605`/`NU1107`, release-notes URL). A new manager is one row; a new
+    ecosystem is a new stack skill.
+  - New **`/keymaker:audit outdated`** scope — runs each detected stack's discover-outdated command
+    (read-only, never installs/builds), triages each package by risk, ranks SAFE→REVIEW→CAUTION, and
+    emits one `/keymaker:open <pkg> <target>` per package into the interactive picker.
+  - Open mode's upgrade path applies the workflow end to end: triage, notes, conflict gate,
+    risk-based acceptance (patch = build-clean; minor/major = tests-green), verify, revert.
+
 ## [0.3.0] - 2026-06-16
 
 ### Added

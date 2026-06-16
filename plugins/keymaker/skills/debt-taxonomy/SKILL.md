@@ -58,6 +58,39 @@ Concrete per-stack examples (EF Core, React, .NET TFM, Node major) live in the s
 **The rule:** a version bump is a pointer; a platform migration is a project. Pointers
 keymaker fixes. Projects keymaker outlines and hands off.
 
+## Upgrade workflow (stack-neutral)
+
+The steps below name **no** package manager — every concrete command (discover, apply,
+lockfile, conflict signal, release-notes URL) comes from the loaded `debt-taxonomy-<stack>`
+skill's package-manager table. This is what keeps upgrades package-manager-agnostic: npm /
+yarn / pnpm / NuGet today, and a new manager is one row in that table.
+
+1. **Risk triage by version delta.** Classify each upgrade by the `current → target` semver
+   jump — this layers onto the tiers above and decides the verification gate:
+
+   | Delta | Risk | Tier | Verification gate |
+   |---|---|---|---|
+   | patch (`x.y.Z`) | SAFE | 1 | behavior-preserving — build/lint clean is sufficient |
+   | minor (`x.Y.z`) | REVIEW | 1 | behavior-sensitive — read release notes; **tests-green** |
+   | major (`X.y.z`) | CAUTION | 1 with migration notes, or **2 (outline)** if it's a framework/platform major (per the tier table) | behavior-sensitive — migration guide required; **tests-green** |
+
+   Treat pre-1.0 (`0.y.z`) bumps as one risk level higher (a `0.minor` can break like a major).
+2. **Release notes for non-patch.** For REVIEW/CAUTION, pull the change/migration notes
+   **before** applying — prefer Context7 (`mcp__context7`); fall back to the package's release
+   page (the per-stack skill resolves the URL). Surface concrete breaking changes that touch
+   this codebase (grep the affected APIs) — not a generic changelog dump (`context-discipline`).
+3. **Apply** using the per-stack command, and **commit the matching lockfile/manifest** in the
+   same batch.
+4. **Peer / transitive conflicts → stop.** When the manager reports a peer or transitive
+   conflict (signal named per stack), report it and stop — never silently force, downgrade-pin,
+   or pass an override flag.
+5. **Verify** with the configured build/test command (tests-green for non-patch). On failure,
+   **revert the single offending package** to its prior version (targeted, not a blanket
+   rollback) and report what broke.
+
+A multi-package coordinated bump follows the same steps as one batch; cross-lane coordination
+or a framework major is tier 2 — outline, don't apply.
+
 ## Stale-suppression heuristic (audit `stale` scope)
 
 The `/keymaker:audit stale` scope fans out across every suppression mechanism each loaded

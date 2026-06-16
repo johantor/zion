@@ -15,14 +15,15 @@ Valid scopes:
 - A lane: `backend` or `frontend`
 - A rule family: `nullability`, `eslint`, `skipped-tests`, `ts-suppressions`, `analyzers`
 - `stale` — candidate-stale suppressions across every mechanism the loaded `debt-taxonomy-<stack>` skills declare (cheapest wins; grep-only, candidate-only — proof is left to `/keymaker:open` per finding)
+- `outdated` — outdated dependencies across each detected stack/package manager (optionally narrowed by a trailing lane or path, e.g. `outdated frontend`)
 - `diff` — only files changed on the current branch vs base branch
 
 If `$ARGUMENTS` is empty or not a recognised scope, refuse with a usage hint and stop:
-> Usage: `/keymaker:audit <scope>` — scope is a path, `backend`, `frontend`, a rule family, `stale`, or `diff`
+> Usage: `/keymaker:audit <scope>` — scope is a path, `backend`, `frontend`, a rule family, `stale`, `outdated`, or `diff`
 
-1. Enumerate findings within the scope using `grep`/`rg` scripts. Count and file-list only — no file bodies (`context-discipline`). For `diff` scope: `git diff --name-only <base>...HEAD` then filter by lane. For `stale` scope: fan out across every suppression mechanism the loaded `debt-taxonomy-<stack>` skills declare, applying that skill's grep-only stale heuristic per mechanism — never compile or build to prove staleness; report candidates only.
-2. Classify each finding using the `debt-taxonomy` rubric.
-3. Rank: trivially-fixable → needs-real-work → needs-investigation. Within each tier, smaller blast radius ranks higher.
+1. Enumerate findings within the scope using `grep`/`rg` scripts. Count and file-list only — no file bodies (`context-discipline`). For `diff` scope: `git diff --name-only <base>...HEAD` then filter by lane. For `stale` scope: fan out across every suppression mechanism the loaded `debt-taxonomy-<stack>` skills declare, applying that skill's grep-only stale heuristic per mechanism — never compile or build to prove staleness; report candidates only. For `outdated` scope: run each detected stack's **discover-outdated** command from its `debt-taxonomy-<stack>` package-manager table (e.g. `npm outdated`, `dotnet list package --outdated`), parse the `current → target` deltas, and triage each by the core *Upgrade workflow* risk levels (SAFE patch / REVIEW minor / CAUTION major). Read-only — never install, restore, or build in audit.
+2. Classify each finding using the `debt-taxonomy` rubric. For `outdated` findings, the classification is the upgrade risk level + tier from the *Upgrade workflow*.
+3. Rank: trivially-fixable → needs-real-work → needs-investigation (for `outdated`: SAFE → REVIEW → CAUTION). Within each tier, smaller blast radius ranks higher.
 4. Cap at ~12 findings in the report. If a single rule exceeds 50+, surface it as one entry with the count.
 5. Format each finding as:
    - Classification tag: `[trivial]` / `[needs-work]` / `[needs-investigation]`

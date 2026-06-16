@@ -62,16 +62,19 @@ is a *candidate* for removal; `/keymaker:open` proves it via the twin.
 
 ## Package-manager variance
 
-Detect by lockfile, then update `package.json` **and commit the matching lockfile**:
+Detect by lockfile, then update `package.json` **and commit the matching lockfile** in the same batch.
+These are the concrete commands the core `debt-taxonomy` *Upgrade workflow* delegates here:
 
-| Lockfile | Manager | Install command | Notes |
+| Lockfile | Manager | Discover outdated | Apply (single pkg) |
 |---|---|---|---|
-| `package-lock.json` | npm | `npm install` | |
-| `pnpm-lock.yaml` | pnpm | `pnpm install` | Check `pnpm-workspace.yaml` for monorepo version pins |
-| `yarn.lock` | yarn | `yarn install` | |
+| `package-lock.json` | npm | `npm outdated` | `npm install <pkg>@<target>` |
+| `pnpm-lock.yaml` | pnpm | `pnpm outdated` | `pnpm add <pkg>@<target>` |
+| `yarn.lock` | yarn | `yarn outdated` | `yarn up <pkg>@<target>` (Berry) / `yarn upgrade <pkg>@<target>` (classic) |
 
-- `peerDependencies` conflicts → report and stop; never silently pass `--legacy-peer-deps` or `--force`.
-- In a monorepo, a version may be pinned at the workspace root — update there, not in the leaf package.
+- **Conflict signal:** a peer-dependency resolution conflict → report and stop; never silently pass an override flag (npm `--legacy-peer-deps`/`--force`, or the yarn/pnpm equivalents). It surfaces differently per manager — npm reports `ERESOLVE`; pnpm and yarn emit their own peer-dependency warnings/errors — so match the manager in use.
+- **Monorepo:** a version may be pinned at the workspace root (or `pnpm-workspace.yaml`) — update there, not in the leaf package.
+- **Release-notes URL** (core workflow step 2 fallback when Context7 has nothing): `npm view <pkg> repository.url`, strip the `git+` prefix and `.git` suffix, append `/releases`; if no repo URL, use `https://www.npmjs.com/package/<pkg>?activeTab=versions`.
+- **Verify:** `tsc --noEmit` for the project (or the configured `lint`/`build`/`test` scripts) on the touched paths — capture to a file and grep (`context-discipline`).
 
 ## Upgrade-tier examples (JS/TS)
 

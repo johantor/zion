@@ -22,8 +22,8 @@ Instructions for `crew:morpheus`:
 2. Explore the codebase to understand affected areas (do not modify anything yet).
 3. Write `<plan-dir>/plan-<feature>.md` (the resolved plan directory) using the resumable schema:
    - Header: a parseable `feature:` key (plus scope boundary), `base-branch:`, `feature-branch:`
-   - Ordered steps, each a block with a stable `id:`, `status:`, `depends-on:`, and explicit
-     `acceptance:` criteria (plus `evidence:` — commit SHA first — once done)
+   - Ordered steps, each a block with a stable `id:`, `status:`, `depends-on:`, `worker:` (on
+     dispatch), and explicit `acceptance:` criteria (plus `evidence:` — commit SHA first — once done)
    - Known constraints (backend lane, frontend lane, tests required, design ref if any)
 4. **Plan checkpoint:** present the plan (scope, ordered steps with acceptance criteria, base
    branch, frontend mode, assumptions) and wait for the user's explicit go-ahead before
@@ -31,6 +31,7 @@ Instructions for `crew:morpheus`:
    go-ahead; fold any corrections into the plan and re-present the delta.
 5. Delegate to workers in dependency order (backend before frontend if a contract must be agreed first).
 6. After all workers complete, verify each acceptance criterion is met.
-7. Return a consolidated status: ✅ done / ❌ blocked items with owner and next action.
+7. Return a consolidated status: ✅ done / ❌ blocked items with owner and next action, followed
+   by the **run summary** — the per-step worker / outcome / evidence table sourced from the plan file.
 
 When `morpheus` returns, relay its consolidated status to the user verbatim.

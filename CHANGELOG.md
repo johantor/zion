@@ -5,6 +5,17 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] - 2026-06-16
+
+### Added
+- **`morpheus` emits a run summary — observability for a completed feature.** `morpheus` now
+  records `worker` per step in the plan file and emits a concise per-step table — **Step · Worker ·
+  Outcome · Evidence** (commit SHA) — at the end of a feature and on request, plus a one-line
+  done/blocked tally. Sourced from the plan file's parseable status (not a log dump), it survives a
+  resume (when the live agent panel for earlier steps is gone) and deliberately doesn't restate the
+  commit list or prose retrospective that Claude Code's `/recap` already covers — it's the
+  per-worker delegation view recap can't see. (Closes #64.)
+
 ## [2.6.1] - 2026-06-16
 
 ### Changed

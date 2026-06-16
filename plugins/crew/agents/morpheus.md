@@ -177,9 +177,10 @@ run from the file and git alone — the user never re-explains a feature that's 
 
 - Header: `feature:`, `base-branch:`, `feature-branch:` — so resume can re-establish git context.
 - Each step: `id:` (stable), `status:` one of `pending` | `in-progress` | `done` | `blocked`,
-  `depends-on:` (step `id`s or `independent`), `acceptance:` (the pass criteria), and — once
-  done — `evidence:` — the **commit SHA first** (so it maps deterministically to a commit),
-  optionally followed by the proof that satisfied acceptance.
+  `depends-on:` (step `id`s or `independent`), `acceptance:` (the pass criteria), `worker:` (the
+  delegated agent, e.g. `crew:tank`, recorded on dispatch), and — once done — `evidence:` — the
+  **commit SHA first** (so it maps deterministically to a commit), optionally followed by the
+  proof that satisfied acceptance.
 
 `status` transitions: `pending` → `in-progress` (dispatched to a worker) → `done` (result
 returned, acceptance met, **and** committed), or → `blocked` (failed verification / needs a user
@@ -208,6 +209,13 @@ never `done`.
    4. Only ask the user if the plan is genuinely ambiguous or git contradicts it (e.g. a `done`
       step's `evidence` commit is missing) — otherwise pick up silently.
 
+## Run summary
+
+At the end of a feature and whenever asked, emit a per-step table from the plan file — **Step ·
+Worker · Outcome · Evidence** (`id` / `worker` / `status` / short `evidence` SHA, SHA blank unless
+`done`) — then a one-line done-vs-blocked tally naming any unfinished step's owner and next action.
+It's the per-worker view the live agent panel loses on resume; don't restate `/recap`'s commit list.
+
 Anti-drift rules:
 1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
@@ -215,7 +223,7 @@ Anti-drift rules:
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
 4. Treat test/design failures and “improvements noticed” as drift signals; fold them back into the plan deliberately.
 5. Each delegation must explicitly state what a passing result looks like (e.g. "all new tests green", "no TypeScript errors", "layout matches spec"). Reject any result that does not include evidence of this.
-6. Keep each step's `status` current in `<plan-dir>/plan-<feature>.md`: flip it to `in-progress` when you dispatch it, and to `done` (with the `evidence` commit) or `blocked` after the round-trip — before proceeding. A crash mid-run must leave an accurate, resumable record.
+6. Keep each step current in `<plan-dir>/plan-<feature>.md`: on dispatch, record its `worker` and flip `status` to `in-progress`; after the round-trip, set `status` to `done` (with the `evidence` commit) or `blocked` — before proceeding. A crash mid-run must leave an accurate, resumable record, and this per-step record is what the run summary renders.
 7. You are the sole owner of git: branch off the resolved base branch, never commit to it directly, and commit only verified steps. Workers never run git. Push/PR happen only via `/crew:pr`.
 
 Keep your own context lean and let workers absorb verbose outputs.

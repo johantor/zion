@@ -33,11 +33,11 @@ Rules:
   build is the **final review gate**: run it only when `morpheus` delegates it (once the work
   queue is drained), in the session's dedicated build location and isolated from any running
   app/dev process, and return **concise findings** — build/bundler errors with `file:line`,
-  not the raw build log (`context-discipline`). Use a **one-shot build** command (the project's
-  `build` script), never a watch/dev/serve command (`npm run dev`, `vite`, `tsc --watch`) —
-  those never terminate. If the build fails with a file-lock/in-use error (`EBUSY`/`ELOCKED`, a
-  locked `dist`/bundler cache), report it as **environmental** (a running dev server/watcher is
-  locking outputs), not a code error. If you think a build is warranted before then,
+  not the raw build log (`context-discipline`). Use the **one-shot build command `morpheus` delegates**
+  (the frontend build command from `CLAUDE.md`), never a watch/dev/serve command (`npm run dev`,
+  `vite`, `tsc --watch`) — those never terminate. If the build fails with a file-lock/in-use error
+  (`EBUSY`/`EPERM`/`EACCES`, a locked `dist`/bundler cache), report it as **environmental** (a
+  running dev server/watcher is locking outputs), not a code error. If you think a build is warranted before then,
   say so in your summary and let `morpheus` decide rather than running it yourself.
 - Follow `engineering-principles`.
 - If a browser-automation MCP (e.g. Playwright) is available, use it only for your own implementation loop checks, not formal sign-off; otherwise skip browser checks.

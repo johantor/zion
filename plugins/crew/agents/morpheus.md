@@ -166,7 +166,7 @@ backend build → `tank`, frontend build → `trinity`, backend tests → `oracl
    terminate and hang the worker. Give the build a wall-clock timeout so a hang fails fast instead
    of eating the worker's turns.
 5. **Tell a contention failure from a code failure.** A lock/in-use error (`MSB3027`/`MSB3026`,
-   "being used by another process", `EBUSY`/`ELOCKED`, a locked `bin`/`obj`/`dist`) or a build
+   "being used by another process", `EBUSY`/`EPERM`/`EACCES`, a locked `bin`/`obj`/`dist`) or a build
    that times out is **environmental, not a code defect** — do **not** route it back to the
    implementer. Report that a running process is likely locking the outputs (or the build hung),
    ask the user to stop the dev server/app (or confirm the isolated build location), then retry.

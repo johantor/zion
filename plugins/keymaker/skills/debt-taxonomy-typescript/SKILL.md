@@ -71,7 +71,7 @@ These are the concrete commands the core `debt-taxonomy` *Upgrade workflow* dele
 | `pnpm-lock.yaml` | pnpm | `pnpm outdated` | `pnpm add <pkg>@<target>` |
 | `yarn.lock` | yarn | `yarn outdated` | `yarn up <pkg>@<target>` (Berry) / `yarn upgrade <pkg>@<target>` (classic) |
 
-- **Conflict signal:** `peerDependencies` conflicts (npm `ERESOLVE`) → report and stop; never silently pass `--legacy-peer-deps` or `--force`.
+- **Conflict signal:** a peer-dependency resolution conflict → report and stop; never silently pass an override flag (npm `--legacy-peer-deps`/`--force`, or the yarn/pnpm equivalents). It surfaces differently per manager — npm reports `ERESOLVE`; pnpm and yarn emit their own peer-dependency warnings/errors — so match the manager in use.
 - **Monorepo:** a version may be pinned at the workspace root (or `pnpm-workspace.yaml`) — update there, not in the leaf package.
 - **Release-notes URL** (core workflow step 2 fallback when Context7 has nothing): `npm view <pkg> repository.url`, strip the `git+` prefix and `.git` suffix, append `/releases`; if no repo URL, use `https://www.npmjs.com/package/<pkg>?activeTab=versions`.
 - **Verify:** `tsc --noEmit` for the project (or the configured `lint`/`build`/`test` scripts) on the touched paths — capture to a file and grep (`context-discipline`).

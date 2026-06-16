@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     **targeted revert** of the single offending package on failure. It names no package manager —
     every concrete command comes from the per-stack table, so it's agnostic by construction.
   - Each per-stack skill declares the workflow's commands per manager: `debt-taxonomy-typescript`
-    covers **npm / yarn / pnpm** (discover/apply/lockfile/`ERESOLVE`/release-notes URL),
+    covers **npm / yarn / pnpm** (discover/apply/lockfile/peer-dependency conflict signal/release-notes URL),
     `debt-taxonomy-dotnet` covers **NuGet** (`dotnet list package --outdated`, CPM vs per-`.csproj`
     version location, `NU1605`/`NU1107`, release-notes URL). A new manager is one row; a new
     ecosystem is a new stack skill.

@@ -1,6 +1,6 @@
 {
   "name": "crew",
-  "version": "2.7.0",
+  "version": "2.7.1",
   "license": "MIT",
   "description": "Claude Code crew/plugin pack with orchestrated agents, commands, hooks, and skills for feature delivery.",
   "author": {

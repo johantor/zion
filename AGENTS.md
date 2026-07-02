@@ -18,7 +18,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `.claude-plugin/marketplace.json` — the marketplace; lists each plugin and its `source`.
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
-  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`. Auto-discovered from this dir; not declared in the manifest.
+  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, and `neo` (express-lane generalist). Auto-discovered from this dir; not declared in the manifest.
   - `commands/` — `/init`, `/feature`, `/review`, `/pr` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint).
   - `skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
@@ -39,7 +39,12 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   verified step; workers never run git. The crew stops at the local review gate by default —
   pushing and opening a PR is the separate `/crew:pr` command.
 - Worker lanes: `tank` = backend (C#/.NET/Optimizely, Razor server-side), `trinity` = frontend (React/Redux/JS/HTML/SCSS, plus Razor markup in server-rendered mode),
-  `oracle` = backend tests only, `dozer` = frontend e2e only, `seraph` = visual design conformance (read-only).
+  `oracle` = backend tests only, `dozer` = frontend e2e only, `seraph` = visual design conformance (read-only),
+  `neo` = express-lane generalist for small changes (all lanes; no lane guard by design).
+- `morpheus` **right-sizes the process by task size**: small, low-risk work takes an express lane
+  (delegate to `neo`, skip the plan/checkpoint/full-gate, quick self-review, commit); features and
+  anything risky, multi-lane, or needing new tests take the full flow through the specialists.
+  It escalates express → full the moment a task proves bigger.
 - All workers apply `context-discipline`: process bulk output with code, return only concise findings.
 
 The crew's runtime configuration (test/build/lint commands, base branch, frontend mode) lives

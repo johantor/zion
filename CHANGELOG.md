@@ -5,7 +5,26 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [2.9.0] - 2026-07-02
+## [2.10.0] - 2026-07-02
+
+### Added
+- **`morpheus` right-sizes the process by task size, with a new `neo` express-lane generalist.**
+  Small tasks (a typo, a rename, an obvious one-liner, a small localized bug) used to pay the same
+  heavyweight process as a full feature — a plan file, the plan checkpoint, lane specialists, and
+  the full review gate — which made a one-line fix slow. `morpheus` now triages by size: small,
+  low-risk work takes an **express lane** — it delegates to the new `neo` agent (an all-lane
+  generalist), skips the plan/checkpoint/full-gate, runs a quick read-only self-review
+  (`/crew:review quick`) plus any single directly-relevant test, and commits. Features and anything
+  risky, multi-lane, or needing new tests still take the full flow through the specialists, and
+  `morpheus` escalates express → full the moment a task proves bigger. `morpheus` stays the sole
+  git owner and never writes production code itself — `neo` makes the change, `morpheus` reviews it,
+  preserving the maker↔verifier split. `neo` holds the same `engineering-principles` bar as the
+  specialists (the express lane is faster, not sloppier), never runs git, and reports back to
+  escalate rather than plowing ahead when a task exceeds the express lane. The `lane-guard` hook
+  grants `neo` all lanes by design; `format` picks .NET or web formatting by the edited file's
+  extension.
+
+
 
 ### Added
 - **Fix-verify loops rerun only the affected tests, not the full suite.** Previously, once

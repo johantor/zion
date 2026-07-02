@@ -46,6 +46,7 @@ lane_globs() {
 # that bypass a deny before it's evaluated).
 exempt=""
 case "$agent_type" in
+  # Backend patterns (.NET style) first, then shared/frontend test file patterns.
   oracle) mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*' ;;
   dozer)  mode="--allow"; patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
   tank|trinity)

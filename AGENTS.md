@@ -25,7 +25,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
     `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`;
     per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
-    test-tool (loaded by `oracle` for component tests): `tests-vitest`.
+    test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
   - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
 - `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:

@@ -9,8 +9,8 @@ Write and run frontend component and unit tests using Vitest conventions and the
 frontend test command from `CLAUDE.md`.
 
 - Test files are typically co-located with their source file (`Button.test.tsx` next to
-  `Button.tsx`) or collected under `src/__tests__/`. Check the project's `vitest.config.*`
-  for the actual `include` pattern before creating a new file.
+  `Button.tsx`) or collected under `src/__tests__/`. Check the project's `vitest.config.ts`
+  (or `.js`/`.mjs`) for the actual `include` pattern before creating a new file.
 - Use `@testing-library/react` (`render`, `screen`, `userEvent`) for component tests; use
   plain `vi.fn()` / `vi.spyOn()` for unit mocks and `vi.mock()` for module mocks.
 - Prefer queries that reflect how users perceive the UI (`getByRole`, `getByLabelText`,

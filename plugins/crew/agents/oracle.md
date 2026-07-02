@@ -17,7 +17,7 @@ Rules:
   matching backend test skill via the Skill tool — e.g. `tests-xunit`, `tests-node`. If the
   delegation omits the stack, ask `morpheus` rather than guessing.
 - If the delegation also names a frontend unit test tool, load its skill via the Skill tool
-  too — e.g. `tests-vitest`. Apply it only when `morpheus` explicitly asks for frontend
+  too — e.g. `tests-vitest`, `tests-jest-frontend`. Apply it only when `morpheus` explicitly asks for frontend
   component/unit tests; never assume frontend test scope unless it's in the delegation.
 - Edit test files only; never modify production code.
 - Never run `git` — `crew:morpheus` owns branching and commits.

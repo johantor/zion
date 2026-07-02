@@ -33,9 +33,16 @@ general/config tasks like statusline, so do those in a normal session.
 over the session, so all your built-ins (statusline, etc.) stay available while the crew handles
 the feature. Use this when you want the crew on tap inside an ordinary session.
 
-Before it starts building, `morpheus` presents its plan and waits for your go-ahead — one quick
-gate to catch a misread task before any branch, commit, or worker time is spent (a one-step task
-is a one-word yes; tell it to just build and it skips the pause). Either way, `morpheus` then
+`morpheus` **right-sizes the process to the task**. Small, low-risk work (a typo, a rename, an
+obvious one-liner, a small localized bug) takes an **express lane**: it delegates to `neo`, the
+all-lane generalist, and skips the plan, the checkpoint, and the full gate — just a quick
+read-only self-review plus any single directly-relevant test, then commit. Features and anything risky, multi-lane, or needing new
+tests take the full flow through the specialists, and it escalates express → full the moment a
+small task proves bigger.
+
+Before it starts building on the full flow, `morpheus` presents its plan and waits for your
+go-ahead — one quick gate to catch a misread task before any branch, commit, or worker time is
+spent (a one-step task is a one-word yes; tell it to just build and it skips the pause). Either way, `morpheus` then
 creates a feature branch off your base branch and commits each verified
 step (workers never run git), and delegates worker steps **in the background** — its turn returns
 right away so you can keep chatting (adding comments, corrections, or new fixes) while a worker
@@ -60,7 +67,7 @@ any built-in or other-plugin commands of the same short name.
 
 ## What is included
 
-- `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
+- `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`
 - `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
 - `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`
@@ -73,7 +80,9 @@ plugin):
 
 - **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the
   other stack's files, and `oracle`/`dozer` may only write their test paths
-  (`seraph` is read-only, so it has no write lane). It routes on the `agent_type`
+  (`seraph` is read-only, so it has no write lane; `neo` is the express-lane
+  generalist and has **no lane restriction by design**, so it can touch any lane
+  for a small cross-lane fix). It routes on the `agent_type`
   in the payload, so the main session is unrestricted. Fails closed. It guards the
   `Edit`/`Write` tools only — file writes via Bash (`sed -i`, `tee`, redirects) are
   governed by the agent prompts, not this hook.
@@ -92,7 +101,8 @@ plugin):
   when the solution configures it (`.csharpierrc`). For `trinity`: every tool the
   project configures — Biome, Prettier, ESLint, Stylelint — each detected by its
   config file and run in fix mode, only when installed locally (never an `npx`
-  download). Best-effort — fails open.
+  download). For `neo` (cross-lane), it picks .NET or web formatting by the edited
+  file's extension. Best-effort — fails open.
 
 ## Recommended MCP servers
 

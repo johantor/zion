@@ -12,6 +12,15 @@ path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.pat
 case "$agent_type" in
   tank)    lane="dotnet" ;;
   trinity) lane="web" ;;
+  # neo is cross-lane, so pick the formatter by the edited file's extension rather
+  # than a fixed per-agent lane. Anything unrecognized is a no-op.
+  neo)
+    case "${path##*.}" in
+      cs|csproj|cshtml)                              lane="dotnet" ;;
+      ts|tsx|jsx|js|mjs|cjs|json|jsonc|scss|css|sass|less|html) lane="web" ;;
+      *)                                             exit 0 ;;
+    esac
+    ;;
   *)       exit 0 ;;
 esac
 

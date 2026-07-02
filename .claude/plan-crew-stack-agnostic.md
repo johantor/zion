@@ -96,6 +96,7 @@ acceptance: |
 ### wp4 — format.sh backend/stack routing
 id: wp4
 status: done
+evidence: 0a19a8e
 depends-on: independent
 worker: self
 acceptance: |

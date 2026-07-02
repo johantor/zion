@@ -69,14 +69,19 @@ has_dotnet_backend() {
          \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
 }
 has_node_backend() {
-  [ -f package.json ] || return 1
-  grep -Eq '"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core)"[[:space:]]*:' package.json
+  # Scan every package.json (not just the repo root) so a workspace/monorepo
+  # backend under e.g. apps/api/package.json is still detected.
+  while IFS= read -r pj; do
+    grep -Eq '"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core)"[[:space:]]*:' "$pj" && return 0
+  done < <(find . -type d -name node_modules -prune -o -name package.json -print 2>/dev/null)
+  return 1
 }
 has_frontend() {
-  if [ -f package.json ] && \
-     grep -Eq '"(react|react-dom|next|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro)"[[:space:]]*:' package.json; then
-    return 0
-  fi
+  # Same workspace-aware scan for a frontend dep in any package.json...
+  while IFS= read -r pj; do
+    grep -Eq '"(react|react-dom|next|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro)"[[:space:]]*:' "$pj" && return 0
+  done < <(find . -type d -name node_modules -prune -o -name package.json -print 2>/dev/null)
+  # ...or any JSX/TSX file anywhere in the tree.
   find . -type d -name node_modules -prune -o \
          \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .
 }

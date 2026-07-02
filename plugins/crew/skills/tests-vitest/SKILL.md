@@ -13,8 +13,9 @@ command` slot is the **e2e** command — don't use it for unit tests.
 - Test files are typically co-located with their source file (`Button.test.tsx` next to
   `Button.tsx`) or collected under `src/__tests__/`. Check the project's `vitest.config.ts`
   (or `.js`/`.mjs`) for the actual `include` pattern before creating a new file.
-- Use `@testing-library/react` (`render`, `screen`, `userEvent`) for component tests; use
-  plain `vi.fn()` / `vi.spyOn()` for unit mocks and `vi.mock()` for module mocks.
+- Use `@testing-library/react` (`render`, `screen`) with `userEvent` from
+  `@testing-library/user-event` for component tests; use plain `vi.fn()` / `vi.spyOn()` for
+  unit mocks and `vi.mock()` for module mocks.
 - Prefer queries that reflect how users perceive the UI (`getByRole`, `getByLabelText`,
   `getByText`) over implementation-detail selectors (`getByTestId`, CSS class).
 - On re-verify, run only the failing test(s) — pass the test file path and/or `-t` /

@@ -14,7 +14,8 @@ the **e2e** command — don't use it for unit tests.
   `Button.tsx`) or collected under `src/__tests__/`. Check the project's `jest.config.*` (or
   the `jest` key in `package.json`) for the actual `testMatch` / `testPathPattern` before
   creating a new file.
-- Use `@testing-library/react` (`render`, `screen`, `userEvent`) for component tests; use
+- Use `@testing-library/react` (`render`, `screen`) with `userEvent` from
+  `@testing-library/user-event` for component tests; use
   plain `jest.fn()` / `jest.spyOn()` for unit mocks and `jest.mock()` for module mocks.
 - Prefer queries that reflect how users perceive the UI (`getByRole`, `getByLabelText`,
   `getByText`) over implementation-detail selectors (`getByTestId`, CSS class).

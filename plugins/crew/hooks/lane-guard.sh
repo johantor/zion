@@ -84,21 +84,29 @@ has_frontend() {
 
 # Cache detection for the session so the three probes above run at most once,
 # not on every Edit/Write — their markers don't change mid-feature. Keyed by
-# session_id (falls back to cwd).
+# session_id, and only persisted when one is present: a cache keyed on cwd
+# alone would outlive the session it was written for (nothing ever expires a
+# /tmp file), and could be reused by an unrelated later session in the same
+# directory with stale results — unsafe for a fail-closed guard. Without a
+# session_id, detection is simply recomputed every call, as before caching.
 detect_regime() {
   local cache session_id
   session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"
-  cache="${TMPDIR:-/tmp}/claude-lane-guard-detect-$(printf '%s' "${session_id:-$PWD}" | tr -c 'A-Za-z0-9_' '_')"
-  if [ -f "$cache" ]; then
-    { IFS= read -r _det_dotnet; IFS= read -r _det_node; IFS= read -r _det_frontend; } < "$cache"
-    if [ -n "$_det_dotnet" ] && [ -n "$_det_node" ] && [ -n "$_det_frontend" ]; then
-      return 0
+  if [ -n "$session_id" ]; then
+    cache="${TMPDIR:-/tmp}/claude-lane-guard-detect-$(printf '%s' "$session_id" | tr -c 'A-Za-z0-9_' '_')"
+    if [ -f "$cache" ]; then
+      { IFS= read -r _det_dotnet; IFS= read -r _det_node; IFS= read -r _det_frontend; } < "$cache"
+      if [ -n "$_det_dotnet" ] && [ -n "$_det_node" ] && [ -n "$_det_frontend" ]; then
+        return 0
+      fi
     fi
   fi
   has_dotnet_backend && _det_dotnet=1 || _det_dotnet=0
   has_node_backend && _det_node=1 || _det_node=0
   has_frontend && _det_frontend=1 || _det_frontend=0
-  { printf '%s\n' "$_det_dotnet" "$_det_node" "$_det_frontend" > "$cache"; } 2>/dev/null || true
+  if [ -n "$session_id" ]; then
+    { printf '%s\n' "$_det_dotnet" "$_det_node" "$_det_frontend" > "$cache"; } 2>/dev/null || true
+  fi
 }
 
 # agent_type -> mode + space-separated glob patterns (+ optional exempt patterns

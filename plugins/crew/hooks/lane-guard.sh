@@ -49,13 +49,15 @@ case "$agent_type" in
   # Backend patterns (.NET style) first, then shared/frontend test file patterns.
   oracle) mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*' ;;
   dozer)
-    # When the Frontend e2e tool is pinned, scope to that tool's structured
-    # locations so a broad tests/** doesn't grant write access to backend/unit
-    # tests kept under tests/. Fall back to the broad set only when unset/unknown.
+    # When the Frontend e2e tool is pinned, scope to that tool's own conventional
+    # locations rather than a blanket tests/** that would grant write access to
+    # backend/unit tests. Cypress keeps to cypress/ + *.cy.* files; Playwright's
+    # default testDir is tests/ or e2e/, so it keeps those. Fall back to the broad
+    # set only when the tool is unset/unknown.
     mode="--allow"
     case "$(config_slot 'Frontend e2e tool')" in
       cypress)    patterns='cypress/** **/*.cy.*' ;;
-      playwright) patterns='e2e/** playwright/** tests/e2e/**' ;;
+      playwright) patterns='e2e/** playwright/** tests/**' ;;
       *)          patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
     esac
     ;;

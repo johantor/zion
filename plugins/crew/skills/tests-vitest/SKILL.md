@@ -16,4 +16,5 @@ frontend test command from `CLAUDE.md`.
 - Prefer queries that reflect how users perceive the UI (`getByRole`, `getByLabelText`,
   `getByText`) over implementation-detail selectors (`getByTestId`, CSS class).
 - Run with the repo's frontend test command; on re-verify, run only the failing test(s)
-  (pass the test file path or `--reporter` filter), not the whole suite.
+  (pass the test file path and/or `-t` / `--testNamePattern` to match by name), not the
+  whole suite. `--reporter` only changes output format — it does not filter which tests run.

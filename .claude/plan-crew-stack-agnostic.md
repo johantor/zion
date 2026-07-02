@@ -12,8 +12,10 @@ second-stack driver named in the issue: Node backend + Next.js frontend (Optimiz
 Graph), which also breaks today's extension-based lane split since both lanes can be
 TypeScript.
 
-`dozer` (e2e) and `seraph` (visual conformance) are already stack-neutral — confirmed,
-no step needed. keymaker is explicitly out of scope (already agnostic).
+`seraph` (visual conformance) is already stack-neutral — confirmed, no step needed. `dozer`
+was stack-neutral but not *e2e-tool*-neutral, so this PR made it e2e-tool-agnostic (role-only
++ per-tool `tests-cypress` / `tests-playwright` skills, with matching `lane-guard.sh` changes).
+keymaker is explicitly out of scope (already agnostic).
 
 ## Assumptions (flagging the issue's open questions — correct me if these are wrong)
 
@@ -26,7 +28,8 @@ no step needed. keymaker is explicitly out of scope (already agnostic).
    inside a file, same reasoning as the existing Razor comment in `lane-guard.sh`).
 3. **Mixed-language backends (e.g. .NET service + Node BFF) are out of scope for v3** — no
    concrete driver for it yet (YAGNI); one backend stack resolved per project, as today.
-4. **`dozer` and `seraph` get no changes** (confirmed stack-neutral already).
+4. **`seraph` gets no changes** (confirmed stack-neutral already). `dozer` stays stack-neutral
+   but is made e2e-tool-agnostic in this PR (see above).
 
 ## Steps
 

@@ -5,6 +5,46 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.0.0] - 2026-07-02
+
+### Changed
+- **BREAKING: crew is stack-agnostic — role-only agents, per-stack skills, detection-driven
+  lanes.** `tank`, `trinity`, and `oracle` used to hard-code a specific stack (C#/.NET/
+  Optimizely, React/Redux) directly in their prompts. They're now role-only; stack knowledge
+  moved into skills loaded dynamically once `morpheus` resolves the project's stack —
+  `backend-dotnet`, `backend-node`, `cms-optimizely` (composes on `backend-dotnet`, self-
+  detected via package references), `frontend-react`, `frontend-nextjs`, `tests-xunit`,
+  `tests-node` (Vitest/Jest, detected by config file). Concrete second-stack driver: Node
+  backend + Next.js frontend (Optimizely SaaS / Graph).
+  - `morpheus` resolves **Backend stack** / **Frontend stack** the same way it already
+    resolves frontend mode (`CLAUDE.md` pin → memory → detect-and-ask), names the resolved
+    stack in every implementation and test delegation, and never delegates without one
+    resolved. `/crew:init` detects and writes both new slots.
+  - `lane-guard.sh` gets a second lane regime: directory-based paths (**Backend lane
+    path(s)** / **Frontend lane path(s)**, new `CLAUDE.md` slots) for same-language stack
+    pairs (e.g. Node+Next.js) where a bare file extension can't tell `tank`'s and
+    `trinity`'s files apart. Falls back to the existing extension-based globs otherwise. A
+    Node backend with no lane paths configured fails closed rather than guessing. A Next.js
+    route handler is exempted from `tank`'s deny / added to `trinity`'s deny, since — unlike
+    Razor's genuinely bidirectional markup/logic split — route-handler ownership is
+    single-owner (tank's, by concern) even though the file lives in the frontend tree.
+  - `format.sh` now routes by the edited file's **extension** (restricted to a known set of
+    web extensions) instead of a fixed `agent_type → lane` table, so a Node-backend file
+    `tank` edits still gets Biome/Prettier/ESLint, a `.cs`/`.csproj` file gets dotnet/
+    CSharpier regardless of which agent produced it, and an unrelated extension (e.g.
+    `.cshtml`) is skipped cleanly instead of triggering a mismatched formatter.
+  - `frontend-server-rendered` reframed from Razor-only to a shared-principles section plus
+    per-template-language subsections (Razor, Blade) — Next.js/RSC is deliberately not one
+    of them, since Next.js is categorically `headless` in crew's mode vocabulary even though
+    it server-renders; RSC conventions live in `frontend-nextjs` instead.
+  - `tank`, `trinity`, and `oracle` gain explicit `Skill` tool access (a pre-existing gap:
+    trinity's frontend-mode skill loading used "via the Skill tool" without it since #19).
+  - Why a major bump: agent descriptions and `lane-guard.sh`'s enforcement semantics change
+    — a project relying on the old fixed `tank`=.NET/`trinity`=React assumption should
+    re-check its `CLAUDE.md` crew configuration after upgrading (`/crew:init` reconciles it).
+  - `dozer` and `seraph` are unchanged (already stack-neutral). keymaker is unaffected
+    (already stack-agnostic by its own design). (Closes #46.)
+
 ## [2.9.0] - 2026-07-02
 
 ### Added

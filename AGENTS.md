@@ -20,7 +20,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`. Auto-discovered from this dir; not declared in the manifest.
   - `commands/` — `/init`, `/feature`, `/review`, `/pr` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint).
-  - `skills/` — `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`.
+  - `skills/` — shared: `engineering-principles`, `context-discipline`; frontend mode:
+    `frontend-headless`, `frontend-server-rendered`; per-stack (loaded dynamically once
+    `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
+    `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
   - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
 - `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:
@@ -38,8 +41,14 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `morpheus` is the sole owner of git: it branches off the resolved base branch and commits each
   verified step; workers never run git. The crew stops at the local review gate by default —
   pushing and opening a PR is the separate `/crew:pr` command.
-- Worker lanes: `tank` = backend (C#/.NET/Optimizely, Razor server-side), `trinity` = frontend (React/Redux/JS/HTML/SCSS, plus Razor markup in server-rendered mode),
-  `oracle` = backend tests only, `dozer` = frontend e2e only, `seraph` = visual design conformance (read-only).
+- Worker lanes are stack-agnostic: `tank` = backend implementer for the resolved backend
+  stack, `trinity` = frontend implementer for the resolved frontend stack (plus a shared
+  server template's markup in server-rendered mode), `oracle` = backend tests only, `dozer`
+  = frontend e2e only, `seraph` = visual design conformance (read-only). Stack knowledge
+  lives in per-stack skills, loaded once `morpheus` resolves the project's stack (`CLAUDE.md`'s
+  **Backend stack**/**Frontend stack** slots). `lane-guard.sh` enforces the write lane by file
+  extension for disjoint-language stacks (e.g. dotnet+react), or by configured directory paths
+  (**Backend/Frontend lane path(s)**) when both stacks are the same language (e.g. node+nextjs).
 - All workers apply `context-discipline`: process bulk output with code, return only concise findings.
 
 The crew's runtime configuration (test/build/lint commands, base branch, frontend mode) lives

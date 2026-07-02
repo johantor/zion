@@ -148,7 +148,7 @@ acceptance: |
 
 ### wp6 — Docs and release
 id: wp6
-status: pending
+status: done
 depends-on: [wp1, wp2, wp3, wp4, wp5]
 worker: self
 acceptance: |

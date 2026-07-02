@@ -45,9 +45,10 @@ finishes. You don't have to wait for a worker to be heard.
 The remaining commands work the same in either mode (run them as `/crew:…` in a normal session,
 or just ask for them in a `--agent` session):
 
-- `/crew:init` — detect this project's build/test/lint commands, base branch, and frontend
-  mode and write them to the **Crew configuration** block in `CLAUDE.md`. Idempotent: re-run
-  to reconcile slots added by a newer plugin version (existing values are kept).
+- `/crew:init` — detect this project's build/test/lint commands, base branch, frontend mode,
+  and backend/frontend stack, and write them to the **Crew configuration** block in
+  `CLAUDE.md`. Idempotent: re-run to reconcile slots added by a newer plugin version
+  (existing values are kept).
 - `/crew:review` — pre-PR **GO / NO-GO** gate: the consolidated code + security + design review
   plus the diff-scoped build/test/lint checks (`/crew:review quick` for a read-only review with
   no suites; `/crew:review full` to force every gate).
@@ -61,7 +62,10 @@ any built-in or other-plugin commands of the same short name.
 ## What is included
 
 - `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
-- `skills/`: `engineering-principles`, `context-discipline`, `frontend-headless`, `frontend-server-rendered`
+- `skills/`: shared — `engineering-principles`, `context-discipline`; frontend mode —
+  `frontend-headless`, `frontend-server-rendered`; per-stack (loaded once the stack is
+  resolved) — `backend-dotnet`, `backend-node`, `cms-optimizely`, `frontend-react`,
+  `frontend-nextjs`, `tests-xunit`, `tests-node`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
 - `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`
 
@@ -71,12 +75,16 @@ The hooks run as `PreToolUse`/`PostToolUse` guards (registered in
 `.claude/settings.json` for local dev and `hooks/hooks.json` when installed as a
 plugin):
 
-- **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the
-  other stack's files, and `oracle`/`dozer` may only write their test paths
-  (`seraph` is read-only, so it has no write lane). It routes on the `agent_type`
-  in the payload, so the main session is unrestricted. Fails closed. It guards the
-  `Edit`/`Write` tools only — file writes via Bash (`sed -i`, `tee`, redirects) are
-  governed by the agent prompts, not this hook.
+- **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the other
+  side's files (or, for `oracle`/`dozer`, restricted to their test paths; `seraph` is
+  read-only, so it has no write lane). Two regimes: extension-based globs by default
+  (correct when backend/frontend are different languages, e.g. dotnet+react), or
+  directory-based paths (**Backend/Frontend lane path(s)** in `CLAUDE.md`) when both
+  resolved stacks are the same language (e.g. node+nextjs) and an extension alone can't
+  tell the lanes apart — a Node backend with no lane paths configured fails closed rather
+  than guessing. It routes on the `agent_type` in the payload, so the main session is
+  unrestricted. It guards the `Edit`/`Write` tools only — file writes via Bash (`sed -i`,
+  `tee`, redirects) are governed by the agent prompts, not this hook.
 - **read-guard** blocks raw reads of files over 64 KiB (65536 bytes) —
   grep/jq/script them instead (see the `context-discipline` skill).
 - **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*`
@@ -88,11 +96,13 @@ plugin):
   `/crew:pr` keep the crew off it too. Scoped via `agent_type`, so your own main session is
   never intercepted.
 - **format** discovers and runs the project's formatters after an edit, scoped to
-  the changed file. For `tank`: `dotnet format`, plus `dotnet csharpier format`
-  when the solution configures it (`.csharpierrc`). For `trinity`: every tool the
-  project configures — Biome, Prettier, ESLint, Stylelint — each detected by its
-  config file and run in fix mode, only when installed locally (never an `npx`
-  download). Best-effort — fails open.
+  the changed file and routed by its **extension** (not a fixed agent, since either
+  `tank` or `trinity` can touch web files when the backend stack is Node): `.cs`/`.csproj`
+  → `dotnet format`, plus `dotnet csharpier format` when the solution configures it
+  (`.csharpierrc`); known web extensions → every tool the project configures — Biome,
+  Prettier, ESLint, Stylelint — each detected by its config file and run in fix mode, only
+  when installed locally (never an `npx` download); anything else (e.g. `.cshtml`) is
+  skipped cleanly. Best-effort — fails open.
 
 ## Recommended MCP servers
 

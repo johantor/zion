@@ -1,6 +1,6 @@
 feature: crew-stack-agnostic (issue #46 — make crew stack-agnostic: role-only agents, per-stack skills, detection-driven lanes)
 base-branch: main
-feature-branch: claude/solution-review-optimization-tpue21
+feature-branch: feat/crew-stack-agnostic
 
 ## Scope
 

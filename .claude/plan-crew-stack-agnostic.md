@@ -32,14 +32,25 @@ no step needed. keymaker is explicitly out of scope (already agnostic).
 
 ### wp1 — Extract stack knowledge into per-stack skills
 id: wp1
-status: pending
+status: done
+evidence: (commit recorded on push — see below)
 depends-on: independent
 worker: self (no installed crew/tank subagents in this session — see note below)
 acceptance: |
   - New skills exist, all under `plugins/crew/skills/<name>/SKILL.md`: `backend-dotnet`,
-    `backend-node`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`.
+    `backend-node`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`, plus
+    `cms-optimizely` (added during implementation — see note below).
   - `backend-dotnet` / `frontend-react` / `tests-xunit` carry today's tank/trinity/oracle
     content verbatim (relocated, not rewritten) so existing .NET+React behavior is unchanged.
+  - **Added during implementation:** `backend-dotnet` further splits into generic
+    ASP.NET/.NET conventions (MVC controllers, Razor ownership, `dotnet build`) and a
+    separate `cms-optimizely` skill (content types, blocks, `IContentRepository`, scheduled
+    jobs, init modules) that composes on top of it. Optimizely is self-detected by tank via
+    an `EPiServer.CMS`/`Optimizely.CMS` package reference — no new morpheus-resolved config
+    slot needed, unlike backend/frontend stack (which can't be cheaply auto-detected with
+    the same confidence). This wasn't in the original issue's WP1 list but follows the same
+    reasoning one level further: not every .NET backend is Optimizely, the same way not
+    every backend is .NET.
   - `backend-node`, `frontend-nextjs` are new, scoped per the issue's WP1 notes (Node:
     NestJS/Express/Fastify + Graph client + npm/pnpm workspaces, thin-BFF caveat; Next.js:
     App Router, RSC server/client split, Graph data fetching, route-handler vs BFF boundary).
@@ -50,8 +61,11 @@ acceptance: |
     arbitrarily where the issue itself left it open.
   - `tank.md`/`trinity.md`/`oracle.md` become role-only: scope, lane rules, git/build-gate
     discipline, `engineering-principles`/`context-discipline` — no stack-specific nouns in
-    the body; each gains a `skills:` list including its stack skills (loaded per resolved
-    stack) alongside the existing shared skills.
+    the body. **Implementation note:** stack skills are loaded *dynamically* via the Skill
+    tool once morpheus resolves the stack (not statically declared in frontmatter) — this
+    mirrors trinity's existing `frontend-headless`/`frontend-server-rendered` mode-skill
+    pattern rather than inventing a new mechanism. Frontmatter `skills:` keeps only the
+    always-relevant shared skills (`engineering-principles`, `context-discipline`).
   - `bash plugins/crew/scripts/validate-plugin.sh` passes (skills-resolve check covers the
     new entries).
 

@@ -10,17 +10,23 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 payload="$(cat)"
-if ! printf '%s' "$payload" | jq empty >/dev/null 2>&1; then
+# One jq call for both fields (also doubles as the payload-validity check: a
+# parse failure means jq exits non-zero and $fields is never set). Fields are
+# joined with a record-separator byte via -j (raw, unescaped) rather than
+# @tsv, so cmd's own newlines/tabs survive intact for the flatten step below —
+# @tsv would have escaped them to literal "\n"/"\t" text.
+rs=$'\x1e'
+if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" '(.tool_input.command // "") + $rs + (.agent_type // "")' 2>/dev/null)"; then
   echo "Blocked: bash-safety could not parse the hook payload." >&2
   exit 2
 fi
+cmd="${fields%%"$rs"*}"
+agent_type="${fields#*"$rs"}"
 
 # Flatten newlines to spaces so a multi-line command can't slip a clause past
 # the single-line regexes. POSIX [[:space:]] is used throughout instead of the
 # GNU-only \s so the guard also holds on BSD/macOS grep.
-cmd="$(printf '%s' "$payload" | jq -r '.tool_input.command // empty')"
 normalized="$(printf '%s' "$cmd" | tr '\n' ' ')"
-agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty')"
 
 # Destructive ops, in order: recursive+force rm of /, ~ or * — flags combined in
 # either order (-rf, -fr, -rfv) or separate/long (-r -f, --recursive --force),

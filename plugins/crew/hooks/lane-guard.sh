@@ -18,12 +18,24 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 payload="$(cat)"
-if ! printf '%s' "$payload" | jq empty >/dev/null 2>&1; then
+# One jq call for both fields (also doubles as the payload-validity check: a
+# parse failure means jq exits non-zero and $fields is never set). Fields are
+# joined with a record-separator byte that never appears in an agent_type or
+# file path, so no per-field escaping is needed.
+rs=$'\x1e'
+if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" '(.agent_type // "") + $rs + ((.tool_input.file_path // .tool_input.path) // "")' 2>/dev/null)"; then
   echo "Blocked: lane-guard could not parse the hook payload." >&2
   exit 2
 fi
-agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty')"
-path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty')"
+agent_type="${fields%%"$rs"*}"
+path="${fields#*"$rs"}"
+
+# Bail before any further parsing for the common case: the main session or any
+# agent without a lane. Kept in sync with the default arm of the case below.
+case "$agent_type" in
+  oracle|dozer|neo|tank|trinity) ;;
+  *) exit 0 ;;
+esac
 [ -z "$path" ] && exit 0
 
 # Read a Crew-configuration slot's value from CLAUDE.md (plain text after the bold

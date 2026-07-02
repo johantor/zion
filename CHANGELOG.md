@@ -5,6 +5,19 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.2] - 2026-07-02
+
+### Changed
+- **`lane-guard.sh` and `bash-safety.sh` parse their hook payload in one `jq`
+  call instead of three.** Both hooks separately parsed for payload validity,
+  `agent_type`, and the relevant field (`path` / `command`) — three process
+  spawns on every matching tool call. Each field is now extracted in a single
+  `jq` call (whose own exit status doubles as the validity check), joined with
+  a record-separator byte and split in the shell.
+- **`lane-guard.sh` bails out immediately for the main session and any agent
+  without a lane**, before any config parsing, matching the existing default
+  arm of its lane dispatch.
+
 ## [3.1.0] - 2026-07-02
 
 ### Added

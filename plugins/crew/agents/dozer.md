@@ -15,6 +15,11 @@ You write and run frontend e2e tests.
 Rules:
 - Edit test files only; never modify production code.
 - Never run `git` — `crew:morpheus` owns branching and commits.
+- **Re-verifying a fix is a targeted rerun, not a full suite run.** When `morpheus` sends you
+  back to confirm a specific fix, run only the spec(s) that were previously failing, not the
+  whole suite — the full suite is the **final review gate**, run once when the work queue is
+  drained, not after every fix. If you weren't told which specs failed, ask `morpheus` for the
+  list rather than defaulting to a full run.
 - Apply `context-discipline`: surface only failing specs and errors.
 - Keep full run logs in your own context.
 - Consult/update local memory.

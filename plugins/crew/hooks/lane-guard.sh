@@ -82,6 +82,7 @@ has_frontend() {
 # agent_type -> mode + space-separated glob patterns (+ optional exempt patterns
 # that bypass a deny before it's evaluated).
 exempt=""
+confine=""
 case "$agent_type" in
   # Backend patterns (.NET style) first, then shared/frontend test file patterns.
   oracle) mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*' ;;
@@ -97,6 +98,12 @@ case "$agent_type" in
       playwright) patterns='e2e/** playwright/** tests/**' ;;
       *)          patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
     esac
+    # In a same-language monorepo a bare tests/** can match backend tests
+    # (e.g. apps/api/tests/**). When a Frontend lane path is configured,
+    # additionally confine dozer to it, so an e2e-shaped path that lives
+    # outside the frontend lane is still denied.
+    frontend_lane="$(config_slot 'Frontend lane path(s)')"
+    [ -n "$frontend_lane" ] && confine="$(lane_globs "$frontend_lane")"
     ;;
   # neo is the express-lane generalist — small changes across any lane — so it has
   # no lane restriction by design. Explicit here (rather than falling through to the
@@ -186,6 +193,14 @@ if [ -n "$exempt" ] && matches "$exempt"; then
 fi
 
 if matches "$patterns"; then match=1; else match=0; fi
+
+# An --allow agent with a confine set must ALSO be inside the confine globs —
+# used to keep dozer's e2e patterns within the configured frontend lane so a
+# tests/** match in a backend lane (same-language monorepo) is still denied.
+if [ "$mode" = "--allow" ] && [ -n "$confine" ] && ! matches "$confine"; then
+  echo "Blocked: $path is outside ${agent_type}'s frontend lane." >&2
+  exit 2
+fi
 
 if [ "$mode" = "--deny" ] && [ "$match" = 1 ]; then
   echo "Blocked: $path is out of ${agent_type}'s lane." >&2

@@ -56,14 +56,11 @@ lane_globs() {
   set +f
 }
 
-# Marker detection — used only when the stack slots are *unset* (morpheus can
-# resolve stacks from memory/detection without pinning them in CLAUDE.md) and no
-# lane paths are configured. The extension regime is only safe for disjoint
-# languages (a .NET backend's `.cs` vs a web frontend's `.ts`); a Node backend
-# makes extensions ambiguous because tank's own source is `.ts`/`.js` too. These
-# probes let the guard recognize that case from the repo instead of silently
-# applying the wrong regime. All are cheap and short-circuit; common non-source
-# directories are pruned so a large tree doesn't slow the hook.
+# Marker detection — used only when the stack slots are *unset* and no lane
+# paths are configured. Extensions alone can't separate tank's `.ts`/`.js` from
+# trinity's when the backend is also Node, so these probes read the repo's
+# markers instead. Common non-source directories are pruned so a large tree
+# doesn't slow the hook.
 prune_args=(-type d \( -name node_modules -o -name .git -o -name dist -o -name bin -o -name obj -o -name coverage -o -name .next \) -prune -o)
 has_dotnet_backend() {
   find . "${prune_args[@]}" \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
@@ -85,12 +82,9 @@ has_frontend() {
   find . "${prune_args[@]}" \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .
 }
 
-# Cache the three marker-detection results for the life of the session so a
-# same-language regime with unset stacks scans the repo at most once, not on
-# every Edit/Write (has_dotnet_backend/has_node_backend/has_frontend each walk
-# the tree). Keyed by session_id (falls back to cwd if the harness omits it);
-# a stale cache only lives as long as the session, and the markers it caches
-# (project files, package.json deps) don't change mid-feature.
+# Cache detection for the session so the three probes above run at most once,
+# not on every Edit/Write — their markers don't change mid-feature. Keyed by
+# session_id (falls back to cwd).
 detect_regime() {
   local cache session_id
   session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"

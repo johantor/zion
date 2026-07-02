@@ -296,8 +296,9 @@ address a PR's review feedback / CI failures (or via `/crew:address`). It needs 
    (`crew:neo`). A CI failure classifies by what broke (a failing backend test → `oracle`, a type
    error in a `.ts` file → `trinity`, a failing e2e spec → `dozer`). Fold the items into the durable
    plan as steps — the matching feature plan for this branch if one exists, else a fresh
-   `<plan-dir>/plan-address-<pr>.md` — using the standard schema, so the loop is resumable and every
-   item is tracked.
+   `<plan-dir>/plan-address-<pr-number>.md` (use the bare PR **number**, never a raw URL/`$ARGUMENTS`
+   — a URL's `/`, `:`, `?` would produce an invalid path) — using the standard schema, so the loop is
+   resumable and every item is tracked.
 4. **Delegate, verify, commit — as usual.** Dispatch each fix to its worker (in the background,
    right-sized model, `context-discipline`), verify the result against the comment it answers, then
    commit each verified change yourself, citing the thread/failure it addresses. You remain the sole

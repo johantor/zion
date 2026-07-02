@@ -4,8 +4,10 @@
 # own hooks, so the lanes are centralized here.
 #
 # Directory-based lanes (CLAUDE.md path config) apply when set; otherwise falls
-# back to extension-based globs. node backend + no lane paths fails closed —
-# extensions alone can't tell tank's and trinity's files apart there.
+# back to extension-based globs. node backend + node/JS frontend + no lane paths
+# fails closed — extensions alone can't tell tank's and trinity's files apart
+# there. Backend-only Node repos (no Frontend stack configured) skip enforcement
+# entirely since there's no same-language lane conflict to resolve.
 
 # Fail closed: a guard that can't read its input must block, not allow.
 if ! command -v jq >/dev/null 2>&1; then
@@ -50,6 +52,7 @@ case "$agent_type" in
     backend_lane="$(config_slot 'Backend lane path(s)')"
     frontend_lane="$(config_slot 'Frontend lane path(s)')"
     backend_stack="$(config_slot 'Backend stack')"
+    frontend_stack="$(config_slot 'Frontend stack')"
     if [ -n "$backend_lane" ] && [ -n "$frontend_lane" ]; then
       # Route handlers live in the frontend tree but are tank's by concern
       # (single-owner, unlike Razor's markup/logic split) — exempt tank, deny trinity.
@@ -67,9 +70,13 @@ case "$agent_type" in
       # separate tank from trinity in same-language stacks.
       echo "Blocked: only one of Backend lane path(s) / Frontend lane path(s) is configured. Set both in CLAUDE.md (see /crew:init) before delegating." >&2
       exit 2
-    elif [ "$backend_stack" = "node" ]; then
+    elif [ "$backend_stack" = "node" ] && [ -n "$frontend_stack" ]; then
       echo "Blocked: backend stack is node — tank and trinity can both touch .ts/.js files, so extension-based lanes can't tell them apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating." >&2
       exit 2
+    elif [ "$backend_stack" = "node" ]; then
+      # Backend-only Node repo (no Frontend stack configured): no same-language lane
+      # conflict to resolve — exit 0 and let the write proceed.
+      exit 0
     else
       # Extension-based regime (default) — unchanged from before same-language
       # stacks existed. Note: .cshtml is intentionally NOT denied to either tank

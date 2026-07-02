@@ -58,8 +58,8 @@ template. Resolve each, once per project, before delegating any implementation w
      → `react`.
    Save the confirmed answer to your memory so you don't ask again.
 
-Pass the resolved stack in every implementation delegation (so the worker loads the matching
-stack skill — e.g. `backend-dotnet`, `frontend-nextjs`). Do not guess or default silently.
+Pass the resolved stack in every implementation and test delegation (so the worker loads the matching
+stack skill — e.g. `backend-dotnet`, `frontend-nextjs`, `tests-node`). Do not guess or default silently.
 
 ## Branching and commits
 

@@ -109,7 +109,7 @@ acceptance: |
 
 ### wp5 — Generalize frontend-server-rendered
 id: wp5
-status: pending
+status: done
 depends-on: wp1 (soft — sequencing choice for a coherent diff, not a hard requirement;
   could run parallel to wp1 if desired)
 worker: self

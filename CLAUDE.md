@@ -13,7 +13,7 @@ This file adds only what is specific to Claude Code: the crew runtime configurat
 
 ## Crew configuration
 
-These values are read by the `morpheus` orchestrator and the frontend skills.
+These values are read by the `morpheus` orchestrator and the backend/frontend stack skills.
 Keep them accurate; update them if this repo ever gains app code.
 
 - **Frontend mode:** *unset* — optional here. Pin it (`headless` or `server-rendered`)

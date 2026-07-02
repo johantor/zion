@@ -1,14 +1,42 @@
 ---
 name: frontend-server-rendered
-description: Conventions for server-rendered frontends — Optimizely/.NET MVC with Razor views and React used as mounted islands/widgets rather than a full SPA. Use for tasks involving Razor/.cshtml views, Optimizely/.NET MVC, display templates/IContentRenderer, or React mounted as islands/widgets. Load when the repo's frontend mode is "server-rendered".
+description: Conventions for server-rendered frontends — a server template/component renders the page shell, with a client-side framework layered in as islands/widgets rather than a full SPA. Covers Razor (.NET/Optimizely), Blade (Laravel), and RSC (Next.js). Load when the repo's frontend mode is "server-rendered".
 ---
 
 # Server-rendered frontend conventions
-Confirm the actual setup from the repo first; follow its patterns over these defaults.
 
-- **Razor/CMS rendering:** render content through the CMS pipeline (display templates, `IContentRenderer`, partials), not hardcoded markup; keep logic out of views.
-- **React as islands:** mount components into Razor-rendered DOM nodes; pass initial data via `data-*` attributes or an embedded JSON island — don't re-fetch data the page already has.
-- **Progressive enhancement:** usable server-rendered first; React layers on top.
-- **State:** keep React/Redux state scoped to its island; don't SPA-ify the whole page.
-- **Styling:** SCSS via the .NET/front-end build pipeline per repo conventions.
-- **Razor ownership is concern-split:** the *markup/DOM* inside views (element structure, classes, ARIA, presentation) is the frontend agent's; the C# view-model + controller side is the backend agent's. Coordinate the contract rather than crossing into each other's concern.
+Confirm the actual setup from the repo first; follow its patterns over these defaults. The
+shared principles below apply regardless of which server template language the project
+uses; load the subsection matching your resolved frontend stack for the specifics.
+
+## Shared principles
+
+- **Client framework as islands:** mount components into server-rendered DOM nodes; pass
+  initial data via `data-*` attributes or an embedded JSON island — don't re-fetch data the
+  page already has.
+- **Progressive enhancement:** usable server-rendered first; the client framework layers on
+  top.
+- **State:** keep client-side state scoped to its island; don't SPA-ify the whole page.
+- **Template ownership is concern-split:** the *markup/DOM* inside the server template
+  (element structure, classes, ARIA, presentation) is the frontend agent's; the server-side
+  logic (data binding, control flow, data access) is the backend agent's. Coordinate the
+  contract rather than crossing into each other's concern.
+
+## Razor (.NET / Optimizely)
+
+Render content through the CMS pipeline (display templates, `IContentRenderer`, partials),
+not hardcoded markup; keep logic out of views. Styling via SCSS through the .NET/front-end
+build pipeline per repo conventions.
+
+## Blade (Laravel)
+
+Render through Blade components/layouts (`@component`, `@include`), not hardcoded markup;
+keep business logic in controllers/view models, not `.blade.php` files.
+
+## RSC (Next.js)
+
+A Server Component renders the page shell and fetches data server-side; a Client Component
+(`"use client"`) is the island for interactivity. Framework and data-fetching conventions
+live in `frontend-nextjs` — this section covers only the markup/ownership split, which
+mirrors Razor's: the JSX/markup is the frontend agent's, server-only data logic is the
+backend agent's.

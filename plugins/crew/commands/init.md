@@ -3,8 +3,8 @@ description: Detect the project's crew configuration and write it to CLAUDE.md (
 ---
 
 Set up (or reconcile) the **crew configuration** the orchestrator reads. This command
-detects the project's build/test/lint commands, base branch, and frontend mode, shows you
-what it found, and writes the agreed values to the **Crew configuration** block in
+detects the project's build/test/lint commands, base branch, frontend mode, and backend/
+frontend stack, shows you what it found, and writes the agreed values to the **Crew configuration** block in
 `CLAUDE.md`. It is **idempotent**: the first run bootstraps the block; a re-run reconciles it,
 adding any slots introduced by a newer plugin version **without overwriting values you've
 already set**.

@@ -33,9 +33,16 @@ general/config tasks like statusline, so do those in a normal session.
 over the session, so all your built-ins (statusline, etc.) stay available while the crew handles
 the feature. Use this when you want the crew on tap inside an ordinary session.
 
-Before it starts building, `morpheus` presents its plan and waits for your go-ahead — one quick
-gate to catch a misread task before any branch, commit, or worker time is spent (a one-step task
-is a one-word yes; tell it to just build and it skips the pause). Either way, `morpheus` then
+`morpheus` **right-sizes the process to the task**. Small, low-risk work (a typo, a rename, an
+obvious one-liner, a small localized bug) takes an **express lane**: it delegates to `neo`, the
+all-lane generalist, and skips the plan, the checkpoint, and the full gate — just a quick
+read-only self-review plus any single directly-relevant test, then commit. Features and anything risky, multi-lane, or needing new
+tests take the full flow through the specialists, and it escalates express → full the moment a
+small task proves bigger.
+
+Before it starts building on the full flow, `morpheus` presents its plan and waits for your
+go-ahead — one quick gate to catch a misread task before any branch, commit, or worker time is
+spent (a one-step task is a one-word yes; tell it to just build and it skips the pause). Either way, `morpheus` then
 creates a feature branch off your base branch and commits each verified
 step (workers never run git), and delegates worker steps **in the background** — its turn returns
 right away so you can keep chatting (adding comments, corrections, or new fixes) while a worker
@@ -61,7 +68,7 @@ any built-in or other-plugin commands of the same short name.
 
 ## What is included
 
-- `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`
+- `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`
 - `skills/`: shared — `engineering-principles`, `context-discipline`; frontend mode —
   `frontend-headless`, `frontend-server-rendered`; per-stack (loaded once the stack is
   resolved) — `backend-dotnet`, `backend-node`, `cms-optimizely`, `frontend-react`,
@@ -78,14 +85,15 @@ plugin):
 
 - **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the other
   side's files (or, for `oracle`/`dozer`, restricted to their test paths; `seraph` is
-  read-only, so it has no write lane). Two regimes: extension-based globs by default
-  (correct when backend/frontend are different languages, e.g. dotnet+react), or
-  directory-based paths (**Backend/Frontend lane path(s)** in `CLAUDE.md`) when both
-  resolved stacks are the same language (e.g. node+nextjs) and an extension alone can't
-  tell the lanes apart — a Node backend with no lane paths configured fails closed rather
-  than guessing. It routes on the `agent_type` in the payload, so the main session is
-  unrestricted. It guards the `Edit`/`Write` tools only — file writes via Bash (`sed -i`,
-  `tee`, redirects) are governed by the agent prompts, not this hook.
+  read-only, so it has no write lane; `neo` is the express-lane generalist and has **no
+  lane restriction by design**, so it can touch any lane for a small cross-lane fix). Two
+  regimes: extension-based globs by default (correct when backend/frontend are different
+  languages, e.g. dotnet+react), or directory-based paths (**Backend/Frontend lane path(s)**
+  in `CLAUDE.md`) when both resolved stacks are the same language (e.g. node+nextjs) and an
+  extension alone can't tell the lanes apart — a Node backend with no lane paths configured
+  fails closed rather than guessing. It routes on the `agent_type` in the payload, so the
+  main session is unrestricted. It guards the `Edit`/`Write` tools only — file writes via
+  Bash (`sed -i`, `tee`, redirects) are governed by the agent prompts, not this hook.
 - **read-guard** blocks raw reads of files over 64 KiB (65536 bytes) —
   grep/jq/script them instead (see the `context-discipline` skill).
 - **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*`
@@ -97,8 +105,8 @@ plugin):
   `/crew:pr` keep the crew off it too. Scoped via `agent_type`, so your own main session is
   never intercepted.
 - **format** discovers and runs the project's formatters after an edit, scoped to
-  the changed file and routed by its **extension** (not a fixed agent, since either
-  `tank` or `trinity` can touch web files when the backend stack is Node): `.cs`/`.csproj`
+  the changed file and routed by its **extension** (not a fixed agent, since `tank`,
+  `trinity`, or the cross-lane `neo` can each touch either lane's files): `.cs`/`.csproj`
   → `dotnet format`, plus `dotnet csharpier format` when the solution configures it
   (`.csharpierrc`); known web extensions → every tool the project configures — Biome,
   Prettier, ESLint, Stylelint — each detected by its config file and run in fix mode, only

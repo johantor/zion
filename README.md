@@ -131,6 +131,7 @@ that houses the resistance, and a fitting name for a marketplace of crews. The a
 mapped loosely to what they do:
 
 - **morpheus** — the captain: plans and leads, writes no code himself (crew orchestrator).
+- **neo** — "The One," not bound to a single role: the generalist who takes the express lane for small fixes.
 - **tank** & **dozer** — the operators: **tank** runs the backend, **dozer** runs the e2e tests.
 - **trinity** — the hacker on point: the frontend.
 - **oracle** — sees what will and won't hold up: the backend tests.

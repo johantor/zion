@@ -61,6 +61,10 @@ case "$agent_type" in
       *)          patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
     esac
     ;;
+  # neo is the express-lane generalist — small changes across any lane — so it has
+  # no lane restriction by design. Explicit here (rather than falling through to the
+  # default) to document that all-lane access is intentional, not an oversight.
+  neo)     exit 0 ;;
   tank|trinity)
     backend_lane="$(config_slot 'Backend lane path(s)')"
     frontend_lane="$(config_slot 'Frontend lane path(s)')"
@@ -105,6 +109,8 @@ case "$agent_type" in
       fi
     fi
     ;;
+  # seraph is a read-only reviewer with no edit/write tools, so it never reaches
+  # this Edit|Write hook — no lane entry needed.
   *) exit 0 ;;  # main session or any agent without a lane: no restriction
 esac
 

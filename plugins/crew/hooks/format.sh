@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# PostToolUse(Edit|Write) formatter, gated to tank/trinity (other agents and the main
-# session are no-ops). The formatter set is chosen by the **edited file's extension**,
+# PostToolUse(Edit|Write) formatter, gated to tank/trinity/neo (other agents and the
+# main session are no-ops). The formatter set is chosen by the **edited file's extension**,
 # not a fixed agent->lane table — so a Node-backend file tank edits still gets web
 # tooling, and a .cs/.csproj file gets dotnet/CSharpier regardless of which agent
 # produced it (a backend stack can be dotnet or node; lane != language).
@@ -13,8 +13,10 @@ payload="$(cat)"
 agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty' 2>/dev/null || true)"
 path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
 case "$agent_type" in
-  tank|trinity) : ;;
-  *)            exit 0 ;;
+  # neo is the cross-lane express-lane generalist, so it gets the same
+  # extension-based routing as tank/trinity (below) rather than a fixed lane.
+  tank|trinity|neo) : ;;
+  *)                exit 0 ;;
 esac
 # Extension-based routing needs a path to route on; without one there's nothing to format.
 [ -n "$path" ] || exit 0

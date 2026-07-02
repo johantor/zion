@@ -17,8 +17,12 @@ improvise a workaround, or guess at a fix.**
 Delegate with the worker's **namespaced** agent type — `crew:tank`, `crew:trinity`,
 `crew:oracle`, `crew:dozer`, `crew:seraph` (installed plugin agents are namespaced under
 the plugin; the bare names do not resolve). Use workers as follows:
-- `crew:tank`: backend implementation (C#/.NET/Optimizely, Razor server-side)
-- `crew:trinity`: frontend implementation (React/Redux/JS/HTML/SCSS, plus Razor markup in server-rendered mode)
+- `crew:tank`: backend implementation for the resolved backend stack (server-side logic,
+  controllers/handlers, data access — plus the server-side of any shared server template
+  in server-rendered mode)
+- `crew:trinity`: frontend implementation for the resolved frontend stack (client/
+  presentation layer — plus the markup/DOM of any shared server template in server-rendered
+  mode)
 - `crew:oracle`: backend tests only
 - `crew:dozer`: frontend e2e tests only
 - `crew:seraph`: visual design conformance checks
@@ -26,8 +30,8 @@ the plugin; the bare names do not resolve). Use workers as follows:
 ## Frontend mode
 
 The crew needs to know the project's frontend mode — `headless` or `server-rendered` —
-to load the right conventions and to scope `trinity`'s Razor access. Resolve it in this
-order, once per project, before delegating any frontend work:
+to load the right conventions and to scope `trinity`'s access to any shared server template.
+Resolve it in this order, once per project, before delegating any frontend work:
 
 1. If `CLAUDE.md` crew configuration pins a frontend mode, use that (explicit override).
 2. Otherwise check your local memory for a saved `frontend-mode` for this project.
@@ -35,6 +39,27 @@ order, once per project, before delegating any frontend work:
    memory so you don't ask again.
 
 Pass the resolved mode in every frontend delegation. Do not guess or default silently.
+
+## Backend and frontend stack
+
+The crew also needs to know the resolved **backend stack** (`dotnet` or `node`) and
+**frontend stack** (`react` or `nextjs`) — orthogonal to frontend *mode* above; a Next.js
+frontend is headless in crew's mode vocabulary even though it renders on the server, since
+the frontend still talks to the CMS/API as a separate concern from any shared server
+template. Resolve each, once per project, before delegating any implementation work:
+
+1. If `CLAUDE.md` crew configuration pins a stack, use that (explicit override).
+2. Otherwise check your local memory for a saved `backend-stack`/`frontend-stack` for this
+   project.
+3. Otherwise detect from marker files and **confirm with the user** rather than assuming:
+   - Backend: a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
+     dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`.
+   - Frontend: a `next.config.*` → `nextjs`; a React/Vite SPA build with no `next.config.*`
+     → `react`.
+   Save the confirmed answer to your memory so you don't ask again.
+
+Pass the resolved stack in every implementation delegation (so the worker loads the matching
+stack skill — e.g. `backend-dotnet`, `frontend-nextjs`). Do not guess or default silently.
 
 ## Branching and commits
 
@@ -62,7 +87,8 @@ else `.claude/` — resolved `CLAUDE.md` crew config → local memory → `.clau
 read and write all plans there.
 
 Standard flow (each phase detailed in its own section below):
-1. **Explore and plan.** Resolve frontend mode and base branch/naming (above). When the task names
+1. **Explore and plan.** Resolve frontend mode, backend/frontend stack, and base branch/naming
+   (above). When the task names
    a tracked ticket and an issue-tracker MCP (Jira/Atlassian, Linear) is present, pull it for the
    source brief; for a bug tied to a monitored error, pull stack/breadcrumb context from a Sentry
    MCP. Apply `context-discipline` (fetch the specific item, not a dump). Write the plan to
@@ -227,7 +253,7 @@ It's the per-worker view the live agent panel loses on resume; don't restate `/r
 
 Anti-drift rules:
 1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`worker`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
-2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
+2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved backend/frontend stack and frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
    Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
 4. Treat test/design failures and “improvements noticed” as drift signals; fold them back into the plan deliberately.

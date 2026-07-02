@@ -18,6 +18,10 @@ means — reconcile fills any of these that are missing:
 
 - **Frontend mode** — `headless` or `server-rendered`. Optional/pin-only; leave unset to let
   `morpheus` resolve it per project.
+- **Backend stack** — `dotnet` or `node`. Optional/pin-only; leave unset to let `morpheus`
+  resolve it per project.
+- **Frontend stack** — `react` or `nextjs`. Optional/pin-only; leave unset to let `morpheus`
+  resolve it per project.
 - **Backend test command** — e.g. `dotnet test`.
 - **Frontend test command** — the e2e suite (e.g. `npx playwright test`).
 - **Backend build command** — e.g. `dotnet build`.
@@ -50,6 +54,11 @@ trust or correct it; never invent a command you can't see configured.
 - **Frontend mode:** infer from the stack — a React/Vite/Next SPA build → `headless`; Razor
   `.cshtml` views without an SPA bundle → `server-rendered`. If it's genuinely mixed or
   unclear, leave unset and note that `morpheus` will resolve it, or ask.
+- **Backend stack:** a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
+  dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`. If ambiguous or
+  absent, leave unset for `morpheus` to resolve.
+- **Frontend stack:** a `next.config.*` → `nextjs`; a React/Vite SPA build with no
+  `next.config.*` → `react`. If ambiguous or absent, leave unset for `morpheus` to resolve.
 - **Run/dev URL, branch naming, notable conventions:** propose from dev scripts /
   `launchSettings.json` / existing branch names where visible; otherwise leave unset.
 - **Plan directory:** only propose a value if the repo has an obvious plans convention (an
@@ -61,9 +70,9 @@ makes the config unusable:
 
 - **Tooling slots** (backend/frontend test, build, and lint commands; run/dev URL): if the
   project genuinely has no such tooling, use plain none.
-- **Project-identity slots** (base branch, branch naming, frontend mode): never none — a base
-  branch always exists, so none would be wrong. Leave these *unset* so `morpheus` resolves or
-  asks (for base branch, prefer asking — see above).
+- **Project-identity slots** (base branch, branch naming, frontend mode, backend stack,
+  frontend stack): never none — a base branch always exists, so none would be wrong. Leave
+  these *unset* so `morpheus` resolves or asks (for base branch, prefer asking — see above).
 
 Match the block's existing placeholder wording exactly — italic *unset* and plain none, never
 backticked — so reconcile reliably recognizes them later. Don't guess to fill a blank.

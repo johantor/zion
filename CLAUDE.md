@@ -19,6 +19,10 @@ Keep them accurate; update them if this repo ever gains app code.
 - **Frontend mode:** *unset* — optional here. Pin it (`headless` or `server-rendered`)
   only to force a choice; otherwise `morpheus` resolves it per project (its memory, or by
   asking you and then remembering). This repo is the plugin itself and has no frontend.
+- **Backend stack:** *unset* — optional here. Pin it (`dotnet` or `node`) only to force a
+  choice; otherwise `morpheus` resolves it per project. This repo has no backend.
+- **Frontend stack:** *unset* — optional here. Pin it (`react` or `nextjs`) only to force a
+  choice; otherwise `morpheus` resolves it per project. This repo has no frontend.
 - **Backend test command:** none (no backend test project detected)
 - **Frontend test command:** none (no frontend e2e suite detected)
 - **Backend build command:** none (no build manifest detected) — e.g. `dotnet build`.

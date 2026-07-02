@@ -71,7 +71,7 @@ acceptance: |
 
 ### wp2 — Stack resolution in morpheus
 id: wp2
-status: pending
+status: done
 depends-on: wp1
 worker: self
 acceptance: |

@@ -72,6 +72,7 @@ acceptance: |
 ### wp2 — Stack resolution in morpheus
 id: wp2
 status: done
+evidence: 33ec303
 depends-on: wp1
 worker: self
 acceptance: |

@@ -22,7 +22,8 @@ esac
 ext="${path##*.}"
 case "$ext" in
   cs|csproj) lane="dotnet" ;;
-  *)         lane="web" ;;
+  js|jsx|ts|tsx|mjs|cjs|vue|svelte|css|scss|sass|less|json|html|md|yaml|yml) lane="web" ;;
+  *) exit 0 ;;  # not a formatter-owned extension (e.g. .cshtml, .sh) -- nothing to do
 esac
 
 # True if any given path exists (config-file detection; unmatched globs pass

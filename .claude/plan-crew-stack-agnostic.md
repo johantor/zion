@@ -125,6 +125,7 @@ acceptance: |
 ### wp3 — Lane boundaries that survive same-language stacks
 id: wp3
 status: done
+evidence: 1cbc45b (plus f0d1e4f — Skill-tool access fix found during review)
 depends-on: wp2
 worker: self
 acceptance: |

@@ -7,7 +7,8 @@ description: Conventions for server-rendered frontends — a server template ren
 
 Confirm the actual setup from the repo first; follow its patterns over these defaults. The
 shared principles below apply regardless of which server template language the project
-uses; load the subsection matching your resolved frontend stack for the specifics.
+uses; load the subsection matching the project's server template language (Razor or Blade)
+for the specifics.
 
 ## Shared principles
 

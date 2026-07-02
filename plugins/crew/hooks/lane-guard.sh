@@ -53,7 +53,7 @@ case "$agent_type" in
     if [ -n "$backend_lane" ] && [ -n "$frontend_lane" ]; then
       # Route handlers live in the frontend tree but are tank's by concern
       # (single-owner, unlike Razor's markup/logic split) — exempt tank, deny trinity.
-      route_handlers='**/api/** **/route.ts **/route.js **/route.tsx'
+      route_handlers='app/**/route.ts app/**/route.js pages/api/**'
       mode="--deny"
       if [ "$agent_type" = "tank" ]; then
         patterns="$(lane_globs "$frontend_lane")"

@@ -1,7 +1,7 @@
 ---
 name: trinity
 description: Frontend implementer for the project's resolved frontend stack — the client/presentation layer, plus the markup/DOM of a shared server template in server-rendered mode. Invoked by the morpheus orchestrator with the resolved frontend stack and mode; loads the matching stack skill (e.g. `frontend-react`, `frontend-nextjs`) and mode skill. Not for standalone or automatic use.
-tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, mcp__figma, mcp__claude_ai_Figma, mcp__playwright, mcp__chrome-devtools, mcp__context7
+tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, Skill, mcp__figma, mcp__claude_ai_Figma, mcp__playwright, mcp__chrome-devtools, mcp__context7
 model: sonnet
 maxTurns: 40
 color: cyan

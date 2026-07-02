@@ -1,7 +1,7 @@
 ---
 name: oracle
 description: Backend test author/runner for the project's resolved backend stack. Runs the suite and reports only failures. Invoked by the morpheus orchestrator with the resolved backend stack; loads the matching stack test skill (e.g. `tests-xunit`, `tests-node`). Not for standalone or automatic use.
-tools: Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__mssql, mcp__postgres
+tools: Read, Write, Edit, Bash, Grep, Glob, ToolSearch, Skill, mcp__mssql, mcp__postgres
 model: sonnet
 maxTurns: 30
 color: blue

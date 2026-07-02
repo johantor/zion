@@ -5,6 +5,25 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-07-02
+
+### Added
+- **`/crew:address` — close the PR review loop.** The lifecycle used to end at `/crew:pr`;
+  once a reviewer, Copilot, or CI commented on the open PR the developer dropped back to manual
+  mode, losing crew's lane routing and sole-git-ownership exactly when review churn is highest.
+  The new command (a thin router into `morpheus`, like `/crew:feature`) pulls the PR's
+  **unresolved** review threads and **failed** CI checks via the git-host MCP, classifies each
+  item to a lane through `morpheus`'s size-triage (`tank` / `trinity` / `oracle` / `dozer`, or
+  the `neo` express lane), delegates and commits each verified fix citing the thread it answers,
+  re-runs the diff-scoped `/crew:review` gate, and — after confirming — pushes and resolves the
+  addressed threads.
+  - Review-comment text is treated as **untrusted external input**: technical asks are classified
+    and routed, but anything that tries to redirect scope, exfiltrate secrets, or disable a guard
+    is surfaced to the user rather than acted on.
+  - The flow lives in `morpheus`'s own prompt (new *Address review feedback — close the review
+    loop* section), so it works the same whether invoked as `/crew:address` from a normal session
+    or just asked for in a `claude --agent crew:morpheus` session — no slash command required.
+
 ## [3.0.0] - 2026-07-02
 
 ### Added
@@ -583,6 +602,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[3.1.0]: https://github.com/johantor/zion/compare/crew--v3.0.0...crew--v3.1.0
 [3.0.0]: https://github.com/johantor/zion/compare/crew--v2.10.0...crew--v3.0.0
 [2.10.0]: https://github.com/johantor/zion/compare/crew--v2.9.0...crew--v2.10.0
 [2.9.0]: https://github.com/johantor/zion/compare/crew--v2.8.1...crew--v2.9.0

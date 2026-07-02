@@ -25,3 +25,6 @@ PR are **outward actions** — confirm with the user before pushing.
 4. **No host MCP available?** Do not guess. Print the exact `git push` command and a
    ready-to-paste PR title + body, and tell the user to open it manually (or to add the
    host MCP — see the plugin README).
+
+Once the PR is open and gets review comments or CI failures, `/crew:address` closes that loop —
+it routes each fix to the crew, re-runs the review gate, and pushes.

@@ -35,19 +35,22 @@ cfg() { for _p in "$@"; do [ -e "$_p" ] && return 0; done; return 1; }
 case "$lane" in
   dotnet)
     command -v dotnet >/dev/null 2>&1 || exit 0  # fail open if dotnet isn't available
-    # dotnet format applies whitespace + style + analyzer fixes from .editorconfig.
-    # Scope to the changed file so we don't reformat the whole solution on every
-    # edit (slow on large repos).
-    dotnet format --include "$path" >/dev/null 2>&1 || echo "format hook: dotnet format failed" >&2
-    # CSharpier is a separate opinionated formatter that dotnet format does not run.
-    # When the solution configures it (.csharpierrc), apply it too — best-effort:
-    # if the tool isn't restored, report and move on rather than failing the edit.
+    # Per-edit formatting favors speed over full coverage: full `dotnet format`
+    # (whitespace + style + analyzer fixes from .editorconfig) evaluates analyzers
+    # against the containing project and can take 10-60s on real solutions — too
+    # slow to pay on every edit. It's already the review gate's backend lint check
+    # (`dotnet format --verify-no-changes`), run once at the gate. When the
+    # solution configures CSharpier (.csharpierrc), use it here instead — it
+    # formats a single file directly, without evaluating the project. Otherwise
+    # fall back to `dotnet format whitespace`, which skips analyzer evaluation.
     if cfg .csharpierrc .csharpierrc.* ; then
       if dotnet csharpier format "$path" >/dev/null 2>&1; then
         echo "format hook: ran csharpier on $path" >&2
       else
         echo "format hook: csharpier configured but failed (is it restored? 'dotnet tool restore')" >&2
       fi
+    else
+      dotnet format whitespace --include "$path" >/dev/null 2>&1 || echo "format hook: dotnet format whitespace failed" >&2
     fi
     ;;
   web)
@@ -79,7 +82,7 @@ case "$lane" in
       js|jsx|ts|tsx|mjs|cjs|vue|svelte)
         { cfg .eslintrc .eslintrc.* eslint.config.* \
           || jq -e '.eslintConfig' package.json >/dev/null 2>&1; } \
-          && runfix eslint --fix "$path" ;;
+          && runfix eslint --fix --cache "$path" ;;
     esac
 
     # Stylelint — CSS/SCSS/LESS autofix.

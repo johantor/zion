@@ -18,12 +18,32 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 payload="$(cat)"
-if ! printf '%s' "$payload" | jq empty >/dev/null 2>&1; then
+# One jq call for both fields. jq's own exit status is the payload-validity
+# check (checked directly by `if !` below, not by inspecting $fields — a
+# failed jq still assigns $fields, typically to an empty string). jq only
+# computes the path for a lane agent (oracle/dozer/tank/trinity — neo has no
+# lane and everything else bails below anyway), so a non-lane session never
+# pays even for the field lookup. Fields are joined with a record-separator
+# byte and split on its first occurrence — safe here because agent_type (the
+# leading field) is a small, harness-controlled value that never contains it,
+# regardless of what path itself might contain.
+rs=$'\x1e'
+if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" '(.agent_type // "") as $at | $at + $rs + (if (["oracle","dozer","tank","trinity"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' 2>/dev/null)"; then
   echo "Blocked: lane-guard could not parse the hook payload." >&2
   exit 2
 fi
-agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty')"
-path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty')"
+agent_type="${fields%%"$rs"*}"
+path="${fields#*"$rs"}"
+
+# Bail before any further parsing for the common case: the main session, or
+# any agent with no lane. `neo` is the express-lane generalist — small changes
+# across any lane — so it has no lane restriction by design and bails here
+# rather than reaching the lane dispatch below. Kept in sync with that
+# dispatch's arms.
+case "$agent_type" in
+  oracle|dozer|tank|trinity) ;;
+  *) exit 0 ;;
+esac
 [ -z "$path" ] && exit 0
 
 # Read a Crew-configuration slot's value from CLAUDE.md (plain text after the bold
@@ -150,10 +170,6 @@ case "$agent_type" in
     # outside the frontend lane is still denied.
     [ -n "$frontend_lane" ] && confine="$(lane_globs "$frontend_lane")"
     ;;
-  # neo is the express-lane generalist — small changes across any lane — so it has
-  # no lane restriction by design. Explicit here (rather than falling through to the
-  # default) to document that all-lane access is intentional, not an oversight.
-  neo)     exit 0 ;;
   tank|trinity)
     backend_lane="$(config_slot 'Backend lane path(s)')"
     frontend_lane="$(config_slot 'Frontend lane path(s)')"

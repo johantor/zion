@@ -17,6 +17,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Skipped runs are reported in the gate summary with reason *lane untouched*,
   consistent with the other gates.
 
+## [3.1.3] - 2026-07-02
+
+### Changed
+- **`format.sh`'s per-edit dotnet formatting is lighter weight.** It used to run
+  full `dotnet format --include "$path"` (whitespace + style + **analyzer**
+  fixes) on every edited `.cs` file — evaluating analyzers against the
+  containing project, which can take 10-60s on real solutions. That full check
+  already runs once, at the review gate (`dotnet format --verify-no-changes`),
+  so paying it again per edit added little. Per edit now: CSharpier when the
+  solution configures it (`.csharpierrc`) — it formats a single file directly
+  without evaluating the project — otherwise `dotnet format whitespace`, which
+  skips analyzer evaluation.
+- **`eslint --fix` runs with `--cache`** in the web formatting lane, so repeated
+  edits in the same area reuse ESLint's cache instead of re-linting cold.
+
+## [3.1.2] - 2026-07-02
+
+### Changed
+- **`lane-guard.sh` and `bash-safety.sh` parse their hook payload in one `jq`
+  call instead of three.** Both hooks separately parsed for payload validity,
+  `agent_type`, and the relevant field (`path` / `command`) — three process
+  spawns on every matching tool call. Each field is now extracted in a single
+  `jq` call (whose own exit status doubles as the validity check), joined with
+  a record-separator byte and split in the shell.
+- **`lane-guard.sh` bails out immediately for the main session and any agent
+  without a lane**, before any config parsing, matching the existing default
+  arm of its lane dispatch.
+
 ## [3.1.1] - 2026-07-02
 
 ### Changed
@@ -24,9 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   regime (stacks unset, no lane paths configured), the guard used to re-scan the
   whole repo (`has_dotnet_backend` / `has_node_backend` / `has_frontend`, each a
   `find` walk) on **every** `tank`/`trinity` Edit/Write. It now runs that
-  detection once per session and caches the result (keyed by `session_id`,
-  falling back to cwd), since the underlying markers (project files, declared
-  dependencies) don't change mid-feature.
+  detection once per session and caches the result (keyed by `session_id`),
+  since the underlying markers (project files, declared dependencies) don't
+  change mid-feature. Only persisted when a `session_id` is present, so the
+  cache can't outlive the session it was written for.
 - **More directories pruned during marker detection.** The probes only pruned
   `node_modules`; they now also prune `.git`, `dist`, `bin`, `obj`, `coverage`,
   and `.next`, so a large `.git` history or build output no longer slows the
@@ -629,7 +658,9 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
-[3.1.4]: https://github.com/johantor/zion/compare/crew--v3.1.1...crew--v3.1.4
+[3.1.4]: https://github.com/johantor/zion/compare/crew--v3.1.3...crew--v3.1.4
+[3.1.3]: https://github.com/johantor/zion/compare/crew--v3.1.2...crew--v3.1.3
+[3.1.2]: https://github.com/johantor/zion/compare/crew--v3.1.1...crew--v3.1.2
 [3.1.1]: https://github.com/johantor/zion/compare/crew--v3.1.0...crew--v3.1.1
 [3.1.0]: https://github.com/johantor/zion/compare/crew--v3.0.0...crew--v3.1.0
 [3.0.0]: https://github.com/johantor/zion/compare/crew--v2.10.0...crew--v3.0.0

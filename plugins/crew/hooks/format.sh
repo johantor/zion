@@ -1,6 +1,9 @@
 #!/usr/bin/env bash
-# PostToolUse(Edit|Write) formatter, routed on `agent_type`: tank formats .NET,
-# trinity formats web. Other agents and the main session are no-ops.
+# PostToolUse(Edit|Write) formatter, gated to tank/trinity/neo (other agents and the
+# main session are no-ops). The formatter set is chosen by the **edited file's extension**,
+# not a fixed agent->lane table — so a Node-backend file tank edits still gets web
+# tooling, and a .cs/.csproj file gets dotnet/CSharpier regardless of which agent
+# produced it (a backend stack can be dotnet or node; lane != language).
 set -e
 
 # Fail open: formatting is best-effort, so a missing jq is a no-op, not an error.
@@ -10,18 +13,19 @@ payload="$(cat)"
 agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty' 2>/dev/null || true)"
 path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
 case "$agent_type" in
-  tank)    lane="dotnet" ;;
-  trinity) lane="web" ;;
-  # neo is cross-lane, so pick the formatter by the edited file's extension rather
-  # than a fixed per-agent lane. Anything unrecognized is a no-op.
-  neo)
-    case "${path##*.}" in
-      cs|csproj|cshtml)                              lane="dotnet" ;;
-      ts|tsx|jsx|js|mjs|cjs|json|jsonc|scss|css|sass|less|html) lane="web" ;;
-      *)                                             exit 0 ;;
-    esac
-    ;;
-  *)       exit 0 ;;
+  # neo is the cross-lane express-lane generalist, so it gets the same
+  # extension-based routing as tank/trinity (below) rather than a fixed lane.
+  tank|trinity|neo) : ;;
+  *)                exit 0 ;;
+esac
+# Extension-based routing needs a path to route on; without one there's nothing to format.
+[ -n "$path" ] || exit 0
+
+ext="${path##*.}"
+case "$ext" in
+  cs|csproj) lane="dotnet" ;;
+  js|jsx|ts|tsx|mjs|cjs|vue|svelte|css|scss|sass|less|json|jsonc|html|md|yaml|yml) lane="web" ;;
+  *) exit 0 ;;  # not a formatter-owned extension (e.g. .cshtml, .sh) -- nothing to do
 esac
 
 # True if any given path exists (config-file detection; unmatched globs pass
@@ -33,16 +37,12 @@ case "$lane" in
     command -v dotnet >/dev/null 2>&1 || exit 0  # fail open if dotnet isn't available
     # dotnet format applies whitespace + style + analyzer fixes from .editorconfig.
     # Scope to the changed file so we don't reformat the whole solution on every
-    # edit (slow on large repos); fall back to the project if the path is unknown.
-    if [ -n "$path" ]; then
-      dotnet format --include "$path" >/dev/null 2>&1 || echo "format hook: dotnet format failed" >&2
-    else
-      dotnet format >/dev/null 2>&1 || echo "format hook: dotnet format failed" >&2
-    fi
+    # edit (slow on large repos).
+    dotnet format --include "$path" >/dev/null 2>&1 || echo "format hook: dotnet format failed" >&2
     # CSharpier is a separate opinionated formatter that dotnet format does not run.
     # When the solution configures it (.csharpierrc), apply it too — best-effort:
     # if the tool isn't restored, report and move on rather than failing the edit.
-    if [ -n "$path" ] && cfg .csharpierrc .csharpierrc.* ; then
+    if cfg .csharpierrc .csharpierrc.* ; then
       if dotnet csharpier format "$path" >/dev/null 2>&1; then
         echo "format hook: ran csharpier on $path" >&2
       else
@@ -52,12 +52,10 @@ case "$lane" in
     ;;
   web)
     [ -f package.json ] || exit 0
-    [ -n "$path" ] || { echo "format hook: no file path; skipped" >&2; exit 0; }
     # Apply every formatter/linter the solution configures (not just the first
     # match): Biome, Prettier, ESLint, Stylelint. Detect each by its config,
     # run it in fix mode scoped to the changed file, and only invoke the tool if
     # it's installed locally — so a missing tool is a no-op, never an npx download.
-    ext="${path##*.}"
     bin="node_modules/.bin"
     ran=""
     # Run a locally-installed tool in fix mode; record it, report failures.

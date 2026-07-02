@@ -17,10 +17,14 @@ improvise a workaround, or guess at a fix.**
 Delegate with the worker's **namespaced** agent type — `crew:tank`, `crew:trinity`,
 `crew:oracle`, `crew:dozer`, `crew:seraph` (installed plugin agents are namespaced under
 the plugin; the bare names do not resolve). Use workers as follows:
-- `crew:tank`: backend implementation (C#/.NET/Optimizely, Razor server-side)
-- `crew:trinity`: frontend implementation (React/Redux/JS/HTML/SCSS, plus Razor markup in server-rendered mode)
-- `crew:oracle`: backend tests only
-- `crew:dozer`: frontend e2e tests only
+- `crew:tank`: backend implementation for the resolved backend stack (server-side logic,
+  controllers/handlers, data access — plus the server-side of any shared server template
+  in server-rendered mode)
+- `crew:trinity`: frontend implementation for the resolved frontend stack (client/
+  presentation layer — plus the markup/DOM of any shared server template in server-rendered
+  mode)
+- `crew:oracle`: backend tests; also frontend component/unit tests when a frontend unit test tool is resolved
+- `crew:dozer`: frontend e2e tests only, for the resolved frontend e2e tool
 - `crew:seraph`: visual design conformance checks
 - `crew:neo`: express-lane generalist for **small** changes — see *Right-size the process* below
 
@@ -52,8 +56,8 @@ specialists — the express lane is faster, not sloppier.
 ## Frontend mode
 
 The crew needs to know the project's frontend mode — `headless` or `server-rendered` —
-to load the right conventions and to scope `trinity`'s Razor access. Resolve it in this
-order, once per project, before delegating any frontend work:
+to load the right conventions and to scope `trinity`'s access to any shared server template.
+Resolve it in this order, once per project, before delegating any frontend work:
 
 1. If `CLAUDE.md` crew configuration pins a frontend mode, use that (explicit override).
 2. Otherwise check your local memory for a saved `frontend-mode` for this project.
@@ -61,6 +65,68 @@ order, once per project, before delegating any frontend work:
    memory so you don't ask again.
 
 Pass the resolved mode in every frontend delegation. Do not guess or default silently.
+
+## Backend and frontend stack
+
+The crew also needs to know the resolved **backend stack** (`dotnet` or `node`) and
+**frontend stack** (`react` or `nextjs`) — orthogonal to frontend *mode* above; a Next.js
+frontend is headless in crew's mode vocabulary even though it renders on the server, since
+the frontend still talks to the CMS/API as a separate concern from any shared server
+template. Resolve each, once per project, before delegating any implementation work:
+
+1. If `CLAUDE.md` crew configuration pins a stack, use that (explicit override).
+2. Otherwise check your local memory for a saved `backend-stack`/`frontend-stack` for this
+   project.
+3. Otherwise detect from marker files and **confirm with the user** rather than assuming:
+   - Backend: a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
+     dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`.
+   - Frontend: a `next.config.*` → `nextjs`; a React/Vite SPA build with no `next.config.*`
+     → `react`.
+   Save the confirmed answer to your memory so you don't ask again.
+
+Pass the resolved stack in every implementation and test delegation (so the worker loads the matching
+stack skill — e.g. `backend-dotnet`, `frontend-nextjs`, `tests-node`). Do not guess or default silently.
+
+## Frontend e2e tool
+
+The crew also needs to know the resolved **frontend e2e tool** (`cypress` or `playwright`) —
+so `dozer` loads the right e2e skill. Resolve it, once per project, before delegating any e2e
+work:
+
+1. If `CLAUDE.md` crew configuration pins a frontend e2e tool, use that (explicit override).
+2. Otherwise check your local memory for a saved `frontend-e2e-tool` for this project.
+3. Otherwise detect from marker files and **confirm with the user** rather than assuming:
+   - `cypress.config.*` present (or a `cypress/` directory) → `cypress`.
+   - `playwright.config.*` present → `playwright`.
+   Save the confirmed answer to your memory so you don't ask again.
+
+Pass the resolved e2e tool in every `dozer` delegation (so dozer loads the matching e2e skill —
+e.g. `tests-cypress`, `tests-playwright`). Do not guess or default silently.
+
+## Frontend unit test tool
+
+When the project uses frontend component/unit tests, the crew also needs to know the
+**frontend unit test tool** (`vitest`, `jest`, or `cypress`) — so `oracle` loads the right
+skill when delegated frontend component tests. Resolve it, once per project, before delegating
+any frontend unit test work:
+
+1. If `CLAUDE.md` crew configuration pins a frontend unit test tool, use that (explicit
+   override).
+2. Otherwise check your local memory for a saved `frontend-unit-test-tool` for this project.
+3. Otherwise detect from marker files and **confirm with the user** rather than assuming:
+   - `vitest.config.*` present → `vitest`.
+   - `jest.config.*` present, or a `jest` key in `package.json`, with no `vitest.config.*` →
+     `jest`.
+   - `cypress.config.*` present with a `component` key (Cypress Component Testing configured),
+     and no `vitest.config.*` or `jest.config.*` → `cypress`.
+   - None of the above → the project may have no frontend unit tests; leave unset rather than
+     guessing.
+   Save the confirmed answer to your memory so you don't ask again.
+
+Pass the resolved frontend unit test tool in every `oracle` delegation that covers frontend
+component/unit tests (alongside the backend stack, so oracle loads both skills). If a project
+has no frontend unit test tool configured, omit it from the `oracle` delegation — oracle will
+scope itself to backend tests only. Do not guess or default silently.
 
 ## Branching and commits
 
@@ -88,7 +154,8 @@ else `.claude/` — resolved `CLAUDE.md` crew config → local memory → `.clau
 read and write all plans there.
 
 Standard flow (each phase detailed in its own section below):
-1. **Explore and plan.** Resolve frontend mode and base branch/naming (above). When the task names
+1. **Explore and plan.** Resolve frontend mode, backend/frontend stack, and base branch/naming
+   (above). When the task names
    a tracked ticket and an issue-tracker MCP (Jira/Atlassian, Linear) is present, pull it for the
    source brief; for a bug tied to a monitored error, pull stack/breadcrumb context from a Sentry
    MCP. Apply `context-discipline` (fetch the specific item, not a dump). Write the plan to
@@ -253,7 +320,7 @@ It's the per-worker view the live agent panel loses on resume; don't restate `/r
 
 Anti-drift rules:
 1. Maintain a written plan in `<plan-dir>/plan-<feature>.md` and cite the exact step in every delegation. Use the parseable schema from *The plan file is durable state* (header + per-step `id`/`status`/`depends-on`/`acceptance`/`worker`/`evidence`) so the run is resumable and every unblocked step is dispatchable at a glance.
-2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
+2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` crew-config values, the resolved backend/frontend stack and frontend mode (for frontend work), the design reference (Figma link/node when one applies — `trinity`/`seraph` read it via a Figma MCP), explicit out-of-scope notes, and the **exact file paths to touch plus the relevant snippets/contracts you already found while planning** — so the worker starts working instead of re-exploring the repo.
    Require `context-discipline` behavior in each worker handoff: process bulk output with code and return only concise findings.
 3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
 4. Treat test/design failures and “improvements noticed” as drift signals; fold them back into the plan deliberately. When you route a fix back to the implementer and then re-delegate to `crew:oracle`/`crew:dozer` to confirm it, name the exact previously-failing test(s)/spec(s) in that delegation so the worker can re-run just those — not the full suite — per its own targeted-rerun rule. Re-running the full suite is the final review gate's job, not every fix's.

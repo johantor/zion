@@ -22,6 +22,12 @@ means — reconcile fills any of these that are missing:
   resolve it per project.
 - **Frontend stack** — `react` or `nextjs`. Optional/pin-only; leave unset to let `morpheus`
   resolve it per project.
+- **Backend lane path(s)** — one or more path prefixes (comma-separated), e.g. `apps/api/`.
+  Only meaningful when backend and frontend stacks are the same language (e.g. Node backend +
+  Next.js frontend) — `lane-guard.sh` can't tell `tank`'s and `trinity`'s files apart by
+  extension in that case and falls back to these paths. Leave unset otherwise.
+- **Frontend lane path(s)** — one or more path prefixes (comma-separated), e.g. `apps/web/`.
+  Same same-language caveat as Backend lane path(s).
 - **Backend test command** — e.g. `dotnet test`.
 - **Frontend test command** — the e2e suite (e.g. `npx playwright test`).
 - **Backend build command** — e.g. `dotnet build`.
@@ -59,6 +65,11 @@ trust or correct it; never invent a command you can't see configured.
   absent, leave unset for `morpheus` to resolve.
 - **Frontend stack:** a `next.config.*` → `nextjs`; a React/Vite SPA build with no
   `next.config.*` → `react`. If ambiguous or absent, leave unset for `morpheus` to resolve.
+- **Backend lane path(s) / Frontend lane path(s):** never auto-detect — workspace boundaries
+  (which directory is the backend app vs. the frontend app) aren't reliably inferable from
+  marker files alone. Only propose these when the detected backend and frontend stacks are
+  the same language (e.g. Node + Next.js) — ask the user for the paths rather than guessing;
+  otherwise leave unset.
 - **Run/dev URL, branch naming, notable conventions:** propose from dev scripts /
   `launchSettings.json` / existing branch names where visible; otherwise leave unset.
 - **Plan directory:** only propose a value if the repo has an obvious plans convention (an

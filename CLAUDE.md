@@ -23,6 +23,9 @@ Keep them accurate; update them if this repo ever gains app code.
   choice; otherwise `morpheus` resolves it per project. This repo has no backend.
 - **Frontend stack:** *unset* — optional here. Pin it (`react` or `nextjs`) only to force a
   choice; otherwise `morpheus` resolves it per project. This repo has no frontend.
+- **Backend lane path(s):** *unset* — only meaningful when backend/frontend stacks are the
+  same language. This repo has no backend.
+- **Frontend lane path(s):** *unset* — same same-language caveat. This repo has no frontend.
 - **Backend test command:** none (no backend test project detected)
 - **Frontend test command:** none (no frontend e2e suite detected)
 - **Backend build command:** none (no build manifest detected) — e.g. `dotnet build`.

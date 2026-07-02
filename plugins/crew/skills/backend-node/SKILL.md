@@ -13,6 +13,15 @@ In a SaaS-headless project shape, the "backend" may be thin — a BFF layer or a
 routes wrapping Graph queries. Don't invent backend surface area the project doesn't have; a
 thin backend is a valid shape, not a gap to fill.
 
+## Route-handler ownership (Next.js frontend)
+
+When the frontend stack is Next.js, its route handlers (`app/**/route.ts`) physically live
+inside the frontend app directory but are **your lane by concern** — the same way Razor's
+`@functions`/`@code` blocks are yours inside a `.cshtml` file trinity otherwise owns the
+markup of. Implement route-handler business logic there rather than leaving it to trinity;
+coordinate the markup/data contract instead of avoiding the file. `lane-guard.sh` exempts
+these paths from your directory-based deny for this reason.
+
 ## Build
 
 Use the one-shot backend build command from `CLAUDE.md`, never a watch/dev command

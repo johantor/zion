@@ -1,6 +1,6 @@
 ---
 name: frontend-server-rendered
-description: Conventions for server-rendered frontends — a server template/component renders the page shell, with a client-side framework layered in as islands/widgets rather than a full SPA. Covers Razor (.NET/Optimizely), Blade (Laravel), and RSC (Next.js). Load when the repo's frontend mode is "server-rendered".
+description: Conventions for server-rendered frontends — a server template renders the page shell, with a client-side framework layered in as islands/widgets rather than a full SPA. Covers Razor (.NET/Optimizely) and Blade (Laravel). Next.js/RSC is not covered here — crew's mode vocabulary treats Next.js as headless (see frontend-nextjs) even though it server-renders. Load when the repo's frontend mode is "server-rendered".
 ---
 
 # Server-rendered frontend conventions
@@ -32,11 +32,3 @@ build pipeline per repo conventions.
 
 Render through Blade components/layouts (`@component`, `@include`), not hardcoded markup;
 keep business logic in controllers/view models, not `.blade.php` files.
-
-## RSC (Next.js)
-
-A Server Component renders the page shell and fetches data server-side; a Client Component
-(`"use client"`) is the island for interactivity. Framework and data-fetching conventions
-live in `frontend-nextjs` — this section covers only the markup/ownership split, which
-mirrors Razor's: the JSX/markup is the frontend agent's, server-only data logic is the
-backend agent's.

@@ -110,6 +110,7 @@ acceptance: |
 ### wp5 — Generalize frontend-server-rendered
 id: wp5
 status: done
+evidence: d05af77
 depends-on: wp1 (soft — sequencing choice for a coherent diff, not a hard requirement;
   could run parallel to wp1 if desired)
 worker: self
@@ -123,7 +124,7 @@ acceptance: |
 
 ### wp3 — Lane boundaries that survive same-language stacks
 id: wp3
-status: pending
+status: done
 depends-on: wp2
 worker: self
 acceptance: |

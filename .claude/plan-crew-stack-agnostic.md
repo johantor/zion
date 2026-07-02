@@ -36,14 +36,18 @@ status: pending
 depends-on: independent
 worker: self (no installed crew/tank subagents in this session — see note below)
 acceptance: |
-  - New skills exist: `backend-dotnet`, `backend-node`, `frontend-react`, `frontend-nextjs`,
-    `tests-xunit`, `tests-vitest` — each under the correct plugin's `skills/<name>/SKILL.md`.
+  - New skills exist, all under `plugins/crew/skills/<name>/SKILL.md`: `backend-dotnet`,
+    `backend-node`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`.
   - `backend-dotnet` / `frontend-react` / `tests-xunit` carry today's tank/trinity/oracle
     content verbatim (relocated, not rewritten) so existing .NET+React behavior is unchanged.
-  - `backend-node`, `frontend-nextjs`, `tests-vitest` are new, scoped per the issue's WP1
-    notes (Node: NestJS/Express/Fastify + Graph client + npm/pnpm workspaces, thin-BFF
-    caveat; Next.js: App Router, RSC server/client split, Graph data fetching, route-handler
-    vs BFF boundary; vitest: Vitest/Jest conventions).
+  - `backend-node`, `frontend-nextjs` are new, scoped per the issue's WP1 notes (Node:
+    NestJS/Express/Fastify + Graph client + npm/pnpm workspaces, thin-BFF caveat; Next.js:
+    App Router, RSC server/client split, Graph data fetching, route-handler vs BFF boundary).
+  - `tests-node` is new and **framework-detected, not hard-coded** — mirrors
+    `debt-taxonomy-typescript`'s package-manager table (npm/yarn/pnpm rows keyed by
+    lockfile): a `vitest.config.*` marker → Vitest conventions, a `jest.config.*` marker →
+    Jest conventions, same skill, one detection row each. Avoids picking one framework
+    arbitrarily where the issue itself left it open.
   - `tank.md`/`trinity.md`/`oracle.md` become role-only: scope, lane rules, git/build-gate
     discipline, `engineering-principles`/`context-discipline` — no stack-specific nouns in
     the body; each gains a `skills:` list including its stack skills (loaded per resolved
@@ -61,8 +65,14 @@ acceptance: |
     ladder: marker-file detection (`*.csproj`/`*.sln`→dotnet, `next.config.*`→nextjs,
     `package.json` + server-framework deps/workspace layout→node) → confirm with user →
     save to local memory; `CLAUDE.md` pin takes precedence when set.
-  - New `CLAUDE.md` crew-config slots: **Backend stack**, **Frontend stack** (documented in
-    `CLAUDE.md`'s template alongside the existing Frontend mode slot).
+  - New `CLAUDE.md` crew-config slots: **Backend stack**, **Frontend stack**.
+  - `plugins/crew/commands/init.md` updated to match: added to §1's canonical slot list, and
+    §2 gains detection rows (`*.csproj`/`*.sln` → dotnet backend; `next.config.*` → nextjs
+    frontend; `package.json` with a server-framework dep and no SPA bundle config → node
+    backend; existing React/Vite SPA detection → react frontend) — same idempotent-reconcile
+    behavior as every other slot, not just an ask-and-remember-only slot.
+  - This repo's own root `CLAUDE.md` **Crew configuration** section (the self-documented
+    example block) gets the two new slots added alongside the existing ones.
   - Every delegation in morpheus's standard flow explicitly names the resolved stack (so
     the worker loads the right stack skill) — morpheus never delegates without one resolved.
   - Next.js is explicitly headless in crew's *mode* vocabulary even though it server-renders
@@ -84,7 +94,8 @@ acceptance: |
 ### wp5 — Generalize frontend-server-rendered
 id: wp5
 status: pending
-depends-on: wp1
+depends-on: wp1 (soft — sequencing choice for a coherent diff, not a hard requirement;
+  could run parallel to wp1 if desired)
 worker: self
 acceptance: |
   - `frontend-server-rendered` skill is reframed from Razor-specific to "server templates /
@@ -111,6 +122,11 @@ acceptance: |
   - The Next.js RSC/route-handler concern-split rule (assumption 2 above) is written into
     `tank`'s and `trinity`'s `frontend-nextjs`/Node-stack skill guidance.
   - Existing dotnet+react lane behavior is unchanged (regression check).
+  - `plugins/crew/commands/init.md` updated: §1 gains **Backend lane path(s)** / **Frontend
+    lane path(s)** (optional; only meaningful for same-language stack pairs), §2 documents
+    that these are user-supplied (not auto-detected — the hook can't infer workspace
+    boundaries reliably, per the issue's own reasoning). Root `CLAUDE.md` gets the two slots
+    added alongside the stack slots from wp2.
 
 ### wp6 — Docs and release
 id: wp6
@@ -119,8 +135,8 @@ depends-on: wp1, wp2, wp3, wp4, wp5
 worker: self
 acceptance: |
   - `AGENTS.md`, `plugins/crew/README.md`, root `README.md`, and `.github/copilot-instructions.md`
-    updated to describe the stack-agnostic architecture (new skills, new `CLAUDE.md` slots,
-    two lane regimes).
+    updated to describe the stack-agnostic architecture (new skills, the four new `CLAUDE.md`
+    slots and their `init.md` detection — already landed in wp2/wp3 — two lane regimes).
   - `plugins/crew/CHANGELOG.md` (root `CHANGELOG.md`) gets an entry; `plugins/crew/.claude-plugin/plugin.json`
     version bumped to **3.0.0** (major — lane semantics and agent descriptions change, per
     the issue's own call).

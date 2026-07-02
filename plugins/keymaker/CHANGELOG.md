@@ -5,6 +5,18 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2026-07-02
+
+### Changed
+- **Trim `/keymaker:audit` and `/keymaker:open` for token cost, behavior-neutral.** Both
+  commands restated `keymaker`'s own audit-mode/open-mode flow — scope validation, exit
+  contract, enumeration, classification, gating, delegation — almost step-for-step in the
+  task prompt, even though `agents/keymaker.md`'s system prompt already carries the full flow
+  unconditionally. Paid on every `/keymaker:audit` and `/keymaker:open` call; now each command
+  states only its mode and argument and points back to `keymaker`'s own flow. The audit
+  command's post-return interactive-pick logic (unique to the command, not duplicated in the
+  agent) is unchanged.
+
 ## [0.4.0] - 2026-06-16
 
 ### Added

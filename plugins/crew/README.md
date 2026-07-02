@@ -36,7 +36,7 @@ the feature. Use this when you want the crew on tap inside an ordinary session.
 `morpheus` **right-sizes the process to the task**. Small, low-risk work (a typo, a rename, an
 obvious one-liner, a small localized bug) takes an **express lane**: it delegates to `neo`, the
 all-lane generalist, and skips the plan, the checkpoint, and the full gate — just a quick
-read-only self-review, then commit. Features and anything risky, multi-lane, or needing new
+read-only self-review plus any single directly-relevant test, then commit. Features and anything risky, multi-lane, or needing new
 tests take the full flow through the specialists, and it escalates express → full the moment a
 small task proves bigger.
 

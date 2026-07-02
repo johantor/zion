@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   grants `neo` all lanes by design; `format` picks .NET or web formatting by the edited file's
   extension.
 
-
+## [2.9.0] - 2026-07-02
 
 ### Added
 - **Fix-verify loops rerun only the affected tests, not the full suite.** Previously, once

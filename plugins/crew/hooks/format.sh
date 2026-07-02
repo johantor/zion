@@ -17,7 +17,7 @@ case "$agent_type" in
   neo)
     case "${path##*.}" in
       cs|csproj|cshtml)                              lane="dotnet" ;;
-      ts|tsx|jsx|js|mjs|cjs|scss|css|sass|less|html) lane="web" ;;
+      ts|tsx|jsx|js|mjs|cjs|json|jsonc|scss|css|sass|less|html) lane="web" ;;
       *)                                             exit 0 ;;
     esac
     ;;

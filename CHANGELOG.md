@@ -5,6 +5,21 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.3] - 2026-07-02
+
+### Changed
+- **`format.sh`'s per-edit dotnet formatting is lighter weight.** It used to run
+  full `dotnet format --include "$path"` (whitespace + style + **analyzer**
+  fixes) on every edited `.cs` file — evaluating analyzers against the
+  containing project, which can take 10-60s on real solutions. That full check
+  already runs once, at the review gate (`dotnet format --verify-no-changes`),
+  so paying it again per edit added little. Per edit now: CSharpier when the
+  solution configures it (`.csharpierrc`) — it formats a single file directly
+  without evaluating the project — otherwise `dotnet format whitespace`, which
+  skips analyzer evaluation.
+- **`eslint --fix` runs with `--cache`** in the web formatting lane, so repeated
+  edits in the same area reuse ESLint's cache instead of re-linting cold.
+
 ## [3.1.0] - 2026-07-02
 
 ### Added

@@ -47,7 +47,7 @@ lane_globs() {
 exempt=""
 case "$agent_type" in
   oracle) mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/**' ;;
-  dozer)  mode="--allow"; patterns='cypress/** e2e/** **/*.cy.*' ;;
+  dozer)  mode="--allow"; patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
   tank|trinity)
     backend_lane="$(config_slot 'Backend lane path(s)')"
     frontend_lane="$(config_slot 'Frontend lane path(s)')"

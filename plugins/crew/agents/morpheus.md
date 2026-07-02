@@ -24,7 +24,7 @@ the plugin; the bare names do not resolve). Use workers as follows:
   presentation layer — plus the markup/DOM of any shared server template in server-rendered
   mode)
 - `crew:oracle`: backend tests only
-- `crew:dozer`: frontend e2e tests only
+- `crew:dozer`: frontend e2e tests only, for the resolved frontend e2e tool
 - `crew:seraph`: visual design conformance checks
 
 ## Frontend mode
@@ -60,6 +60,22 @@ template. Resolve each, once per project, before delegating any implementation w
 
 Pass the resolved stack in every implementation and test delegation (so the worker loads the matching
 stack skill — e.g. `backend-dotnet`, `frontend-nextjs`, `tests-node`). Do not guess or default silently.
+
+## Frontend e2e tool
+
+The crew also needs to know the resolved **frontend e2e tool** (`cypress` or `playwright`) —
+so `dozer` loads the right e2e skill. Resolve it, once per project, before delegating any e2e
+work:
+
+1. If `CLAUDE.md` crew configuration pins a frontend e2e tool, use that (explicit override).
+2. Otherwise check your local memory for a saved `frontend-e2e-tool` for this project.
+3. Otherwise detect from marker files and **confirm with the user** rather than assuming:
+   - `cypress.config.*` present (or a `cypress/` directory) → `cypress`.
+   - `playwright.config.*` present → `playwright`.
+   Save the confirmed answer to your memory so you don't ask again.
+
+Pass the resolved e2e tool in every `dozer` delegation (so dozer loads the matching e2e skill —
+e.g. `tests-cypress`, `tests-playwright`). Do not guess or default silently.
 
 ## Branching and commits
 

@@ -22,6 +22,8 @@ means — reconcile fills any of these that are missing:
   resolve it per project.
 - **Frontend stack** — `react` or `nextjs`. Optional/pin-only; leave unset to let `morpheus`
   resolve it per project.
+- **Frontend e2e tool** — `cypress` or `playwright`. Optional/pin-only; leave unset to let
+  `morpheus` resolve it per project.
 - **Backend lane path(s)** — one or more path prefixes (comma-separated), e.g. `apps/api/`.
   Only meaningful when backend and frontend stacks are the same language (e.g. Node backend +
   Next.js frontend) — `lane-guard.sh` can't tell `tank`'s and `trinity`'s files apart by
@@ -65,6 +67,9 @@ trust or correct it; never invent a command you can't see configured.
   absent, leave unset for `morpheus` to resolve.
 - **Frontend stack:** a `next.config.*` → `nextjs`; a React/Vite SPA build with no
   `next.config.*` → `react`. If ambiguous or absent, leave unset for `morpheus` to resolve.
+- **Frontend e2e tool:** a `cypress.config.*` (or a `cypress/` directory) → `cypress`; a
+  `playwright.config.*` → `playwright`. If ambiguous or absent, leave unset for `morpheus` to
+  resolve.
 - **Backend lane path(s) / Frontend lane path(s):** never auto-detect — workspace boundaries
   (which directory is the backend app vs. the frontend app) aren't reliably inferable from
   marker files alone. Only propose these when the detected backend and frontend stacks are

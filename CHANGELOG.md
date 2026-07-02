@@ -5,6 +5,22 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.5] - 2026-07-02
+
+### Changed
+- **`morpheus.md` trimmed from ~27 KB to ~22 KB (~19%), by consolidating repeated content.**
+  The resolution ladder ("`CLAUDE.md` pin → local memory → detect/ask, then remember, then
+  pass in the delegation") was restated nearly verbatim across five separate sections —
+  frontend mode, backend/frontend stack, frontend e2e tool, frontend unit test tool, and base
+  branch/branch-naming. It's now stated once in a new **Resolving crew configuration** section,
+  with a compact table (slot · values · detection markers · consuming worker/skill) replacing
+  the five prose sections. No slot's values, detection markers, confirm-vs-assume rules, or
+  "pass the resolved value in every delegation" requirement were dropped — the anti-drift
+  rule's plan-schema restatement was also trimmed to a pointer at *The plan file is durable
+  state*, and several other verbose sections were tightened without losing distinct rules.
+  This is loaded as `morpheus`'s system prompt on every orchestration session (up to
+  `maxTurns: 80`), so the savings apply per session, not once.
+
 ## [3.1.4] - 2026-07-02
 
 ### Changed
@@ -658,6 +674,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[3.1.5]: https://github.com/johantor/zion/compare/crew--v3.1.4...crew--v3.1.5
 [3.1.4]: https://github.com/johantor/zion/compare/crew--v3.1.3...crew--v3.1.4
 [3.1.3]: https://github.com/johantor/zion/compare/crew--v3.1.2...crew--v3.1.3
 [3.1.2]: https://github.com/johantor/zion/compare/crew--v3.1.1...crew--v3.1.2

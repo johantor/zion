@@ -42,13 +42,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Why a major bump: agent descriptions and `lane-guard.sh`'s enforcement semantics change
     — a project relying on the old fixed `tank`=.NET/`trinity`=React assumption should
     re-check its `CLAUDE.md` crew configuration after upgrading (`/crew:init` reconciles it).
-  - `dozer` is now also role-only and e2e-tool-agnostic: stack knowledge moved to per-tool
+  - `dozer` is now also role-only and e2e-tool-agnostic: tool knowledge moved to per-tool
     skills `tests-cypress` (Cypress conventions, extracted from `dozer`'s implicit knowledge)
     and `tests-playwright` (new, Playwright conventions). `morpheus` resolves the **Frontend
     e2e tool** (`cypress` or `playwright`) the same way it resolves the backend/frontend stack,
     names it in every `dozer` delegation, and `/crew:init` detects and writes the new slot.
-    `lane-guard.sh` gains Playwright e2e paths (`tests/**`, `playwright/**`) alongside the
-    existing Cypress paths. (Closes #82.)
+  - `oracle` is extended from backend-only to all unit test authoring: when `morpheus` also
+    resolves a **Frontend unit test tool** (`vitest` or `jest`), it passes it in the `oracle`
+    delegation so oracle additionally loads the matching skill (`tests-vitest`) and covers
+    frontend component tests. A project can therefore use multiple test tools simultaneously
+    (e.g. Playwright e2e + Vitest component tests) — `dozer` handles e2e, `oracle` handles
+    unit/component. `/crew:init` detects and writes the new slot. `lane-guard.sh` broadens
+    oracle's allowlist to include co-located component test file patterns (`**/*.test.*`,
+    `**/*.spec.*`, `**/__tests__/**`). (Closes #82.)
   - `seraph` is unchanged (already tool-neutral via whichever browser-automation MCP is
     configured). keymaker is unaffected (already stack-agnostic by its own design). (Closes
     #46.)

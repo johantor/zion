@@ -23,7 +23,7 @@ the plugin; the bare names do not resolve). Use workers as follows:
 - `crew:trinity`: frontend implementation for the resolved frontend stack (client/
   presentation layer — plus the markup/DOM of any shared server template in server-rendered
   mode)
-- `crew:oracle`: backend tests only
+- `crew:oracle`: backend tests; also frontend component/unit tests when a frontend unit test tool is resolved
 - `crew:dozer`: frontend e2e tests only, for the resolved frontend e2e tool
 - `crew:seraph`: visual design conformance checks
 
@@ -76,6 +76,29 @@ work:
 
 Pass the resolved e2e tool in every `dozer` delegation (so dozer loads the matching e2e skill —
 e.g. `tests-cypress`, `tests-playwright`). Do not guess or default silently.
+
+## Frontend unit test tool
+
+When the project uses frontend component/unit tests, the crew also needs to know the
+**frontend unit test tool** (`vitest` or `jest`) — so `oracle` loads the right skill when
+delegated frontend component tests. Resolve it, once per project, before delegating any
+frontend unit test work:
+
+1. If `CLAUDE.md` crew configuration pins a frontend unit test tool, use that (explicit
+   override).
+2. Otherwise check your local memory for a saved `frontend-unit-test-tool` for this project.
+3. Otherwise detect from marker files and **confirm with the user** rather than assuming:
+   - `vitest.config.*` present → `vitest`.
+   - `jest.config.*` present, or a `jest` key in `package.json`, with no `vitest.config.*` →
+     `jest`.
+   - Neither present → the project may have no frontend unit tests; leave unset rather than
+     guessing.
+   Save the confirmed answer to your memory so you don't ask again.
+
+Pass the resolved frontend unit test tool in every `oracle` delegation that covers frontend
+component/unit tests (alongside the backend stack, so oracle loads both skills). If a project
+has no frontend unit test tool configured, omit it from the `oracle` delegation — oracle will
+scope itself to backend tests only. Do not guess or default silently.
 
 ## Branching and commits
 

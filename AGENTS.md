@@ -24,8 +24,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     `frontend-headless`, `frontend-server-rendered`; per-stack (loaded dynamically once
     `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
     `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`;
-    per-e2e-tool (loaded by `dozer` once `morpheus` resolves the e2e tool): `tests-cypress`,
-    `tests-playwright`.
+    per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
+    test-tool (loaded by `oracle` for component tests): `tests-vitest`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
   - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
 - `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:
@@ -45,14 +45,16 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   pushing and opening a PR is the separate `/crew:pr` command.
 - Worker lanes are stack-agnostic: `tank` = backend implementer for the resolved backend
   stack, `trinity` = frontend implementer for the resolved frontend stack (plus a shared
-  server template's markup in server-rendered mode), `oracle` = backend tests only, `dozer`
-  = frontend e2e only (for the resolved e2e tool), `seraph` = visual design conformance
-  (read-only). Stack knowledge lives in per-stack skills, loaded once `morpheus` resolves the
-  project's stack (`CLAUDE.md`'s **Backend stack**/**Frontend stack** slots). E2e tool
-  knowledge lives in per-tool skills, loaded once `morpheus` resolves the e2e tool
-  (`CLAUDE.md`'s **Frontend e2e tool** slot). `lane-guard.sh` enforces the write lane by file
-  extension for disjoint-language stacks (e.g. dotnet+react), or by configured directory paths
-  (**Backend/Frontend lane path(s)**) when both stacks are the same language (e.g. node+nextjs).
+  server template's markup in server-rendered mode), `oracle` = all unit test authoring
+  (backend tests + frontend component tests when a frontend unit test tool is configured),
+  `dozer` = frontend e2e only (for the resolved e2e tool), `seraph` = visual design
+  conformance (read-only). Stack knowledge lives in per-stack skills, loaded once `morpheus`
+  resolves the project's stack (`CLAUDE.md`'s **Backend stack**/**Frontend stack** slots).
+  E2e tool knowledge lives in per-tool skills (`Frontend e2e tool` slot); frontend unit test
+  tool knowledge lives in its own per-tool skills (`Frontend unit test tool` slot). `lane-
+  guard.sh` enforces the write lane by file extension for disjoint-language stacks (e.g.
+  dotnet+react), or by configured directory paths (**Backend/Frontend lane path(s)**) when
+  both stacks are the same language (e.g. node+nextjs).
 - All workers apply `context-discipline`: process bulk output with code, return only concise findings.
 
 The crew's runtime configuration (test/build/lint commands, base branch, frontend mode) lives

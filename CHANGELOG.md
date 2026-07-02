@@ -5,6 +5,21 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.1] - 2026-07-02
+
+### Changed
+- **`lane-guard.sh` caches marker detection per session.** In the same-language
+  regime (stacks unset, no lane paths configured), the guard used to re-scan the
+  whole repo (`has_dotnet_backend` / `has_node_backend` / `has_frontend`, each a
+  `find` walk) on **every** `tank`/`trinity` Edit/Write. It now runs that
+  detection once per session and caches the result (keyed by `session_id`,
+  falling back to cwd), since the underlying markers (project files, declared
+  dependencies) don't change mid-feature.
+- **More directories pruned during marker detection.** The probes only pruned
+  `node_modules`; they now also prune `.git`, `dist`, `bin`, `obj`, `coverage`,
+  and `.next`, so a large `.git` history or build output no longer slows the
+  scan (or false-positives on stale build artifacts).
+
 ## [3.1.0] - 2026-07-02
 
 ### Added

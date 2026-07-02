@@ -62,28 +62,49 @@ lane_globs() {
 # languages (a .NET backend's `.cs` vs a web frontend's `.ts`); a Node backend
 # makes extensions ambiguous because tank's own source is `.ts`/`.js` too. These
 # probes let the guard recognize that case from the repo instead of silently
-# applying the wrong regime. All are cheap and short-circuit; node_modules is
-# pruned so a large tree doesn't slow the hook.
+# applying the wrong regime. All are cheap and short-circuit; common non-source
+# directories are pruned so a large tree doesn't slow the hook.
+prune_args=(-type d \( -name node_modules -o -name .git -o -name dist -o -name bin -o -name obj -o -name coverage -o -name .next \) -prune -o)
 has_dotnet_backend() {
-  find . -type d -name node_modules -prune -o \
-         \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
+  find . "${prune_args[@]}" \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
 }
 has_node_backend() {
   # Scan every package.json (not just the repo root) so a workspace/monorepo
   # backend under e.g. apps/api/package.json is still detected.
   while IFS= read -r pj; do
     grep -Eq '"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core)"[[:space:]]*:' "$pj" && return 0
-  done < <(find . -type d -name node_modules -prune -o -name package.json -print 2>/dev/null)
+  done < <(find . "${prune_args[@]}" -name package.json -print 2>/dev/null)
   return 1
 }
 has_frontend() {
   # Same workspace-aware scan for a frontend dep in any package.json...
   while IFS= read -r pj; do
     grep -Eq '"(react|react-dom|next|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro)"[[:space:]]*:' "$pj" && return 0
-  done < <(find . -type d -name node_modules -prune -o -name package.json -print 2>/dev/null)
+  done < <(find . "${prune_args[@]}" -name package.json -print 2>/dev/null)
   # ...or any JSX/TSX file anywhere in the tree.
-  find . -type d -name node_modules -prune -o \
-         \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .
+  find . "${prune_args[@]}" \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .
+}
+
+# Cache the three marker-detection results for the life of the session so a
+# same-language regime with unset stacks scans the repo at most once, not on
+# every Edit/Write (has_dotnet_backend/has_node_backend/has_frontend each walk
+# the tree). Keyed by session_id (falls back to cwd if the harness omits it);
+# a stale cache only lives as long as the session, and the markers it caches
+# (project files, package.json deps) don't change mid-feature.
+detect_regime() {
+  local cache session_id
+  session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"
+  cache="${TMPDIR:-/tmp}/claude-lane-guard-detect-$(printf '%s' "${session_id:-$PWD}" | tr -c 'A-Za-z0-9_' '_')"
+  if [ -f "$cache" ]; then
+    { IFS= read -r _det_dotnet; IFS= read -r _det_node; IFS= read -r _det_frontend; } < "$cache"
+    if [ -n "$_det_dotnet" ] && [ -n "$_det_node" ] && [ -n "$_det_frontend" ]; then
+      return 0
+    fi
+  fi
+  has_dotnet_backend && _det_dotnet=1 || _det_dotnet=0
+  has_node_backend && _det_node=1 || _det_node=0
+  has_frontend && _det_frontend=1 || _det_frontend=0
+  { printf '%s\n' "$_det_dotnet" "$_det_node" "$_det_frontend" > "$cache"; } 2>/dev/null || true
 }
 
 # agent_type -> mode + space-separated glob patterns (+ optional exempt patterns
@@ -164,12 +185,12 @@ case "$agent_type" in
       [ "$agent_type" = "tank" ] && exit 0
       echo "Blocked: backend stack is node with no frontend configured — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating frontend work." >&2
       exit 2
-    elif [ -z "$backend_stack" ] && has_node_backend && ! has_dotnet_backend; then
+    elif [ -z "$backend_stack" ] && { detect_regime; [ "$_det_node" = 1 ] && [ "$_det_dotnet" = 0 ]; }; then
       # Stacks unset (resolved via morpheus's memory/detection, not pinned) but the
       # repo's markers show a Node backend and no .NET project. The extension regime
       # can't separate tank's `.ts`/`.js` from trinity's, so mirror the pinned
       # `Backend stack: node` behavior.
-      if has_frontend; then
+      if [ "$_det_frontend" = 1 ]; then
         # Node backend + a frontend, no lane paths: genuinely ambiguous — fail closed.
         echo "Blocked: detected a Node backend (server framework in package.json) alongside a frontend, with no lane paths configured — extension-based lanes can't tell tank's and trinity's .ts/.js apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init), or pin Backend stack / Frontend stack, before delegating." >&2
         exit 2

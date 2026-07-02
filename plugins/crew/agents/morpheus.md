@@ -80,9 +80,9 @@ e.g. `tests-cypress`, `tests-playwright`). Do not guess or default silently.
 ## Frontend unit test tool
 
 When the project uses frontend component/unit tests, the crew also needs to know the
-**frontend unit test tool** (`vitest` or `jest`) — so `oracle` loads the right skill when
-delegated frontend component tests. Resolve it, once per project, before delegating any
-frontend unit test work:
+**frontend unit test tool** (`vitest`, `jest`, or `cypress`) — so `oracle` loads the right
+skill when delegated frontend component tests. Resolve it, once per project, before delegating
+any frontend unit test work:
 
 1. If `CLAUDE.md` crew configuration pins a frontend unit test tool, use that (explicit
    override).
@@ -91,7 +91,9 @@ frontend unit test work:
    - `vitest.config.*` present → `vitest`.
    - `jest.config.*` present, or a `jest` key in `package.json`, with no `vitest.config.*` →
      `jest`.
-   - Neither present → the project may have no frontend unit tests; leave unset rather than
+   - `cypress.config.*` present with a `component` key (Cypress Component Testing configured),
+     and no `vitest.config.*` or `jest.config.*` → `cypress`.
+   - None of the above → the project may have no frontend unit tests; leave unset rather than
      guessing.
    Save the confirmed answer to your memory so you don't ask again.
 

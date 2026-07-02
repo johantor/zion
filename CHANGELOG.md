@@ -5,6 +5,20 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.0] - 2026-07-02
+
+### Added
+- **Cypress Component Testing support.** Cypress can now be resolved as the **frontend unit
+  test tool** (in addition to its existing role as the frontend e2e tool), covering projects
+  that use Cypress Component Testing for component/unit tests.
+  - `morpheus` detects `cypress` as the frontend unit test tool when `cypress.config.*`
+    contains a `component` key and no `vitest.config.*` / `jest.config.*` is present.
+  - `oracle` now loads the `tests-cypress` skill when `cypress` is the resolved frontend unit
+    test tool, and applies the component-test section of that skill.
+  - `tests-cypress` skill updated with a **Component tests** section covering `cy.mount()`,
+    component spec file conventions (`.cy.ts` / `.cy.tsx`), and the `--component` run flag.
+  - `/crew:init` detects and writes `cypress` for the **Frontend unit test tool** slot.
+
 ## [3.0.0] - 2026-07-02
 
 ### Changed

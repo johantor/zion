@@ -24,7 +24,7 @@ means — reconcile fills any of these that are missing:
   resolve it per project.
 - **Frontend e2e tool** — `cypress` or `playwright`. Optional/pin-only; leave unset to let
   `morpheus` resolve it per project.
-- **Frontend unit test tool** — `vitest` or `jest`. Optional/pin-only; leave unset to let
+- **Frontend unit test tool** — `vitest`, `jest`, or `cypress`. Optional/pin-only; leave unset to let
   `morpheus` resolve it per project (or if the project has no frontend unit tests).
 - **Backend lane path(s)** — one or more path prefixes (comma-separated), e.g. `apps/api/`.
   Only meaningful when backend and frontend stacks are the same language (e.g. Node backend +
@@ -73,8 +73,9 @@ trust or correct it; never invent a command you can't see configured.
   `playwright.config.*` → `playwright`. If ambiguous or absent, leave unset for `morpheus` to
   resolve.
 - **Frontend unit test tool:** a `vitest.config.*` → `vitest`; a `jest.config.*` (or a `jest`
-  key in `package.json`) with no `vitest.config.*` → `jest`. If absent, leave unset — the
-  project may have no frontend unit tests, and `morpheus` will not assume one exists.
+  key in `package.json`) with no `vitest.config.*` → `jest`; a `cypress.config.*` with a
+  `component` key and no `vitest.config.*` or `jest.config.*` → `cypress`. If absent, leave
+  unset — the project may have no frontend unit tests, and `morpheus` will not assume one exists.
 - **Backend lane path(s) / Frontend lane path(s):** never auto-detect — workspace boundaries
   (which directory is the backend app vs. the frontend app) aren't reliably inferable from
   marker files alone. Only propose these when the detected backend and frontend stacks are

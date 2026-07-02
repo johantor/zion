@@ -1,6 +1,6 @@
 ---
 name: dozer
-description: Frontend e2e test author/runner (Cypress). Runs the suite and reports only failures. Invoked by the morpheus orchestrator. Not for standalone or automatic use.
+description: Frontend e2e test author/runner (Cypress). Runs specs and reports only failures; re-verification reruns only the previously failing specs, not the full suite. Invoked by the morpheus orchestrator. Not for standalone or automatic use.
 tools: Read, Edit, Write, Bash, Grep, Glob
 model: sonnet
 maxTurns: 30

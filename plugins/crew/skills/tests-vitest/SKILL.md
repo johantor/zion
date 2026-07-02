@@ -5,8 +5,10 @@ description: Vitest component/unit test conventions — test authoring with Reac
 
 # Frontend unit tests: Vitest
 
-Write and run frontend component and unit tests using Vitest conventions and the repository's
-frontend test command from `CLAUDE.md`.
+Write and run frontend component and unit tests using Vitest conventions. Run them with the
+project's own unit-test script if it defines one (e.g. a `test` / `test:unit` npm script that
+invokes Vitest); otherwise invoke Vitest directly (`npx vitest run`). The `Frontend test
+command` slot is the **e2e** command — don't use it for unit tests.
 
 - Test files are typically co-located with their source file (`Button.test.tsx` next to
   `Button.tsx`) or collected under `src/__tests__/`. Check the project's `vitest.config.ts`
@@ -15,6 +17,6 @@ frontend test command from `CLAUDE.md`.
   plain `vi.fn()` / `vi.spyOn()` for unit mocks and `vi.mock()` for module mocks.
 - Prefer queries that reflect how users perceive the UI (`getByRole`, `getByLabelText`,
   `getByText`) over implementation-detail selectors (`getByTestId`, CSS class).
-- Run with the repo's frontend test command; on re-verify, run only the failing test(s)
-  (pass the test file path and/or `-t` / `--testNamePattern` to match by name), not the
-  whole suite. `--reporter` only changes output format — it does not filter which tests run.
+- On re-verify, run only the failing test(s) — pass the test file path and/or `-t` /
+  `--testNamePattern` to match by name — not the whole suite. `--reporter` only changes output
+  format; it does not filter which tests run.

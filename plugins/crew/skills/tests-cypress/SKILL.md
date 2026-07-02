@@ -19,7 +19,10 @@ Write and run frontend e2e specs using Cypress conventions and the repository's 
 
 ## Component tests
 
-Write and run component/unit tests using Cypress Component Testing and the repository's frontend test command from `CLAUDE.md`.
+Write and run component/unit tests using Cypress Component Testing. Run them with the project's
+own component-test script if it defines one; otherwise invoke Cypress component mode directly
+(`npx cypress run --component`). The `Frontend test command` slot is the **e2e** command — don't
+use it for component tests.
 
 - Component test files live alongside source files or in `cypress/component/`; they use the
   `.cy.ts` / `.cy.tsx` / `.cy.js` / `.cy.jsx` extension.
@@ -29,5 +32,5 @@ Write and run component/unit tests using Cypress Component Testing and the repos
 - Use `cy.intercept()` for network stubbing; keep assertions on rendered output, not
   implementation details.
 - Prefer `data-cy` / `data-testid` selectors over CSS or text selectors.
-- Run with the repo's frontend test command (passing `--component` when invoking `cypress
-  run` directly); on re-verify, run only the failing spec(s) via `--spec`.
+- On re-verify, run only the failing spec(s) via `--spec` (in component mode, i.e.
+  `--component`), not the whole suite.

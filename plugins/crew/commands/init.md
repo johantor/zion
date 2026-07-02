@@ -33,7 +33,10 @@ means — reconcile fills any of these that are missing:
 - **Frontend lane path(s)** — one or more path prefixes (comma-separated), e.g. `apps/web/`.
   Same same-language caveat as Backend lane path(s).
 - **Backend test command** — e.g. `dotnet test`.
-- **Frontend test command** — the e2e suite (e.g. `npx playwright test`).
+- **Frontend test command** — the **e2e** suite only (e.g. `npx playwright test`). Unit/
+  component runs are not driven by this slot: `oracle` derives them from the resolved
+  **Frontend unit test tool** (a project `test`/`test:unit` script if present, else the tool
+  directly — `vitest run`, `jest`, `cypress run --component`).
 - **Backend build command** — e.g. `dotnet build`.
 - **Frontend build command** — e.g. `tsc --noEmit` / `vite build`.
 - **Backend lint command** — verify mode (e.g. `dotnet format --verify-no-changes`, plus

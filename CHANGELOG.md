@@ -5,6 +5,21 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.6] - 2026-07-02
+
+### Changed
+- **`validate-plugin.sh`'s skill-drift check is now generic by skill name, not hardcoded to
+  crew.** It used to only iterate `plugins/crew/skills/*/` and compare each against same-named
+  skills elsewhere — so it would never catch a duplicate skill shared between two *non-crew*
+  plugins. It now groups every `SKILL.md` across all plugins by its directory basename and
+  compares every plugin shipping that name, so any future duplication is caught regardless of
+  whether crew is a party to it. When crew does ship the skill, its copy remains the reference
+  (crew is the documented canonical source), matching the existing behavior for today's two
+  pairs (`engineering-principles`, `context-discipline`) exactly. `AGENTS.md` documents the
+  convention generically and calls out both pairs explicitly (previously only
+  `engineering-principles` was documented in prose; `context-discipline`'s sync requirement was
+  enforced but unmentioned).
+
 ## [3.1.5] - 2026-07-02
 
 ### Changed
@@ -674,6 +689,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[3.1.6]: https://github.com/johantor/zion/compare/crew--v3.1.5...crew--v3.1.6
 [3.1.5]: https://github.com/johantor/zion/compare/crew--v3.1.4...crew--v3.1.5
 [3.1.4]: https://github.com/johantor/zion/compare/crew--v3.1.3...crew--v3.1.4
 [3.1.3]: https://github.com/johantor/zion/compare/crew--v3.1.2...crew--v3.1.3

@@ -146,13 +146,14 @@ acceptance: |
 ### wp6 — Docs and release
 id: wp6
 status: pending
-depends-on: wp1, wp2, wp3, wp4, wp5
+depends-on: [wp1, wp2, wp3, wp4, wp5]
 worker: self
 acceptance: |
   - `AGENTS.md`, `plugins/crew/README.md`, root `README.md`, and `.github/copilot-instructions.md`
     updated to describe the stack-agnostic architecture (new skills, the four new `CLAUDE.md`
     slots and their `init.md` detection — already landed in wp2/wp3 — two lane regimes).
-  - `plugins/crew/CHANGELOG.md` (root `CHANGELOG.md`) gets an entry; `plugins/crew/.claude-plugin/plugin.json`
+  - Root `CHANGELOG.md` (crew's changelog — unlike keymaker, crew has no separate
+    `plugins/crew/CHANGELOG.md`) gets an entry; `plugins/crew/.claude-plugin/plugin.json`
     version bumped to **3.0.0** (major — lane semantics and agent descriptions change, per
     the issue's own call).
   - `bash plugins/crew/scripts/validate-plugin.sh` passes.

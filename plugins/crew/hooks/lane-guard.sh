@@ -33,7 +33,9 @@ config_slot() {
   [ -f CLAUDE.md ] || return 0
   v="$(sed -n "s/^- \*\*$1:\*\* *\([^—]*\).*/\1/p" CLAUDE.md | head -1 | sed 's/[[:space:]]*$//')"
   case "$v" in
-    '*unset*'|none|'') return 0 ;;
+    # Treat *unset*, empty, and any value starting with "none" (e.g.
+    # "none (no e2e suite detected)") as not configured.
+    '*unset*'|none|none[!A-Za-z0-9]*|'') return 0 ;;
     *) printf '%s' "$v" ;;
   esac
 }

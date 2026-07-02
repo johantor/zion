@@ -35,11 +35,20 @@ config_slot() {
   esac
 }
 
-# Comma-separated path config -> space-separated "<path>/**" globs.
+# Comma-separated path config -> space-separated "<path>/**" globs. Split on
+# commas via IFS (not command substitution, which would word-split and, worse,
+# glob-expand a value containing * ? [ against the filesystem), with glob
+# expansion disabled and surrounding whitespace trimmed off each entry.
 lane_globs() {
-  for p in $(printf '%s' "$1" | tr ',' ' '); do
+  local IFS=','
+  set -f
+  for p in $1; do
+    p="${p#"${p%%[![:space:]]*}"}"   # trim leading whitespace
+    p="${p%"${p##*[![:space:]]}"}"   # trim trailing whitespace
+    [ -z "$p" ] && continue
     case "$p" in */) printf '%s** ' "$p" ;; *) printf '%s/** ' "$p" ;; esac
   done
+  set +f
 }
 
 # agent_type -> mode + space-separated glob patterns (+ optional exempt patterns

@@ -136,3 +136,43 @@ Versions are per-plugin. To cut a release:
 - When a PR resolves an issue, link it with a GitHub closing keyword in the body —
   `Closes #N` / `Fixes #N` / `Resolves #N` — so the issue auto-closes on merge. Plain
   references like `Implements #N` only cross-link; they do not close the issue.
+
+## Recurring review findings — apply proactively
+
+Patterns that showed up more than once in review feedback on this repo. Apply these up front
+rather than waiting for a reviewer (human or Copilot) to catch them again:
+
+- **Verify before filing a "nothing enforces this" issue.** Grep the actual implementation and
+  `AGENTS.md` first — the mechanism may already exist and just be undocumented in the place you
+  looked. (A drift-guard issue was filed against this repo without checking that
+  `validate-plugin.sh` already had one.)
+- **A validator/guard must fail loudly on every path where it can't verify its claim** — a
+  missing input file, invalid input, or an unreachable check are failures for a script whose job
+  is enforcement. Never silently skip and report nothing (or pass) when the thing being checked
+  couldn't actually be checked.
+- **When joining a trusted and an untrusted field with a delimiter for later splitting, anchor
+  the split on the trusted field, not the untrusted one.** Splitting on the *first* occurrence of
+  the delimiter is only safe when the field before it is a small, controlled value that can never
+  itself contain the delimiter (e.g., an `agent_type`). Put arbitrary/untrusted text (e.g., a full
+  shell command) last, or split from the end — otherwise the untrusted field could itself contain
+  the delimiter and truncate what a downstream safety check inspects.
+- **Adding a new conditional to a multi-mode flow means auditing every existing mode, not just
+  the default path.** A command with `full`/`quick`/`$ARGUMENTS`-style branches needs the new
+  behavior spelled out explicitly for each branch, or reconciled with it — don't leave a newly
+  added conditional ambiguous under a mode that predates it.
+- **State heuristics as heuristics.** Don't write "X can't happen" when a cost-saving skip is
+  actually based on "X is unlikely" — overclaiming a guarantee invites a correctness bug report
+  later; the accurate phrasing costs nothing.
+- **Bash: `if ! var="$(cmd)"; then ...` still assigns `var`** (typically to whatever the command
+  printed before failing, often empty) — the `if !` checks the command's exit status, not
+  whether an assignment happened. Don't write a comment implying the variable is "never set" on
+  failure.
+- **Quote variable expansions on principle, including array subscripts** — bash doesn't always
+  require it (e.g., an associative-array subscript isn't word-split even unquoted), but quoting
+  is free, avoids relying on that nuance, and heads off reviewer friction.
+- **Keep inline script/agent-prompt comments short; put full rationale in `AGENTS.md` or
+  `CHANGELOG.md` and point to it** rather than restating it at every call site — a one-line
+  pointer beats a paragraph duplicated in multiple places.
+- **After merging `main` into a branch to resolve conflicts, refresh the PR description too** —
+  version-bump ranges and scope notes written before the merge (e.g., "3.1.0 → 3.1.3") go stale
+  once the branch is rebased forward onto a `main` that already moved (e.g., to 3.1.2).

@@ -33,7 +33,7 @@ no step needed. keymaker is explicitly out of scope (already agnostic).
 ### wp1 — Extract stack knowledge into per-stack skills
 id: wp1
 status: done
-evidence: (commit recorded on push — see below)
+evidence: 1ad66d9
 depends-on: independent
 worker: self (no installed crew/tank subagents in this session — see note below)
 acceptance: |

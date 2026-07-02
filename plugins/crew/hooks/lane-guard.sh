@@ -45,7 +45,7 @@ lane_globs() {
 exempt=""
 case "$agent_type" in
   oracle) mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/**' ;;
-  dozer)  mode="--allow"; patterns='cypress/** e2e/** **/*.cy.* **/*.spec.*' ;;
+  dozer)  mode="--allow"; patterns='cypress/** e2e/** **/*.cy.*' ;;
   tank|trinity)
     backend_lane="$(config_slot 'Backend lane path(s)')"
     frontend_lane="$(config_slot 'Frontend lane path(s)')"
@@ -61,6 +61,12 @@ case "$agent_type" in
       else
         patterns="$(lane_globs "$backend_lane") $route_handlers"
       fi
+    elif [ -n "$backend_lane" ] || [ -n "$frontend_lane" ]; then
+      # Partial config: one lane path is set but not both. Fail closed rather
+      # than silently falling back to the extension regime, which can't reliably
+      # separate tank from trinity in same-language stacks.
+      echo "Blocked: only one of Backend lane path(s) / Frontend lane path(s) is configured. Set both in CLAUDE.md (see /crew:init) before delegating." >&2
+      exit 2
     elif [ "$backend_stack" = "node" ]; then
       echo "Blocked: backend stack is node — tank and trinity can both touch .ts/.js files, so extension-based lanes can't tell them apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating." >&2
       exit 2

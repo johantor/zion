@@ -18,13 +18,15 @@ if ! command -v jq >/dev/null 2>&1; then
   exit 2
 fi
 payload="$(cat)"
-# One jq call for both fields (also doubles as the payload-validity check: a
-# parse failure means jq exits non-zero and $fields is never set). jq only
+# One jq call for both fields. jq's own exit status is the payload-validity
+# check (checked directly by `if !` below, not by inspecting $fields — a
+# failed jq still assigns $fields, typically to an empty string). jq only
 # computes the path for a lane agent (oracle/dozer/tank/trinity — neo has no
 # lane and everything else bails below anyway), so a non-lane session never
 # pays even for the field lookup. Fields are joined with a record-separator
-# byte that never appears in an agent_type or file path, so no per-field
-# escaping is needed.
+# byte and split on its first occurrence — safe here because agent_type (the
+# leading field) is a small, harness-controlled value that never contains it,
+# regardless of what path itself might contain.
 rs=$'\x1e'
 if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" '(.agent_type // "") as $at | $at + $rs + (if (["oracle","dozer","tank","trinity"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' 2>/dev/null)"; then
   echo "Blocked: lane-guard could not parse the hook payload." >&2

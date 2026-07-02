@@ -82,12 +82,19 @@ has_frontend() {
 }
 
 # agent_type -> mode + space-separated glob patterns (+ optional exempt patterns
-# that bypass a deny before it's evaluated).
+# that bypass a deny before it's evaluated, confine patterns an --allow path must
+# also be inside, and exclude patterns that deny an --allow path even if it matches).
 exempt=""
 confine=""
+exclude=""
 case "$agent_type" in
   # Backend patterns (.NET style) first, then shared/frontend test file patterns.
-  oracle) mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*' ;;
+  # `.spec.*` is kept (Vitest/Jest/Angular unit tests use it), but oracle is
+  # excluded from the e2e-tool directories, which are dozer's — otherwise a
+  # Playwright `e2e/foo.spec.ts` would fall in oracle's lane too.
+  oracle) mode="--allow"
+          patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*'
+          exclude='e2e/** cypress/** playwright/** tests/e2e/**' ;;
   dozer)
     # Scope to the resolved e2e tool's conventional locations rather than a blanket
     # tests/** that would grant write access to backend/unit tests. Cypress keeps to
@@ -210,6 +217,14 @@ if [ -n "$exempt" ] && matches "$exempt"; then
 fi
 
 if matches "$patterns"; then match=1; else match=0; fi
+
+# An --allow agent with an exclude set is denied a path that matches it even when
+# it also matches the allow patterns — used to keep oracle's test globs out of the
+# e2e-tool directories, which are dozer's lane.
+if [ "$mode" = "--allow" ] && [ -n "$exclude" ] && matches "$exclude"; then
+  echo "Blocked: $path is in an e2e lane (dozer's), not ${agent_type}'s." >&2
+  exit 2
+fi
 
 # An --allow agent with a confine set must ALSO be inside the confine globs —
 # used to keep dozer's e2e patterns within the configured frontend lane so a

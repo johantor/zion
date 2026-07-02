@@ -223,8 +223,15 @@ done
 #    -- see AGENTS.md for why both exist.
 dev_hooks=".claude/settings.json"
 plugin_hooks="plugins/crew/hooks/hooks.json"
-if [ -f "$dev_hooks" ] && [ -f "$plugin_hooks" ] \
-   && jq empty "$dev_hooks" >/dev/null 2>&1 && jq empty "$plugin_hooks" >/dev/null 2>&1; then
+if [ ! -f "$dev_hooks" ]; then
+  err "$dev_hooks is missing -- expected to mirror $plugin_hooks (see AGENTS.md)"
+elif [ ! -f "$plugin_hooks" ]; then
+  err "$plugin_hooks is missing -- required for the crew plugin's hooks to load"
+elif ! jq empty "$dev_hooks" >/dev/null 2>&1; then
+  err "$dev_hooks is not valid JSON; cannot verify it mirrors $plugin_hooks"
+elif ! jq empty "$plugin_hooks" >/dev/null 2>&1; then
+  err "$plugin_hooks is not valid JSON; cannot verify $dev_hooks mirrors it"
+else
   hook_sig() {
     jq -r --arg strip "$2" '
       .hooks | to_entries[] | .key as $event | .value[] |

@@ -195,12 +195,12 @@ declare -A skill_dirs=()
 while IFS= read -r skill_md; do
   dir="$(dirname "$skill_md")"
   name="$(basename "$dir")"
-  skill_dirs["$name"]="${skill_dirs[$name]:-}${skill_dirs[$name]:+ }$dir"
+  skill_dirs["$name"]="${skill_dirs["$name"]:-}${skill_dirs["$name"]:+ }$dir"
 done < <(git ls-files 'plugins/*/skills/*/SKILL.md')
 
 for name in "${!skill_dirs[@]}"; do
   # shellcheck disable=SC2206  # intentional word-splitting: dirs never contain spaces
-  dirs=(${skill_dirs[$name]})
+  dirs=(${skill_dirs["$name"]})
   [ "${#dirs[@]}" -lt 2 ] && continue
   reference=""
   for d in "${dirs[@]}"; do

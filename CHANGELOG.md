@@ -5,6 +5,17 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.9.0] - 2026-07-02
+
+### Added
+- **Fix-verify loops rerun only the affected tests, not the full suite.** Previously, once
+  `oracle`/`dozer` reported failures and `morpheus` routed a fix back to the implementer,
+  re-confirming the fix meant rerunning the *entire* backend/e2e suite again — even though the
+  full suite is already established as the final review gate's job, run once when the work
+  queue is drained. `oracle` and `dozer` now re-run only the specific test(s)/spec(s) that were
+  previously failing when asked to confirm a fix, and `morpheus` names those failing test(s) in
+  the re-delegation so the worker has something to target instead of defaulting to a full run.
+
 ## [2.8.1] - 2026-07-02
 
 ### Changed

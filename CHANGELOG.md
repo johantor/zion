@@ -5,6 +5,21 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.7] - 2026-07-02
+
+### Changed
+- **`validate-plugin.sh` now enforces that `.claude/settings.json` mirrors
+  `plugins/crew/hooks/hooks.json`.** This repo wires its four crew guards
+  twice — once for the installed plugin (`hooks/hooks.json`, resolved via
+  `CLAUDE_PLUGIN_ROOT`) and once for developing in this repo without the
+  plugin installed (`.claude/settings.json`, resolved via
+  `CLAUDE_PROJECT_DIR`). The two had to be kept in sync by hand with nothing
+  catching drift; a new check (§5) compares each hook's event, matcher,
+  script, and timeout across both files (normalizing away the root-variable
+  difference) and fails CI on any mismatch. `AGENTS.md` now also explains why
+  both wirings exist and that installing the plugin while developing in this
+  repo isn't a supported setup (every guard would run twice).
+
 ## [3.1.6] - 2026-07-02
 
 ### Changed
@@ -689,6 +704,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[3.1.7]: https://github.com/johantor/zion/compare/crew--v3.1.6...crew--v3.1.7
 [3.1.6]: https://github.com/johantor/zion/compare/crew--v3.1.5...crew--v3.1.6
 [3.1.5]: https://github.com/johantor/zion/compare/crew--v3.1.4...crew--v3.1.5
 [3.1.4]: https://github.com/johantor/zion/compare/crew--v3.1.3...crew--v3.1.4

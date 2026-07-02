@@ -217,6 +217,33 @@ for name in "${!skill_dirs[@]}"; do
   done
 done
 
+# 5. This repo's dev-time hook wiring (.claude/settings.json) must mirror the
+#    installed-plugin wiring (plugins/crew/hooks/hooks.json), modulo the root
+#    variable each resolves through (CLAUDE_PROJECT_DIR vs CLAUDE_PLUGIN_ROOT)
+#    -- see AGENTS.md for why both exist.
+dev_hooks=".claude/settings.json"
+plugin_hooks="plugins/crew/hooks/hooks.json"
+if [ -f "$dev_hooks" ] && [ -f "$plugin_hooks" ] \
+   && jq empty "$dev_hooks" >/dev/null 2>&1 && jq empty "$plugin_hooks" >/dev/null 2>&1; then
+  hook_sig() {
+    jq -r --arg strip "$2" '
+      .hooks | to_entries[] | .key as $event | .value[] |
+      .matcher as $matcher | .hooks[] |
+      [$event, $matcher, (.command | ltrimstr($strip)), (.timeout // "none")] | @tsv
+    ' "$1" | sort
+  }
+  # Single-quoted: literal, unexpanded "${VAR}" text as it appears in the JSON.
+  # shellcheck disable=SC2016
+  dev_sig="$(hook_sig "$dev_hooks" '"${CLAUDE_PROJECT_DIR}"/plugins/crew/hooks/')"
+  # shellcheck disable=SC2016
+  plugin_sig="$(hook_sig "$plugin_hooks" '"${CLAUDE_PLUGIN_ROOT}"/hooks/')"
+  if [ "$dev_sig" = "$plugin_sig" ]; then
+    ok "hook wiring in sync: $dev_hooks == $plugin_hooks (modulo root variable)"
+  else
+    err "hook wiring drift: $dev_hooks no longer mirrors $plugin_hooks -- compare PreToolUse/PostToolUse matchers, script paths, and timeouts"
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

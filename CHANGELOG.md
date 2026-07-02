@@ -5,6 +5,19 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.1] - 2026-07-02
+
+### Changed
+- **Trim `/crew:feature` and the review gate for token cost, behavior-neutral.**
+  `commands/feature.md` restated `morpheus`'s own durable-resume protocol, plan schema,
+  checkpoint, and run-summary behavior in full on every invocation — all of it already lives
+  unconditionally in `agents/morpheus.md`'s system prompt, so the restatement was pure token
+  cost paid per call. It now points back to `morpheus`'s own standard flow instead. Also added
+  `model: haiku` to the review gate's run-and-report delegations (`crew:oracle` tests,
+  `crew:tank`/`crew:trinity` build, `crew:dozer` e2e) — `morpheus`'s own "Right-size the model
+  per delegation" guidance already named these as haiku-eligible, but `commands/review.md`
+  never applied it.
+
 ## [2.8.0] - 2026-06-16
 
 ### Added

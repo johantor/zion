@@ -12,26 +12,9 @@ launched, stop and report the exact error; do not improvise the flow inline.
 
 Instructions for `crew:morpheus`:
 
-1. Read `CLAUDE.md` crew configuration (including the `Plan directory` slot — the plan
-   location, `.claude/` when unset). If a `plan-<feature>.md` in that directory has a header whose
-   `feature:` / `feature-branch:` identifies this task, **resume** it per the durable-resume
-   protocol (ensure a clean working tree, check out the feature branch, reconcile each step's
-   `status` against git, continue from the first unblocked step) instead of re-planning — don't
-   ask the user to re-explain an in-flight feature. If several plans could match or the match is
-   ambiguous, ask which to resume rather than guessing.
-2. Explore the codebase to understand affected areas (do not modify anything yet).
-3. Write `<plan-dir>/plan-<feature>.md` (the resolved plan directory) using the resumable schema:
-   - Header: a parseable `feature:` key (plus scope boundary), `base-branch:`, `feature-branch:`
-   - Ordered steps, each a block with a stable `id:`, `status:`, `depends-on:`, `worker:` (on
-     dispatch), and explicit `acceptance:` criteria (plus `evidence:` — commit SHA first — once done)
-   - Known constraints (backend lane, frontend lane, tests required, design ref if any)
-4. **Plan checkpoint:** present the plan (scope, ordered steps with acceptance criteria, base
-   branch, frontend mode, assumptions) and wait for the user's explicit go-ahead before
-   creating the branch or delegating any work. Honor a standing "just build it" as the
-   go-ahead; fold any corrections into the plan and re-present the delta.
-5. Delegate to workers in dependency order (backend before frontend if a contract must be agreed first).
-6. After all workers complete, verify each acceptance criterion is met.
-7. Return a consolidated status: ✅ done / ❌ blocked items with owner and next action, followed
-   by the **run summary** — the per-step worker / outcome / evidence table sourced from the plan file.
+The feature request is: `$ARGUMENTS`. Follow your own standard flow end to end — resume
+a matching in-flight plan per your durable-resume protocol, or otherwise explore, write
+the plan, run the plan checkpoint, delegate, verify, and run the review gate — then
+return your consolidated status and run summary.
 
 When `morpheus` returns, relay its consolidated status to the user verbatim.

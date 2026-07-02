@@ -41,6 +41,9 @@ working tree is clean (`git status --porcelain` empty). On a later run, skip tha
 if** the current `HEAD` matches the recorded SHA **and** the tree is still clean — report it
 as passed (*already verified, tree unchanged*). If `HEAD` moved or the tree is dirty, run it.
 
+These are run-and-report steps (a known command, failures surfaced) — delegate each with
+`model: haiku`, per `morpheus`'s model right-sizing.
+
 1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
 2. **Build** — delegate each changed lane's build to its owner, both isolated from any running app/dev process and in the session's dedicated build location, surfacing errors with file:line (not the raw log):
    - *backend lane changed* → `crew:tank` runs the **backend build command** from `CLAUDE.md`.

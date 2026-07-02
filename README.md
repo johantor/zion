@@ -49,7 +49,8 @@ claude plugin install engineering-principles@zion   # rubric only; optional if y
 Then drive the suite from your normal Claude Code session:
 
 - **Build a feature** — `/crew:feature <task>` plans, delegates, builds, and stops
-  at the review gate; `/crew:review` runs the GO / NO-GO; `/crew:pr` opens the PR.
+  at the review gate; `/crew:review` runs the GO / NO-GO; `/crew:pr` opens the PR;
+  `/crew:address` closes the review loop once the PR gets comments or CI failures.
 - **Pay down debt or bump a package** — `/keymaker:open <pointer>` fixes one
   identified item end-to-end; `/keymaker:audit <scope>` scouts an area and hands
   back ready-to-paste pointers.
@@ -76,6 +77,7 @@ Or keep the crew on tap inside a normal session with the slash commands:
 - `/crew:feature <task>` — plan and build a feature
 - `/crew:review` — pre-PR **GO / NO-GO** gate: code + security + design review, plus build/test/lint
 - `/crew:pr` — push the branch and open the pull request
+- `/crew:address` — after the PR is open, close the review loop: route review comments and CI failures to the crew, re-run the gate, and push
 
 Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma,
 GitHub/ADO) are documented in **[plugins/crew/README.md](plugins/crew/README.md)**.

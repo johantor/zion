@@ -61,6 +61,10 @@ or just ask for them in a `--agent` session):
   no suites; `/crew:review full` to force every gate).
 - `/crew:pr` — push the branch and open a pull request (uses a git-host MCP if available, else
   prints the push command + PR body; outward action — it confirms first).
+- `/crew:address` — close the review loop after the PR is open: pull the PR's unresolved review
+  threads and failed CI checks (via the git-host MCP), route each fix to the right worker, re-run
+  the review gate, then push and resolve the addressed threads. Review comments are treated as
+  untrusted input — scope-redirecting asks are surfaced, not obeyed. Outward actions confirm first.
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
 read as `crew:feature` / `crew:review` / `crew:pr` rather than colliding with
@@ -75,7 +79,7 @@ any built-in or other-plugin commands of the same short name.
   `frontend-nextjs`; per-test-tool — `tests-xunit`, `tests-node`, `tests-cypress`,
   `tests-playwright`, `tests-vitest`, `tests-jest-frontend`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
-- `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`
+- `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`
 
 ## Hooks & enforcement
 

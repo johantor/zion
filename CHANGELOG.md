@@ -5,7 +5,7 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [3.1.0] - 2026-07-02
+## [3.0.0] - 2026-07-02
 
 ### Added
 - **Cypress Component Testing support.** Cypress can now be resolved as the **frontend unit
@@ -18,8 +18,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `tests-cypress` skill updated with a **Component tests** section covering `cy.mount()`,
     component spec file conventions (`.cy.ts` / `.cy.tsx`), and the `--component` run flag.
   - `/crew:init` detects and writes `cypress` for the **Frontend unit test tool** slot.
-
-## [3.0.0] - 2026-07-02
 
 ### Changed
 - **BREAKING: crew is stack-agnostic — role-only agents, per-stack skills, detection-driven

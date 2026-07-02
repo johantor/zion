@@ -4,10 +4,13 @@
 # own hooks, so the lanes are centralized here.
 #
 # Directory-based lanes (CLAUDE.md path config) apply when set; otherwise falls
-# back to extension-based globs. node backend + node/JS frontend + no lane paths
-# fails closed — extensions alone can't tell tank's and trinity's files apart
-# there. Backend-only Node repos (no Frontend stack configured) skip enforcement
-# entirely since there's no same-language lane conflict to resolve.
+# back to extension-based globs. A same-language pair (node backend + node/JS
+# frontend) with no lane paths fails closed — extensions alone can't tell tank's
+# and trinity's files apart there. That case is recognized whether the stacks are
+# pinned in CLAUDE.md or left unset (morpheus resolves them via memory/detection):
+# when unset, the guard probes the repo's markers (server framework in
+# package.json, .NET project files) to decide. Backend-only Node repos (no frontend
+# lane) skip enforcement since there's no same-language conflict to resolve.
 
 # Fail closed: a guard that can't read its input must block, not allow.
 if ! command -v jq >/dev/null 2>&1; then
@@ -49,6 +52,31 @@ lane_globs() {
     case "$p" in */) printf '%s** ' "$p" ;; *) printf '%s/** ' "$p" ;; esac
   done
   set +f
+}
+
+# Marker detection — used only when the stack slots are *unset* (morpheus can
+# resolve stacks from memory/detection without pinning them in CLAUDE.md) and no
+# lane paths are configured. The extension regime is only safe for disjoint
+# languages (a .NET backend's `.cs` vs a web frontend's `.ts`); a Node backend
+# makes extensions ambiguous because tank's own source is `.ts`/`.js` too. These
+# probes let the guard recognize that case from the repo instead of silently
+# applying the wrong regime. All are cheap and short-circuit; node_modules is
+# pruned so a large tree doesn't slow the hook.
+has_dotnet_backend() {
+  find . -type d -name node_modules -prune -o \
+         \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
+}
+has_node_backend() {
+  [ -f package.json ] || return 1
+  grep -Eq '"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core)"[[:space:]]*:' package.json
+}
+has_frontend() {
+  if [ -f package.json ] && \
+     grep -Eq '"(react|react-dom|next|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro)"[[:space:]]*:' package.json; then
+    return 0
+  fi
+  find . -type d -name node_modules -prune -o \
+         \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .
 }
 
 # agent_type -> mode + space-separated glob patterns (+ optional exempt patterns
@@ -102,6 +130,17 @@ case "$agent_type" in
     elif [ "$backend_stack" = "node" ]; then
       # Backend-only Node repo (no Frontend stack configured): no same-language lane
       # conflict to resolve — exit 0 and let the write proceed.
+      exit 0
+    elif [ -z "$backend_stack" ] && has_node_backend && ! has_dotnet_backend; then
+      # Stacks unset (resolved via morpheus's memory/detection, not pinned) but the
+      # repo's markers show a Node backend and no .NET project. The extension regime
+      # can't separate tank's `.ts`/`.js` from trinity's, so mirror the pinned
+      # `Backend stack: node` behavior: fail closed when a frontend lane also exists,
+      # otherwise (backend-only) allow the write.
+      if has_frontend; then
+        echo "Blocked: detected a Node backend (server framework in package.json) alongside a frontend, with no lane paths configured — extension-based lanes can't tell tank's and trinity's .ts/.js apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init), or pin Backend stack / Frontend stack, before delegating." >&2
+        exit 2
+      fi
       exit 0
     else
       # Extension-based regime (default) — unchanged from before same-language

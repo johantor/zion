@@ -5,6 +5,18 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.1.4] - 2026-07-02
+
+### Changed
+- **`/crew:review`'s design-conformance check is now scoped to the frontend
+  lane**, same as the executable build/test/lint gates in step 2. It used to
+  delegate to `crew:seraph` unconditionally, spawning a design-conformance
+  review (and its browser/Figma MCP traffic) even for a backend-only diff,
+  where it's unlikely there's a rendered-UI change to compare — a cost
+  heuristic, not a guarantee (`full` mode still runs it unconditionally).
+  Skipped runs are reported in the gate summary with reason *lane untouched*,
+  consistent with the other gates.
+
 ## [3.1.3] - 2026-07-02
 
 ### Changed
@@ -646,6 +658,7 @@ skill-reviewer) and a best-practice review of the agents/hooks.
   `context-discipline`, `frontend-headless`, `frontend-server-rendered`), and hooks
   (lane guard, read guard, bash safety, formatter).
 
+[3.1.4]: https://github.com/johantor/zion/compare/crew--v3.1.3...crew--v3.1.4
 [3.1.3]: https://github.com/johantor/zion/compare/crew--v3.1.2...crew--v3.1.3
 [3.1.2]: https://github.com/johantor/zion/compare/crew--v3.1.1...crew--v3.1.2
 [3.1.1]: https://github.com/johantor/zion/compare/crew--v3.1.0...crew--v3.1.1

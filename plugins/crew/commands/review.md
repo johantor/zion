@@ -54,13 +54,14 @@ These are run-and-report steps (a known command, failures surfaced) — delegate
 
 If a gate's command is unset / `none` in `CLAUDE.md`, skip it with that note (not a failure).
 
-## 3. Run the review — **always**
+## 3. Run the review
 
-Read-only judgment across three pillars (this runs even when no lane changed):
+Read-only judgment. Code quality and security run **always** (even when no lane changed);
+design conformance is lane-scoped, same as the executable gates in step 2.
 
 1. **Code quality** — check against `engineering-principles`: YAGNI, KISS, naming, error handling, test coverage, minimal-scope diff.
 2. **Security** — scan for: injection risks, unvalidated inputs, secrets in code, unsafe deserialization, missing auth checks, open redirects, insecure dependencies.
-3. **Design conformance** — delegate to `crew:seraph` (installed plugin agents only resolve namespaced) with the running URL and any available design reference; include its mismatch report verbatim.
+3. **Design conformance** — *only if the frontend lane changed* (per step 1): delegate to `crew:seraph` (installed plugin agents only resolve namespaced) with the running URL and any available design reference; include its mismatch report verbatim. Otherwise **skip** — a backend-only diff can't have changed the rendered UI, so there's nothing for seraph to compare.
 
 ## 4. Output
 
@@ -69,7 +70,8 @@ First the review judgment, under these exact headings:
 - `## Warnings` — should fix, not blocking
 - `## Passed` — explicitly confirmed clean areas
 
-Then the gate summary. Every executable gate appears with its status — **never skip silently**:
+Then the gate summary. Every executable gate — plus design conformance — appears with its
+status — **never skip silently**:
 
 - ✅ passed · ❌ failed · ⏭️ skipped (with reason: *lane untouched* or *no command configured*).
 - **GO** — all *run* gates passed and there are no `## Blocking` items.

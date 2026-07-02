@@ -34,7 +34,14 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
   - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
   - `CHANGELOG.md` — release notes for this plugin's versions.
-- `.claude/settings.json` — this repo's own dev-time hooks (point at `plugins/crew/hooks/` so the guards run while developing here).
+- `.claude/settings.json` — this repo's own dev-time hooks: wires the same four guards as
+  `plugins/crew/hooks/hooks.json`, resolved via `CLAUDE_PROJECT_DIR` instead of
+  `CLAUDE_PLUGIN_ROOT`, so they still run while developing in this repo **without the crew
+  plugin installed**. The two files must mirror each other exactly (modulo the root variable) —
+  `validate-plugin.sh` enforces this automatically (§5, CI fails on mismatch). If the crew
+  plugin is *also* installed while working here, both wirings fire and every guard runs twice
+  per matching tool call; installing the plugin while developing in this repo isn't a supported
+  setup.
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
 - `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation.
 

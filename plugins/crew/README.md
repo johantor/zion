@@ -65,7 +65,8 @@ any built-in or other-plugin commands of the same short name.
 - `skills/`: shared — `engineering-principles`, `context-discipline`; frontend mode —
   `frontend-headless`, `frontend-server-rendered`; per-stack (loaded once the stack is
   resolved) — `backend-dotnet`, `backend-node`, `cms-optimizely`, `frontend-react`,
-  `frontend-nextjs`, `tests-xunit`, `tests-node`
+  `frontend-nextjs`; per-test-tool — `tests-xunit`, `tests-node`, `tests-cypress`,
+  `tests-playwright`, `tests-vitest`, `tests-jest-frontend`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
 - `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`
 

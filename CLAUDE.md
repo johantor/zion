@@ -25,8 +25,9 @@ Keep them accurate; update them if this repo ever gains app code.
   choice; otherwise `morpheus` resolves it per project. This repo has no frontend.
 - **Frontend e2e tool:** *unset* — optional here. Pin it (`cypress` or `playwright`) only to
   force a choice; otherwise `morpheus` resolves it per project. This repo has no frontend.
-- **Frontend unit test tool:** *unset* — optional here. Pin it (`vitest` or `jest`) only to
-  force a choice; otherwise `morpheus` resolves it per project. This repo has no frontend.
+- **Frontend unit test tool:** *unset* — optional here. Pin it (`vitest`, `jest`, or
+  `cypress`) only to force a choice; otherwise `morpheus` resolves it per project. This repo
+  has no frontend.
 - **Backend lane path(s):** *unset* — only meaningful when backend/frontend stacks are the
   same language. This repo has no backend.
 - **Frontend lane path(s):** *unset* — same same-language caveat. This repo has no frontend.

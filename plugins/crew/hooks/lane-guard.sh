@@ -48,7 +48,17 @@ exempt=""
 case "$agent_type" in
   # Backend patterns (.NET style) first, then shared/frontend test file patterns.
   oracle) mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*' ;;
-  dozer)  mode="--allow"; patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
+  dozer)
+    # When the Frontend e2e tool is pinned, scope to that tool's structured
+    # locations so a broad tests/** doesn't grant write access to backend/unit
+    # tests kept under tests/. Fall back to the broad set only when unset/unknown.
+    mode="--allow"
+    case "$(config_slot 'Frontend e2e tool')" in
+      cypress)    patterns='cypress/** **/*.cy.*' ;;
+      playwright) patterns='e2e/** playwright/** tests/e2e/**' ;;
+      *)          patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
+    esac
+    ;;
   tank|trinity)
     backend_lane="$(config_slot 'Backend lane path(s)')"
     frontend_lane="$(config_slot 'Frontend lane path(s)')"

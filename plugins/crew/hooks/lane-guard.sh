@@ -56,34 +56,57 @@ lane_globs() {
   set +f
 }
 
-# Marker detection — used only when the stack slots are *unset* (morpheus can
-# resolve stacks from memory/detection without pinning them in CLAUDE.md) and no
-# lane paths are configured. The extension regime is only safe for disjoint
-# languages (a .NET backend's `.cs` vs a web frontend's `.ts`); a Node backend
-# makes extensions ambiguous because tank's own source is `.ts`/`.js` too. These
-# probes let the guard recognize that case from the repo instead of silently
-# applying the wrong regime. All are cheap and short-circuit; node_modules is
-# pruned so a large tree doesn't slow the hook.
+# Marker detection — used only when the stack slots are *unset* and no lane
+# paths are configured. Extensions alone can't separate tank's `.ts`/`.js` from
+# trinity's when the backend is also Node, so these probes read the repo's
+# markers instead. Common non-source directories are pruned so a large tree
+# doesn't slow the hook.
+prune_args=(-type d \( -name node_modules -o -name .git -o -name dist -o -name bin -o -name obj -o -name coverage -o -name .next \) -prune -o)
 has_dotnet_backend() {
-  find . -type d -name node_modules -prune -o \
-         \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
+  find . "${prune_args[@]}" \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
 }
 has_node_backend() {
   # Scan every package.json (not just the repo root) so a workspace/monorepo
   # backend under e.g. apps/api/package.json is still detected.
   while IFS= read -r pj; do
     grep -Eq '"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core)"[[:space:]]*:' "$pj" && return 0
-  done < <(find . -type d -name node_modules -prune -o -name package.json -print 2>/dev/null)
+  done < <(find . "${prune_args[@]}" -name package.json -print 2>/dev/null)
   return 1
 }
 has_frontend() {
   # Same workspace-aware scan for a frontend dep in any package.json...
   while IFS= read -r pj; do
     grep -Eq '"(react|react-dom|next|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro)"[[:space:]]*:' "$pj" && return 0
-  done < <(find . -type d -name node_modules -prune -o -name package.json -print 2>/dev/null)
+  done < <(find . "${prune_args[@]}" -name package.json -print 2>/dev/null)
   # ...or any JSX/TSX file anywhere in the tree.
-  find . -type d -name node_modules -prune -o \
-         \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .
+  find . "${prune_args[@]}" \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .
+}
+
+# Cache detection for the session so the three probes above run at most once,
+# not on every Edit/Write — their markers don't change mid-feature. Keyed by
+# session_id, and only persisted when one is present: a cache keyed on cwd
+# alone would outlive the session it was written for (nothing ever expires a
+# /tmp file), and could be reused by an unrelated later session in the same
+# directory with stale results — unsafe for a fail-closed guard. Without a
+# session_id, detection is simply recomputed every call, as before caching.
+detect_regime() {
+  local cache session_id
+  session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"
+  if [ -n "$session_id" ]; then
+    cache="${TMPDIR:-/tmp}/claude-lane-guard-detect-$(printf '%s' "$session_id" | tr -c 'A-Za-z0-9_' '_')"
+    if [ -f "$cache" ]; then
+      { IFS= read -r _det_dotnet; IFS= read -r _det_node; IFS= read -r _det_frontend; } < "$cache"
+      if [ -n "$_det_dotnet" ] && [ -n "$_det_node" ] && [ -n "$_det_frontend" ]; then
+        return 0
+      fi
+    fi
+  fi
+  has_dotnet_backend && _det_dotnet=1 || _det_dotnet=0
+  has_node_backend && _det_node=1 || _det_node=0
+  has_frontend && _det_frontend=1 || _det_frontend=0
+  if [ -n "$session_id" ]; then
+    { printf '%s\n' "$_det_dotnet" "$_det_node" "$_det_frontend" > "$cache"; } 2>/dev/null || true
+  fi
 }
 
 # agent_type -> mode + space-separated glob patterns (+ optional exempt patterns
@@ -164,12 +187,12 @@ case "$agent_type" in
       [ "$agent_type" = "tank" ] && exit 0
       echo "Blocked: backend stack is node with no frontend configured — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating frontend work." >&2
       exit 2
-    elif [ -z "$backend_stack" ] && has_node_backend && ! has_dotnet_backend; then
+    elif [ -z "$backend_stack" ] && { detect_regime; [ "$_det_node" = 1 ] && [ "$_det_dotnet" = 0 ]; }; then
       # Stacks unset (resolved via morpheus's memory/detection, not pinned) but the
       # repo's markers show a Node backend and no .NET project. The extension regime
       # can't separate tank's `.ts`/`.js` from trinity's, so mirror the pinned
       # `Backend stack: node` behavior.
-      if has_frontend; then
+      if [ "$_det_frontend" = 1 ]; then
         # Node backend + a frontend, no lane paths: genuinely ambiguous — fail closed.
         echo "Blocked: detected a Node backend (server framework in package.json) alongside a frontend, with no lane paths configured — extension-based lanes can't tell tank's and trinity's .ts/.js apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init), or pin Backend stack / Frontend stack, before delegating." >&2
         exit 2

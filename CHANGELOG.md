@@ -11,9 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`/crew:review`'s design-conformance check is now scoped to the frontend
   lane**, same as the executable build/test/lint gates in step 2. It used to
   delegate to `crew:seraph` unconditionally, spawning a design-conformance
-  review (and its browser/Figma MCP traffic) even for a backend-only diff that
-  couldn't have changed the rendered UI. Skipped runs are reported in the gate
-  summary with reason *lane untouched*, consistent with the other gates.
+  review (and its browser/Figma MCP traffic) even for a backend-only diff,
+  where it's unlikely there's a rendered-UI change to compare — a cost
+  heuristic, not a guarantee (`full` mode still runs it unconditionally).
+  Skipped runs are reported in the gate summary with reason *lane untouched*,
+  consistent with the other gates.
 
 ## [3.1.1] - 2026-07-02
 

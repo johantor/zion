@@ -12,10 +12,13 @@ backend suite for a lane nothing touched.
 
 `$ARGUMENTS`:
 - *(empty)* — diff-scoped full gate (below).
-- `full` — skip lane classification and run every executable gate regardless of the diff.
+- `full` — skip lane classification's *filtering* and run every executable gate, and design
+  conformance, regardless of the diff.
 - `quick` — **read-only judgment only**: run step 3 (the review) and emit just its
-  `## Blocking` / `## Warnings` / `## Passed` sections, with no GO/NO-GO and no suites. Use
-  this mid-development when you want a read without paying for builds/tests.
+  `## Blocking` / `## Warnings` / `## Passed` sections, with no GO/NO-GO and no suites. Step
+  1's lane classification still runs — it's a cheap diff, not a suite — so design conformance
+  is scoped the same way it is in the default mode; only step 2's executable gates are skipped.
+  Use this mid-development when you want a read without paying for builds/tests.
 
 ## 1. Determine changed lanes
 
@@ -57,11 +60,18 @@ If a gate's command is unset / `none` in `CLAUDE.md`, skip it with that note (no
 ## 3. Run the review
 
 Read-only judgment. Code quality and security run **always** (even when no lane changed);
-design conformance is lane-scoped, same as the executable gates in step 2.
+design conformance is lane-scoped like the executable gates in step 2, with the same
+mode overrides: unconditional in `full` mode, and still lane-scoped (off step 1's cheap
+classification) in `quick` mode.
 
 1. **Code quality** — check against `engineering-principles`: YAGNI, KISS, naming, error handling, test coverage, minimal-scope diff.
 2. **Security** — scan for: injection risks, unvalidated inputs, secrets in code, unsafe deserialization, missing auth checks, open redirects, insecure dependencies.
-3. **Design conformance** — *only if the frontend lane changed* (per step 1): delegate to `crew:seraph` (installed plugin agents only resolve namespaced) with the running URL and any available design reference; include its mismatch report verbatim. Otherwise **skip** — a backend-only diff can't have changed the rendered UI, so there's nothing for seraph to compare.
+3. **Design conformance** — *only if the frontend lane changed* (per step 1), or always in `full`
+   mode: delegate to `crew:seraph` (installed plugin agents only resolve namespaced) with the
+   running URL and any available design reference; include its mismatch report verbatim.
+   Otherwise **skip** — a backend-only diff is unlikely to have changed the rendered UI, so this
+   is a cost heuristic, not a guarantee; if backend logic you know affects rendered output
+   changed, run `full` or note it for a manual seraph pass.
 
 ## 4. Output
 

@@ -87,22 +87,30 @@ case "$agent_type" in
   # Backend patterns (.NET style) first, then shared/frontend test file patterns.
   oracle) mode="--allow"; patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*' ;;
   dozer)
-    # When the Frontend e2e tool is pinned, scope to that tool's own conventional
-    # locations rather than a blanket tests/** that would grant write access to
-    # backend/unit tests. Cypress keeps to cypress/ + *.cy.* files; Playwright's
-    # default testDir is tests/ or e2e/, so it keeps those. Fall back to the broad
-    # set only when the tool is unset/unknown.
+    # Scope to the resolved e2e tool's conventional locations rather than a blanket
+    # tests/** that would grant write access to backend/unit tests. Cypress keeps to
+    # cypress/ + *.cy.* files. Playwright's default testDir is tests/ or e2e/, but a
+    # bare tests/** also matches nested backend test dirs and overlaps oracle — so it
+    # is only widened to tests/** when a Frontend lane path is configured (the confine
+    # below then keeps it in-lane); otherwise it is restricted to structured e2e
+    # locations. The broad fallback applies only when the tool is unset/unknown.
     mode="--allow"
+    frontend_lane="$(config_slot 'Frontend lane path(s)')"
     case "$(config_slot 'Frontend e2e tool')" in
       cypress)    patterns='cypress/** **/*.cy.*' ;;
-      playwright) patterns='e2e/** playwright/** tests/**' ;;
+      playwright)
+        if [ -n "$frontend_lane" ]; then
+          patterns='e2e/** playwright/** tests/**'
+        else
+          patterns='e2e/** playwright/** tests/e2e/**'
+        fi
+        ;;
       *)          patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
     esac
     # In a same-language monorepo a bare tests/** can match backend tests
     # (e.g. apps/api/tests/**). When a Frontend lane path is configured,
     # additionally confine dozer to it, so an e2e-shaped path that lives
     # outside the frontend lane is still denied.
-    frontend_lane="$(config_slot 'Frontend lane path(s)')"
     [ -n "$frontend_lane" ] && confine="$(lane_globs "$frontend_lane")"
     ;;
   # neo is the express-lane generalist — small changes across any lane — so it has
@@ -135,20 +143,27 @@ case "$agent_type" in
       echo "Blocked: backend stack is node — tank and trinity can both touch .ts/.js files, so extension-based lanes can't tell them apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating." >&2
       exit 2
     elif [ "$backend_stack" = "node" ]; then
-      # Backend-only Node repo (no Frontend stack configured): no same-language lane
-      # conflict to resolve — exit 0 and let the write proceed.
-      exit 0
+      # Backend-only Node repo (no Frontend stack configured). tank owns the whole
+      # Node codebase, so it writes freely; trinity is the frontend implementer with
+      # no frontend lane to scope to here, so it fails closed rather than getting
+      # unrestricted access.
+      [ "$agent_type" = "tank" ] && exit 0
+      echo "Blocked: backend stack is node with no frontend configured — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating frontend work." >&2
+      exit 2
     elif [ -z "$backend_stack" ] && has_node_backend && ! has_dotnet_backend; then
       # Stacks unset (resolved via morpheus's memory/detection, not pinned) but the
       # repo's markers show a Node backend and no .NET project. The extension regime
       # can't separate tank's `.ts`/`.js` from trinity's, so mirror the pinned
-      # `Backend stack: node` behavior: fail closed when a frontend lane also exists,
-      # otherwise (backend-only) allow the write.
+      # `Backend stack: node` behavior.
       if has_frontend; then
+        # Node backend + a frontend, no lane paths: genuinely ambiguous — fail closed.
         echo "Blocked: detected a Node backend (server framework in package.json) alongside a frontend, with no lane paths configured — extension-based lanes can't tell tank's and trinity's .ts/.js apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init), or pin Backend stack / Frontend stack, before delegating." >&2
         exit 2
       fi
-      exit 0
+      # Backend-only Node repo: tank owns it, trinity has no frontend lane here.
+      [ "$agent_type" = "tank" ] && exit 0
+      echo "Blocked: detected a backend-only Node repo — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating frontend work." >&2
+      exit 2
     else
       # Extension-based regime (default) — unchanged from before same-language
       # stacks existed. Note: .cshtml is intentionally NOT denied to either tank

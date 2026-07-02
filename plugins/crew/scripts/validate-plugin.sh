@@ -181,19 +181,38 @@ while IFS= read -r h; do
   fi
 done < <(git ls-files 'plugins/*/hooks/*.sh')
 
-# 4. Skill drift: any skill that the crew plugin owns canonically must be
-#    byte-for-byte identical when shipped by another plugin. Compares the whole
-#    skill directory so missing or extra reference files count as drift too,
-#    not just SKILL.md changes.
-for canonical_dir in plugins/crew/skills/*/; do
-  skill="$(basename "$canonical_dir")"
-  for shipped_dir in plugins/*/skills/"$skill"/; do
-    [ -d "$shipped_dir" ] || continue
-    [ "$shipped_dir" = "$canonical_dir" ] && continue
-    if diff -rq "$canonical_dir" "$shipped_dir" >/dev/null 2>&1; then
-      ok "skill in sync: ${shipped_dir%/} == ${canonical_dir%/}"
+# 4. Skill drift: any skill name shipped by more than one plugin must stay
+#    byte-for-byte identical across every copy. Generic by skill *name*, not
+#    hardcoded to any specific pair of plugins — grouping every SKILL.md by its
+#    directory basename catches drift between any two plugins that happen to
+#    ship the same skill, today or in the future, not just ones crew is party
+#    to. When crew ships the skill, its copy is the reference (crew is the
+#    documented canonical source for shared skills — see AGENTS.md); otherwise
+#    the first copy found is the reference, and every other copy is compared
+#    against it. Compares whole skill directories (diff -rq) so missing/extra
+#    reference files count as drift too, not just SKILL.md changes.
+declare -A skill_dirs=()
+while IFS= read -r skill_md; do
+  dir="$(dirname "$skill_md")"
+  name="$(basename "$dir")"
+  skill_dirs["$name"]="${skill_dirs["$name"]:-}${skill_dirs["$name"]:+ }$dir"
+done < <(git ls-files 'plugins/*/skills/*/SKILL.md')
+
+for name in "${!skill_dirs[@]}"; do
+  # shellcheck disable=SC2206  # intentional word-splitting: dirs never contain spaces
+  dirs=(${skill_dirs["$name"]})
+  [ "${#dirs[@]}" -lt 2 ] && continue
+  reference=""
+  for d in "${dirs[@]}"; do
+    case "$d" in plugins/crew/skills/*) reference="$d" ;; esac
+  done
+  [ -z "$reference" ] && reference="${dirs[0]}"
+  for d in "${dirs[@]}"; do
+    [ "$d" = "$reference" ] && continue
+    if diff -rq "$reference" "$d" >/dev/null 2>&1; then
+      ok "skill in sync: $d == $reference"
     else
-      err "skill drift: ${shipped_dir%/} differs from canonical ${canonical_dir%/}"
+      err "skill drift: $d differs from $reference (skill '$name' shipped by multiple plugins)"
     fi
   done
 done

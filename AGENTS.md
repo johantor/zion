@@ -20,14 +20,16 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, and `neo` (express-lane generalist). Auto-discovered from this dir; not declared in the manifest.
   - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session.
-  - `skills/` — shared: `engineering-principles`, `context-discipline`; frontend mode:
-    `frontend-headless`, `frontend-server-rendered`; per-stack (loaded dynamically once
-    `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
+  - `skills/` — shared: `engineering-principles`, `context-discipline` (also shipped by other
+    plugins — kept byte-for-byte in sync automatically; see *How we review code* below);
+    frontend mode: `frontend-headless`, `frontend-server-rendered`; per-stack (loaded
+    dynamically once `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
     `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`;
     per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
-  - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure.
+  - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure, including
+    skill-drift across plugins (§4 in the script; see *How we review code* below).
 - `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:
   - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
   - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
@@ -79,12 +81,14 @@ Core principles (defaults, not dogma — the repo's established patterns win on 
 YAGNI, KISS, pragmatic DRY (rule of three), small single-purpose units, intention-revealing
 names, fail-fast error handling, and minimal-scope diffs.
 
-The standalone `engineering-principles` plugin ships a copy of this skill;
-`plugins/crew/skills/engineering-principles/SKILL.md` is the canonical source and every
-shipped copy must stay byte-for-byte in sync. Drift is enforced automatically by
-`plugins/crew/scripts/validate-plugin.sh` (CI fails on mismatch); reviewers should
-still flag any drift that slips through as at least a **Warning**, and **Blocking**
-when it would change reviewer behavior.
+Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
+today that's `engineering-principles` (crew's canonical copy, also shipped standalone by the
+`engineering-principles` plugin) and `context-discipline` (crew's canonical copy, also shipped
+by `keymaker`). `plugins/crew/scripts/validate-plugin.sh` enforces this automatically: the check
+is generic by skill *name*, not hardcoded to these two pairs, so it also catches a future
+duplicate between any other plugins — crew included or not (CI fails on mismatch). Reviewers
+should still flag any drift that slips through as at least a **Warning**, and **Blocking** when
+it would change reviewer behavior.
 
 ## Validating changes
 

@@ -5,6 +5,24 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.7] - 2026-07-03
+
+### Changed
+- **Load per-stack taxonomy skills on demand instead of preloading both.** `keymaker.md` and
+  `twin.md` no longer frontmatter-preload `debt-taxonomy-dotnet` **and**
+  `debt-taxonomy-typescript` (~165 lines paid on every dispatch, even in a single-stack repo).
+  Both agents now carry the `Skill` tool and load only the resolved stack's skill — keymaker
+  after marker-file detection, the twin from the stack named in its delegation — matching crew's
+  worker pattern (`tank` loads `backend-dotnet` on demand). A single-stack repo loads one
+  taxonomy. README "Adding a stack" step 3 updated: wiring is the detection-table row plus the
+  orchestrator's detection list, not per-agent frontmatter.
+- **Deduped `keymaker.md` against its preloaded skills.** The blast-radius gate thresholds, the
+  stale-suppression heuristic examples, and the outdated/upgrade risk triage were restated in
+  both the agent body and `debt-taxonomy` — a drift risk (the `> 40` gate threshold lived in two
+  files that could silently disagree). The agent body now references the skill's sections and
+  keeps only agent-specific routing. The open-mode exit-contract paragraph, which stated its step
+  mapping twice, is collapsed to a single statement of the rule. Behavior-neutral.
+
 ## [0.4.6] - 2026-07-03
 
 ### Added

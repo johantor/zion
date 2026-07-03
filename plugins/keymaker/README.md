@@ -1,6 +1,6 @@
 # keymaker
 
-> **Beta** — keymaker's agents, taxonomy, and commands are defined but have not yet been run in a live project (see the [Verification matrix](#verification-matrix) — this banner drops when every path is green). The design is intentional and the guardrails are in place, but expect rough edges and breaking changes before v1.0. Feedback and bug reports are welcome.
+> **Beta** — keymaker's agents, taxonomy, and commands are defined but have not yet been run in a live project (see the [Verification matrix](#verification-matrix) — this banner drops when every box is green). The design is intentional and the guardrails are in place, but expect rough edges and breaking changes before v1.0. Feedback and bug reports are welcome.
 
 A Claude Code plugin: pointer-driven tech debt remediation and dependency upgrades. Part of the [Zion](../../README.md) marketplace.
 
@@ -134,7 +134,7 @@ The [beta banner](#keymaker) stays until keymaker has been exercised — against
 purpose-built scratch repo — on every gate and exit path below. Each row is one scenario: a minimal
 planted-debt setup and the behavior that counts as a pass. Check it off once you've run it; when
 every box is green, drop the banner (or move it to a v1.0 note). This is the written definition of
-"run in a live project" the banner refers to.
+"run in a live project" that the banner refers to.
 
 A scratch repo for these is cheap: `git init` a throwaway directory, add the marker file(s) for the
 stack under test (`*.csproj` / `package.json` + `tsconfig.json`), plant the specific suppression,

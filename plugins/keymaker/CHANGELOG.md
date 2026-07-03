@@ -5,6 +5,21 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.5] - 2026-07-02
+
+### Added
+- **Durable batch ledger + resume protocol for open mode.** Previously open mode had only a
+  vague "maintain a written note" instruction — no schema, no location, no resume rule — so a
+  crash mid-batch lost the run. `/keymaker:open` now writes `.claude/debt-<slug>.md` once
+  batches are known (header: `pointer:`/`base-branch:`/`work-branch:`; one entry per batch:
+  `id:`/`status:`/`lane:`/`acceptance:`/`evidence:`), flips each batch through
+  `pending` → `in-progress` → `done`/`blocked` as it dispatches, verifies, and commits, and on
+  restart resumes a matching ledger (reconciling against git) instead of re-classifying,
+  re-enumerating, or re-gating. Distinct from the tier-2 `.claude/plan-<slug>.md` handoff
+  outline, which remains a one-shot deliverable. `/keymaker:audit`'s multi-pick sequence is now
+  also naturally resumable: a re-run re-picks, and each pointer either no-ops (already done) or
+  resumes from its own ledger.
+
 ## [0.4.4] - 2026-07-02
 
 ### Added

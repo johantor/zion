@@ -1,6 +1,6 @@
 {
   "name": "keymaker",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "license": "MIT",
   "description": "Pointer-driven tech debt and dependency upgrade crew. Fixes one identified suppression, rule, or package at a time; produces handoff outlines for platform-scale migrations.",
   "author": {

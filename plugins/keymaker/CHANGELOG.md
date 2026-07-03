@@ -5,6 +5,16 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.3] - 2026-07-02
+
+### Fixed
+- **Post-fix verification now sweeps every suppression mechanism, not just the targeted one.**
+  Step 8 previously only re-checked the pattern being removed, so a twin that quieted its fix
+  with a *different* mechanism (e.g. swapped a removed `eslint-disable` for a new `@ts-ignore`,
+  or widened a `<NoWarn>`) passed verification. `twin` now returns before/after counts for every
+  mechanism in its stack skill across the touched files, and `keymaker` rejects and re-delegates
+  on any increase in any mechanism, not only the targeted pattern.
+
 ## [0.4.2] - 2026-07-02
 
 ### Fixed

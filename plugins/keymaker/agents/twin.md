@@ -33,4 +33,7 @@ Rules:
 - Don't run the *whole* project build/test suite as a routine self-check — run only the targeted check named in the acceptance criteria: compile the affected project, lint the affected files, or run the specific scoped test(s) the delegation names for a behavior-sensitive fix. If you think a broader check is warranted, say so in your return summary and let `keymaker:keymaker` decide.
 - When `mcp__context7` is available and the delegation involves a package upgrade with migration guidance, fetch version-specific docs for the affected API before editing — targeted topic, not a dump (`context-discipline`).
 - Capture build/lint output to a file and grep it — never stream verbose output into context (`context-discipline`).
-- Return: changed files with before/after suppression count, targeted check result (pass/fail with evidence pointer), any open questions.
+- Return: changed files with before/after counts **for every suppression mechanism in your
+  stack skill** across the touched files (not just the targeted one — `keymaker:keymaker`
+  verifies no new suppression was introduced under a different mechanism), targeted check result
+  (pass/fail with evidence pointer), any open questions.

@@ -135,7 +135,11 @@ Use `model: haiku` override when delegating a run-and-report step (re-running th
 When a twin returns, verify:
 - The suppression is gone (grep for the original pattern returns 0)
 - The targeted check passes (evidence pointer in the twin's return)
-- No new suppressions were introduced
+- **No new suppressions were introduced — of any mechanism, not just the targeted one.** Compare
+  the twin's per-mechanism before/after counts (its return reports one for every mechanism in
+  its stack skill) against the enumeration from step 4. A twin that quiets its fix with a
+  different mechanism than the one delegated — e.g. swaps a removed `eslint-disable` for a new
+  `@ts-ignore`, or widens a `<NoWarn>` — fails this check even though the targeted pattern is gone.
 
 Reject and re-delegate if any criterion is unmet. State the failure clearly in the re-delegation.
 

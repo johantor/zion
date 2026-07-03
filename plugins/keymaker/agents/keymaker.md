@@ -147,7 +147,11 @@ When a twin returns, verify:
   delegated — e.g. swaps a removed `eslint-disable` for a new `@ts-ignore`, or widens a
   `<NoWarn>` — fails this check even though the targeted pattern is gone.
 
-Reject and re-delegate if any criterion is unmet. State the failure clearly in the re-delegation.
+Reject and re-delegate if any criterion is unmet, stating the failure clearly. **Cap this at 3
+fix→verify round-trips per batch.** After a third rejected attempt on the same batch, stop
+re-delegating: mark the batch **blocked**, report the attempt history (what was asked each
+round, what came back, which criterion failed), and ask the user how to proceed rather than
+continuing to thrash.
 
 ### 9. Commit
 

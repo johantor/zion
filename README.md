@@ -1,127 +1,119 @@
 # Zion
 
-**Ship and maintain software with a crew, not a single assistant.** Zion is a
-Claude Code marketplace — a curated suite of plugins that turn one prompt into
-an orchestrated team, with the guardrails, reviews, and remediation tools to
-keep what you ship healthy.
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
-## The suite
-
-| Plugin | What it does | Start with |
-|---|---|---|
-| **[crew](plugins/crew/README.md)** | Orchestrated, multi-agent feature delivery — a captain that plans and delegates to backend, frontend, tests, and visual-review specialists. | `/crew:feature <task>` |
-| **[keymaker](plugins/keymaker/README.md)** *(beta)* | Pointer-driven tech debt remediation and dependency upgrades — fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:open <pointer>` |
-| **[engineering-principles](plugins/engineering-principles/README.md)** | The review rubric used across the suite, shipped standalone for teams who just want the standards. | Skill-only — no commands |
-
-Pick one, mix them, or install the lot. They share conventions (the same
-`CLAUDE.md` config slots, the same review rubric) so they compose without
-fighting each other.
-
-## Why Zion
-
-- **A team, not a soloist.** `crew` plans the work and delegates to specialists
-  instead of one assistant juggling everything; `keymaker` runs the same playbook
-  for debt and upgrades.
-- **It keeps moving while you talk.** Workers run in the background, so you can
-  add corrections or new asks mid-flight without waiting for a turn to finish.
-- **Guardrails, not vibes.** Lane guards pin each worker to its own files,
-  safety hooks block destructive commands and commits to protected branches,
-  and formatters run after every edit.
-- **Review and ship built in.** A consolidated code + security + design review
-  and a pre-PR **GO / NO-GO** gate run before anything leaves your machine —
-  driven by the same `engineering-principles` rubric the standalone plugin ships.
-- **Your git, your rules.** Plugins branch and commit each verified step, stop
-  at the review gate, and open the PR only when you say so.
-
-## Get started
-
-Add the marketplace once, then install the plugins you want:
-
-```bash
-claude plugin marketplace add johantor/zion
-claude plugin install crew@zion
-claude plugin install keymaker@zion
-claude plugin install engineering-principles@zion   # rubric only; optional if you have crew
-```
-
-…or do it from the UI, via `/plugin > Discover` in Claude Code.
-
-Then drive the suite from your normal Claude Code session:
-
-- **Build a feature** — `/crew:feature <task>` plans, delegates, builds, and stops
-  at the review gate; `/crew:review` runs the GO / NO-GO; `/crew:pr` opens the PR;
-  `/crew:address` closes the review loop once the PR gets comments or CI failures.
-- **Pay down debt or bump a package** — `/keymaker:open <pointer>` fixes one
-  identified item end-to-end; `/keymaker:audit <scope>` scouts an area and hands
-  back ready-to-paste pointers.
-- **Talk to the captain directly (optional)** — `claude --agent crew:morpheus`
-  launches a dedicated orchestration session scoped to crew work.
-
-Each plugin's README has the full surface area — agents, hooks, MCP wiring, and
-the guardrails behind every gate.
+A [Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
+team-style software delivery: an orchestrated multi-agent crew for building
+features, a precision tool for paying down tech debt and upgrading dependencies,
+and the shared review rubric behind both — installable together or independently.
 
 ## Plugins
 
-### crew — orchestrated, multi-agent feature delivery
+| Plugin | Status | What it does | Adds to your session |
+|---|---|---|---|
+| **[crew](plugins/crew/README.md)** | Stable | Orchestrated, multi-agent feature delivery: a captain (`morpheus`) plans the work and delegates to backend, frontend, test, and visual-review specialists, with a consolidated review gate before anything ships. | `/crew:*` commands, agents, safety hooks, skills |
+| **[keymaker](plugins/keymaker/README.md)** | Beta | Pointer-driven tech debt remediation and dependency upgrades: fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:*` commands, agents, skills |
+| **[engineering-principles](plugins/engineering-principles/README.md)** | Stable | The code-review rubric used across the suite, packaged standalone for teams who only want the standards. | One skill — no commands, agents, or hooks |
 
-The simplest way to spin up the crew is a dedicated orchestration session — start
-Claude Code *as* `morpheus` and just talk to it:
+The plugins are designed to compose: they share the same `CLAUDE.md`
+configuration slots and the same review rubric, so installing more than one adds
+capability without conflicts. `crew` already bundles the `engineering-principles`
+rubric — install the standalone plugin only if you *don't* use `crew`.
 
-```bash
-claude --agent crew:morpheus
-```
+## Requirements
 
-Or keep the crew on tap inside a normal session with the slash commands:
+- [Claude Code](https://code.claude.com/docs/en/overview) with plugin support
+  (CLI, desktop, or IDE extension).
+- A git repository — `crew` and `keymaker` branch and commit their work.
+- Optional, for `crew`'s visual review and PR workflows: Playwright, Figma, and
+  GitHub / Azure DevOps MCP servers. Setup is documented in the
+  [crew README](plugins/crew/README.md); everything else works without them.
 
-- `/crew:init` — detect and write this project's crew configuration to `CLAUDE.md` (idempotent reconcile)
-- `/crew:feature <task>` — plan and build a feature
-- `/crew:review` — pre-PR **GO / NO-GO** gate: code + security + design review, plus build/test/lint
-- `/crew:pr` — push the branch and open the pull request
-- `/crew:address` — after the PR is open, close the review loop: route review comments and CI failures to the crew, re-run the gate, and push
+## Installation
 
-Agents, hooks, background delegation, and optional MCP setup (Playwright, Figma,
-GitHub/ADO) are documented in **[plugins/crew/README.md](plugins/crew/README.md)**.
-
-### keymaker — pointer-driven tech debt and dependency upgrades *(beta)*
-
-- `/keymaker:open <pointer>` — fix one identified item: a suppression at a line,
-  a whole rule (e.g. `CS8602`, `eslint no-explicit-any`), or a package bump
-  (`Newtonsoft.Json 13.x`). Classify → enumerate blast radius → gate → fix in
-  batches → verify → commit per batch → delete the suppression so the analyzer
-  becomes the regression test.
-- `/keymaker:audit <scope>` — read-only scout of a path, lane, rule family, or
-  the current `diff`; returns a ranked, capped report where every finding is a
-  ready-to-paste `/keymaker:open` invocation.
-
-Stack-aware (.NET / C# and TypeScript / JavaScript today, additive for more) and
-tier-aware: single-package bumps are handled in-plugin; platform-scale migrations
-get a `morpheus`-compatible handoff outline instead of a sweeping edit. Full
-details in **[plugins/keymaker/README.md](plugins/keymaker/README.md)**.
-
-### engineering-principles — the review rubric, standalone
-
-For teams who want the same review rubric the rest of the suite uses, without
-installing `crew`. Skill-only — no commands, no agents, no hooks.
+Add the marketplace once:
 
 ```bash
 claude plugin marketplace add johantor/zion
-claude plugin install engineering-principles@zion
 ```
 
-Details in **[plugins/engineering-principles/README.md](plugins/engineering-principles/README.md)**.
-
-## Staying up to date
+Then install the plugins you want:
 
 ```bash
-claude plugin marketplace update zion
-claude plugin update crew@zion
-claude plugin update keymaker@zion
-claude plugin update engineering-principles@zion
+claude plugin install crew@zion
+claude plugin install keymaker@zion
+claude plugin install engineering-principles@zion   # only if you don't use crew
 ```
 
----
+Alternatively, install from the UI: run `/plugin` in Claude Code and browse to
+**Discover**.
 
-Contributing a plugin or hacking on the crew? See **[AGENTS.md](AGENTS.md)**.
+## Quick start
+
+### crew — build a feature
+
+```bash
+claude --agent crew:morpheus     # dedicated orchestration session — just describe the feature
+```
+
+or, from a normal session:
+
+```
+/crew:init                 # once per project: detect and record build/test/lint config
+/crew:feature <task>       # plan, delegate, build — stops at the review gate
+/crew:review               # pre-PR GO / NO-GO: code + security + design review, build/test/lint
+/crew:pr                   # push the branch and open the pull request
+/crew:address              # route PR comments and CI failures back to the crew
+```
+
+`morpheus` presents its plan before building, commits each verified step to a
+feature branch, and runs workers in the background so you can keep talking to it
+mid-flight. Nothing is pushed and no PR is opened until you say so.
+
+### keymaker — fix debt, one pointer at a time
+
+```
+/keymaker:open src/Orders/OrderService.cs:42    # a suppression at a specific line
+/keymaker:open CS8602                           # every suppression of a rule
+/keymaker:open eslint no-explicit-any           # an ESLint rule
+/keymaker:open Newtonsoft.Json 13.x             # a dependency upgrade
+/keymaker:audit <scope>                         # read-only scout: returns ready-to-paste pointers
+```
+
+Each fix is classified, gated on its blast radius, fixed in verified batches,
+and committed per batch — the deleted suppression makes the analyzer itself the
+regression test. Supports .NET / C# and TypeScript / JavaScript today.
+
+### engineering-principles — the rubric, standalone
+
+No commands to learn: once installed, Claude Code loads the skill automatically
+and applies it when you write, refactor, or review code.
+
+## Updating and uninstalling
+
+```bash
+claude plugin marketplace update zion    # refresh the plugin catalog
+claude plugin update crew@zion           # update an installed plugin
+claude plugin uninstall crew@zion        # remove a plugin
+```
+
+Release notes: [crew](CHANGELOG.md) ·
+[keymaker](plugins/keymaker/CHANGELOG.md) ·
+[engineering-principles](plugins/engineering-principles/CHANGELOG.md).
+
+## Documentation
+
+- [crew](plugins/crew/README.md) — agents, commands, hooks, background
+  delegation, and optional MCP setup.
+- [keymaker](plugins/keymaker/README.md) — pointer syntax, the fix pipeline,
+  and audit scopes.
+- [engineering-principles](plugins/engineering-principles/README.md) — what the
+  rubric covers.
+- [AGENTS.md](AGENTS.md) — contributing a plugin or hacking on the crew.
+
+## License
+
+[MIT](LICENSE)
 
 ---
 

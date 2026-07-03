@@ -144,9 +144,12 @@ planted-debt setup and the behavior that counts as a pass. Check it off once you
 every box is green, drop the banner (or move it to a v1.0 note). This is the written definition of
 "run in a live project" that the banner refers to.
 
-A scratch repo for these is cheap: `git init` a throwaway directory, add the marker file(s) for the
-stack under test (`*.csproj` / `package.json` + `tsconfig.json`), plant the specific suppression,
-version pin, or violation each row names, and point `/keymaker:audit` or `/keymaker:open` at it.
+A scratch repo for these is cheap, and you build it **in your own terminal, not inside a Claude
+agent session** — keymaker's hooks block `git` for agents (twins especially), so the `git init`
+and setup steps below are yours to run directly. In a throwaway directory: `git init`, add the
+marker file(s) for the stack under test (`*.csproj` / `package.json` + `tsconfig.json`), plant the
+specific suppression, version pin, or violation each row names, then point `/keymaker:audit` or
+`/keymaker:open` at it.
 
 ### Audit mode (read-only scouting)
 

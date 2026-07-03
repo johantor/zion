@@ -57,8 +57,9 @@ A repo may match both (e.g. Optimizely + React) — apply each skill to its own 
 **Before step 1, check for a resumable run:** derive the pointer's slug (same convention as the
 tier-2 outline's `<slug>`) and look for a matching `.claude/debt-<slug>.md` ledger. If one
 matches, **resume it** per *the batch ledger is durable state* below — skip pointer-form
-recognition, pre-count, classification, enumeration, and gating entirely, and go straight to
-dispatching the first unfinished batch. Only run steps 1–5 when no matching ledger exists.
+recognition, pre-count, classification, enumeration, and gating entirely, and follow the resume
+protocol's per-batch actions (dispatch, re-verify, ask, or a one-line stop if every batch is
+already `done`). Only run steps 1–5 when no matching ledger exists.
 
 ### 1. Recognise the pointer form
 
@@ -219,6 +220,9 @@ the check before step 1):
       re-verify it per step 8 if `in-progress`.
    4. A `blocked` batch stays blocked — report it and ask the user rather than silently
       re-dispatching it.
+   5. If every batch is already `done`, skip dispatch entirely — return a single one-line
+      status (e.g. `<pointer> already complete — N/N batches done.`) and stop. This is what
+      makes a repeat `/keymaker:open` (and `/keymaker:audit`'s re-picks) a cheap no-op.
 3. Only ask the user if the ledger is genuinely ambiguous or git contradicts it — otherwise
    resume silently.
 

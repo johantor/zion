@@ -5,7 +5,7 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.8] - 2026-07-03
+## [0.5.1] - 2026-07-03
 
 ### Added
 - **Behavioral verification matrix (docs).** The README's beta banner claimed keymaker had "not
@@ -14,6 +14,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   early exit, blast-radius gate outcome, verify/commit path, and commit shape — each with a
   minimal planted-debt setup and the behavior that counts as a pass. The banner now links to it
   and drops once every box is green.
+
+## [0.5.0] - 2026-07-03
+
+### Added
+- **First code-enforced guard suite — keymaker's hard rules are no longer prose-only.** The
+  plugin now ships `hooks/hooks.json` with three `PreToolUse` guards, so a standalone keymaker
+  install (without crew) gets the same enforcement floor crew has:
+  - `bash-safety.sh` — blocks destructive commands and raw/streaming reads (ported from crew's
+    guard); blocks **any `git` invocation by a twin** ("Never run git" — keymaker owns branching
+    and commits); refuses `git commit` on `main`/`master`/`develop` for any agent; and blocks
+    never-terminating watch/dev/serve commands in agent sessions.
+  - `write-guard.sh` — confines the keymaker orchestrator's `Write`/`Edit` to `.claude/` (batch
+    ledger, tier-2 outlines, session notes) plus temp locations; a source edit is blocked with a
+    pointer to delegate it to a twin, as the agent contract has always said.
+  - `read-guard.sh` — blocks raw reads of files over 64 KiB (ported from crew; enforces
+    `context-discipline`).
+  With crew also installed, both plugins' Bash/Read guards fire on the same calls — redundant
+  but compatible.
 
 ## [0.4.7] - 2026-07-03
 

@@ -63,6 +63,14 @@ Returns a ranked, capped (~12 findings) report. Every finding is formatted as a 
 
 ## Guardrails
 
+- **Hook-enforced, not just prompt-enforced.** The plugin ships `PreToolUse` hooks that hold
+  even if an agent goes off-script: twins are **blocked from running `git`** (keymaker owns
+  branching and commits), `git commit` on `main`/`master`/`develop` is refused for any agent,
+  keymaker's own `Write`/`Edit` are **confined to `.claude/`** (batch ledger, outlines, notes —
+  a source edit is blocked with a pointer to delegate it to a twin), destructive commands and
+  raw/streaming reads are blocked (`context-discipline`), and never-terminating watch/dev/serve
+  commands are refused in agent sessions. Your own main session is never intercepted by the
+  agent-scoped rules.
 - **Pointer-driven, not sweep-driven.** No bare `/keymaker:audit` with no scope — a required scope argument prevents accidental full-codebase scans.
 - **Blast-radius gate.** The orchestrator enumerates and reports the radius *before* touching anything. > 40 findings for a single rule → present natural slices, you choose the scope.
 - **Tiered upgrades.** Single-package bumps (patch/minor/major with migration notes) are tier 1 — keymaker handles them. Platform/framework migrations are tier 2 — keymaker outlines them for handoff and stops.
@@ -136,9 +144,12 @@ planted-debt setup and the behavior that counts as a pass. Check it off once you
 every box is green, drop the banner (or move it to a v1.0 note). This is the written definition of
 "run in a live project" that the banner refers to.
 
-A scratch repo for these is cheap: `git init` a throwaway directory, add the marker file(s) for the
-stack under test (`*.csproj` / `package.json` + `tsconfig.json`), plant the specific suppression,
-version pin, or violation each row names, and point `/keymaker:audit` or `/keymaker:open` at it.
+A scratch repo for these is cheap, and you build it **in your own terminal, not inside a Claude
+agent session** — keymaker's hooks block `git` for agents (twins especially), so the `git init`
+and setup steps below are yours to run directly. In a throwaway directory: `git init`, add the
+marker file(s) for the stack under test (`*.csproj` / `package.json` + `tsconfig.json`), plant the
+specific suppression, version pin, or violation each row names, then point `/keymaker:audit` or
+`/keymaker:open` at it.
 
 ### Audit mode (read-only scouting)
 

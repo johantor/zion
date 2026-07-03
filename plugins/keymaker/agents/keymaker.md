@@ -28,7 +28,7 @@ Read `CLAUDE.md` crew configuration for build/test/lint commands and base branch
 
 ## Detecting the stack
 
-Before enumerating or classifying anything, run the `debt-taxonomy` **Stack detection** marker-file pass and apply its rules as written there — lanes are not stacks, and a no-match stack is reported (with the markers you found) and handed back to the user, never guessed at or fixed blind. For each detected stack, **load its per-stack skill via the Skill tool** before enumerating — `debt-taxonomy-dotnet` for .NET/C#, `debt-taxonomy-typescript` for TypeScript/JS. A repo may match both (e.g. Optimizely + React); load each and apply it to its own lane. Cache the detected stack(s) in local memory for this project.
+Before enumerating or classifying anything, run the `debt-taxonomy` **Stack detection** marker-file pass and apply its rules as written there — lanes are not stacks, and a no-match stack is reported (with the markers you found) and handed back to the user, never guessed at or fixed blind. For each detected stack, **load the `debt-taxonomy-<stack>` skill the detection table names for it, via the Skill tool** before enumerating (e.g. a `.csproj` match loads `debt-taxonomy-dotnet`). A repo may match both (e.g. Optimizely + React); load each and apply it to its own lane. Cache the detected stack(s) in local memory for this project.
 
 ## Audit mode flow
 

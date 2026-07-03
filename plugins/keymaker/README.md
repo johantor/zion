@@ -121,8 +121,8 @@ Adding a stack is additive — no agent logic changes, only data:
    and JSON is well-formed.
 
 That is the whole contract: one new skill file, one detection row, one orchestrator detection-list
-line. The orchestrator and twin need no behavioral changes because they drive off the taxonomy
-data — loaded on demand — not hard-coded stack knowledge.
+line. Beyond that wiring, the orchestrator and twin need no logic changes — they drive off the
+taxonomy data, loaded on demand, not hard-coded stack knowledge.
 
 ## What keymaker reads from your project
 

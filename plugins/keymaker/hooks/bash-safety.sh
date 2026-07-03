@@ -89,7 +89,7 @@ fi
 # only, not `--watch=false` (the disable spelling). `vite build` stays allowed.
 if [ -n "$agent_type" ]; then
   cmdpos='(^|[;&|][&|]?[[:space:]]*)'
-  pfx='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*((npx|bunx)[[:space:]]+)?'
+  pfx='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*((npx|bunx)[[:space:]]+)?'
   watch='dotnet[[:space:]]+watch([[:space:]]|$)|(npm|pnpm|yarn|bun)[[:space:]]+(run[[:space:]]+)?(dev|start|serve|watch)([[:space:]]|$)|vite([[:space:]]+(dev|serve|preview)([[:space:]]|$)|[[:space:]]+-|[[:space:]]*($|[;&|]))|(next|nuxt)[[:space:]]+dev([[:space:]]|$)|ng[[:space:]]+serve([[:space:]]|$)|nodemon([[:space:]]|$)|webpack[[:space:]]+serve([[:space:]]|$)|webpack-dev-server([[:space:]]|$)'
   if echo "$normalized" | grep -Eq "${cmdpos}${pfx}(${watch})|--watch([[:space:]]|$)"; then
     echo "Blocked: watch/dev/serve commands never terminate. Use the project's one-shot build/test command instead." >&2

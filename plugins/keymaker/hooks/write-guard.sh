@@ -27,7 +27,14 @@ agent_type="${fields%%"$rs"*}"
 path="${fields#*"$rs"}"
 
 [ "$agent_type" = "keymaker" ] || exit 0
-[ -z "$path" ] && exit 0
+
+# Fail closed on a pathless payload: Edit/Write always carry a file path, so
+# for the one agent this guard restricts, "no path" means the claim can't be
+# verified — block rather than allow the allowlist to be bypassed.
+if [ -z "$path" ]; then
+  echo "Blocked: write-guard found no file path in the payload, so keymaker's write allowlist can't be checked." >&2
+  exit 2
+fi
 
 # Allowed: .claude/ (ledger, outlines, notes, agent memory) whether the path
 # is repo-relative or absolute, plus temp/scratch locations. Everything else

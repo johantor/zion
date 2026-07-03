@@ -5,6 +5,15 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.4] - 2026-07-02
+
+### Added
+- **Capped the verify→re-delegate loop.** Step 8 previously said "reject and re-delegate if any
+  criterion is unmet" with no bound — a batch that kept failing the same check could thrash
+  indefinitely. Now capped at 3 fix→verify round-trips per batch: on a third rejected attempt,
+  the batch is marked blocked, the attempt history (what was asked, what came back, which
+  criterion failed each round) is reported, and the user decides how to proceed.
+
 ## [0.4.3] - 2026-07-02
 
 ### Fixed

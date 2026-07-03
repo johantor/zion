@@ -12,7 +12,7 @@ and the shared review rubric behind both — installable together or independent
 | Plugin | Status | What it does | Adds to your session |
 |---|---|---|---|
 | **[crew](plugins/crew/README.md)** | Stable | Orchestrated, multi-agent feature delivery: a captain (`morpheus`) plans the work and delegates to backend, frontend, test, and visual-review specialists, with a consolidated review gate before anything ships. | `/crew:*` commands, agents, safety hooks, skills |
-| **[keymaker](plugins/keymaker/README.md)** | Beta | Pointer-driven tech debt remediation and dependency upgrades: fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:*` commands, agents, skills |
+| **[keymaker](plugins/keymaker/README.md)** | Beta | Pointer-driven tech debt remediation and dependency upgrades: fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:*` commands, agents, safety hooks, skills |
 | **[engineering-principles](plugins/engineering-principles/README.md)** | Stable | The code-review rubric used across the suite, packaged standalone for teams who only want the standards. | One skill — no commands, agents, or hooks |
 
 The plugins are designed to compose: they share the same `CLAUDE.md`

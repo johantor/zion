@@ -1,10 +1,15 @@
 #!/usr/bin/env bash
-# PreToolUse(Bash) guard. Blocks destructive commands and raw/streaming reads
-# that bypass context discipline.
+# PreToolUse(Bash) guard for the keymaker crew. Blocks destructive commands,
+# git misuse (twins never run git; no commits on a protected branch),
+# never-terminating watch/dev/serve commands, and raw/streaming reads that
+# bypass context discipline. The destructive-ops and raw-read blocks mirror
+# crew's bash-safety.sh so a standalone keymaker install (without crew) keeps
+# the same floor; with both plugins installed both guards fire — redundant but
+# compatible.
 #
 # Fail closed: a security guard that can't read its input must block, not let
 # the command through uninspected. jq is a documented dependency (also required
-# by lane-guard and validate-plugin).
+# by write-guard).
 if ! command -v jq >/dev/null 2>&1; then
   echo "Blocked: bash-safety needs jq to inspect commands." >&2
   exit 2
@@ -54,40 +59,34 @@ if echo "$normalized" | grep -Eq "${rm_rf}|git[[:space:]]+push[^;&|]*[[:space:]]
   exit 2
 fi
 
-# Workers never touch git — morpheus is the sole git owner (branching and
-# per-step commits; see AGENTS.md "How the crew works"). Any git invocation at
-# a command position is blocked for the Bash-capable workers (seraph carries no
-# Bash tool, so it needs no entry); the prefix consumes env assignments and
-# env/command wrappers so they can't smuggle git past the anchor.
+# Twins never run git — keymaker owns branching and per-batch commits
+# (twin.md operating rules). Any git invocation at a command position is
+# blocked; the prefix consumes env assignments and env/command wrappers so
+# they can't smuggle git past the anchor.
 git_at_cmd='(^|[;&|][&|]?[[:space:]]*)([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*git([[:space:]]|$)'
-case "$agent_type" in
-  tank|trinity|oracle|dozer|neo)
-    if echo "$normalized" | grep -Eq "$git_at_cmd"; then
-      echo "Blocked: ${agent_type} never runs git — morpheus owns branching and commits. Return your result; morpheus commits verified steps." >&2
-      exit 2
-    fi ;;
-esac
+if [ "$agent_type" = "twin" ] && echo "$normalized" | grep -Eq "$git_at_cmd"; then
+  echo "Blocked: twin never runs git — keymaker owns branching and commits. Return your batch result; keymaker commits verified batches." >&2
+  exit 2
+fi
 
-# Any other agent (morpheus, other plugins' agents) must not commit onto a
-# protected base branch — crew work happens on feature branches (morpheus owns
-# branching). Scoped via agent_type so a normal main session (no agent_type) is
-# never intercepted. Catches plain `git commit` and git global flags before the
-# subcommand (`git -c k=v commit`, `git -C dir commit`).
+# No agent commits onto a protected branch — keymaker works on a chore/debt-*
+# branch it creates first. Scoped via agent_type so a normal main session (no
+# agent_type) is never intercepted. Catches plain `git commit` and git global
+# flags before the subcommand (`git -c k=v commit`, `git -C dir commit`).
 if [ -n "$agent_type" ] && echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*git[[:space:]]+(-[^[:space:]]+[[:space:]]+([^-[:space:]][^[:space:]]*[[:space:]]+)?)*commit([[:space:]]|$)'; then
   branch="$(git branch --show-current 2>/dev/null || true)"
   case "$branch" in
     main|master|develop)
-      echo "Blocked: ${agent_type} may not commit on protected branch '$branch'. Work on a feature branch (morpheus owns branching)." >&2
+      echo "Blocked: ${agent_type} may not commit on protected branch '$branch'. Create the work branch first (keymaker owns branching)." >&2
       exit 2 ;;
   esac
 fi
 
 # Watch/dev/serve commands never terminate, so an agent turn that launches one
-# hangs until its maxTurns/timeout — agents use one-shot build/test commands
-# instead (morpheus's "One-shot build, bounded" rule). Scoped to agent
-# sessions: the user's own session may legitimately run a dev server. `--watch`
-# matches the bare flag only, not `--watch=false` (the disable spelling).
-# `vite build` stays allowed.
+# hangs until its maxTurns/timeout — twins capture one-shot build/lint output
+# instead (context-discipline). Scoped to agent sessions: the user's own
+# session may legitimately run a dev server. `--watch` matches the bare flag
+# only, not `--watch=false` (the disable spelling). `vite build` stays allowed.
 if [ -n "$agent_type" ]; then
   cmdpos='(^|[;&|][&|]?[[:space:]]*)'
   pfx='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+)*((npx|bunx)[[:space:]]+)?'

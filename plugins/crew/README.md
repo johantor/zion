@@ -103,11 +103,16 @@ plugin):
 - **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*`
   in any flag spelling, force-push via `--force` or `-f`, redirects
   into `.env`, and redirects or `rm` into `.git/`) and raw/streaming reads
-  (`cat`, `less`, `tail -f`). For **crew agents** it also **refuses `git commit`
-  while HEAD is a common protected branch** (`main`/`master`/`develop`) — a fixed backstop.
-  Whatever your *resolved* base branch is (e.g. `develop` or `trunk`), `morpheus` and
-  `/crew:pr` keep the crew off it too. Scoped via `agent_type`, so your own main session is
-  never intercepted.
+  (`cat`, `less`, `tail -f`). For **workers** (`tank`/`trinity`/`oracle`/`dozer`/`neo`)
+  it **blocks `git` entirely** — morpheus is the sole git owner, enforced in code, not just
+  prose (`seraph` has no Bash tool, so it needs no entry). For **any other agent**
+  (morpheus included) it refuses `git commit` while HEAD is a common protected branch
+  (`main`/`master`/`develop`) — a fixed backstop; whatever your *resolved* base branch is
+  (e.g. `develop` or `trunk`), `morpheus` and `/crew:pr` keep the crew off it too. It also
+  blocks never-terminating **watch/dev/serve commands** in agent sessions (`dotnet watch`,
+  `npm run dev`, bare `vite`, `--watch`, …) — agents must use one-shot build/test commands.
+  All git and watch rules are scoped via `agent_type`, so your own main session is never
+  intercepted.
 - **format** discovers and runs the project's formatters after an edit, scoped to
   the changed file and routed by its **extension** (not a fixed agent, since `tank`,
   `trinity`, or the cross-lane `neo` can each touch either lane's files): `.cs`/`.csproj`

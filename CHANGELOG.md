@@ -5,6 +5,23 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.0] - 2026-07-03
+
+### Added
+- **Workers are now code-blocked from git.** `bash-safety.sh` blocks any `git` invocation at a
+  command position for `tank`/`trinity`/`oracle`/`dozer`/`neo` (`seraph` carries no Bash tool,
+  so it needs no entry). "Workers never run git — morpheus owns branching and commits" was
+  prose-only beyond the protected-branch commit backstop: a worker on a feature branch could
+  still commit, checkout, reset, or push without tripping any guard. The
+  commit-on-protected-branch backstop stays in place for every other agent type (morpheus,
+  other plugins' agents).
+- **Watch/dev/serve commands are blocked in agent sessions.** `dotnet watch`,
+  `npm|pnpm|yarn|bun [run] dev|start|serve|watch`, bare `vite` (`vite build` stays allowed),
+  `next`/`nuxt dev`, `ng serve`, `nodemon`, `webpack serve`, and the bare `--watch` flag
+  (`--watch=false` stays allowed) never terminate — an agent turn that launches one hangs until
+  its maxTurns/timeout. This enforces morpheus's "One-shot build, bounded" rule in code. Scoped
+  via `agent_type`, so the user's own session can still run a dev server.
+
 ## [3.1.7] - 2026-07-02
 
 ### Changed

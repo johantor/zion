@@ -116,6 +116,10 @@ Resolve base branch and branch-naming convention: `CLAUDE.md` → memory → ask
 
 Dispatch one twin per lane per batch (backend findings / frontend findings independently). Launch independent batches as parallel background agents in a single message.
 
+Before dispatch, snapshot per-mechanism suppression counts (every mechanism in the batch's
+stack skill, not just the targeted one) across the batch's exact file list — this is the
+independent "before" baseline step 8 verifies against.
+
 Each delegation must include:
 - Exact file list (paths, not globs)
 - The **stack** for this batch (`.NET` or `TypeScript`) so the twin applies the right per-stack skill
@@ -135,7 +139,13 @@ Use `model: haiku` override when delegating a run-and-report step (re-running th
 When a twin returns, verify:
 - The suppression is gone (grep for the original pattern returns 0)
 - The targeted check passes (evidence pointer in the twin's return)
-- No new suppressions were introduced
+- **No new suppressions were introduced — of any mechanism, not just the targeted one.**
+  Independently re-sweep every mechanism in the stack skill across the batch's file list and
+  compare against the **before-snapshot taken at dispatch** (step 7) — don't rely solely on the
+  twin's self-reported counts; cross-check against them as corroborating evidence, not as the
+  source of truth. A twin that quiets its fix with a different mechanism than the one
+  delegated — e.g. swaps a removed `eslint-disable` for a new `@ts-ignore`, or widens a
+  `<NoWarn>` — fails this check even though the targeted pattern is gone.
 
 Reject and re-delegate if any criterion is unmet. State the failure clearly in the re-delegation.
 

@@ -110,17 +110,19 @@ Adding a stack is additive — no agent logic changes, only data:
      stack skill — those live once in the core `debt-taxonomy` skill.
 2. **Add one row to the detection table** in `skills/debt-taxonomy/SKILL.md` mapping the
    stack's marker file(s) → the new skill.
-3. **Wire the skill into both agents** — add `debt-taxonomy-<stack>` to the `skills:` list in
-   `agents/keymaker.md` and `agents/twin.md`, and add a line to the orchestrator's
-   "Detecting the stack" list so it knows to apply it.
+3. **Wire the skill into the orchestrator's detection list** — add a line to `agents/keymaker.md`'s
+   "Detecting the stack" list so it loads the new skill on match. The per-stack skills are **not**
+   frontmatter-preloaded: keymaker loads the detected stack's skill on demand, and the twin loads
+   the stack named in its delegation — so a single-stack repo only ever loads its own taxonomy.
+   The detection-table row from step 2 is what makes the stack detectable in the first place.
 4. **Document and version** — add a row to the "Supported stacks" list above, a
    `CHANGELOG.md` entry, and bump the plugin `version` in `.claude-plugin/plugin.json`.
 5. **Validate** — `plugins/crew/scripts/validate-plugin.sh` confirms the skill path resolves
    and JSON is well-formed.
 
-That is the whole contract: one new skill file, one detection row, two agent wirings. The
-orchestrator and twin need no behavioral changes because they drive off the taxonomy data,
-not hard-coded stack knowledge.
+That is the whole contract: one new skill file, one detection row, one orchestrator detection-list
+line. The orchestrator and twin need no behavioral changes because they drive off the taxonomy
+data — loaded on demand — not hard-coded stack knowledge.
 
 ## What keymaker reads from your project
 

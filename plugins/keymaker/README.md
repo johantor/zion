@@ -1,6 +1,6 @@
 # keymaker
 
-> **Beta** — keymaker's agents, taxonomy, and commands are defined but have not yet been run in a live project. The design is intentional and the guardrails are in place, but expect rough edges and breaking changes before v1.0. Feedback and bug reports are welcome.
+> **Beta** — keymaker's agents, taxonomy, and commands are defined but have not yet been run in a live project (see the [Verification matrix](#verification-matrix) — this banner drops when every path is green). The design is intentional and the guardrails are in place, but expect rough edges and breaking changes before v1.0. Feedback and bug reports are welcome.
 
 A Claude Code plugin: pointer-driven tech debt remediation and dependency upgrades. Part of the [Zion](../../README.md) marketplace.
 
@@ -127,6 +127,52 @@ taxonomy data, loaded on demand, not hard-coded stack knowledge.
 ## What keymaker reads from your project
 
 Keymaker reads the same `CLAUDE.md` **Crew configuration** slots that the `crew` plugin uses — build, test, and lint commands, and the base branch. If these are unset, keymaker asks once and remembers. No separate configuration needed.
+
+## Verification matrix
+
+The [beta banner](#keymaker) stays until keymaker has been exercised — against a real project or a
+purpose-built scratch repo — on every gate and exit path below. Each row is one scenario: a minimal
+planted-debt setup and the behavior that counts as a pass. Check it off once you've run it; when
+every box is green, drop the banner (or move it to a v1.0 note). This is the written definition of
+"run in a live project" the banner refers to.
+
+A scratch repo for these is cheap: `git init` a throwaway directory, add the marker file(s) for the
+stack under test (`*.csproj` / `package.json` + `tsconfig.json`), plant the specific suppression,
+version pin, or violation each row names, and point `/keymaker:audit` or `/keymaker:open` at it.
+
+### Audit mode (read-only scouting)
+
+- [ ] **`path` scope** — `/keymaker:audit src/Foo/` over a handful of suppressions → ranked report (~12 max), each finding a ready-to-run `/keymaker:open`; nothing edited.
+- [ ] **`lane` scope** — `/keymaker:audit backend` in a backend+frontend repo → report scoped to the backend file area, taxonomy chosen by marker-file detection, not the lane name.
+- [ ] **rule-family scope** — `/keymaker:audit nullability` (or `eslint`) → report limited to that rule family.
+- [ ] **`stale` scope** — a tree with a stale `@ts-expect-error` and a `#pragma warning disable` over a benign line → report lists them as **candidates** (grep-only); no compile.
+- [ ] **`outdated` scope** — a `package.json` / `.csproj` with an outdated pin → each `current → target` triaged SAFE/REVIEW/CAUTION; metadata only, no install/restore/build.
+- [ ] **`diff` scope** — `/keymaker:audit diff` on a branch with changes → report scoped to the changed files vs base.
+- [ ] **report cap** — 50+ hits for a single rule → folded into one "50+ for rule X" entry; total report stays ≤ ~12.
+
+### Open mode — early exits (before any edit)
+
+- [ ] **0-findings pre-count exit** — `/keymaker:open CS8602` where the suppression is already gone → one-line "nothing to do" status; no classification, gate, branch, or twin.
+- [ ] **0-findings fallback exit** — pasted build output whose parsed rule IDs all enumerate to 0 → one-line status listing the rules.
+- [ ] **idempotent re-run / resume** — re-running a completed `/keymaker:open` (matching ledger, all batches `done`) → one-line "already complete" no-op; a run interrupted mid-batch resumes its ledger instead of re-classifying.
+
+### Open mode — blast-radius gate
+
+- [ ] **≤ 5, single lane → proceed** — 3 sites of one rule → one twin, one commit, no slice prompt.
+- [ ] **6–40 → batched** — ~20 sites → fanned into directory-cluster batches.
+- [ ] **> 40 single rule → slice & stop** — 60 sites → presents natural slices, waits for your pick, edits nothing until answered.
+- [ ] **Tier-2 migration → outline & stop** — a framework-major pointer → classified tier 2; offers a `.claude/plan-<slug>.md` handoff outline; does not implement.
+- [ ] **Behavior-sensitive, no test command → warn + ack** — a `react-hooks/rules-of-hooks` batch with no configured test command → explicit warning, requires acknowledgement before continuing.
+- [ ] **Transitive/peer conflict → stop** — an upgrade that surfaces a peer conflict → reported and stopped; never silently pinned or given `--legacy-peer-deps`.
+
+### Open mode — delegate / verify / commit
+
+- [ ] **Behavior-preserving → lint gate** — a type-only fix → accepted on compiler/linter-clean evidence.
+- [ ] **Behavior-sensitive → tests-green gate** — a hooks refactor → accepted only on tests-green, committed one logical unit per commit.
+- [ ] **Verify rejects a mechanism swap** — a twin that removes an `eslint-disable` but introduces a `@ts-ignore` → verification fails (re-sweeps every mechanism against the dispatch snapshot) and re-delegates.
+- [ ] **Retry cap → blocked** — a batch that fails verify 3 times → marked `blocked` with attempt history and surfaced, not thrashed further.
+- [ ] **Upgrade gates by risk** — a patch bump accepted build/lint-clean; a minor/major accepted only tests-green, with the lockfile/manifest committed in the same batch; a failed verify reverts the single offending package.
+- [ ] **Commit shapes** — debt: `chore(debt): remove CS8602 suppression in src/Orders/ (4 sites)`; upgrade: `chore(deps): bump Newtonsoft.Json 12.0.3 → 13.0.3`.
 
 ## Agents
 

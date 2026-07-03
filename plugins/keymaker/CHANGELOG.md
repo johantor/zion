@@ -5,6 +5,16 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.8] - 2026-07-03
+
+### Added
+- **Behavioral verification matrix (docs).** The README's beta banner claimed keymaker had "not
+  yet been run in a live project" but never defined what a verifying run looks like. Added a
+  **Verification matrix** section: one checkable scratch-repo scenario per audit scope, open-mode
+  early exit, blast-radius gate outcome, verify/commit path, and commit shape — each with a
+  minimal planted-debt setup and the behavior that counts as a pass. The banner now links to it
+  and drops once every box is green.
+
 ## [0.4.7] - 2026-07-03
 
 ### Changed

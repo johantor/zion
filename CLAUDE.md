@@ -1,15 +1,24 @@
 # Zion — Claude Code notes
 
-Zion is the `crew` Claude Code plugin pack: orchestrated agents, commands, hooks, and skills
-for feature delivery. **This repository *is* the plugin** — there is no application code to
-build or ship.
+Zion is a Claude Code plugin marketplace (`crew`, `keymaker`, `engineering-principles`):
+orchestrated agents, commands, hooks, and skills. **This repository *is* the plugins** —
+there is no application code to build or ship.
 
 **Start with [AGENTS.md](AGENTS.md)** — the contributor guide (repository layout, how the
 crew works, reviewing, validating, releasing, and conventions). It is tool-neutral and the
 single source of truth for working in this repo.
 
-This file adds only what is specific to Claude Code: the crew runtime configuration that
-`morpheus` and the `crew:*` commands read.
+Plugin-specific maps (schemas, file inventories, validator gotchas, release steps) live next
+to each plugin and load automatically when working under it — start there instead of
+re-exploring:
+
+- [plugins/crew/CLAUDE.md](plugins/crew/CLAUDE.md)
+- [plugins/keymaker/CLAUDE.md](plugins/keymaker/CLAUDE.md)
+
+Keep them accurate: a PR that changes anything they state updates them in the same commit.
+
+The rest of this file is the crew runtime configuration that `morpheus` and the `crew:*`
+commands read (it must stay in the project-root CLAUDE.md — `/crew:init` reconciles it here).
 
 ## Crew configuration
 

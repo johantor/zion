@@ -5,6 +5,19 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.1] - 2026-07-07
+
+### Changed
+- **`loop-engineering` is now stack-agnostic and shared with keymaker (#111).** The skill's
+  crew-specific bindings (review gate GO as the success condition, the gate's second-NO-GO
+  cap and `gate:` tracking, push behind `/crew:pr`, `neo` single-pass no-op) moved into
+  `morpheus.md`'s own loop-mode bindings paragraph; the skill now states the generic contract —
+  intent trigger, handshake, run-not-work authorization, the three stop rules, durable
+  attempt/loop state, exit line — in terms of *units*, the *terminal gate*, and *durable state*
+  that each preloading orchestrator binds in its agent file. keymaker ships a byte-identical
+  copy (validate-plugin.sh §4 enforces the sync; crew's copy stays canonical). morpheus
+  behavior is unchanged.
+
 ## [3.3.0] - 2026-07-07
 
 ### Added

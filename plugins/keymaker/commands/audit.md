@@ -27,7 +27,9 @@ When `keymaker:keymaker` returns:
 3. **"None" wins.** If "None — just the report" is among the selections — even alongside findings —
    take no action beyond the report (note you treated the mixed pick as None so the user can re-pick).
    Otherwise, for each selected finding run `/keymaker:open <pointer>` **one at a time**, finishing
-   one fully (including its own gating and branch decisions) before starting the next. If this
+   one fully (including its own gating and branch decisions) before starting the next. When the
+   user's ask carried loop intent ("clear all the stale ones"), the sequence runs to completion
+   under `loop-engineering`'s stop rules — never past a gate that needs their answer. If this
    sequence is interrupted (session crash/reset), just re-run `/keymaker:audit` and re-pick — a
    pointer already completed exits as a cheap no-op (its batch ledger shows every batch `done`),
    and a pointer left mid-run resumes from its own ledger rather than restarting.

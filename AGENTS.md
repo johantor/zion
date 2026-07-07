@@ -20,9 +20,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, and `neo` (express-lane generalist). Auto-discovered from this dir; not declared in the manifest.
   - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session.
-  - `skills/` — shared: `engineering-principles`, `context-discipline` (also shipped by other
-    plugins — kept byte-for-byte in sync automatically; see *How we review code* below);
-    orchestration (preloaded by `morpheus`): `loop-engineering` (loop-mode stop rules);
+  - `skills/` — shared: `engineering-principles`, `context-discipline`, `loop-engineering`
+    (all also shipped by other plugins — kept byte-for-byte in sync automatically; see *How we
+    review code* below; `loop-engineering` carries the loop-mode stop rules, preloaded by
+    `morpheus` and `keymaker` with per-agent bindings);
     frontend mode: `frontend-headless`, `frontend-server-rendered`; per-stack (loaded
     dynamically once `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
     `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`;
@@ -70,7 +71,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   (delegate to `neo`, skip the plan/checkpoint/full-gate, quick self-review, commit); features and
   anything risky, multi-lane, or needing new tests take the full flow through the specialists.
   It escalates express → full the moment a task proves bigger.
-- **Loop mode** (`loop-engineering`, preloaded by `morpheus`): on explicit user intent in
+- **Loop mode** (`loop-engineering`, shared with `keymaker` — each orchestrator binds it to
+  its own units/gate/state in its agent file): on explicit user intent in
   conversation ("keep going until done", "loop this", "finish it") the full flow runs to
   completion without per-step check-ins, stopping only on gate GO (never auto-push/PR), a
   blocked human decision (independent steps drain first), or a retry cap (3 failed fix→verify
@@ -100,8 +102,8 @@ names, fail-fast error handling, and minimal-scope diffs.
 
 Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
 today that's `engineering-principles` (crew's canonical copy, also shipped standalone by the
-`engineering-principles` plugin) and `context-discipline` (crew's canonical copy, also shipped
-by `keymaker`). `plugins/crew/scripts/validate-plugin.sh` enforces this automatically: the check
+`engineering-principles` plugin), `context-discipline`, and `loop-engineering` (both crew's
+canonical copies, also shipped by `keymaker`). `plugins/crew/scripts/validate-plugin.sh` enforces this automatically: the check
 is generic by skill *name*, not hardcoded to these two pairs, so it also catches a future
 duplicate between any other plugins — crew included or not (CI fails on mismatch). Reviewers
 should still flag any drift that slips through as at least a **Warning**, and **Blocking** when

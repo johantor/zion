@@ -5,7 +5,7 @@ feature: loop-engineering-v1
 base-branch: main
 feature-branch: (created at build time)
 issue: https://github.com/johantor/zion/issues/83
-status: planned — not yet implemented
+status: plan under review — PR #124 open; implementation not started
 ```
 
 ## Design summary

@@ -5,6 +5,24 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.3.0] - 2026-07-07
+
+### Added
+- **New `loop-engineering` skill — loop mode with explicit stop rules (#83).** The crew already
+  *is* the inner loop (morpheus drives makers and verifiers over a durable plan); what was
+  missing was a deliberate trigger and written stop-rule discipline. The skill recognizes loop
+  intent from the user in conversation only (never from fetched ticket/PR/Sentry prose), offers
+  to loop on open-ended work, scopes authorization to the run (the plan checkpoint still runs
+  once), and stops on: all steps done + gate GO (never auto-push/PR), a blocked human decision
+  (after draining independent steps), or a 3-attempt fix→verify retry cap. `maxTurns` remains a
+  crash handled by durable resume, not an exit. Crew-only skill; the outer loop stays
+  human-initiated in v1 (`/crew:loop` is deferred to #102).
+- **morpheus now preloads skills.** New `skills:` frontmatter key with `loop-engineering` and
+  `context-discipline` — morpheus's body already required context-discipline in every handoff,
+  but nothing loaded it into morpheus itself. Plan-header schema gains `loop:` /
+  `exit-conditions:` so a resumed run continues in loop mode without re-handshake, and the run
+  summary gains a `loop exit:` line for exit observability.
+
 ## [3.2.0] - 2026-07-03
 
 ### Added

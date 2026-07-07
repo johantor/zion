@@ -5,7 +5,7 @@ feature: loop-engineering-v1
 base-branch: main
 feature-branch: (created at build time)
 issue: https://github.com/johantor/zion/issues/83
-status: implemented on PR #124 — this plan file is removed as the last step before merge
+status: implemented on PR #124 (incl. README/AGENTS.md docs) — this plan file is removed as the last step before merge
 ```
 
 ## Design summary

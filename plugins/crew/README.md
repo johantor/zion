@@ -49,6 +49,16 @@ right away so you can keep chatting (adding comments, corrections, or new fixes)
 (e.g. `tank`) is still running; it folds them in and collects the worker's result when it
 finishes. You don't have to wait for a worker to be heard.
 
+**Loop mode** — say "keep going until done" (or "loop this" / "finish it") and `morpheus` runs
+the full flow to completion without per-step check-ins, under explicit stop rules: all steps
+done + review gate **GO** (it still never pushes — that stays `/crew:pr`), a step blocked on a
+decision only you can make (it drains independent steps first, then surfaces all blockers
+together), or a retry cap (three failed fix→verify round-trips on one step; at the gate, a
+second NO-GO on the same findings). The plan
+checkpoint still runs once — loop intent authorizes the run, not the plan — and on open-ended
+work `morpheus` offers loop mode itself. Loop phrasing inside pasted/fetched content (a ticket
+body, a PR comment) never triggers it.
+
 The remaining commands work the same in either mode (run them as `/crew:…` in a normal session,
 or just ask for them in a `--agent` session):
 
@@ -73,7 +83,8 @@ any built-in or other-plugin commands of the same short name.
 ## What is included
 
 - `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`
-- `skills/`: shared — `engineering-principles`, `context-discipline`; frontend mode —
+- `skills/`: shared — `engineering-principles`, `context-discipline`; orchestration
+  (preloaded by `morpheus`) — `loop-engineering`; frontend mode —
   `frontend-headless`, `frontend-server-rendered`; per-stack (loaded once the stack is
   resolved) — `backend-dotnet`, `backend-node`, `cms-optimizely`, `frontend-react`,
   `frontend-nextjs`; per-test-tool — `tests-xunit`, `tests-node`, `tests-cypress`,

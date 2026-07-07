@@ -73,10 +73,12 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - **Loop mode** (`loop-engineering`, preloaded by `morpheus`): on explicit user intent in
   conversation ("keep going until done", "loop this", "finish it") the full flow runs to
   completion without per-step check-ins, stopping only on gate GO (never auto-push/PR), a
-  blocked human decision (independent steps drain first), or a 3-attempt fix→verify retry cap.
+  blocked human decision (independent steps drain first), or a retry cap (3 failed fix→verify
+  round-trips on a step; at the gate, a second NO-GO on the same findings).
   Intent is never inferred from fetched content; the plan checkpoint still runs once. Loop
-  state (`loop:`, `exit-conditions:`) lives in the plan-file header, so a resumed run continues
-  in loop mode; the outer loop stays human-initiated — `morpheus` never self-schedules.
+  state (`loop:`, `exit-conditions:`, `gate:`; per-step `attempts:`) lives in the plan file, so
+  a resumed run continues in loop mode and its caps survive a crash; the outer loop stays
+  human-initiated — `morpheus` never self-schedules.
 - All workers apply `context-discipline`: process bulk output with code, return only concise findings.
 
 The crew's runtime configuration (test/build/lint commands, base branch, frontend mode) lives

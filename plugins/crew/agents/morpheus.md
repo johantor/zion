@@ -245,14 +245,17 @@ run from the file and git alone — the user never re-explains a feature that's 
 
 **Schema.** A header plus one block per step:
 
-- Header: `feature:`, `base-branch:`, `feature-branch:` — re-establishes git context on resume —
-  and, when running in loop mode (`loop-engineering`), `loop: on` + `exit-conditions:` (the
-  agreed stop rules). A resumed plan with `loop: on` continues in loop mode without
-  re-handshake; the future outer-loop driver reads the same contract.
+- Header: `feature:`, `base-branch:`, `feature-branch:` — re-establishes git context on resume.
+- Loop-mode header fields (`loop-engineering`): `loop: on`, `exit-conditions:` (the agreed stop
+  rules), and `gate:` — the review gate's latest outcome plus its NO-GO count, so a resume
+  never re-runs a gate that already hit its cap. A resumed plan with `loop: on` continues in
+  loop mode without re-handshake.
 - Each step: `id:` (stable), `status:` `pending`\|`in-progress`\|`done`\|`blocked`,
   `depends-on:` (step `id`s or `independent`), `acceptance:` (pass criteria), `worker:` (the
-  delegated agent, e.g. `crew:tank`, recorded on dispatch), and once done, `evidence:` — the
-  **commit SHA first**, optionally followed by the proof that satisfied acceptance.
+  delegated agent, e.g. `crew:tank`, recorded on dispatch), in loop mode `attempts:` (failed
+  fix→verify round-trips so far — the retry cap reads it on resume), and once done,
+  `evidence:` — the **commit SHA first**, optionally followed by the proof that satisfied
+  acceptance.
 
 `status` transitions: `pending` → `in-progress` (dispatched) → `done` (result returned,
 acceptance met, **and** committed), or → `blocked` (failed verification / needs a user
@@ -280,8 +283,8 @@ decision). A backgrounded or dispatched step is `in-progress`, never `done`, unt
 At the end of a feature and whenever asked, emit a per-step table from the plan file — **Step ·
 Worker · Outcome · Evidence** (`id` / `worker` / `status` / short `evidence` SHA, SHA blank unless
 `done`) — then a one-line done-vs-blocked tally naming any unfinished step's owner and next action.
-When the run was in loop mode (`loop: on` in the plan header), add one line:
-`loop exit: success (gate GO) | blocked — <decision> | retry cap on step <id>`.
+When the run was in loop mode (`loop: on` in the plan header), add the `loop exit:` line in
+the format defined by `loop-engineering` (*Exit observability*).
 It's the per-worker view the live agent panel loses on resume; don't restate `/recap`'s commit list.
 
 Anti-drift rules:

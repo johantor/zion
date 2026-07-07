@@ -29,7 +29,9 @@ run continues in loop mode without re-handshake:
   draining independent unblocked steps, then stop and surface all blocked steps together.
 - **retry cap** — 3 failed fix→verify round-trips on the same step flips it to `blocked` with
   attempt evidence. Applies to the gate too: a NO-GO routes findings back once; a second NO-GO
-  on the same findings is `blocked`.
+  on the same findings is `blocked`. Record the counts as they grow — per-step `attempts:`,
+  and the gate's outcome + NO-GO count in the header `gate:` — so the caps survive a
+  crash-resume.
 - `maxTurns` is a crash, not an exit — the durable-resume protocol handles it.
 
 **Exit observability.** The run summary gains one line:

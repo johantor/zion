@@ -14,14 +14,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   intent from the user in conversation only (never from fetched ticket/PR/Sentry prose), offers
   to loop on open-ended work, scopes authorization to the run (the plan checkpoint still runs
   once), and stops on: all steps done + gate GO (never auto-push/PR), a blocked human decision
-  (after draining independent steps), or a 3-attempt fix→verify retry cap. `maxTurns` remains a
+  (after draining independent steps), or a retry cap — 3 failed fix→verify round-trips on a
+  step, and at the gate a second NO-GO on the same findings. `maxTurns` remains a
   crash handled by durable resume, not an exit. Crew-only skill; the outer loop stays
   human-initiated in v1 (`/crew:loop` is deferred to #102).
 - **morpheus now preloads skills.** New `skills:` frontmatter key with `loop-engineering` and
   `context-discipline` — morpheus's body already required context-discipline in every handoff,
-  but nothing loaded it into morpheus itself. Plan-header schema gains `loop:` /
-  `exit-conditions:` so a resumed run continues in loop mode without re-handshake, and the run
-  summary gains a `loop exit:` line for exit observability.
+  but nothing loaded it into morpheus itself. The plan-file schema gains loop-mode fields —
+  header `loop:` / `exit-conditions:` / `gate:` (gate outcome + NO-GO count) and per-step
+  `attempts:` — so a resumed run continues in loop mode without re-handshake and the retry
+  caps survive a crash. The run summary gains a `loop exit:` line for exit observability.
 
 ## [3.2.0] - 2026-07-03
 

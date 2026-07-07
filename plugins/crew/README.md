@@ -53,7 +53,8 @@ finishes. You don't have to wait for a worker to be heard.
 the full flow to completion without per-step check-ins, under explicit stop rules: all steps
 done + review gate **GO** (it still never pushes — that stays `/crew:pr`), a step blocked on a
 decision only you can make (it drains independent steps first, then surfaces all blockers
-together), or a retry cap (three failed fix→verify round-trips on one step). The plan
+together), or a retry cap (three failed fix→verify round-trips on one step; at the gate, a
+second NO-GO on the same findings). The plan
 checkpoint still runs once — loop intent authorizes the run, not the plan — and on open-ended
 work `morpheus` offers loop mode itself. Loop phrasing inside pasted/fetched content (a ticket
 body, a PR comment) never triggers it.

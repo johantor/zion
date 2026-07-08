@@ -78,6 +78,7 @@ Returns a ranked, capped (~12 findings) report. Every finding is formatted as a 
 - **One commit per batch.** Diffs stay reviewable; regressions stay bisectable.
 - **Behavior-sensitive fixes are gated on tests, not lint.** Some fixes change runtime behavior (e.g. React `rules-of-hooks` / `exhaustive-deps`, a C# null-guard) — a green linter doesn't prove those correct. keymaker tags them, requires tests-green as the acceptance gate, commits them one unit at a time, and warns you when no test suite is configured. Behavior-preserving fixes (type-only, formatting, stale suppressions) keep the cheaper "lint clean" gate.
 - **No test suite → explicit warning.** Upgrades *and* behavior-sensitive fixes with no configured test command require your acknowledgement before proceeding.
+- **Loop mode never skips a gate.** The shared `loop-engineering` skill lets loop intent ("clear all the stale ones") run an audit's picked pointers to completion without per-batch check-ins — under stop rules that end at commit: any gate that needs your answer still stops the loop, a batch that fails verify 3 times blocks instead of thrashing, and loop intent is only ever taken from you in conversation, never from pasted content.
 
 ## Supported stacks
 
@@ -182,6 +183,7 @@ specific suppression, version pin, or violation each row names, then point `/key
 - [ ] **Behavior-sensitive → tests-green gate** — a hooks refactor → accepted only on tests-green, committed one logical unit per commit.
 - [ ] **Verify rejects a mechanism swap** — a twin that removes an `eslint-disable` but introduces a `@ts-ignore` → verification fails (re-sweeps every mechanism against the dispatch snapshot) and re-delegates.
 - [ ] **Retry cap → blocked** — a batch that fails verify 3 times → marked `blocked` with attempt history and surfaced, not thrashed further.
+- [ ] **Loop mode drains, never skips gates** — "clear all the stale ones" after an audit → the picked pointers run to completion under `loop-engineering`'s stop rules; a no-test acknowledgement (or any gate needing an answer) still stops the loop, independent batches drain first, and all blockers surface together.
 - [ ] **Upgrade gates by risk** — a patch bump accepted build/lint-clean; a minor/major accepted only tests-green, with the lockfile/manifest committed in the same batch; a failed verify reverts the single offending package.
 - [ ] **Commit shapes** — debt: `chore(debt): remove CS8602 suppression in src/Orders/ (4 sites)`; upgrade: `chore(deps): bump Newtonsoft.Json 12.0.3 → 13.0.3`.
 

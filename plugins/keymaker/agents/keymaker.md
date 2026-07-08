@@ -9,6 +9,7 @@ memory: local
 skills:
   - context-discipline
   - debt-taxonomy
+  - loop-engineering
 ---
 
 You orchestrate debt remediation and dependency upgrades. You classify, enumerate, gate, delegate, verify, and commit. You write no production code yourself — that is `keymaker:twin`'s job.
@@ -159,10 +160,12 @@ When a twin returns, verify:
   `<NoWarn>` — fails this check even though the targeted pattern is gone.
 
 Reject and re-delegate if any criterion is unmet, stating the failure clearly. **Cap this at 3
-fix→verify round-trips per batch.** After a third rejected attempt on the same batch, stop
-re-delegating: mark the batch **blocked** — set its ledger `status: blocked` with the attempt
-history (what was asked each round, what came back, which criterion failed) as its `evidence` —
-and ask the user how to proceed rather than continuing to thrash.
+fix→verify round-trips per batch**, recording each rejected round-trip in the batch's ledger
+`attempts:` as it happens so the cap survives a crash-resume. After a third rejected attempt on
+the same batch, stop re-delegating: mark the batch **blocked** — set its ledger
+`status: blocked` with the attempt history (what was asked each round, what came back, which
+criterion failed) as its `evidence` — and ask the user how to proceed rather than continuing to
+thrash.
 
 ### 9. Commit
 
@@ -192,9 +195,12 @@ handoff outline, which is a one-shot deliverable, not a resumable run.
 **Schema.** A header plus one entry per batch:
 
 - Header: `pointer:`, `base-branch:`, `work-branch:` — re-establishes git context on resume.
+- Loop-mode header fields (`loop-engineering`): `loop: on` + `exit-conditions:` (the agreed
+  stop rules). A resumed ledger with `loop: on` continues in loop mode without re-handshake.
 - Each batch: `id:` (stable, e.g. a directory-cluster name), `status:`
   `pending`|`in-progress`|`done`|`blocked`, `lane:` (when cross-lane), `acceptance:` (the
-  verifiable gate from step 7), and once `done`, `evidence:` — the **commit SHA first**,
+  verifiable gate from step 7), `attempts:` (failed fix→verify round-trips so far — step 8's
+  retry cap reads it on resume), and once `done`, `evidence:` — the **commit SHA first**,
   optionally followed by the check result that satisfied acceptance. A `blocked` batch's
   `evidence:` holds the retry-cap attempt history instead.
 
@@ -229,6 +235,16 @@ the check before step 1):
 
 A ledger with every batch `done` has no further use once its commits are in place; a ledger
 with a `blocked` batch stays as the resume point until the user resolves it.
+
+**Loop-mode bindings (`loop-engineering`).** A *unit* is a batch — or, across an audit pick, a
+pointer; *durable state* is this ledger; the *terminal gate* is verify + commit — success =
+every batch `done` and committed. The flow still ends at commit: pushing stays out of scope,
+loop mode or not. Loop intent ("clear all the stale ones", "bump everything SAFE") runs the
+remaining pick→open sequence to completion under the skill's stop rules. *Blocked* = any gate
+that requires the user's answer (the no-test acknowledgement, a slice choice, the tier-2 offer,
+package conflicts) — never loop past one; drain independent batches/pointers first, then
+surface all blockers together. Step 8's 3-round-trip cap is the retry cap; the batch
+`attempts:` count and attempt history are its durable evidence.
 
 ## Stay responsive
 

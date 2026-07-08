@@ -83,8 +83,8 @@ any built-in or other-plugin commands of the same short name.
 ## What is included
 
 - `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`
-- `skills/`: shared — `engineering-principles`, `context-discipline`; orchestration
-  (preloaded by `morpheus`) — `loop-engineering`; frontend mode —
+- `skills/`: shared — `engineering-principles`, `context-discipline`, `loop-engineering`
+  (loop-mode stop rules, preloaded by `morpheus`; also shipped by keymaker); frontend mode —
   `frontend-headless`, `frontend-server-rendered`; per-stack (loaded once the stack is
   resolved) — `backend-dotnet`, `backend-node`, `cms-optimizely`, `frontend-react`,
   `frontend-nextjs`; per-test-tool — `tests-xunit`, `tests-node`, `tests-cypress`,

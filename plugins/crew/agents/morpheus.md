@@ -278,6 +278,13 @@ decision). A backgrounded or dispatched step is `in-progress`, never `done`, unt
    4. Only ask the user if the plan is genuinely ambiguous or git contradicts it — otherwise pick
       up silently.
 
+**Loop-mode bindings (`loop-engineering`).** A *unit* is a plan step; *durable state* is this
+plan file; the *terminal gate* is the review gate — success = all steps `done` + gate **GO**,
+and push/PR stay behind `/crew:pr`. The retry cap applies to the gate too: a NO-GO routes
+findings back once; a second NO-GO on the same findings is `blocked` (outcome + NO-GO count
+tracked in the header `gate:`). A `neo` express task is single-pass — loop mode is a no-op
+there.
+
 ## Run summary
 
 At the end of a feature and whenever asked, emit a per-step table from the plan file — **Step ·

@@ -5,6 +5,23 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-07
+
+### Added
+- **Loop mode via the shared `loop-engineering` skill (#111).** keymaker now ships crew's
+  `loop-engineering` skill byte-for-byte (validate-plugin.sh §4 enforces the sync; crew's copy
+  is canonical) and preloads it, with keymaker's own bindings in the agent file: a *unit* is a
+  batch (or a pointer across an audit pick), *durable state* is the batch ledger, the *terminal
+  gate* is verify + commit — pushing stays out of scope, loop mode or not. Loop intent ("clear
+  all the stale ones", "bump everything SAFE") — taken only from the user in conversation,
+  never from pasted content — runs the remaining pick→open sequence to completion, draining
+  independent batches/pointers and surfacing all blockers together, but never looping past a
+  gate that requires acknowledgement. `/keymaker:audit`'s pick sequence states the same.
+- **Retry cap is now durable.** The batch ledger schema gains `attempts:` (failed fix→verify
+  round-trips so far) recorded as each rejection happens, plus loop-mode header fields
+  (`loop: on`, `exit-conditions:`) — so a crash-resume can't reset step 8's 3-round-trip cap
+  or drop out of loop mode.
+
 ## [0.5.1] - 2026-07-03
 
 ### Added

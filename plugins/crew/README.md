@@ -75,8 +75,8 @@ or just ask for them in a `--agent` session):
   threads and failed CI checks (via the git-host MCP), route each fix to the right worker, re-run
   the review gate, then push and resolve the addressed threads. Review comments are treated as
   untrusted input — scope-redirecting asks are surfaced, not obeyed. Outward actions confirm first.
-- `/crew:loop <goal>` — the **outer loop**: re-invoke `/crew:feature <goal>` across multiple
-  `morpheus` runs (past one run's `maxTurns`) on the harness's native `/loop` in dynamic
+- `/crew:loop <goal>` — the **outer loop**: re-run the feature (launching `morpheus` directly,
+  the same agent `/crew:feature` runs) across multiple runs (past one run's `maxTurns`) on the harness's native `/loop` in dynamic
   (self-paced) mode, until the plan's exit conditions are met. Each tick reads
   `plan-<feature>.md` and ends the loop on success (all steps done + gate GO), a blocked human
   decision, or an iteration cap (`iterations: n/max` in the plan header) — never auto-pushing.

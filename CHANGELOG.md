@@ -9,9 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **`/crew:loop <goal>` — the outer-loop driver (#102).** A thin main-session wrapper on the
-  harness's native `/loop` in dynamic (self-paced) mode: it re-invokes `/crew:feature <goal>`
-  tick by tick so a feature that outlives one run's `maxTurns` finishes without the user
-  re-asking each time. The durable `plan-<feature>.md` is the only cross-tick state — each tick
+  harness's native `/loop` in dynamic (self-paced) mode: each tick re-launches `morpheus`
+  directly (the same agent `/crew:feature` runs, told a loop is driving it) so a feature that
+  outlives one run's `maxTurns` finishes without the user re-asking each time. The durable `plan-<feature>.md` is the only cross-tick state — each tick
   reads it and ends the loop on the `loop-engineering` contract: success (all steps `done` +
   gate GO — never auto-push/PR), a step `blocked` on a human decision, or the iteration cap
   (`iterations: n/max`, model-enforced). A re-entrancy guard skips a tick while a prior

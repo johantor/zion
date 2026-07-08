@@ -38,8 +38,10 @@ stop and ask the user rather than picking one. Then decide:
 2. **Plan exists.** Run the pre-check, then the exit checks. If none fires, launch
    `crew:morpheus` again with `<goal>` and the same outer-loop note — it resumes from the plan
    per its durable-resume protocol (a plan with `loop: on` continues in loop mode; it does
-   **not** re-plan or re-checkpoint) — then bump `iterations:` (initializing it from the header,
-   or from the run summary if a restarted wrapper finds it missing) and re-evaluate.
+   **not** re-plan or re-checkpoint) — then bump `iterations:` **in the header** and re-evaluate.
+   The count lives only in the header; a restarted wrapper reads it from there, never re-derives
+   it. If a plan exists with no `iterations:` (a hand-edited or truncated file), don't reset to
+   `1` — that would bypass the cap; surface it and ask rather than looping blind.
 
 **Pre-check — in flight (re-entrancy guard, *skip*, don't end).** A prior run may still be in
 flight: the header carries an `in-flight:` marker, or a step is `in-progress` with a background
@@ -63,7 +65,7 @@ treat it as stuck and end, surfacing it for an explicit resume.
 You are the sole writer of the plan file's **outer-loop** bookkeeping only — `iterations:` and
 the `in-flight:` marker. `morpheus` owns the rest (steps, `loop:`, `exit-conditions:`, `gate:`)
 and preserves your two fields when it rewrites the plan. Ticks are **synchronous** — launch
-`/crew:feature`, wait for `morpheus` to return, then update the header and decide — so the two
+`crew:morpheus`, wait for it to return, then update the header and decide — so the two
 writers never overlap. Set `in-flight:` before launching a tick and clear it when `morpheus`
 returns.
 

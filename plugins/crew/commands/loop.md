@@ -56,19 +56,11 @@ exact error — as `/crew:feature` does. No tick ran, so don't bump `iterations:
 flight: the header carries an `in-flight:` marker, or a step is `in-progress` with a background
 worker still running. Do **not** launch another tick on the same plan — that would
 double-dispatch a running step. Instead **skip**: schedule a later dynamic wakeup and re-check,
-letting `morpheus`/its workers finish and the next tick collect them. A skip is **not** a tick —
-it launches nothing and does **not** bump `iterations:`.
-
-Its stall detection is **durable, in the `in-flight:` marker itself** (the plan file stays the
-only cross-tick state — no in-memory counter that a fresh-context resume would lose). The marker
-carries a cheap progress fingerprint — the count of `done` steps plus the latest commit SHA — and
-a `skips` counter, written as one line in a fixed shape:
-`in-flight: tick=<n> done=<done-count> commit=<short-sha> skips=<k>` (no `in-flight:` line = no run
-in flight). Each skip-check recomputes the fingerprint: if it advanced, rewrite `in-flight:`
-with the new fingerprint and reset `skips` to `0`; if unchanged, increment `skips`. When `skips`
-reaches **3** with no advance, treat it as a crashed run: clear `in-flight:`, end, and surface for
-an explicit resume. Because the counter lives in `in-flight:`, a tick resumed in a fresh context
-reads the stall state and won't skip forever.
+letting `morpheus`/its workers finish so the next tick collects them. A skip is **not** a tick —
+it launches nothing and does **not** bump `iterations:`. The iteration cap bounds a *progressing*
+loop; it does **not** bound skips. v1 doesn't auto-detect a stall — a genuinely stuck run (a
+crashed `morpheus` that never quiesces) keeps skipping, but `/crew:loop` runs foreground and
+human-initiated, so that's visible in the session: stop the loop and resume explicitly.
 
 **Exit checks (first match ends the loop and surfaces — never auto-push or open a PR):**
 
@@ -87,13 +79,12 @@ and preserves your two fields when it rewrites the plan. Ticks are **synchronous
 `crew:morpheus`, wait for it to return, then update the header and decide — so the two
 writers never overlap.
 
-**`in-flight:` lifecycle.** Set it before launching a tick. A returning `morpheus` that left
-`in-progress` work is **not** done — the run is still in flight, so **keep** `in-flight:`
-(carrying its fingerprint/`skips`) and let the skip-check path update it. Clear `in-flight:`
+**`in-flight:` lifecycle.** `in-flight:` records the running tick (`in-flight: tick=<n>`); its
+presence means a run is in flight — no other payload. Set it before launching a tick. Clear it
 **only** when the plan is quiescent — no `in-progress` step remains and no background worker is
-running — so the next tick can safely launch; or on the stuck (`skips` cap) and launch-failure
-paths. Clearing it while work is still in flight would drop the durable stall counter and defeat
-the "3 skips" detection after a restart.
+running — so the next tick can safely launch (also clear it on launch failure). A returning
+`morpheus` that left `in-progress` work is **not** done: keep `in-flight:` until the work
+quiesces.
 
 Schedule the next tick with the native `/loop` dynamic-mode wakeup only while the loop is still
 live. When an exit check fires, stop scheduling and give the user the consolidated status.

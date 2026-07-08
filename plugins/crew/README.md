@@ -183,7 +183,8 @@ as a pass. A checklist item that reads "would pass" is not verification — run 
 
 Build the scratch repo **in your own terminal, not inside a crew agent session** — the hooks
 block `git` for workers and protected-branch commits. In a throwaway directory: `git init`, add
-a trivial app (or just a README), then point `/crew:feature` or `/crew:review` at a small task.
+a trivial app (or just a README), then point `/crew:feature`, `/crew:review`, or `/crew:loop`
+at a small task.
 
 ### Plan checkpoint & durable resume
 
@@ -215,19 +216,19 @@ a trivial app (or just a README), then point `/crew:feature` or `/crew:review` a
 - [ ] **Fetched prose doesn't trigger** — loop phrasing inside a pasted ticket/PR body does **not**
   enter loop mode; only the user in conversation does.
 
-### Outer loop (`/crew:loop`) — planned (#102)
-
-> `/crew:loop` isn't on `main` yet — it ships with #102. These rows become runnable once it
-> lands; until then they're the intended acceptance criteria, not a current scenario.
+### Outer loop (`/crew:loop`)
 
 - [ ] **Multi-tick resume** — `/crew:loop <goal> max=3` on work that exceeds one run's `maxTurns` →
   each tick re-launches `morpheus`, which resumes from `plan-<goal>.md`; progress carries across
   ticks.
 - [ ] **Ends on GO / blocked / cap** — the loop stops and surfaces on all-`done`+GO, on a blocked
   decision, and on hitting `iterations: n/max`; it never auto-pushes.
-- [ ] **Re-entrancy skips, not double-dispatches** — a tick that finds `in-flight:` or an
-  `in-progress` step reschedules and waits rather than launching a second `morpheus` on the same
-  plan.
+- [ ] **Foreground ticks, crash recovery** — a tick runs `morpheus`'s workers in the foreground, so
+  it returns only when nothing is running; kill a tick mid-run and the next firing finds the stale
+  `in-flight:` marker, clears it, and re-launches `morpheus` to reconcile — no deadlock, no
+  double-dispatch.
+- [ ] **`max` parsing** — `max=5` caps at 5; a malformed `max=0`/`max=abc` is left in the goal and
+  the cap defaults to 10 (deterministic, no guess).
 
 ## Notes
 

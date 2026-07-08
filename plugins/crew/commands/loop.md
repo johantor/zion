@@ -85,8 +85,15 @@ You are the sole writer of the plan file's **outer-loop** bookkeeping only — `
 the `in-flight:` marker. `morpheus` owns the rest (steps, `loop:`, `exit-conditions:`, `gate:`)
 and preserves your two fields when it rewrites the plan. Ticks are **synchronous** — launch
 `crew:morpheus`, wait for it to return, then update the header and decide — so the two
-writers never overlap. Set `in-flight:` before launching a tick and clear it when `morpheus`
-returns.
+writers never overlap.
+
+**`in-flight:` lifecycle.** Set it before launching a tick. A returning `morpheus` that left
+`in-progress` work is **not** done — the run is still in flight, so **keep** `in-flight:`
+(carrying its fingerprint/`skips`) and let the skip-check path update it. Clear `in-flight:`
+**only** when the plan is quiescent — no `in-progress` step remains and no background worker is
+running — so the next tick can safely launch; or on the stuck (`skips` cap) and launch-failure
+paths. Clearing it while work is still in flight would drop the durable stall counter and defeat
+the "3 skips" detection after a restart.
 
 Schedule the next tick with the native `/loop` dynamic-mode wakeup only while the loop is still
 live. When an exit check fires, stop scheduling and give the user the consolidated status.

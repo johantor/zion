@@ -19,7 +19,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, and `neo` (express-lane generalist). Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session.
+  - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address`, `/loop` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session.
   - `skills/` — shared: `engineering-principles`, `context-discipline`, `loop-engineering`
     (all also shipped by other plugins — kept byte-for-byte in sync automatically; see *How we
     review code* below; `loop-engineering` carries the loop-mode stop rules, preloaded by
@@ -81,8 +81,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   Intent is never inferred from fetched content; any checkpoint/gate that needs the user's
   answer still runs once. Loop state (`loop:`, `exit-conditions:`; durable per-unit
   `attempts:`) lives in the orchestrator's durable file, so a resumed run continues in loop
-  mode and its caps survive a crash; the outer loop stays
-  human-initiated — `morpheus` never self-schedules.
+  mode and its caps survive a crash. The **outer** loop — re-invoking the orchestrator across
+  runs past one run's `maxTurns` — is a human-initiated main-session wrapper (crew's
+  `/crew:loop`, on the native `/loop` in dynamic mode) that owns the scheduling and the
+  iteration cap (`iterations: n/max`); the orchestrator itself never self-schedules.
 - All workers apply `context-discipline`: process bulk output with code, return only concise findings.
 
 The crew's runtime configuration (test/build/lint commands, base branch, frontend mode) lives

@@ -5,6 +5,29 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-07-08
+
+### Added
+- **`/crew:loop <goal>` — the outer-loop driver (#102).** A thin main-session wrapper on the
+  harness's native `/loop` in dynamic (self-paced) mode: each tick re-launches `morpheus`
+  directly (the same agent `/crew:feature` runs, told a loop is driving it) so a feature that
+  outlives one run's `maxTurns` finishes without the user re-asking each time. The durable `plan-<feature>.md` is the only cross-tick state — each tick
+  reads it and ends the loop on the `loop-engineering` contract: success (all steps `done` +
+  gate GO — never auto-push/PR), a step `blocked` on a human decision, or the iteration cap
+  (`iterations: n/max`, model-enforced). An outer-loop tick runs `morpheus`'s workers in the
+  **foreground** and to a stopping point, so a tick returns only when nothing is still running —
+  ticks are genuinely synchronous. The re-entrancy guard therefore keys on the `in-flight:`
+  marker only (its presence at the next firing means a crashed tick — clear it and let `morpheus`
+  resume/reconcile); it deliberately does *not* gate on `in-progress` steps, which are
+  `morpheus`'s to reconcile and would deadlock the loop if they blocked the next tick.
+  Tick 1 still runs the plan checkpoint — loop intent authorizes the run, not the plan.
+- **Plan-header outer-loop bookkeeping.** `morpheus.md`'s durable-state schema documents the
+  `iterations: n/max` and `in-flight:` header fields; the `/crew:loop` wrapper owns them (it is
+  the sole writer of the outer-loop bookkeeping, between synchronous ticks), and `morpheus`
+  preserves them when it rewrites the plan. `morpheus` still never self-schedules — the wrapper
+  owns all scheduling. The `loop-engineering` skill's scope note now points to this outer loop
+  instead of denying one exists (crew and keymaker copies stay byte-identical).
+
 ## [3.3.1] - 2026-07-07
 
 ### Changed

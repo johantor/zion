@@ -16,6 +16,11 @@ unset) is the only cross-tick state — no new files, no background daemon.
 
 Run this **foreground** so tick 1's plan checkpoint can prompt.
 
+**Start a native `/loop` in dynamic (self-paced) mode wrapping the per-tick logic below** — that
+harness loop is what re-fires each tick and lets the work span `morpheus` runs. Without it you'd
+run a single tick and exit, defeating the command. The per-tick logic decides, each firing,
+whether to schedule the next wakeup or end.
+
 ## Per-tick logic
 
 **Iteration cap syntax.** `$ARGUMENTS` may end with a `max=<n>` token (e.g.
@@ -57,7 +62,9 @@ it launches nothing and does **not** bump `iterations:`.
 Its stall detection is **durable, in the `in-flight:` marker itself** (the plan file stays the
 only cross-tick state — no in-memory counter that a fresh-context resume would lose). The marker
 carries a cheap progress fingerprint — the count of `done` steps plus the latest commit SHA — and
-a `skips` counter. Each skip-check recomputes the fingerprint: if it advanced, rewrite `in-flight:`
+a `skips` counter, written as one line in a fixed shape:
+`in-flight: tick=<n> done=<done-count> commit=<short-sha> skips=<k>` (no `in-flight:` line = no run
+in flight). Each skip-check recomputes the fingerprint: if it advanced, rewrite `in-flight:`
 with the new fingerprint and reset `skips` to `0`; if unchanged, increment `skips`. When `skips`
 reaches **3** with no advance, treat it as a crashed run: clear `in-flight:`, end, and surface for
 an explicit resume. Because the counter lives in `in-flight:`, a tick resumed in a fresh context

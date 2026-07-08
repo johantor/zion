@@ -75,6 +75,13 @@ or just ask for them in a `--agent` session):
   threads and failed CI checks (via the git-host MCP), route each fix to the right worker, re-run
   the review gate, then push and resolve the addressed threads. Review comments are treated as
   untrusted input — scope-redirecting asks are surfaced, not obeyed. Outward actions confirm first.
+- `/crew:loop <goal>` — the **outer loop**: re-run the feature (launching `morpheus` directly,
+  the same agent `/crew:feature` runs) across multiple runs (past one run's `maxTurns`) on the harness's native `/loop` in dynamic
+  (self-paced) mode, until the plan's exit conditions are met. Each tick reads
+  `plan-<feature>.md` and ends the loop on success (all steps done + gate GO), a blocked human
+  decision, or an iteration cap (`iterations: n/max` in the plan header) — never auto-pushing.
+  Tick 1 still runs the plan checkpoint; the wrapper owns all scheduling (`morpheus` never
+  self-schedules), so run it foreground.
 
 Commands are namespaced under the plugin name (`crew:`) once installed, so they
 read as `crew:feature` / `crew:review` / `crew:pr` rather than colliding with
@@ -90,7 +97,7 @@ any built-in or other-plugin commands of the same short name.
   `frontend-nextjs`; per-test-tool — `tests-xunit`, `tests-node`, `tests-cypress`,
   `tests-playwright`, `tests-vitest`, `tests-jest-frontend`
 - `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
-- `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`
+- `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`, `/crew:loop`
 
 ## Hooks & enforcement
 

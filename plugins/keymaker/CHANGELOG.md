@@ -5,6 +5,15 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-07-08
+
+### Changed
+- **Synced `loop-engineering` scope note (crew #102).** The shared skill's scope paragraph now
+  points to the outer-loop wrapper crew added (`/crew:loop`) instead of stating no outer loop
+  exists; keymaker ships the skill byte-for-byte (validate-plugin.sh §4), so its copy moves in
+  lockstep. keymaker behavior is unchanged — it has no outer-loop command; the note keeps the
+  "orchestrator never self-schedules" invariant that already governed keymaker.
+
 ## [0.6.0] - 2026-07-07
 
 ### Added

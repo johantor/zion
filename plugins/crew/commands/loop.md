@@ -19,8 +19,8 @@ Run this **foreground** so tick 1's plan checkpoint can prompt.
 ## Per-tick logic
 
 **Iteration cap syntax.** `$ARGUMENTS` may end with a `max=<n>` token (e.g.
-`/crew:loop add SSO login max=5`); parse and strip it — the rest is the goal handed to
-`morpheus`. Absent it, `<max>` defaults to 10.
+`/crew:loop add SSO login max=5`); parse and strip it — the rest is **`<goal>`** (referred to
+below), the task handed to `morpheus`. Absent the token, `<max>` defaults to 10.
 
 Each tick, **locate this goal's plan** — the `plan-<feature>.md` whose `feature:` /
 `feature-branch:` header identifies this goal, using `morpheus`'s own durable-resume match rule

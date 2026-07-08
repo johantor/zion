@@ -10,9 +10,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   (backend), `trinity` (frontend), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual,
   no Bash), `neo` (express generalist). Auto-discovered; not in the manifest.
 - `commands/` — `init`, `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path),
-  `address`, `loop` (outer-loop driver: re-invokes `feature` across `morpheus` runs on the
-  native `/loop` dynamic mode until the plan's exit conditions/iteration cap are met; wrapper
-  owns scheduling). Namespaced `crew:*` when installed.
+  `address`, `loop` (outer-loop driver: re-launches `morpheus` directly each tick — not by
+  nesting `/crew:feature` — on the native `/loop` dynamic mode until the plan's exit
+  conditions/iteration cap are met; wrapper owns scheduling). Namespaced `crew:*` when installed.
 - `skills/` — shared + synced across plugins (crew canonical): `engineering-principles`,
   `context-discipline`, `loop-engineering`. Frontend-mode, per-stack, and per-test-tool
   skills load dynamically once resolved. Skill = `<name>/SKILL.md`, frontmatter `name:` +

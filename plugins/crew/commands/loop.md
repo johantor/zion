@@ -43,13 +43,19 @@ stop and ask the user rather than picking one. Then decide:
    it. If a plan exists with no `iterations:` (a hand-edited or truncated file), don't reset to
    `1` — that would bypass the cap; surface it and ask rather than looping blind.
 
+**If launching `crew:morpheus` fails** (agent won't start / "not found"), stop and surface the
+exact error — as `/crew:feature` does. No tick ran, so don't bump `iterations:` and don't leave
+`in-flight:` set: clear it and end.
+
 **Pre-check — in flight (re-entrancy guard, *skip*, don't end).** A prior run may still be in
 flight: the header carries an `in-flight:` marker, or a step is `in-progress` with a background
 worker still running. Do **not** launch another tick on the same plan — that would
 double-dispatch a running step. Instead **skip**: schedule a later dynamic wakeup and re-check,
-letting `morpheus`/its workers finish and the next tick collect them. Only if it stays in
-flight with **no forward progress** across several checks (a crashed run, not honest work)
-treat it as stuck and end, surfacing it for an explicit resume.
+letting `morpheus`/its workers finish and the next tick collect them. A skip is **not** a tick —
+it launches nothing and does **not** bump `iterations:`. Only when the plan stays in flight with
+**no forward progress** — no step's `status` advanced and no new commit — across **3 consecutive
+skip-checks** treat it as a crashed run: clear the stale `in-flight:` marker, end, and surface it
+for an explicit resume.
 
 **Exit checks (first match ends the loop and surfaces — never auto-push or open a PR):**
 

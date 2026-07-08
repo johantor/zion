@@ -5,6 +5,26 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.4.0] - 2026-07-08
+
+### Added
+- **`/crew:loop <goal>` — the outer-loop driver (#102).** A thin main-session wrapper on the
+  harness's native `/loop` in dynamic (self-paced) mode: it re-invokes `/crew:feature <goal>`
+  tick by tick so a feature that outlives one run's `maxTurns` finishes without the user
+  re-asking each time. The durable `plan-<feature>.md` is the only cross-tick state — each tick
+  reads it and ends the loop on the `loop-engineering` contract: success (all steps `done` +
+  gate GO — never auto-push/PR), a step `blocked` on a human decision, or the iteration cap
+  (`iterations: n/max`, model-enforced). A re-entrancy guard skips a tick while a prior
+  `morpheus` is still in flight (an `in-flight:` marker or an unexpected `in-progress` step),
+  so the same plan is never double-dispatched. Tick 1 still runs the plan checkpoint — loop
+  intent authorizes the run, not the plan.
+- **Plan-header outer-loop bookkeeping.** `morpheus.md`'s durable-state schema documents the
+  `iterations: n/max` and `in-flight:` header fields; the `/crew:loop` wrapper owns them (it is
+  the sole writer of the outer-loop bookkeeping, between synchronous ticks), and `morpheus`
+  preserves them when it rewrites the plan. `morpheus` still never self-schedules — the wrapper
+  owns all scheduling. The `loop-engineering` skill's scope note now points to this outer loop
+  instead of denying one exists (crew and keymaker copies stay byte-identical).
+
 ## [3.3.1] - 2026-07-07
 
 ### Changed

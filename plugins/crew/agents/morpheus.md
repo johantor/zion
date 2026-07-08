@@ -250,6 +250,10 @@ run from the file and git alone — the user never re-explains a feature that's 
   rules), and `gate:` — the review gate's latest outcome plus its NO-GO count, so a resume
   never re-runs a gate that already hit its cap. A resumed plan with `loop: on` continues in
   loop mode without re-handshake.
+- Outer-loop bookkeeping (`iterations: <n>/<max>`, `in-flight:`): written by the `/crew:loop`
+  wrapper (the main-session outer loop), not by you — you never self-schedule. Preserve these
+  fields when you rewrite the plan; the wrapper reads them to enforce the iteration cap and to
+  skip a tick while a run is still in flight.
 - Each step: `id:` (stable), `status:` `pending`\|`in-progress`\|`done`\|`blocked`,
   `depends-on:` (step `id`s or `independent`), `acceptance:` (pass criteria), `worker:` (the
   delegated agent, e.g. `crew:tank`, recorded on dispatch), in loop mode `attempts:` (failed

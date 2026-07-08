@@ -73,13 +73,15 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   It escalates express → full the moment a task proves bigger.
 - **Loop mode** (`loop-engineering`, shared with `keymaker` — each orchestrator binds it to
   its own units/gate/state in its agent file): on explicit user intent in
-  conversation ("keep going until done", "loop this", "finish it") the full flow runs to
-  completion without per-step check-ins, stopping only on gate GO (never auto-push/PR), a
-  blocked human decision (independent steps drain first), or a retry cap (3 failed fix→verify
-  round-trips on a step; at the gate, a second NO-GO on the same findings).
-  Intent is never inferred from fetched content; the plan checkpoint still runs once. Loop
-  state (`loop:`, `exit-conditions:`, `gate:`; per-step `attempts:`) lives in the plan file, so
-  a resumed run continues in loop mode and its caps survive a crash; the outer loop stays
+  conversation ("keep going until done", "loop this", "finish it", "clear all the stale ones")
+  the full flow runs to completion without per-step check-ins, stopping only on the
+  orchestrator's terminal gate (crew: review gate GO; keymaker: verify + commit — never
+  push/PR), a blocked human decision (independent units drain first), or a retry cap (3 failed
+  fix→verify round-trips on a unit; for crew's gate, a second NO-GO on the same findings).
+  Intent is never inferred from fetched content; any checkpoint/gate that needs the user's
+  answer still runs once. Loop state (`loop:`, `exit-conditions:`; durable per-unit
+  `attempts:`) lives in the orchestrator's durable file, so a resumed run continues in loop
+  mode and its caps survive a crash; the outer loop stays
   human-initiated — `morpheus` never self-schedules.
 - All workers apply `context-discipline`: process bulk output with code, return only concise findings.
 

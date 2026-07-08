@@ -129,8 +129,13 @@ silently at runtime — the skill just doesn't load and the agent guesses.
 
 Versions are per-plugin. To cut a release:
 
-1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a `CHANGELOG.md`
+1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a matching `CHANGELOG.md`
    entry (a PR that changes plugin behavior must do this — see `.github/copilot-instructions.md`).
+   `validate-plugin.sh` §2h fails CI unless the manifest version equals the newest `## [X.Y.Z]`
+   entry in that plugin's changelog, so the two always move together. **A change to a skill
+   shipped by more than one plugin bumps *every* plugin that ships it** — the §4 sync check keeps
+   the copies byte-identical, so a fix in one is a release in all of them (crew's changelog is
+   the repo-root `CHANGELOG.md`; other plugins keep their own).
 2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
    version has no `<plugin>--v<version>` tag yet, and creates the tag and GitHub Release
    automatically, with notes pulled from that version's `CHANGELOG.md` section. No
@@ -190,3 +195,22 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
 - **After merging `main` into a branch to resolve conflicts, refresh the PR description too** —
   version-bump ranges and scope notes written before the merge (e.g., "3.1.0 → 3.1.3") go stale
   once the branch is rebased forward onto a `main` that already moved (e.g., to 3.1.2).
+- **Self-review the diff before opening a PR, not after.** Run `/code-review` on the working
+  diff (or the full `/crew:review` gate) *before* pushing — it catches design bugs a static
+  `validate-plugin.sh` run can't (e.g. a command whose stated behavior isn't mechanically
+  achievable, or an ownership contradiction between two files). Reviewers should be a backstop,
+  not the first pass.
+- **A changed shipped file is a release for every plugin that ships it.** Editing a byte-synced
+  shared skill (`loop-engineering`, `context-discipline`, `engineering-principles`) is
+  user-visible in *each* plugin that ships it, so bump + changelog all of them, not just the one
+  you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, but
+  only *you* can notice the second plugin needs the bump too.
+- **A command that delegates can only pass what the delegated command accepts.** A thin command
+  wrapping another (`/crew:loop` → the feature flow) can't "tell" the inner agent anything the
+  inner command doesn't forward. If the wrapper needs to convey extra context (loop-driving
+  intent, authorization), launch the underlying agent directly with that note rather than
+  nesting a command that only forwards its own arguments.
+- **Behavioral verification means actually running the scenario, not asserting it in the PR.**
+  For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario (keymaker's
+  README verification matrix is the model) and cite the observed result — a checklist item that
+  reads "would pass" is not verification.

@@ -96,6 +96,29 @@ while IFS= read -r manifest; do
   else
     ok "$plugin_dir has no hooks/ (optional)"
   fi
+
+  # 2h. The manifest version must match the newest entry in the plugin's CHANGELOG,
+  #     so a version bump can't ship without release notes (auto-release.yml pulls
+  #     notes from that section) and notes can't land without a bump. crew's
+  #     changelog is the repo-root CHANGELOG.md; every other plugin keeps its own.
+  plugin_version="$(jq -r '.version // empty' "$manifest")"
+  if [ "$(basename "$plugin_dir")" = "crew" ]; then
+    changelog="CHANGELOG.md"
+  else
+    changelog="$plugin_dir/CHANGELOG.md"
+  fi
+  if [ -z "$plugin_version" ]; then
+    :  # missing version already reported by 2a
+  elif [ ! -f "$changelog" ]; then
+    err "$plugin_dir declares version $plugin_version but has no changelog at $changelog"
+  else
+    newest_entry="$(sed -nE 's/^## \[([0-9]+\.[0-9]+\.[0-9]+)\].*/\1/p' "$changelog" | head -1)"
+    if [ "$newest_entry" = "$plugin_version" ]; then
+      ok "$plugin_dir version $plugin_version matches newest $changelog entry"
+    else
+      err "$plugin_dir version $plugin_version != newest $changelog entry (${newest_entry:-none}); bump the manifest and add its CHANGELOG entry together"
+    fi
+  fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
 # 2f. Marketplace entries agree with the plugins on disk: every listed source

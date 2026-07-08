@@ -111,6 +111,37 @@ duplicate between any other plugins — crew included or not (CI fails on mismat
 should still flag any drift that slips through as at least a **Warning**, and **Blocking** when
 it would change reviewer behavior.
 
+### Reviewing a prompt change (commands, agents, skills)
+
+These artifacts are **executable contracts written in prose** — an agent follows them at
+runtime — so `validate-plugin.sh` can't catch a *design* bug in them, only structural drift.
+Most of the review misses on this repo were this class: the contract read fine in isolation but
+broke an invariant or left a path undefined. Run this lens on the self-review **before pushing**
+(and apply it as a reviewer), because a static check never will:
+
+- **Durable-state invariant.** If the artifact names one store as "the only cross-tick/-run
+  state," any counting or "N-in-a-row" logic must live *there* — no hidden in-memory tally a
+  fresh-context resume would lose. Trace every "track / count / remember across invocations"
+  claim back to the declared store.
+- **Delegation can only pass what the callee accepts.** A command that wraps another command
+  can't convey context the inner one doesn't forward. If it must pass extra intent or
+  authorization, launch the underlying agent directly and say so — don't assume the wrapper's
+  words reach the callee.
+- **Every threshold is a number.** No "several", "eventually", "a few times" — state the exact
+  count and what resets it.
+- **Every failure and edge path has a stated behavior.** Launch failure, zero results, a
+  missing/hand-edited field, malformed input — say stop / skip / surface, and which durable
+  state is or isn't mutated on that path.
+- **A structured field documents its shape where it's owned.** If a marker carries a payload
+  (not just presence), the schema owner must be told to preserve it *verbatim* on rewrite.
+- **Cross-file wording agrees.** Grep every term you changed across the command, its agent, and
+  the README/AGENTS/CLAUDE/CHANGELOG copies — the behavior and every description of it must
+  match (a "launches morpheus directly" command described elsewhere as "re-invokes /feature" is
+  a bug, not a paraphrase).
+
+The recurring, already-seen instances of these live in *Recurring review findings* below; this
+list is the general lens to apply proactively so they don't recur in a new shape.
+
 ## Validating changes
 
 This repo has no app build. Before opening a PR, run what CI runs:

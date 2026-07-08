@@ -14,10 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   outlives one run's `maxTurns` finishes without the user re-asking each time. The durable `plan-<feature>.md` is the only cross-tick state — each tick
   reads it and ends the loop on the `loop-engineering` contract: success (all steps `done` +
   gate GO — never auto-push/PR), a step `blocked` on a human decision, or the iteration cap
-  (`iterations: n/max`, model-enforced). Ticks are synchronous, so a re-entrancy guard keyed on
-  the `in-flight:` marker only needs to recover a crashed tick (it clears the stale marker and
-  lets `morpheus` resume/reconcile) — it deliberately does *not* gate on `in-progress` steps,
-  which are `morpheus`'s to reconcile and would deadlock the loop if they blocked the next tick.
+  (`iterations: n/max`, model-enforced). An outer-loop tick runs `morpheus`'s workers in the
+  **foreground** and to a stopping point, so a tick returns only when nothing is still running —
+  ticks are genuinely synchronous. The re-entrancy guard therefore keys on the `in-flight:`
+  marker only (its presence at the next firing means a crashed tick — clear it and let `morpheus`
+  resume/reconcile); it deliberately does *not* gate on `in-progress` steps, which are
+  `morpheus`'s to reconcile and would deadlock the loop if they blocked the next tick.
   Tick 1 still runs the plan checkpoint — loop intent authorizes the run, not the plan.
 - **Plan-header outer-loop bookkeeping.** `morpheus.md`'s durable-state schema documents the
   `iterations: n/max` and `in-flight:` header fields; the `/crew:loop` wrapper owns them (it is

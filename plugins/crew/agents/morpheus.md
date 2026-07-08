@@ -159,6 +159,11 @@ step that must prompt the user runs in the foreground; otherwise, always backgro
   ordered: don't start one until its input is back and verified.
 - **Commit only verified, completed steps.** A backgrounded step isn't done until its result
   returns and passes its acceptance criteria; never commit on dispatch.
+- **An outer-loop tick runs foreground.** When `/crew:loop` drives a tick (its dispatch says
+  so), delegate that tick's workers in the **foreground** and run to a stopping point — there's
+  no interactive user to stay responsive for, and the outer loop needs each tick to return with
+  no worker still running so the next tick can't double-dispatch. This is the one exception to
+  "always background"; an interactive `/crew:feature` run backgrounds as usual.
 
 ## Right-size the model per delegation
 
@@ -252,8 +257,12 @@ run from the file and git alone — the user never re-explains a feature that's 
   loop mode without re-handshake.
 - Outer-loop bookkeeping (`iterations: <n>/<max>`, `in-flight: tick=<n>`): written by the
   `/crew:loop` wrapper (the main-session outer loop), not by you — you never self-schedule.
-  Preserve both fields when you rewrite the plan; the wrapper reads `iterations:` to enforce the
-  cap and `in-flight:` to detect and recover a crashed tick.
+  `in-flight:` marks that a tick is executing (a run is in flight); the wrapper sets it before a
+  tick and clears it when the tick returns. Because outer-loop ticks run their workers foreground
+  (*Stay responsive*), a tick returns only when nothing is running — so finding `in-flight:` still
+  set at the next firing means that tick crashed. Preserve both fields when you rewrite the plan;
+  the wrapper reads `iterations:` to enforce the cap and `in-flight:` to detect and recover a
+  crashed tick.
 - Each step: `id:` (stable), `status:` `pending`\|`in-progress`\|`done`\|`blocked`,
   `depends-on:` (step `id`s or `independent`), `acceptance:` (pass criteria), `worker:` (the
   delegated agent, e.g. `crew:tank`, recorded on dispatch), in loop mode `attempts:` (failed

@@ -30,21 +30,28 @@ stripped; the rest is **`<goal>`** (referred to below), the task handed to `morp
 the cap flag — leave it as part of `<goal>`, don't guess. Absent a valid token, `<max>` defaults
 to 10.
 
+**The outer-loop note (every tick passes it to `morpheus`).** Tell `morpheus`: (a) `/crew:loop`
+is driving this as an outer-loop tick and **loop mode is authorized** — the user's `/crew:loop`
+invocation is the loop intent (`loop-engineering`), so don't wait for trigger phrases in the
+goal; (b) run this tick **synchronously to a stopping point** — delegate its workers in the
+**foreground** (not `run_in_background`) and return only when the plan is quiescent (every step
+`done`/`blocked`) or `maxTurns` is hit. There's no interactive user to stay responsive for, and
+foreground workers leave **nothing** running when the tick returns — so ticks are genuinely
+synchronous, the plan is never mid-worker between ticks, and the next tick can't double-dispatch
+a still-running worker.
+
 Each tick, **locate this goal's plan** — the `plan-<feature>.md` whose `feature:` /
 `feature-branch:` header identifies this goal, using `morpheus`'s own durable-resume match rule
 (*The plan file is durable state*): match by header, never guess; if more than one could match,
 stop and ask the user rather than picking one. Then decide:
 
-1. **No plan yet (tick 1).** Launch `crew:morpheus` (via the Agent tool) with `<goal>` plus an
-   explicit note: **`/crew:loop` is driving this as an outer-loop tick and loop mode is
-   authorized** — the user's `/crew:loop` invocation is the loop intent (`loop-engineering`), so
-   don't wait for trigger phrases in the goal text. `morpheus` enters loop mode, explores,
-   writes the plan and its `loop:`/`exit-conditions:` header, and runs the plan checkpoint
-   **once** — loop intent authorizes the *run*, not the *plan*, so you never skip that gate. When
-   it returns, seed the outer-loop counter you own: `iterations: 1/<max>`. Then evaluate the
-   checks below.
+1. **No plan yet (tick 1).** Launch `crew:morpheus` (via the Agent tool) with `<goal>` and the
+   outer-loop note. `morpheus` enters loop mode, explores, writes the plan and its
+   `loop:`/`exit-conditions:` header, and runs the plan checkpoint **once** — loop intent
+   authorizes the *run*, not the *plan*, so you never skip that gate. When it returns, seed the
+   outer-loop counter you own: `iterations: 1/<max>`. Then evaluate the checks below.
 2. **Plan exists.** Run the pre-check, then the exit checks. If none fires, launch
-   `crew:morpheus` again with `<goal>` and the same outer-loop note — it resumes from the plan
+   `crew:morpheus` again with `<goal>` and the outer-loop note — it resumes from the plan
    per its durable-resume protocol (a plan with `loop: on` continues in loop mode; it does
    **not** re-plan or re-checkpoint) — then bump `iterations:` **in the header** and re-evaluate.
    The count lives only in the header; a restarted wrapper reads it from there, never re-derives
@@ -55,15 +62,16 @@ stop and ask the user rather than picking one. Then decide:
 exact error — as `/crew:feature` does. No tick ran, so don't bump `iterations:` and don't leave
 `in-flight:` set: clear it and end.
 
-**Pre-check — a crashed prior tick.** Ticks are **synchronous**: a firing launches
-`crew:morpheus`, waits for it to return, then schedules the next firing — so two ticks never
-overlap in normal operation. An `in-flight:` marker still present at a firing's start therefore
-means the previous tick **crashed** mid-run. Do **not** gate this on `in-progress` steps —
-reconciling those is `morpheus`'s job on its next resume (re-verify against the tree, then commit
-or reset), and refusing to launch while they exist would **deadlock**: the tick that would
-reconcile them is exactly the one you'd suppress. Instead clear the stale `in-flight:` and run a
-normal tick — `morpheus` resumes from the plan and reconciles whatever the crash left (its resume
-re-verifies before re-dispatching, so this is not a double-dispatch).
+**Pre-check — a crashed prior tick.** Because the outer-loop note runs each tick's workers in
+the **foreground**, a tick returns only when nothing is still running — so ticks are genuinely
+**synchronous** and two never overlap. An `in-flight:` marker still present at a firing's start
+therefore means the previous tick **crashed** mid-run (or hit `maxTurns`), never that a worker is
+still live. Do **not** gate this on `in-progress` steps — reconciling those is `morpheus`'s job
+on its next resume (re-verify against the tree, then commit or reset), and refusing to launch
+while they exist would **deadlock**: the tick that would reconcile them is exactly the one you'd
+suppress. And because the crashed tick's foreground workers died with it, nothing is running to
+double-dispatch. So clear the stale `in-flight:` and run a normal tick — `morpheus` resumes and
+reconciles whatever the crash left (its resume re-verifies before re-dispatching).
 
 **Exit checks (first match ends the loop and surfaces — never auto-push or open a PR):**
 

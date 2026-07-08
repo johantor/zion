@@ -167,6 +167,39 @@ while IFS= read -r agent; do
   ' "$agent")
 done < <(git ls-files 'plugins/*/agents/*.md')
 
+# 2h. Each plugin's manifest version must match the newest entry in its CHANGELOG,
+#     so a version bump can't ship without release notes (auto-release.yml pulls
+#     notes from that section) and notes can't land without a bump. crew's
+#     changelog is the repo-root CHANGELOG.md; every other plugin keeps its own.
+while IFS= read -r manifest; do
+  plugin_dir="$(dirname "$(dirname "$manifest")")"  # plugins/<name>
+  # Malformed JSON is already reported by §1; skip so a bad manifest doesn't abort
+  # the whole run under `set -e` (mirrors the §2 loop).
+  jq empty "$manifest" >/dev/null 2>&1 || continue
+  plugin_version="$(jq -r '.version // empty' "$manifest")"
+  [ -z "$plugin_version" ] && continue  # missing version already reported by 2a
+  if [ "$(basename "$plugin_dir")" = "crew" ]; then
+    changelog="CHANGELOG.md"
+  else
+    changelog="$plugin_dir/CHANGELOG.md"
+  fi
+  if [ ! -f "$changelog" ]; then
+    err "$plugin_dir declares version $plugin_version but has no changelog at $changelog"
+    continue
+  fi
+  # grep -m1 reads the file directly and stops at the first hit (no `| head`,
+  # which could SIGPIPE the producer under `set -o pipefail`); strip with
+  # parameter expansion. `|| true` swallows grep's exit 1 when there's no match.
+  newest_line="$(grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$changelog" || true)"
+  newest_entry="${newest_line#*\[}"
+  newest_entry="${newest_entry%%\]*}"
+  if [ "$newest_entry" = "$plugin_version" ]; then
+    ok "$plugin_dir version $plugin_version matches newest $changelog entry"
+  else
+    err "$plugin_dir version $plugin_version != newest $changelog entry (${newest_entry:-none}); bump the manifest and add its CHANGELOG entry together"
+  fi
+done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
+
 # 3. Hook scripts are syntactically valid and executable.
 while IFS= read -r h; do
   if bash -n "$h" 2>/dev/null; then

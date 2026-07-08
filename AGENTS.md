@@ -113,6 +113,37 @@ duplicate between any other plugins — crew included or not (CI fails on mismat
 should still flag any drift that slips through as at least a **Warning**, and **Blocking** when
 it would change reviewer behavior.
 
+### Reviewing a prompt change (commands, agents, skills)
+
+These artifacts are **executable contracts written in prose** — an agent follows them at
+runtime — so `validate-plugin.sh` can't catch a *design* bug in them, only structural drift.
+Most of the review misses on this repo were this class: the contract read fine in isolation but
+broke an invariant or left a path undefined. Run this lens on the self-review **before pushing**
+(and apply it as a reviewer), because a static check never will:
+
+- **Durable-state invariant.** If the artifact names one store as "the only cross-tick/-run
+  state," any counting or "N-in-a-row" logic must live *there* — no hidden in-memory tally a
+  fresh-context resume would lose. Trace every "track / count / remember across invocations"
+  claim back to the declared store.
+- **Delegation can only pass what the callee accepts.** A command that wraps another command
+  can't convey context the inner one doesn't forward. If it must pass extra intent or
+  authorization, launch the underlying agent directly and say so — don't assume the wrapper's
+  words reach the callee.
+- **Every threshold is a number.** No "several", "eventually", "a few times" — state the exact
+  count and what resets it.
+- **Every failure and edge path has a stated behavior.** Launch failure, zero results, a
+  missing/hand-edited field, malformed input — say stop / skip / surface, and which durable
+  state is or isn't mutated on that path.
+- **A structured field documents its shape where it's owned.** If a marker carries a payload
+  (not just presence), the schema owner must be told to preserve it *verbatim* on rewrite.
+- **Cross-file wording agrees.** Grep every term you changed across the command, its agent, and
+  the README/AGENTS/CLAUDE/CHANGELOG copies — the behavior and every description of it must
+  match (a "launches morpheus directly" command described elsewhere as "re-invokes /feature" is
+  a bug, not a paraphrase).
+
+The recurring, already-seen instances of these live in *Recurring review findings* below; this
+list is the general lens to apply proactively so they don't recur in a new shape.
+
 ## Validating changes
 
 This repo has no app build. Before opening a PR, run what CI runs:
@@ -131,8 +162,13 @@ silently at runtime — the skill just doesn't load and the agent guesses.
 
 Versions are per-plugin. To cut a release:
 
-1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a `CHANGELOG.md`
+1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a matching `CHANGELOG.md`
    entry (a PR that changes plugin behavior must do this — see `.github/copilot-instructions.md`).
+   `validate-plugin.sh` §2h fails CI unless the manifest version equals the newest `## [X.Y.Z]`
+   entry in that plugin's changelog, so the two always move together. **A change to a skill
+   shipped by more than one plugin bumps *every* plugin that ships it** — the §4 sync check keeps
+   the copies byte-identical, so a fix in one is a release in all of them (crew's changelog is
+   the repo-root `CHANGELOG.md`; other plugins keep their own).
 2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
    version has no `<plugin>--v<version>` tag yet, and creates the tag and GitHub Release
    automatically, with notes pulled from that version's `CHANGELOG.md` section. No
@@ -152,6 +188,11 @@ Versions are per-plugin. To cut a release:
 - When a PR resolves an issue, link it with a GitHub closing keyword in the body —
   `Closes #N` / `Fixes #N` / `Resolves #N` — so the issue auto-closes on merge. Plain
   references like `Implements #N` only cross-link; they do not close the issue.
+- One branch (and PR) per issue — don't reuse a branch across issues. Once a PR merges, GitHub
+  deletes its branch; reusing the same branch name for the next issue leaves a stale local
+  tracking ref and the next push is rejected (`stale info`) until you prune. Start each issue
+  from the latest `main` on a fresh branch:
+  `git fetch origin main && git checkout -B <branch> origin/main`.
 
 ## Recurring review findings — apply proactively
 
@@ -192,3 +233,23 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
 - **After merging `main` into a branch to resolve conflicts, refresh the PR description too** —
   version-bump ranges and scope notes written before the merge (e.g., "3.1.0 → 3.1.3") go stale
   once the branch is rebased forward onto a `main` that already moved (e.g., to 3.1.2).
+- **Self-review the diff before opening a PR, not after.** Run `/code-review` on the working
+  diff (or the full `/crew:review` gate) *before* pushing — it catches design bugs a static
+  `validate-plugin.sh` run can't (e.g. a command whose stated behavior isn't mechanically
+  achievable, or an ownership contradiction between two files). Reviewers should be a backstop,
+  not the first pass.
+- **A changed shipped file is a release for every plugin that ships it.** Editing a byte-synced
+  shared skill (`loop-engineering`, `context-discipline`, `engineering-principles`) is
+  user-visible in *each* plugin that ships it, so bump + changelog all of them, not just the one
+  you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, but
+  only *you* can notice the second plugin needs the bump too.
+- **A command that delegates can only pass what the delegated command accepts.** A thin command
+  built on another (say, one wrapping `/crew:feature`, which only forwards its goal to
+  `crew:morpheus`) can't "tell" the inner agent anything that inner command doesn't forward. If
+  the wrapper needs to convey extra context (a driving intent, an authorization), launch the
+  underlying agent directly with that note rather than nesting a command that only forwards its
+  own arguments.
+- **Behavioral verification means actually running the scenario, not asserting it in the PR.**
+  For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario (keymaker's
+  README verification matrix is the model) and cite the observed result — a checklist item that
+  reads "would pass" is not verification.

@@ -52,10 +52,16 @@ flight: the header carries an `in-flight:` marker, or a step is `in-progress` wi
 worker still running. Do **not** launch another tick on the same plan — that would
 double-dispatch a running step. Instead **skip**: schedule a later dynamic wakeup and re-check,
 letting `morpheus`/its workers finish and the next tick collect them. A skip is **not** a tick —
-it launches nothing and does **not** bump `iterations:`. Only when the plan stays in flight with
-**no forward progress** — no step's `status` advanced and no new commit — across **3 consecutive
-skip-checks** treat it as a crashed run: clear the stale `in-flight:` marker, end, and surface it
-for an explicit resume.
+it launches nothing and does **not** bump `iterations:`.
+
+Its stall detection is **durable, in the `in-flight:` marker itself** (the plan file stays the
+only cross-tick state — no in-memory counter that a fresh-context resume would lose). The marker
+carries a cheap progress fingerprint — the count of `done` steps plus the latest commit SHA — and
+a `skips` counter. Each skip-check recomputes the fingerprint: if it advanced, rewrite `in-flight:`
+with the new fingerprint and reset `skips` to `0`; if unchanged, increment `skips`. When `skips`
+reaches **3** with no advance, treat it as a crashed run: clear `in-flight:`, end, and surface for
+an explicit resume. Because the counter lives in `in-flight:`, a tick resumed in a fresh context
+reads the stall state and won't skip forever.
 
 **Exit checks (first match ends the loop and surfaces — never auto-push or open a PR):**
 

@@ -15,9 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   reads it and ends the loop on the `loop-engineering` contract: success (all steps `done` +
   gate GO — never auto-push/PR), a step `blocked` on a human decision, or the iteration cap
   (`iterations: n/max`, model-enforced). A re-entrancy guard skips a tick while a prior
-  `morpheus` is still in flight (an `in-flight:` marker or an unexpected `in-progress` step),
-  so the same plan is never double-dispatched. Tick 1 still runs the plan checkpoint — loop
-  intent authorizes the run, not the plan.
+  `morpheus` is still in flight — an `in-flight:` marker, or an `in-progress` step whose
+  background worker is still running — so the same plan is never double-dispatched. Tick 1
+  still runs the plan checkpoint — loop intent authorizes the run, not the plan.
 - **Plan-header outer-loop bookkeeping.** `morpheus.md`'s durable-state schema documents the
   `iterations: n/max` and `in-flight:` header fields; the `/crew:loop` wrapper owns them (it is
   the sole writer of the outer-loop bookkeeping, between synchronous ticks), and `morpheus`

@@ -16,18 +16,23 @@ Run this **foreground** so tick 1's plan checkpoint can prompt.
 
 ## Per-tick logic
 
-Each tick, **locate this goal's plan** (`plan-<feature>.md` whose header matches
-`$ARGUMENTS`) and decide:
+**Iteration cap syntax.** `$ARGUMENTS` may end with a `max=<n>` token (e.g.
+`/crew:loop add SSO login max=5`); parse and strip it — the rest is the goal passed to
+`/crew:feature`. Absent it, `<max>` defaults to 10.
 
-1. **No plan yet (tick 1).** Run `/crew:feature $ARGUMENTS`, telling `morpheus` the `/crew:loop`
+Each tick, **locate this goal's plan** — the `plan-<feature>.md` whose `feature:` /
+`feature-branch:` header identifies this goal, using `morpheus`'s own durable-resume match rule
+(*The plan file is durable state*): match by header, never guess; if more than one could match,
+stop and ask the user rather than picking one. Then decide:
+
+1. **No plan yet (tick 1).** Run `/crew:feature <goal>`, telling `morpheus` the `/crew:loop`
    outer loop is driving this run so it enters **loop mode** — the user's `/crew:loop` invocation
    is the loop intent (`loop-engineering`). `morpheus` explores, writes the plan and its
    `loop:`/`exit-conditions:` header, and runs the plan checkpoint **once** — loop intent
    authorizes the *run*, not the *plan*, so you never skip that gate. When it returns, seed the
-   outer-loop counter you own: `iterations: 1/<max>` (default `<max>` = 10 unless the user gave
-   one). Then evaluate the checks below.
+   outer-loop counter you own: `iterations: 1/<max>`. Then evaluate the checks below.
 2. **Plan exists.** Run the pre-check, then the exit checks. If none fires, run
-   `/crew:feature $ARGUMENTS` again — `morpheus` resumes from the plan per its durable-resume
+   `/crew:feature <goal>` again — `morpheus` resumes from the plan per its durable-resume
    protocol (a plan with `loop: on` continues in loop mode; it does **not** re-plan or
    re-checkpoint) — then bump `iterations:` and re-evaluate.
 

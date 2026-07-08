@@ -173,6 +173,9 @@ done < <(git ls-files 'plugins/*/agents/*.md')
 #     changelog is the repo-root CHANGELOG.md; every other plugin keeps its own.
 while IFS= read -r manifest; do
   plugin_dir="$(dirname "$(dirname "$manifest")")"  # plugins/<name>
+  # Malformed JSON is already reported by §1; skip so a bad manifest doesn't abort
+  # the whole run under `set -e` (mirrors the §2 loop).
+  jq empty "$manifest" >/dev/null 2>&1 || continue
   plugin_version="$(jq -r '.version // empty' "$manifest")"
   [ -z "$plugin_version" ] && continue  # missing version already reported by 2a
   if [ "$(basename "$plugin_dir")" = "crew" ]; then

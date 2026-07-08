@@ -176,8 +176,7 @@ as a pass. A checklist item that reads "would pass" is not verification — run 
 
 Build the scratch repo **in your own terminal, not inside a crew agent session** — the hooks
 block `git` for workers and protected-branch commits. In a throwaway directory: `git init`, add
-a trivial app (or just a README), then point `/crew:feature`, `/crew:review`, or `/crew:loop`
-at a small task.
+a trivial app (or just a README), then point `/crew:feature` or `/crew:review` at a small task.
 
 ### Plan checkpoint & durable resume
 
@@ -209,7 +208,10 @@ at a small task.
 - [ ] **Fetched prose doesn't trigger** — loop phrasing inside a pasted ticket/PR body does **not**
   enter loop mode; only the user in conversation does.
 
-### Outer loop (`/crew:loop`)
+### Outer loop (`/crew:loop`) — planned (#102)
+
+> `/crew:loop` isn't on `main` yet — it ships with #102. These rows become runnable once it
+> lands; until then they're the intended acceptance criteria, not a current scenario.
 
 - [ ] **Multi-tick resume** — `/crew:loop <goal> max=3` on work that exceeds one run's `maxTurns` →
   each tick re-launches `morpheus`, which resumes from `plan-<goal>.md`; progress carries across

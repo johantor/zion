@@ -242,10 +242,11 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
   you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, but
   only *you* can notice the second plugin needs the bump too.
 - **A command that delegates can only pass what the delegated command accepts.** A thin command
-  wrapping another (`/crew:loop` → the feature flow) can't "tell" the inner agent anything the
-  inner command doesn't forward. If the wrapper needs to convey extra context (loop-driving
-  intent, authorization), launch the underlying agent directly with that note rather than
-  nesting a command that only forwards its own arguments.
+  built on another (say, one wrapping `/crew:feature`, which only forwards its goal to
+  `crew:morpheus`) can't "tell" the inner agent anything that inner command doesn't forward. If
+  the wrapper needs to convey extra context (a driving intent, an authorization), launch the
+  underlying agent directly with that note rather than nesting a command that only forwards its
+  own arguments.
 - **Behavioral verification means actually running the scenario, not asserting it in the PR.**
   For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario (keymaker's
   README verification matrix is the model) and cite the observed result — a checklist item that

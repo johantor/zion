@@ -24,8 +24,11 @@ whether to schedule the next wakeup or end.
 ## Per-tick logic
 
 **Iteration cap syntax.** `$ARGUMENTS` may end with a `max=<n>` token (e.g.
-`/crew:loop add SSO login max=5`); parse and strip it — the rest is **`<goal>`** (referred to
-below), the task handed to `morpheus`. Absent the token, `<max>` defaults to 10.
+`/crew:loop add SSO login max=5`) — honored **only** when `<n>` is a positive integer, then
+stripped; the rest is **`<goal>`** (referred to below), the task handed to `morpheus`. A trailing
+`max=` that isn't a positive integer (`max=0`, `max=-1`, `max=abc`, empty) is **not** treated as
+the cap flag — leave it as part of `<goal>`, don't guess. Absent a valid token, `<max>` defaults
+to 10.
 
 Each tick, **locate this goal's plan** — the `plan-<feature>.md` whose `feature:` /
 `feature-branch:` header identifies this goal, using `morpheus`'s own durable-resume match rule
@@ -52,15 +55,15 @@ stop and ask the user rather than picking one. Then decide:
 exact error — as `/crew:feature` does. No tick ran, so don't bump `iterations:` and don't leave
 `in-flight:` set: clear it and end.
 
-**Pre-check — in flight (re-entrancy guard, *skip*, don't end).** A prior run may still be in
-flight: the header carries an `in-flight:` marker, or a step is `in-progress` with a background
-worker still running. Do **not** launch another tick on the same plan — that would
-double-dispatch a running step. Instead **skip**: schedule a later dynamic wakeup and re-check,
-letting `morpheus`/its workers finish so the next tick collects them. A skip is **not** a tick —
-it launches nothing and does **not** bump `iterations:`. The iteration cap bounds a *progressing*
-loop; it does **not** bound skips. v1 doesn't auto-detect a stall — a genuinely stuck run (a
-crashed `morpheus` that never quiesces) keeps skipping, but `/crew:loop` runs foreground and
-human-initiated, so that's visible in the session: stop the loop and resume explicitly.
+**Pre-check — a crashed prior tick.** Ticks are **synchronous**: a firing launches
+`crew:morpheus`, waits for it to return, then schedules the next firing — so two ticks never
+overlap in normal operation. An `in-flight:` marker still present at a firing's start therefore
+means the previous tick **crashed** mid-run. Do **not** gate this on `in-progress` steps —
+reconciling those is `morpheus`'s job on its next resume (re-verify against the tree, then commit
+or reset), and refusing to launch while they exist would **deadlock**: the tick that would
+reconcile them is exactly the one you'd suppress. Instead clear the stale `in-flight:` and run a
+normal tick — `morpheus` resumes from the plan and reconciles whatever the crash left (its resume
+re-verifies before re-dispatching, so this is not a double-dispatch).
 
 **Exit checks (first match ends the loop and surfaces — never auto-push or open a PR):**
 
@@ -79,12 +82,10 @@ and preserves your two fields when it rewrites the plan. Ticks are **synchronous
 `crew:morpheus`, wait for it to return, then update the header and decide — so the two
 writers never overlap.
 
-**`in-flight:` lifecycle.** `in-flight:` records the running tick (`in-flight: tick=<n>`); its
-presence means a run is in flight — no other payload. Set it before launching a tick. Clear it
-**only** when the plan is quiescent — no `in-progress` step remains and no background worker is
-running — so the next tick can safely launch (also clear it on launch failure). A returning
-`morpheus` that left `in-progress` work is **not** done: keep `in-flight:` until the work
-quiesces.
+**`in-flight:` lifecycle.** `in-flight: tick=<n>` marks that a `morpheus` tick is executing —
+presence only, no other payload. Set it before launching a tick; clear it when `morpheus`
+returns (and on launch failure). Because ticks are synchronous, finding it still set at the next
+firing means that tick crashed — the pre-check above handles it.
 
 Schedule the next tick with the native `/loop` dynamic-mode wakeup only while the loop is still
 live. When an exit check fires, stop scheduling and give the user the consolidated status.

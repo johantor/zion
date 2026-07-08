@@ -253,7 +253,7 @@ run from the file and git alone — the user never re-explains a feature that's 
 - Outer-loop bookkeeping (`iterations: <n>/<max>`, `in-flight: tick=<n>`): written by the
   `/crew:loop` wrapper (the main-session outer loop), not by you — you never self-schedule.
   Preserve both fields when you rewrite the plan; the wrapper reads `iterations:` to enforce the
-  cap and `in-flight:` (its presence) to skip a tick while a run is still in flight.
+  cap and `in-flight:` to detect and recover a crashed tick.
 - Each step: `id:` (stable), `status:` `pending`\|`in-progress`\|`done`\|`blocked`,
   `depends-on:` (step `id`s or `independent`), `acceptance:` (pass criteria), `worker:` (the
   delegated agent, e.g. `crew:tank`, recorded on dispatch), in loop mode `attempts:` (failed

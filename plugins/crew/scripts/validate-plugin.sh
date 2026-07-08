@@ -112,7 +112,12 @@ while IFS= read -r manifest; do
   elif [ ! -f "$changelog" ]; then
     err "$plugin_dir declares version $plugin_version but has no changelog at $changelog"
   else
-    newest_entry="$(sed -nE 's/^## \[([0-9]+\.[0-9]+\.[0-9]+)\].*/\1/p' "$changelog" | head -1)"
+    # grep -m1 reads the file directly and stops at the first hit (no `| head`,
+    # which could SIGPIPE the producer under `set -o pipefail`); strip with
+    # parameter expansion. `|| true` swallows grep's exit 1 when there's no match.
+    newest_line="$(grep -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$changelog" || true)"
+    newest_entry="${newest_line#*\[}"
+    newest_entry="${newest_entry%%\]*}"
     if [ "$newest_entry" = "$plugin_version" ]; then
       ok "$plugin_dir version $plugin_version matches newest $changelog entry"
     else

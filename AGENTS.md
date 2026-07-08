@@ -155,6 +155,11 @@ Versions are per-plugin. To cut a release:
 - When a PR resolves an issue, link it with a GitHub closing keyword in the body —
   `Closes #N` / `Fixes #N` / `Resolves #N` — so the issue auto-closes on merge. Plain
   references like `Implements #N` only cross-link; they do not close the issue.
+- One branch (and PR) per issue — don't reuse a branch across issues. Once a PR merges, GitHub
+  deletes its branch; reusing the same branch name for the next issue leaves a stale local
+  tracking ref and the next push is rejected (`stale info`) until you prune. Start each issue
+  from the latest `main` on a fresh branch (`git fetch origin main && git checkout -B
+  <branch> origin/main`).
 
 ## Recurring review findings — apply proactively
 

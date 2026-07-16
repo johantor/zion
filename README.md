@@ -19,10 +19,10 @@ claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
 ```
 
-<!-- Demo GIF slot — record a short /crew:feature run (VHS: github.com/charmbracelet/vhs,
-     or asciinema + agg), save as docs/demo.gif, then swap this comment for:
-![morpheus planning, delegating, and committing a feature](docs/demo.gif)
--->
+<!-- Illustrative animation of a representative /crew:feature run. To replace with a
+     real recording: capture with VHS (github.com/charmbracelet/vhs) or asciinema + agg
+     and overwrite docs/demo.gif. -->
+![Illustration of a crew feature run: morpheus plans, delegates to tank/trinity/oracle/dozer, passes the review gate, and opens a PR](docs/demo.gif)
 
 ## Plugins
 

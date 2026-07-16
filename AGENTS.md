@@ -30,6 +30,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
+  - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
 - `scripts/validate-plugin.sh` — repo tooling (not part of any plugin; it needs this
   monorepo's layout and never runs in an installed plugin): validates every plugin's
   manifest/structure, including skill-drift across plugins (§4 in the script), hook-script
@@ -173,8 +174,8 @@ Versions are per-plugin. To cut a release:
    `validate-plugin.sh` §2h fails CI unless the manifest version equals the newest `## [X.Y.Z]`
    entry in that plugin's changelog, so the two always move together. **A change to a skill
    shipped by more than one plugin bumps *every* plugin that ships it** — the §4 sync check keeps
-   the copies byte-identical, so a fix in one is a release in all of them (crew's changelog is
-   the repo-root `CHANGELOG.md`; other plugins keep their own).
+   the copies byte-identical, so a fix in one is a release in all of them (every plugin keeps
+   its own changelog at `plugins/<name>/CHANGELOG.md`).
 2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
    version has no `<plugin>--v<version>` tag yet, and creates the tag and GitHub Release
    automatically, with notes pulled from that version's `CHANGELOG.md` section. No

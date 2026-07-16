@@ -97,7 +97,7 @@ claude plugin update crew@zion           # update an installed plugin
 claude plugin uninstall crew@zion        # remove a plugin
 ```
 
-Release notes: [crew](CHANGELOG.md) ·
+Release notes: [crew](plugins/crew/CHANGELOG.md) ·
 [keymaker](plugins/keymaker/CHANGELOG.md) ·
 [engineering-principles](plugins/engineering-principles/CHANGELOG.md).
 

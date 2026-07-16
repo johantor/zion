@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   command, or hook invokes it). Installed crew trees no longer carry the inert script, and
   future validator-only changes stop being crew releases. CI and all doc references updated;
   the script itself is unchanged.
+- **The changelog moved into the plugin: repo-root `CHANGELOG.md` → `plugins/crew/CHANGELOG.md`.**
+  The mirror image of the validator move: release notes are consumer docs and every other
+  plugin already ships its own, while crew's at the repo root read as a repo-wide changelog
+  and needed special cases in both `validate-plugin.sh` §2h and `auto-release.yml` (whose
+  root fallback its own comment warned against). Both special cases are gone; changelogs are
+  uniform at `plugins/<name>/CHANGELOG.md`.
 
 ## [3.5.0] - 2026-07-16
 

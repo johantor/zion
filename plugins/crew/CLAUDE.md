@@ -51,5 +51,5 @@ anything stated here updates this file in the same commit.** Conventions live in
   `shellcheck plugins/*/hooks/*.sh scripts/*.sh` (shellcheck may be missing
   locally; CI covers it).
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
-  the **root** `CHANGELOG.md` (crew's changelog lives at repo root; other plugins keep their
-  own). On merge to main, auto-release tags `crew--vX.Y.Z` from that section.
+  this plugin's `CHANGELOG.md` (every plugin keeps its own changelog next to its manifest).
+  On merge to main, auto-release tags `crew--vX.Y.Z` from that section.

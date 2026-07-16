@@ -17,8 +17,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   `context-discipline` and `loop-engineering` (crew's copies are canonical — edit there and
   copy byte-for-byte, or CI's drift check fails).
 - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `write-guard.sh` (keymaker's Write/Edit are
-  confined to `.claude/` — ledger/outlines/notes only). No `scripts/` dir: the validator
-  lives in `plugins/crew/scripts/validate-plugin.sh` and covers this plugin too.
+  confined to `.claude/` — ledger/outlines/notes only). `read-guard.sh` (byte-identical) and
+  `bash-safety.sh`'s marked shared-guard regions are synced with crew's copies (crew is
+  canonical — edit there and mirror here, or validator §5 fails CI). No `scripts/` dir: the
+  validator lives in `plugins/crew/scripts/validate-plugin.sh` and covers this plugin too.
 
 ## Schemas & conventions
 

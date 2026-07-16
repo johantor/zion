@@ -7,7 +7,7 @@
     {
       "name": "crew",
       "source": "./plugins/crew",
-      "description": "Orchestrated agents, commands, hooks, and skills for feature delivery."
+      "description": "Claude Code crew/plugin pack with orchestrated agents, commands, hooks, and skills for feature delivery."
     },
     {
       "name": "engineering-principles",
@@ -17,7 +17,7 @@
     {
       "name": "keymaker",
       "source": "./plugins/keymaker",
-      "description": "Pointer-driven tech debt remediation and dependency upgrades. Fixes one identified suppression, rule, or package at a time; produces handoff outlines for platform-scale migrations."
+      "description": "Pointer-driven tech debt and dependency upgrade crew. Fixes one identified suppression, rule, or package at a time; produces handoff outlines for platform-scale migrations."
     }
   ]
 }

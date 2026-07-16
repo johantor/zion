@@ -128,7 +128,7 @@ mapped loosely to what they do:
 - **neo** — "The One," not bound to a single role: the generalist who takes the express lane for small fixes.
 - **tank** & **dozer** — the operators: **tank** runs the backend, **dozer** runs the e2e tests.
 - **trinity** — the hacker on point: the frontend.
-- **oracle** — sees what will and won't hold up: the backend tests.
+- **oracle** — sees what will and won't hold up: the unit tests (backend, plus frontend component tests).
 - **seraph** — the guardian who knows you by testing you ("you do not truly know someone until you fight them"): visual design conformance.
 - **keymaker** — "I make the keys": opens locked doors one at a time, with precision (tech debt and upgrades orchestrator).
 - **twin** — the keymaker's mechanical fixer/runner; works in pairs, in parallel.

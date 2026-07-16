@@ -18,11 +18,14 @@ anything stated here updates this file in the same commit.** Conventions live in
   skills load dynamically once resolved. Skill = `<name>/SKILL.md`, frontmatter `name:` +
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
-  backstop; watch/dev commands refused), `read-guard.sh` (>64 KiB raw reads), `lane-guard.sh`
-  (Edit/Write lanes), `format.sh`. Wiring in `hooks/hooks.json` must mirror the repo's
-  `.claude/settings.json` (validator §5).
-- `scripts/validate-plugin.sh` — validates **all** plugins (manifests, agent `skills:`
-  resolution §2g, cross-plugin skill sync §4, hook mirror §5).
+  backstop; watch/dev commands refused), `read-guard.sh` (>64 KiB raw reads; an explicit
+  `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes), `format.sh`. Wiring in
+  `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
+  `read-guard.sh` and `bash-safety.sh`'s marked shared-guard regions are byte-synced with
+  keymaker's copies (validator §5; crew canonical — edit here first).
+- `scripts/validate-plugin.sh` — validates **all** plugins (manifests + marketplace
+  description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
+  cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7).
 
 ## Schemas & conventions
 

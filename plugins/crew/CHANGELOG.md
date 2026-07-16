@@ -5,6 +5,23 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.1] - 2026-07-16
+
+### Changed
+- **The validator moved out of the plugin: `plugins/crew/scripts/validate-plugin.sh` →
+  repo-root `scripts/validate-plugin.sh`.** It is repo tooling, not plugin behavior — it
+  validates every plugin, the marketplace, and this repo's dev-time hook mirror, requires the
+  marketplace monorepo layout, and never runs in an installed plugin (nothing in any agent,
+  command, or hook invokes it). Installed crew trees no longer carry the inert script, and
+  future validator-only changes stop being crew releases. CI and all doc references updated;
+  the script itself is unchanged.
+- **The changelog moved into the plugin: repo-root `CHANGELOG.md` → `plugins/crew/CHANGELOG.md`.**
+  The mirror image of the validator move: release notes are consumer docs and every other
+  plugin already ships its own, while crew's at the repo root read as a repo-wide changelog
+  and needed special cases in both `validate-plugin.sh` §2h and `auto-release.yml` (whose
+  root fallback its own comment warned against). Both special cases are gone; changelogs are
+  uniform at `plugins/<name>/CHANGELOG.md`.
+
 ## [3.5.0] - 2026-07-16
 
 ### Added

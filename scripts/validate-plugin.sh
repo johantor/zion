@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Validates every plugin's structure so manifest/file drift fails fast.
-# Runnable locally (`plugins/crew/scripts/validate-plugin.sh`) and in CI.
+# Repo tooling, not part of any plugin: it needs this monorepo's layout and
+# never runs in an installed plugin. Runnable locally (`scripts/validate-plugin.sh`)
+# and in CI.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -180,8 +182,8 @@ done < <(git ls-files 'plugins/*/agents/*.md')
 
 # 2h. Each plugin's manifest version must match the newest entry in its CHANGELOG,
 #     so a version bump can't ship without release notes (auto-release.yml pulls
-#     notes from that section) and notes can't land without a bump. crew's
-#     changelog is the repo-root CHANGELOG.md; every other plugin keeps its own.
+#     notes from that section) and notes can't land without a bump. Every plugin
+#     keeps its changelog next to its manifest: plugins/<name>/CHANGELOG.md.
 while IFS= read -r manifest; do
   plugin_dir="$(dirname "$(dirname "$manifest")")"  # plugins/<name>
   # Malformed JSON is already reported by §1; skip so a bad manifest doesn't abort
@@ -189,11 +191,7 @@ while IFS= read -r manifest; do
   jq empty "$manifest" >/dev/null 2>&1 || continue
   plugin_version="$(jq -r '.version // empty' "$manifest")"
   [ -z "$plugin_version" ] && continue  # missing version already reported by 2a
-  if [ "$(basename "$plugin_dir")" = "crew" ]; then
-    changelog="CHANGELOG.md"
-  else
-    changelog="$plugin_dir/CHANGELOG.md"
-  fi
+  changelog="$plugin_dir/CHANGELOG.md"
   if [ ! -f "$changelog" ]; then
     err "$plugin_dir declares version $plugin_version but has no changelog at $changelog"
     continue

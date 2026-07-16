@@ -126,7 +126,7 @@ Adding a stack is additive — no agent logic changes, only data:
    The detection-table row from step 2 is what makes the stack detectable in the first place.
 4. **Document and version** — add a row to the "Supported stacks" list above, a
    `CHANGELOG.md` entry, and bump the plugin `version` in `.claude-plugin/plugin.json`.
-5. **Validate** — `plugins/crew/scripts/validate-plugin.sh` confirms the skill path resolves
+5. **Validate** — the repo's `scripts/validate-plugin.sh` confirms the skill path resolves
    and JSON is well-formed.
 
 That is the whole contract: one new skill file, one detection row, one orchestrator detection-list

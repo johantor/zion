@@ -44,14 +44,11 @@ jobs:
               continue
             fi
 
-            # Require a matching CHANGELOG entry (## [<version>]). Prefer the
-            # plugin's own CHANGELOG.md; fall back to the repo root one (shared
-            # changelogs risk cross-matching versions once more plugins exist).
+            # Require a matching CHANGELOG entry (## [<version>]) in the
+            # plugin's own CHANGELOG.md — every plugin keeps its changelog next
+            # to its manifest (validate-plugin.sh §2h enforces the pairing).
             changelog="${plugin_dir}/CHANGELOG.md"
-            if [ ! -f "$changelog" ]; then
-              changelog="CHANGELOG.md"
-            fi
-            if ! grep -qF "## [${version}]" "$changelog"; then
+            if [ ! -f "$changelog" ] || ! grep -qF "## [${version}]" "$changelog"; then
               echo "::warning::No CHANGELOG entry for $tag – skipping."
               continue
             fi

@@ -2,10 +2,11 @@
 # PreToolUse(Bash) guard for the keymaker crew. Blocks destructive commands,
 # git misuse (twins never run git; no commits on a protected branch),
 # never-terminating watch/dev/serve commands, and raw/streaming reads that
-# bypass context discipline. The destructive-ops and raw-read blocks mirror
-# crew's bash-safety.sh so a standalone keymaker install (without crew) keeps
-# the same floor; with both plugins installed both guards fire — redundant but
-# compatible.
+# bypass context discipline. The marked "shared guard" regions mirror crew's
+# bash-safety.sh so a standalone keymaker install (without crew) keeps the same
+# floor — byte-synced by validate-plugin.sh §5, crew's copy is canonical (edit
+# there and mirror here). With both plugins installed both guards fire —
+# redundant but compatible.
 #
 # Fail closed: a security guard that can't read its input must block, not let
 # the command through uninspected. jq is a documented dependency (also required
@@ -40,6 +41,7 @@ agent_type="${fields##*"$rs"}"
 # GNU-only \s so the guard also holds on BSD/macOS grep.
 normalized="$(printf '%s' "$cmd" | tr '\n' ' ')"
 
+# --- BEGIN shared guard: destructive-ops ---
 # Destructive ops, in order: recursive+force rm of /, ~ or * — flags combined in
 # either order (-rf, -fr, -rfv) or separate/long (-r -f, --recursive --force),
 # with arbitrary other flag tokens between them and arbitrary arguments (incl.
@@ -58,6 +60,7 @@ if echo "$normalized" | grep -Eq "${rm_rf}|git[[:space:]]+push[^;&|]*[[:space:]]
   echo "Blocked: unsafe command." >&2
   exit 2
 fi
+# --- END shared guard: destructive-ops ---
 
 # Twins never run git — keymaker owns branching and per-batch commits
 # (twin.md operating rules). Any git invocation at a command position is
@@ -87,6 +90,7 @@ fi
 # instead (context-discipline). Scoped to agent sessions: the user's own
 # session may legitimately run a dev server. `--watch` matches the bare flag
 # only, not `--watch=false` (the disable spelling). `vite build` stays allowed.
+# --- BEGIN shared guard: watch-commands ---
 if [ -n "$agent_type" ]; then
   cmdpos='(^|[;&|][&|]?[[:space:]]*)'
   pfx='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*((npx|bunx)[[:space:]]+)?'
@@ -96,7 +100,9 @@ if [ -n "$agent_type" ]; then
     exit 2
   fi
 fi
+# --- END shared guard: watch-commands ---
 
+# --- BEGIN shared guard: raw-reads ---
 if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)(less|more)[[:space:]]+'; then
   echo "Blocked: interactive raw reads are disallowed. Use targeted grep/rg/jq/scripted summaries instead." >&2
   exit 2
@@ -111,5 +117,6 @@ if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)cat[[:space:]]+[^|><
   echo "Blocked: unbounded cat reads are disallowed. Pipe/filter with grep/rg/jq or script the analysis." >&2
   exit 2
 fi
+# --- END shared guard: raw-reads ---
 
 exit 0

@@ -31,7 +31,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
   - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure, including
-    skill-drift across plugins (§4 in the script; see *How we review code* below).
+    skill-drift across plugins (§4 in the script), hook-script drift (§5), and hooks.json
+    wiring (§6; see *How we review code* below).
 - `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:
   - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
   - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
@@ -40,7 +41,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   `plugins/crew/hooks/hooks.json`, resolved via `CLAUDE_PROJECT_DIR` instead of
   `CLAUDE_PLUGIN_ROOT`, so they still run while developing in this repo **without the crew
   plugin installed**. The two files must mirror each other exactly (modulo the root variable) —
-  `validate-plugin.sh` enforces this automatically (§5, CI fails on mismatch). If the crew
+  `validate-plugin.sh` enforces this automatically (§7, CI fails on mismatch). If the crew
   plugin is *also* installed while working here, both wirings fire and every guard runs twice
   per matching tool call; installing the plugin while developing in this repo isn't a supported
   setup.
@@ -109,7 +110,11 @@ today that's `engineering-principles` (crew's canonical copy, also shipped stand
 `engineering-principles` plugin), `context-discipline`, and `loop-engineering` (both crew's
 canonical copies, also shipped by `keymaker`). `plugins/crew/scripts/validate-plugin.sh` enforces this automatically: the check
 is generic by skill *name*, not hardcoded to these two pairs, so it also catches a future
-duplicate between any other plugins — crew included or not (CI fails on mismatch). Reviewers
+duplicate between any other plugins — crew included or not (CI fails on mismatch). The same
+policy covers hook scripts shipped by more than one plugin (§5): copies with no markers must be
+byte-identical (`read-guard.sh`), and `bash-safety.sh`'s marker-delimited "shared guard" regions
+must match byte-for-byte while the git-policy sections around them stay per-plugin (crew's
+copies are canonical — edit there first). Reviewers
 should still flag any drift that slips through as at least a **Warning**, and **Blocking** when
 it would change reviewer behavior.
 

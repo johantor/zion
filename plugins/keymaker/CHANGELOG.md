@@ -5,6 +5,19 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-07-16
+
+### Changed
+- **`read-guard.sh` allows bounded reads (crew v3.5.0).** A `Read` carrying an explicit
+  `limit` of at most 2000 lines now passes regardless of file size; unbounded reads of files
+  over 64 KiB are still blocked. The script is byte-identical to crew's copy, and
+  validate-plugin.sh §5 now enforces that identity.
+- **`bash-safety.sh` shared-guard markers.** The destructive-ops, watch-command, and raw-read
+  blocks that mirror crew's guard are now marker-delimited
+  (`# --- BEGIN/END shared guard: <label> ---`) and byte-synced by validate-plugin.sh §5
+  (crew's copy is canonical — edit there first). Guard behavior is unchanged; the mirror was
+  previously documented but unenforced.
+
 ## [0.6.1] - 2026-07-08
 
 ### Changed

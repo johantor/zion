@@ -99,7 +99,9 @@ while IFS= read -r manifest; do
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
 # 2f. Marketplace entries agree with the plugins on disk: every listed source
-#     exists, has a manifest, and its manifest name matches the entry name.
+#     exists, has a manifest, its manifest name matches the entry name, and its
+#     description matches the manifest's (plugin.json is canonical — the two
+#     read the same to users, so wording drift is a doc bug).
 marketplace=".claude-plugin/marketplace.json"
 if [ -f "$marketplace" ] && jq empty "$marketplace" >/dev/null 2>&1; then
   while IFS=$'\t' read -r mname msource; do
@@ -120,6 +122,15 @@ if [ -f "$marketplace" ] && jq empty "$marketplace" >/dev/null 2>&1; then
       ok "$marketplace entry '$mname' matches $pmanifest"
     else
       err "$marketplace entry '$mname' != plugin.json name '$pname' ($pmanifest)"
+    fi
+    # Descriptions are compared via jq (not the @tsv fields above) so tabs or
+    # escapes in either value can't skew the comparison.
+    mdesc="$(jq -r --arg n "$mname" '.plugins[] | select(.name == $n) | .description // ""' "$marketplace")"
+    pdesc="$(jq -r '.description // ""' "$pmanifest")"
+    if [ "$mdesc" = "$pdesc" ]; then
+      ok "$marketplace entry '$mname' description matches $pmanifest"
+    else
+      err "$marketplace entry '$mname' description differs from $pmanifest (plugin.json is canonical; copy it into the marketplace entry)"
     fi
   done < <(jq -r '.plugins[] | select((.source | type) == "string") | [.name, .source] | @tsv' "$marketplace")
 else
@@ -250,7 +261,161 @@ for name in "${!skill_dirs[@]}"; do
   done
 done
 
-# 5. This repo's dev-time hook wiring (.claude/settings.json) must mirror the
+# 5. Hook-script drift: a hook script filename shipped by more than one plugin
+#    must stay in sync across every copy — same policy as §4 for skills, and
+#    crew's copy is likewise the reference when crew ships the file (else the
+#    first copy found). Two regimes:
+#      - no shared-guard markers in the reference -> the whole file must be
+#        byte-identical (today: read-guard.sh);
+#      - regions delimited by "# --- BEGIN shared guard: <label> ---" ...
+#        "# --- END shared guard: <label> ---" -> only the marked regions must
+#        match (labels, contents, and order), since the rest is per-plugin
+#        policy (today: bash-safety.sh).
+#    Structurally invalid markers — a stray END, a nested BEGIN, a label that
+#    doesn't pair up, an unclosed block, or a marker missing its trailing
+#    " ---" — are a failure: a sync check that can't parse its regions can't
+#    verify its claim, and would otherwise silently compare the wrong content.
+declare -A hook_groups=()
+while IFS= read -r h; do
+  b="$(basename "$h")"
+  hook_groups["$b"]="${hook_groups["$b"]:-}${hook_groups["$b"]:+ }$h"
+done < <(git ls-files 'plugins/*/hooks/*.sh')
+
+# Print each marked region as "=== <label> ===" followed by its lines, so two
+# files' shared regions can be compared as plain strings.
+shared_regions() {
+  awk '
+    /^# --- BEGIN shared guard: .* ---/ {
+      label = $0
+      sub(/^# --- BEGIN shared guard: /, "", label)
+      sub(/ ---.*$/, "", label)
+      print "=== " label " ==="
+      inblock = 1
+      next
+    }
+    /^# --- END shared guard: .* ---/ { inblock = 0; next }
+    inblock { print }
+  ' "$1"
+}
+
+# Structural marker validation for one file: BEGIN/END must strictly alternate
+# (no nesting, no stray END), the END label must match the open BEGIN's, every
+# block must close by EOF, and a marker-prefixed line must carry the full
+# "... ---" shape. Prints one line per problem; silence means the markers are
+# sound and shared_regions can be trusted.
+marker_errors() {
+  awk '
+    /^# --- (BEGIN|END) shared guard: / {
+      is_begin = ($0 ~ /^# --- BEGIN /)
+      if ($0 !~ / ---[[:space:]]*$/) {
+        print "marker at line " NR " is missing its trailing \" ---\""
+        next
+      }
+      label = $0
+      sub(/^# --- (BEGIN|END) shared guard: /, "", label)
+      sub(/ ---[[:space:]]*$/, "", label)
+      if (is_begin) {
+        if (open != "") print "BEGIN \"" label "\" at line " NR " nests inside open block \"" open "\""
+        open = label
+      } else {
+        if (open == "") print "END \"" label "\" at line " NR " has no matching BEGIN"
+        else if (label != open) print "END \"" label "\" at line " NR " does not match open BEGIN \"" open "\""
+        open = ""
+      }
+      next
+    }
+    END { if (open != "") print "BEGIN \"" open "\" is never closed" }
+  ' "$1"
+}
+
+for b in "${!hook_groups[@]}"; do
+  # shellcheck disable=SC2206  # intentional word-splitting: paths never contain spaces
+  copies=(${hook_groups["$b"]})
+  [ "${#copies[@]}" -lt 2 ] && continue
+  reference=""
+  for h in "${copies[@]}"; do
+    case "$h" in plugins/crew/hooks/*) reference="$h" ;; esac
+  done
+  [ -z "$reference" ] && reference="${copies[0]}"
+  markers_ok=1
+  for h in "${copies[@]}"; do
+    problems="$(marker_errors "$h")"
+    [ -z "$problems" ] && continue
+    while IFS= read -r problem; do
+      err "$h shared-guard $problem; fix the markers so the sync check can verify its regions"
+    done <<<"$problems"
+    markers_ok=0
+  done
+  [ "$markers_ok" = 1 ] || continue
+  ref_regions="$(shared_regions "$reference")"
+  for h in "${copies[@]}"; do
+    [ "$h" = "$reference" ] && continue
+    if [ -z "$ref_regions" ]; then
+      if diff -q "$reference" "$h" >/dev/null 2>&1; then
+        ok "hook in sync: $h == $reference"
+      else
+        err "hook drift: $h differs from $reference (hook '$b' shipped by multiple plugins with no shared-guard markers, so copies must be byte-identical)"
+      fi
+    elif [ "$(shared_regions "$h")" = "$ref_regions" ]; then
+      ok "hook shared-guard regions in sync: $h == $reference"
+    else
+      err "hook drift: shared-guard regions in $h differ from $reference (labels, contents, and order must match; crew's copy is canonical)"
+    fi
+  done
+done
+
+# 6. Hook wiring cross-check: every command in a plugin's hooks/hooks.json must
+#    resolve (via its "${CLAUDE_PLUGIN_ROOT}"/ prefix) to a file in that plugin,
+#    and every hooks/*.sh on disk must be wired by some command — an unwired
+#    guard script silently never runs (the same failure class §2g catches for
+#    agent skills: references).
+# Single-quoted: the literal, unexpanded prefix as it appears in the JSON.
+# shellcheck disable=SC2016
+wiring_pfx='"${CLAUDE_PLUGIN_ROOT}"/'
+while IFS= read -r hooks_json; do
+  plugin_dir="${hooks_json%/hooks/hooks.json}"
+  # Malformed JSON is already reported by §1; skip the cross-check.
+  if ! jq empty "$hooks_json" >/dev/null 2>&1; then
+    err "$hooks_json is not valid JSON; cannot cross-check its hook wiring"
+    continue
+  fi
+  # Fail loudly on a structurally wrong file (valid JSON, wrong shape): the
+  # extraction below would otherwise spray a raw jq error and report every
+  # script as "not wired", which misdiagnoses the actual problem.
+  if ! jq -e '(.hooks | type == "object")
+              and ([.hooks[] | type == "array"] | all)
+              and ([.hooks[][] | .hooks | type == "array"] | all)' "$hooks_json" >/dev/null 2>&1; then
+    err "$hooks_json does not have the expected shape ({hooks: {<event>: [{hooks: [{command}]}]}}); cannot cross-check its hook wiring"
+    continue
+  fi
+  declare -A wired=()
+  while IFS= read -r hcmd; do
+    hcmd="${hcmd%$'\r'}"  # tolerate CRLF checkouts on Windows
+    [ -z "$hcmd" ] && continue
+    rel="${hcmd#"$wiring_pfx"}"
+    if [ "$rel" = "$hcmd" ]; then
+      err "$hooks_json command '$hcmd' does not start with $wiring_pfx — a plugin's own hooks must resolve through CLAUDE_PLUGIN_ROOT"
+      continue
+    fi
+    rel="${rel%% *}"  # a command may carry arguments; the script path is the first token
+    if [ -f "$plugin_dir/$rel" ]; then
+      ok "$hooks_json -> $rel exists"
+    else
+      err "$hooks_json wires $rel but $plugin_dir/$rel does not exist"
+    fi
+    wired["$rel"]=1
+  done < <(jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command // empty' "$hooks_json")
+  while IFS= read -r sh_file; do
+    rel="${sh_file#"$plugin_dir/"}"
+    if [ -n "${wired[$rel]:-}" ]; then
+      ok "$plugin_dir wires $rel"
+    else
+      err "$sh_file exists but is not wired in $hooks_json — it never runs"
+    fi
+  done < <(git ls-files "$plugin_dir/hooks/*.sh")
+done < <(git ls-files 'plugins/*/hooks/hooks.json')
+
+# 7. This repo's dev-time hook wiring (.claude/settings.json) must mirror the
 #    installed-plugin wiring (plugins/crew/hooks/hooks.json), modulo the root
 #    variable each resolves through (CLAUDE_PROJECT_DIR vs CLAUDE_PLUGIN_ROOT)
 #    -- see AGENTS.md for why both exist.

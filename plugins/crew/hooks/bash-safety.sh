@@ -2,6 +2,9 @@
 # PreToolUse(Bash) guard. Blocks destructive commands and raw/streaming reads
 # that bypass context discipline.
 #
+# The "shared guard" regions marked below are byte-synced with keymaker's copy
+# (validate-plugin.sh §5); this copy is canonical — edit here and mirror there.
+#
 # Fail closed: a security guard that can't read its input must block, not let
 # the command through uninspected. jq is a documented dependency (also required
 # by lane-guard and validate-plugin).
@@ -35,6 +38,7 @@ agent_type="${fields##*"$rs"}"
 # GNU-only \s so the guard also holds on BSD/macOS grep.
 normalized="$(printf '%s' "$cmd" | tr '\n' ' ')"
 
+# --- BEGIN shared guard: destructive-ops ---
 # Destructive ops, in order: recursive+force rm of /, ~ or * — flags combined in
 # either order (-rf, -fr, -rfv) or separate/long (-r -f, --recursive --force),
 # with arbitrary other flag tokens between them and arbitrary arguments (incl.
@@ -53,6 +57,7 @@ if echo "$normalized" | grep -Eq "${rm_rf}|git[[:space:]]+push[^;&|]*[[:space:]]
   echo "Blocked: unsafe command." >&2
   exit 2
 fi
+# --- END shared guard: destructive-ops ---
 
 # Workers never touch git — morpheus is the sole git owner (branching and
 # per-step commits; see AGENTS.md "How the crew works"). Any git invocation at
@@ -88,6 +93,7 @@ fi
 # sessions: the user's own session may legitimately run a dev server. `--watch`
 # matches the bare flag only, not `--watch=false` (the disable spelling).
 # `vite build` stays allowed.
+# --- BEGIN shared guard: watch-commands ---
 if [ -n "$agent_type" ]; then
   cmdpos='(^|[;&|][&|]?[[:space:]]*)'
   pfx='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*((npx|bunx)[[:space:]]+)?'
@@ -97,7 +103,9 @@ if [ -n "$agent_type" ]; then
     exit 2
   fi
 fi
+# --- END shared guard: watch-commands ---
 
+# --- BEGIN shared guard: raw-reads ---
 if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)(less|more)[[:space:]]+'; then
   echo "Blocked: interactive raw reads are disallowed. Use targeted grep/rg/jq/scripted summaries instead." >&2
   exit 2
@@ -112,5 +120,6 @@ if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)cat[[:space:]]+[^|><
   echo "Blocked: unbounded cat reads are disallowed. Pipe/filter with grep/rg/jq or script the analysis." >&2
   exit 2
 fi
+# --- END shared guard: raw-reads ---
 
 exit 0

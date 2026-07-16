@@ -5,6 +5,40 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.0] - 2026-07-16
+
+### Added
+- **Cross-plugin hook-script sync check (validate-plugin.sh §5).** A hook script filename
+  shipped by more than one plugin must now stay in sync across every copy, mirroring §4's rule
+  for skills (crew's copy is the reference when crew ships the file). Files with no markers
+  must be byte-identical (`read-guard.sh`); files that delimit shared regions with
+  `# --- BEGIN/END shared guard: <label> ---` markers (`bash-safety.sh`) may diverge outside
+  the marked regions — per-plugin git policy differs — but every marked region must match
+  byte-for-byte. Both `bash-safety.sh` copies now carry those markers around the
+  destructive-ops, watch-command, and raw-read blocks; the mirror was previously documented
+  but unenforced, so a regex fix in one copy could silently drift the other.
+- **Hook wiring cross-check (validate-plugin.sh §6).** Every `command` in a plugin's
+  `hooks/hooks.json` must resolve through the `"${CLAUDE_PLUGIN_ROOT}"/` prefix to a file that
+  exists in that plugin, and every `hooks/*.sh` on disk must be wired by some command — an
+  unwired guard script silently never runs, the same failure class §2g catches for agent
+  `skills:` references. The former §5 (dev-time settings mirror) is now §7.
+- **Marketplace description sync (validate-plugin.sh §2f).** A marketplace entry's
+  `description` must equal its plugin manifest's (`plugin.json` is canonical); the two had
+  quietly drifted for crew and keymaker.
+
+### Changed
+- **`read-guard.sh` allows bounded reads.** A `Read` carrying an explicit `limit` of at most
+  2000 lines now passes regardless of file size — a bounded slice is exactly the targeted
+  access `context-discipline` asks for, and the guard previously forced grep even for a
+  disciplined 100-line read of a large file. Reads with no `limit`, a limit over 2000, or a
+  non-numeric limit still hit the 64 KiB size block. keymaker ships the same guard
+  byte-for-byte; its copy moves in lockstep (keymaker v0.7.0).
+- **CI runs once per PR commit.** `validate.yml`'s `push` trigger is scoped to `main` (PR
+  branches are covered by `pull_request` events, so the bare trigger ran everything twice) and
+  a concurrency group cancels superseded runs. `auto-release.yml` fetches tags instead of full
+  history, and the `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24` opt-in is gone — Node 24 has been the
+  default Actions runtime since 2026-06-16.
+
 ## [3.4.0] - 2026-07-08
 
 ### Added

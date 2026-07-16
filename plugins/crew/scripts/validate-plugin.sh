@@ -379,6 +379,15 @@ while IFS= read -r hooks_json; do
     err "$hooks_json is not valid JSON; cannot cross-check its hook wiring"
     continue
   fi
+  # Fail loudly on a structurally wrong file (valid JSON, wrong shape): the
+  # extraction below would otherwise spray a raw jq error and report every
+  # script as "not wired", which misdiagnoses the actual problem.
+  if ! jq -e '(.hooks | type == "object")
+              and ([.hooks[] | type == "array"] | all)
+              and ([.hooks[][] | .hooks | type == "array"] | all)' "$hooks_json" >/dev/null 2>&1; then
+    err "$hooks_json does not have the expected shape ({hooks: {<event>: [{hooks: [{command}]}]}}); cannot cross-check its hook wiring"
+    continue
+  fi
   declare -A wired=()
   while IFS= read -r hcmd; do
     hcmd="${hcmd%$'\r'}"  # tolerate CRLF checkouts on Windows

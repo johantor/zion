@@ -17,9 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # Tags are needed for the "already released?" check below; full
-          # history is not.
-          fetch-tags: true
+          # Full history: the "already released?" check below needs every tag,
+          # and a shallow checkout doesn't deliver them — `fetch-tags: true`
+          # with the default depth only follows tags that point into the
+          # fetched history, which silently broke the check (see #130's
+          # follow-up fix).
+          fetch-depth: 0
 
       - name: Create releases for updated plugin versions
         env:
@@ -27,6 +30,7 @@ jobs:
         run: |
           set -euo pipefail
           released=0
+          failed=0
 
           for manifest in plugins/*/.claude-plugin/plugin.json; do
             plugin_dir="${manifest%/.claude-plugin/plugin.json}"
@@ -61,11 +65,21 @@ jobs:
 
             echo "Creating release $tag"
             printf '%s' "$notes" > /tmp/release-notes.md
-            gh release create "${tag}" \
+            # One plugin's failure must not silently skip the plugins after it
+            # in the loop — record it, keep going, and fail the job at the end.
+            if gh release create "${tag}" \
               --repo "${GITHUB_REPOSITORY}" \
               --title "${plugin} v${version}" \
-              --notes-file /tmp/release-notes.md
-            released=$((released + 1))
+              --notes-file /tmp/release-notes.md; then
+              released=$((released + 1))
+            else
+              echo "::error::Failed to create release $tag"
+              failed=$((failed + 1))
+            fi
           done
 
           echo "Releases created: $released"
+          if [ "$failed" -ne 0 ]; then
+            echo "::error::$failed release(s) failed"
+            exit 1
+          fi

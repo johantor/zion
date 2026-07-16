@@ -5,6 +5,14 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.2] - 2026-07-16
+
+### Changed
+- **Relicensed from MIT to Apache-2.0** (repo-wide; all plugins move together). Apache-2.0
+  adds an explicit patent grant with litigation-termination and a trademark carve-out, and
+  clears corporate OSS-policy review more readily. No behavior change; the manifest's
+  `license` field and the repo `LICENSE` are updated.
+
 ## [3.5.1] - 2026-07-16
 
 ### Changed

@@ -1,7 +1,7 @@
 {
   "name": "keymaker",
-  "version": "0.7.0",
-  "license": "MIT",
+  "version": "0.7.1",
+  "license": "Apache-2.0",
   "description": "Pointer-driven tech debt and dependency upgrade crew. Fixes one identified suppression, rule, or package at a time; produces handoff outlines for platform-scale migrations.",
   "author": {
     "name": "johantor"

@@ -271,8 +271,10 @@ done
 #        "# --- END shared guard: <label> ---" -> only the marked regions must
 #        match (labels, contents, and order), since the rest is per-plugin
 #        policy (today: bash-safety.sh).
-#    Unbalanced markers are a failure: a sync check that can't parse its
-#    regions can't verify its claim.
+#    Structurally invalid markers — a stray END, a nested BEGIN, a label that
+#    doesn't pair up, an unclosed block, or a marker missing its trailing
+#    " ---" — are a failure: a sync check that can't parse its regions can't
+#    verify its claim, and would otherwise silently compare the wrong content.
 declare -A hook_groups=()
 while IFS= read -r h; do
   b="$(basename "$h")"
@@ -291,8 +293,38 @@ shared_regions() {
       inblock = 1
       next
     }
-    /^# --- END shared guard: / { inblock = 0; next }
+    /^# --- END shared guard: .* ---/ { inblock = 0; next }
     inblock { print }
+  ' "$1"
+}
+
+# Structural marker validation for one file: BEGIN/END must strictly alternate
+# (no nesting, no stray END), the END label must match the open BEGIN's, every
+# block must close by EOF, and a marker-prefixed line must carry the full
+# "... ---" shape. Prints one line per problem; silence means the markers are
+# sound and shared_regions can be trusted.
+marker_errors() {
+  awk '
+    /^# --- (BEGIN|END) shared guard: / {
+      is_begin = ($0 ~ /^# --- BEGIN /)
+      if ($0 !~ / ---[[:space:]]*$/) {
+        print "marker at line " NR " is missing its trailing \" ---\""
+        next
+      }
+      label = $0
+      sub(/^# --- (BEGIN|END) shared guard: /, "", label)
+      sub(/ ---[[:space:]]*$/, "", label)
+      if (is_begin) {
+        if (open != "") print "BEGIN \"" label "\" at line " NR " nests inside open block \"" open "\""
+        open = label
+      } else {
+        if (open == "") print "END \"" label "\" at line " NR " has no matching BEGIN"
+        else if (label != open) print "END \"" label "\" at line " NR " does not match open BEGIN \"" open "\""
+        open = ""
+      }
+      next
+    }
+    END { if (open != "") print "BEGIN \"" open "\" is never closed" }
   ' "$1"
 }
 
@@ -305,16 +337,16 @@ for b in "${!hook_groups[@]}"; do
     case "$h" in plugins/crew/hooks/*) reference="$h" ;; esac
   done
   [ -z "$reference" ] && reference="${copies[0]}"
-  marker_balance_ok=1
+  markers_ok=1
   for h in "${copies[@]}"; do
-    begins="$(grep -c '^# --- BEGIN shared guard: ' "$h" || true)"
-    ends="$(grep -c '^# --- END shared guard: ' "$h" || true)"
-    if [ "$begins" != "$ends" ]; then
-      err "$h has $begins BEGIN but $ends END shared-guard markers; fix the markers so the sync check can run"
-      marker_balance_ok=0
-    fi
+    problems="$(marker_errors "$h")"
+    [ -z "$problems" ] && continue
+    while IFS= read -r problem; do
+      err "$h shared-guard $problem; fix the markers so the sync check can verify its regions"
+    done <<<"$problems"
+    markers_ok=0
   done
-  [ "$marker_balance_ok" = 1 ] || continue
+  [ "$markers_ok" = 1 ] || continue
   ref_regions="$(shared_regions "$reference")"
   for h in "${copies[@]}"; do
     [ "$h" = "$reference" ] && continue

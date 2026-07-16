@@ -1,11 +1,28 @@
 # Zion
 
+[![crew](https://img.shields.io/github/v/release/johantor/zion?filter=crew--v*&label=crew)](https://github.com/johantor/zion/releases)
+[![keymaker](https://img.shields.io/github/v/release/johantor/zion?filter=keymaker--v*&label=keymaker)](https://github.com/johantor/zion/releases)
+[![engineering-principles](https://img.shields.io/github/v/release/johantor/zion?filter=engineering-principles--v*&label=engineering-principles)](https://github.com/johantor/zion/releases)
+[![Validate](https://github.com/johantor/zion/actions/workflows/validate.yml/badge.svg)](https://github.com/johantor/zion/actions/workflows/validate.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-A [Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
-team-style software delivery: an orchestrated multi-agent crew for building
-features, a precision tool for paying down tech debt and upgrading dependencies,
-and the shared review rubric behind both — installable together or independently.
+**Ship features like a crew, not a single agent.** Zion is a
+[Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
+team-style software delivery: a captain that plans and delegates to backend,
+frontend, test, and design specialists behind hook-enforced guardrails
+(**crew**), a precision tool that pays down tech debt and upgrades dependencies
+one verified fix at a time (**keymaker**), and the shared review rubric behind
+both (**engineering-principles**) — installable together or independently.
+
+```bash
+claude plugin marketplace add johantor/zion
+claude plugin install crew@zion
+```
+
+<!-- Demo GIF slot — record a short /crew:feature run (VHS: github.com/charmbracelet/vhs,
+     or asciinema + agg), save as docs/demo.gif, then swap this comment for:
+![morpheus planning, delegating, and committing a feature](docs/demo.gif)
+-->
 
 ## Plugins
 

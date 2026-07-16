@@ -1,6 +1,6 @@
 # Zion
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 A [Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
 team-style software delivery: an orchestrated multi-agent crew for building
@@ -113,7 +113,7 @@ Release notes: [crew](plugins/crew/CHANGELOG.md) ·
 
 ## License
 
-[MIT](LICENSE)
+[Apache-2.0](LICENSE)
 
 ---
 

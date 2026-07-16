@@ -5,6 +5,12 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-07-16
+
+### Changed
+- **Relicensed from MIT to Apache-2.0** (repo-wide; all plugins move together). No behavior
+  change; the manifest's `license` field and the repo `LICENSE` are updated.
+
 ## [0.7.0] - 2026-07-16
 
 ### Changed

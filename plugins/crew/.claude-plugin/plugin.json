@@ -1,7 +1,7 @@
 {
   "name": "crew",
-  "version": "3.5.1",
-  "license": "MIT",
+  "version": "3.5.2",
+  "license": "Apache-2.0",
   "description": "Claude Code crew/plugin pack with orchestrated agents, commands, hooks, and skills for feature delivery.",
   "author": {
     "name": "johantor"

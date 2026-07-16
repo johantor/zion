@@ -41,7 +41,7 @@ Repo-specific note: this repository is a Claude Code plugin **marketplace monore
 application build. Each plugin lives under `plugins/<name>/` (its plugin root), with its
 manifest at `plugins/<name>/.claude-plugin/plugin.json` and `agents/`/`commands/`/`skills/`/`hooks/`
 beneath it. Hold shell hooks to shellcheck-clean standards, and validate every plugin's
-manifest/structure with `bash plugins/crew/scripts/validate-plugin.sh` (it checks all
+manifest/structure with `bash scripts/validate-plugin.sh` (it checks all
 `plugins/*`). Agents are auto-discovered from each plugin's `agents/` directory (not
 declared in the manifest); commands and skills are pointed at via manifest path fields
 relative to the plugin root; hooks are auto-loaded from each plugin's `hooks/hooks.json`

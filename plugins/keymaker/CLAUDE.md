@@ -20,7 +20,7 @@ anything stated here updates this file in the same commit.** Conventions live in
   confined to `.claude/` — ledger/outlines/notes only). `read-guard.sh` (byte-identical) and
   `bash-safety.sh`'s marked shared-guard regions are synced with crew's copies (crew is
   canonical — edit there and mirror here, or validator §5 fails CI). No `scripts/` dir: the
-  validator lives in `plugins/crew/scripts/validate-plugin.sh` and covers this plugin too.
+  validator is repo tooling at `scripts/validate-plugin.sh` and covers this plugin too.
 
 ## Schemas & conventions
 

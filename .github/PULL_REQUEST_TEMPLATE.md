@@ -22,8 +22,8 @@ no-behavior-change PRs can skip this — say so below. -->
 
 <!-- What you ran to verify this, per AGENTS.md "Validating changes". -->
 
-- [ ] `shellcheck plugins/*/hooks/*.sh plugins/*/scripts/*.sh`
-- [ ] `bash plugins/crew/scripts/validate-plugin.sh`
+- [ ] `shellcheck plugins/*/hooks/*.sh scripts/*.sh`
+- [ ] `bash scripts/validate-plugin.sh`
 - [ ] Manually exercised the affected agent/command/skill flow
 
 ## Related issues

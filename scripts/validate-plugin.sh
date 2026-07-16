@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Validates every plugin's structure so manifest/file drift fails fast.
-# Runnable locally (`plugins/crew/scripts/validate-plugin.sh`) and in CI.
+# Repo tooling, not part of any plugin: it needs this monorepo's layout and
+# never runs in an installed plugin. Runnable locally (`scripts/validate-plugin.sh`)
+# and in CI.
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"

@@ -23,9 +23,11 @@ anything stated here updates this file in the same commit.** Conventions live in
   `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
   `read-guard.sh` and `bash-safety.sh`'s marked shared-guard regions are byte-synced with
   keymaker's copies (validator §5; crew canonical — edit here first).
-- `scripts/validate-plugin.sh` — validates **all** plugins (manifests + marketplace
+- No `scripts/` dir: the validator is repo tooling at the repo root
+  (`scripts/validate-plugin.sh`) — it validates **all** plugins (manifests + marketplace
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
-  cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7).
+  cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7) and is not shipped
+  with this plugin.
 
 ## Schemas & conventions
 
@@ -45,8 +47,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 
 - §2g/§4 index skills via `git ls-files` — **stage new/renamed skill files before running the
   validator** or they won't resolve.
-- Validate = what CI runs: `bash plugins/crew/scripts/validate-plugin.sh` +
-  `shellcheck plugins/*/hooks/*.sh plugins/*/scripts/*.sh` (shellcheck may be missing
+- Validate = what CI runs: `bash scripts/validate-plugin.sh` +
+  `shellcheck plugins/*/hooks/*.sh scripts/*.sh` (shellcheck may be missing
   locally; CI covers it).
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   the **root** `CHANGELOG.md` (crew's changelog lives at repo root; other plugins keep their

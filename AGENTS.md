@@ -30,9 +30,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
-  - `scripts/validate-plugin.sh` — validates every plugin's manifest/structure, including
-    skill-drift across plugins (§4 in the script), hook-script drift (§5), and hooks.json
-    wiring (§6; see *How we review code* below).
+- `scripts/validate-plugin.sh` — repo tooling (not part of any plugin; it needs this
+  monorepo's layout and never runs in an installed plugin): validates every plugin's
+  manifest/structure, including skill-drift across plugins (§4 in the script), hook-script
+  drift (§5), and hooks.json wiring (§6; see *How we review code* below).
 - `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:
   - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
   - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
@@ -108,7 +109,7 @@ names, fail-fast error handling, and minimal-scope diffs.
 Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
 today that's `engineering-principles` (crew's canonical copy, also shipped standalone by the
 `engineering-principles` plugin), `context-discipline`, and `loop-engineering` (both crew's
-canonical copies, also shipped by `keymaker`). `plugins/crew/scripts/validate-plugin.sh` enforces this automatically: the check
+canonical copies, also shipped by `keymaker`). `scripts/validate-plugin.sh` enforces this automatically: the check
 is generic by skill *name*, not hardcoded to these two pairs, so it also catches a future
 duplicate between any other plugins — crew included or not (CI fails on mismatch). The same
 policy covers hook scripts shipped by more than one plugin (§5): copies with no markers must be
@@ -154,8 +155,8 @@ list is the general lens to apply proactively so they don't recur in a new shape
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck plugins/*/hooks/*.sh plugins/*/scripts/*.sh
-bash plugins/crew/scripts/validate-plugin.sh
+shellcheck plugins/*/hooks/*.sh scripts/*.sh
+bash scripts/validate-plugin.sh
 ```
 
 `validate-plugin.sh` parses each `plugins/*/agents/*.md` YAML frontmatter and verifies every

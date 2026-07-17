@@ -1,5 +1,6 @@
 {
   "name": "zion",
+  "description": "Team-style software delivery for Claude Code: an orchestrated multi-agent crew for building features, a pointer-driven tech-debt and dependency-upgrade fixer, and the shared review rubric behind both.",
   "owner": {
     "name": "johantor"
   },

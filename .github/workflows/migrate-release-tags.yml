@@ -70,13 +70,18 @@ jobs:
 
           # Delete a remote tag only when it still exists on the remote. A tag
           # that's already gone is fine (nothing to do); a rejected push must
-          # surface — never masked. Checking the remote (not just the local
-          # ref) keeps the behaviour correct if the tag was removed after
-          # checkout.
+          # surface — never masked. `git ls-remote --exit-code` returns 0 when
+          # the ref is present and 2 when it isn't; any other code is a real
+          # remote/auth/network error and fails the job rather than being
+          # mistaken for "tag missing".
           drop_remote_tag() {
-            if git ls-remote --exit-code --tags origin "refs/tags/$1" >/dev/null 2>&1; then
-              git push origin ":refs/tags/$1"
-            fi
+            local rc=0
+            git ls-remote --exit-code --tags origin "refs/tags/$1" >/dev/null || rc=$?
+            case "$rc" in
+              0) git push origin ":refs/tags/$1" ;;
+              2) : ;;  # not on the remote — nothing to delete
+              *) echo "::error::git ls-remote failed (exit $rc) while checking refs/tags/$1"; return "$rc" ;;
+            esac
           }
 
           migrated=0

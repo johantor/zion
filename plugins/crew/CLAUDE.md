@@ -52,4 +52,4 @@ anything stated here updates this file in the same commit.** Conventions live in
   locally; CI covers it).
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   this plugin's `CHANGELOG.md` (every plugin keeps its own changelog next to its manifest).
-  On merge to main, auto-release tags `crew--vX.Y.Z` from that section.
+  On merge to main, auto-release tags `crew/vX.Y.Z` from that section.

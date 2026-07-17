@@ -43,4 +43,4 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Stage new/renamed skill files before running the validator (`git ls-files`-based indexes).
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   `plugins/keymaker/CHANGELOG.md` (every plugin keeps its own changelog next to its
-  manifest). Auto-release tags `keymaker--vX.Y.Z` on merge.
+  manifest). Auto-release tags `keymaker/vX.Y.Z` on merge.

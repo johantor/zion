@@ -1,0 +1,83 @@
+name: Migrate release tags
+
+# One-shot, manually-dispatched migration: rename the historical
+# `plugin--vX.Y.Z` releases (and their tags) to the current `plugin/vX.Y.Z`
+# scheme that auto-release.yml now emits. Safe to re-run — it skips anything
+# already migrated. Runs on GitHub's runners because renaming a published
+# Release needs the Releases API, which is only reachable from here.
+#
+# Run it from the Actions tab → "Migrate release tags" → Run workflow.
+# Leave dry_run = true first to see the plan without changing anything.
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Print the plan without renaming anything"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Full history + tags: we resolve each old tag to its commit and
+          # recreate it under the new name at the same commit.
+          fetch-depth: 0
+
+      - name: Rename `plugin--vX.Y.Z` releases to `plugin/vX.Y.Z`
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          migrated=0
+          skipped=0
+
+          # Every release whose tag still uses the old double-dash form.
+          old_tags="$(gh release list --repo "${GITHUB_REPOSITORY}" --limit 200 \
+            --json tagName -q '.[].tagName' | { grep -- '--v' || true; })"
+
+          if [ -z "$old_tags" ]; then
+            echo "No \`plugin--v\` releases left — nothing to migrate."
+            exit 0
+          fi
+
+          while IFS= read -r old; do
+            [ -z "$old" ] && continue
+            # crew--v3.5.2 -> crew/v3.5.2  (replace the first `--v` with `/v`)
+            new="${old/--v//v}"
+
+            if git rev-parse --verify "refs/tags/${new}" >/dev/null 2>&1; then
+              echo "→ $new already exists — skipping $old."
+              skipped=$((skipped + 1))
+              continue
+            fi
+
+            sha="$(git rev-list -n1 "$old")"
+            echo "migrate: $old -> $new   (@ ${sha:0:9})"
+
+            if [ "$DRY_RUN" = "true" ]; then
+              continue
+            fi
+
+            # 1) create the new tag at the same commit and push it
+            git tag "$new" "$sha"
+            git push origin "refs/tags/${new}"
+            # 2) repoint the existing Release onto the new tag
+            gh release edit "$old" --repo "${GITHUB_REPOSITORY}" --tag "$new"
+            # 3) drop the old tag (the Release now lives on $new)
+            git push origin ":refs/tags/${old}"
+            migrated=$((migrated + 1))
+          done <<< "$old_tags"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "Dry run — no changes made. Re-run with dry_run = false to apply."
+          else
+            echo "Migrated: $migrated   Skipped (already done): $skipped"
+          fi

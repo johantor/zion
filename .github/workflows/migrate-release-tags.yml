@@ -68,10 +68,13 @@ jobs:
           git config user.name  "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          # Delete a remote tag only when it still exists. A missing tag is fine
-          # (already gone); a rejected push must surface — never masked.
+          # Delete a remote tag only when it still exists on the remote. A tag
+          # that's already gone is fine (nothing to do); a rejected push must
+          # surface — never masked. Checking the remote (not just the local
+          # ref) keeps the behaviour correct if the tag was removed after
+          # checkout.
           drop_remote_tag() {
-            if git rev-parse -q --verify "refs/tags/$1" >/dev/null; then
+            if git ls-remote --exit-code --tags origin "refs/tags/$1" >/dev/null 2>&1; then
               git push origin ":refs/tags/$1"
             fi
           }

@@ -1,8 +1,11 @@
 # Zion
 
-[![crew](https://img.shields.io/github/v/release/johantor/zion?filter=crew--v*&label=crew)](https://github.com/johantor/zion/releases)
-[![keymaker](https://img.shields.io/github/v/release/johantor/zion?filter=keymaker--v*&label=keymaker)](https://github.com/johantor/zion/releases)
-[![engineering-principles](https://img.shields.io/github/v/release/johantor/zion?filter=engineering-principles--v*&label=engineering-principles)](https://github.com/johantor/zion/releases)
+<!-- Release-tag scheme is `plugin/vX.Y.Z` (see auto-release.yml). The `plugin*v*`
+     filter also matches the historical `plugin--vX.Y.Z` releases, so each badge keeps
+     resolving across the transition until every plugin has cut a release on the new scheme. -->
+[![crew](https://img.shields.io/github/v/release/johantor/zion?filter=crew*v*&label=crew)](https://github.com/johantor/zion/releases)
+[![keymaker](https://img.shields.io/github/v/release/johantor/zion?filter=keymaker*v*&label=keymaker)](https://github.com/johantor/zion/releases)
+[![engineering-principles](https://img.shields.io/github/v/release/johantor/zion?filter=engineering-principles*v*&label=engineering-principles)](https://github.com/johantor/zion/releases)
 [![Validate](https://github.com/johantor/zion/actions/workflows/validate.yml/badge.svg)](https://github.com/johantor/zion/actions/workflows/validate.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 

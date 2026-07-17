@@ -177,7 +177,7 @@ Versions are per-plugin. To cut a release:
    the copies byte-identical, so a fix in one is a release in all of them (every plugin keeps
    its own changelog at `plugins/<name>/CHANGELOG.md`).
 2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
-   version has no `<plugin>--v<version>` tag yet, and creates the tag and GitHub Release
+   version has no `<plugin>/v<version>` tag yet, and creates the tag and GitHub Release
    automatically, with notes pulled from that version's `CHANGELOG.md` section. No
    matching changelog entry → it skips with a warning. No manual tagging is needed
    (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).

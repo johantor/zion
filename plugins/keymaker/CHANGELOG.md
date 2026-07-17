@@ -5,6 +5,17 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2026-07-17
+
+### Changed
+- **Verification matrix: first three rows verified.** The audit `path`-scope, audit `stale`-scope,
+  and open 0-findings-pre-count-exit rows are now checked off, each run against a planted-debt
+  TypeScript scratch repo by driving the plugin headlessly (`claude --plugin-dir`). A dated
+  verification-log note records the method, the working-tree-unchanged evidence, and the two
+  limitations these passes don't cover (interactive picker used its text fallback under headless;
+  no edit/verify/commit, interactive-gate, or .NET row exercised yet). The beta banner stays until
+  every row is green.
+
 ## [0.7.1] - 2026-07-16
 
 ### Changed

@@ -152,19 +152,28 @@ marker file(s) for the stack under test (`*.csproj` / `package.json` + `tsconfig
 specific suppression, version pin, or violation each row names, then point `/keymaker:audit` or
 `/keymaker:open` at it.
 
+> **Verification log — 2026-07-17.** The three read-only / early-exit rows checked below were run
+> against a planted-debt TypeScript scratch repo (`package.json` + `tsconfig.json`, four suppressions
+> across `src/orders/` and `src/users/`), driving the plugin headlessly
+> (`claude --plugin-dir plugins/keymaker -p "/keymaker:audit …"`). Each produced the specified result
+> with the working tree unchanged (verified via `git status`) and, for the 0-findings exit, no branch
+> created. Two caveats on what these passes do **not** cover: the headless runs had no `AskUserQuestion`
+> tool, so the audit's interactive multi-pick used its documented text fallback rather than the picker
+> itself; and no edit/verify/commit path, interactive gate, or .NET-stack row has been exercised yet.
+
 ### Audit mode (read-only scouting)
 
-- [ ] **`path` scope** — `/keymaker:audit src/Foo/` over a handful of suppressions → ranked report (~12 max), each finding a ready-to-run `/keymaker:open`; nothing edited.
+- [x] **`path` scope** — `/keymaker:audit src/Foo/` over a handful of suppressions → ranked report (~12 max), each finding a ready-to-run `/keymaker:open`; nothing edited.
 - [ ] **`lane` scope** — `/keymaker:audit backend` in a backend+frontend repo → report scoped to the backend file area, taxonomy chosen by marker-file detection, not the lane name.
 - [ ] **rule-family scope** — `/keymaker:audit nullability` (or `eslint`) → report limited to that rule family.
-- [ ] **`stale` scope** — a tree with a stale `@ts-expect-error` and a `#pragma warning disable` over a benign line → report lists them as **candidates** (grep-only); no compile.
+- [x] **`stale` scope** — a tree with a stale `@ts-expect-error` and a `#pragma warning disable` over a benign line → report lists them as **candidates** (grep-only); no compile.
 - [ ] **`outdated` scope** — a `package.json` / `.csproj` with an outdated pin → each `current → target` triaged SAFE/REVIEW/CAUTION; metadata only, no install/restore/build.
 - [ ] **`diff` scope** — `/keymaker:audit diff` on a branch with changes → report scoped to the changed files vs base.
 - [ ] **report cap** — 50+ hits for a single rule → folded into one "50+ for rule X" entry; total report stays ≤ ~12.
 
 ### Open mode — early exits (before any edit)
 
-- [ ] **0-findings pre-count exit** — `/keymaker:open CS8602` where the suppression is already gone → one-line "nothing to do" status; no classification, gate, branch, or twin.
+- [x] **0-findings pre-count exit** — `/keymaker:open CS8602` where the suppression is already gone → one-line "nothing to do" status; no classification, gate, branch, or twin.
 - [ ] **0-findings fallback exit** — pasted build output whose parsed rule IDs all enumerate to 0 → one-line status listing the rules.
 - [ ] **idempotent re-run / resume** — re-running a completed `/keymaker:open` (matching ledger, all batches `done`) → one-line "already complete" no-op; a run interrupted mid-batch resumes its ledger instead of re-classifying.
 

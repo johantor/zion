@@ -1,0 +1,109 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="560" viewBox="0 0 1200 560" font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace">
+  <defs>
+    <marker id="arr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#3fb950"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="560" fill="#0d1117"/>
+
+  <!-- ============ LEFT: solo agent ============ -->
+  <rect x="24" y="24" width="552" height="512" rx="12" fill="#161b22" stroke="#30363d"/>
+  <text x="300" y="58" text-anchor="middle" font-size="16" font-weight="bold" fill="#8b949e">a solo agent</text>
+
+  <!-- tangled paths (drawn under nodes) -->
+  <g fill="none" stroke="#8b949e" stroke-width="1.6" opacity="0.75">
+    <path d="M300,180 C 120,120 60,380 120,300"/>
+    <path d="M300,180 C 480,110 540,400 470,300"/>
+    <path d="M300,180 C 140,420 420,190 280,350"/>
+    <path d="M300,180 C 520,260 120,300 200,430"/>
+    <path d="M300,180 C 60,240 500,430 420,400"/>
+    <path d="M300,180 C 420,480 150,150 130,310"/>
+  </g>
+  <g fill="none" stroke="#f85149" stroke-width="1.6" opacity="0.85">
+    <path d="M170,315 C 320,230 220,430 330,357"/>
+    <path d="M470,315 C 300,380 380,240 210,432"/>
+  </g>
+  <text x="298" y="292" font-size="15" fill="#f85149">✗</text>
+  <text x="330" y="382" font-size="15" fill="#f85149">✗</text>
+
+  <!-- the agent -->
+  <circle cx="300" cy="150" r="32" fill="#0d1117" stroke="#8b949e" stroke-width="2"/>
+  <text x="300" y="156" text-anchor="middle" font-size="13" font-weight="bold" fill="#c9d1d9">agent</text>
+
+  <!-- concern boxes -->
+  <g font-size="13" text-anchor="middle">
+    <rect x="70"  y="285" width="100" height="30" rx="6" fill="#0d1117" stroke="#30363d"/><text x="120"  y="305" fill="#c9d1d9">backend</text>
+    <rect x="420" y="285" width="100" height="30" rx="6" fill="#0d1117" stroke="#30363d"/><text x="470" y="305" fill="#c9d1d9">frontend</text>
+    <rect x="230" y="342" width="100" height="30" rx="6" fill="#0d1117" stroke="#30363d"/><text x="280" y="362" fill="#c9d1d9">tests</text>
+    <rect x="150" y="417" width="100" height="30" rx="6" fill="#0d1117" stroke="#30363d"/><text x="200" y="437" fill="#c9d1d9">e2e</text>
+    <rect x="370" y="385" width="100" height="30" rx="6" fill="#0d1117" stroke="#30363d"/><text x="420" y="405" fill="#c9d1d9">review</text>
+    <rect x="80"  y="360" width="90"  height="30" rx="6" fill="#0d1117" stroke="#30363d"/><text x="125" y="380" fill="#c9d1d9">git</text>
+  </g>
+
+  <!-- context meter -->
+  <rect x="150" y="472" width="220" height="10" rx="5" fill="#21262d"/>
+  <rect x="150" y="472" width="209" height="10" rx="5" fill="#f85149"/>
+  <text x="382" y="482" font-size="12" fill="#8b949e">context 97%</text>
+  <text x="300" y="514" text-anchor="middle" font-size="14" fill="#8b949e">every concern in one head, every file in one lane</text>
+
+  <!-- ============ RIGHT: the crew ============ -->
+  <rect x="624" y="24" width="552" height="512" rx="12" fill="#161b22" stroke="#30363d"/>
+  <text x="900" y="58" text-anchor="middle" font-size="16" font-weight="bold" fill="#00c853">the zion crew</text>
+
+  <!-- morpheus -->
+  <rect x="836" y="84" width="128" height="36" rx="8" fill="#0d1117" stroke="#bc8cff" stroke-width="2"/>
+  <circle cx="856" cy="102" r="5" fill="#bc8cff"/>
+  <text x="906" y="107" text-anchor="middle" font-size="13" font-weight="bold" fill="#c9d1d9">morpheus</text>
+  <text x="900" y="140" text-anchor="middle" font-size="12" fill="#8b949e" stroke="#161b22" stroke-width="5" paint-order="stroke">plan · delegate · verify · commit</text>
+
+  <!-- lanes morpheus -> workers -->
+  <g fill="none" stroke-width="1.8" opacity="0.9">
+    <path d="M870,120 C 800,170 730,190 700,228" stroke="#58a6ff"/>
+    <path d="M885,120 C 850,170 810,195 801,228" stroke="#7ce0ff"/>
+    <path d="M900,120 L 900,228"                 stroke="#d29922"/>
+    <path d="M915,120 C 950,170 990,195 999,228" stroke="#f0883e"/>
+    <path d="M930,120 C 1000,170 1070,190 1100,228" stroke="#c9d1d9"/>
+  </g>
+
+  <!-- workers row -->
+  <g font-size="13" text-anchor="middle" font-weight="bold">
+    <rect x="652"  y="230" width="96" height="32" rx="7" fill="#0d1117" stroke="#58a6ff"/><text x="700"  y="251" fill="#c9d1d9">tank</text>
+    <rect x="753"  y="230" width="96" height="32" rx="7" fill="#0d1117" stroke="#7ce0ff"/><text x="801"  y="251" fill="#c9d1d9">trinity</text>
+    <rect x="852"  y="230" width="96" height="32" rx="7" fill="#0d1117" stroke="#d29922"/><text x="900"  y="251" fill="#c9d1d9">oracle</text>
+    <rect x="951"  y="230" width="96" height="32" rx="7" fill="#0d1117" stroke="#f0883e"/><text x="999"  y="251" fill="#c9d1d9">dozer</text>
+    <rect x="1052" y="230" width="96" height="32" rx="7" fill="#0d1117" stroke="#c9d1d9"/><text x="1100" y="251" fill="#c9d1d9">seraph</text>
+  </g>
+  <g font-size="11" text-anchor="middle" fill="#8b949e">
+    <text x="700"  y="278">backend</text>
+    <text x="801"  y="278">frontend</text>
+    <text x="900"  y="278">unit tests</text>
+    <text x="999"  y="278">e2e</text>
+    <text x="1100" y="278">design</text>
+  </g>
+
+  <!-- lanes workers -> gate -->
+  <g fill="none" stroke-width="1.8" opacity="0.9">
+    <path d="M700,262 C 700,310 770,330 800,348"  stroke="#58a6ff"/>
+    <path d="M801,262 C 801,305 830,330 845,348"  stroke="#7ce0ff"/>
+    <path d="M900,262 L 900,348"                  stroke="#d29922"/>
+    <path d="M999,262 C 999,305 970,330 955,348"  stroke="#f0883e"/>
+    <path d="M1100,262 C 1100,310 1030,330 1000,348" stroke="#c9d1d9"/>
+  </g>
+
+  <!-- neo express lane -->
+  <path d="M964,102 C 1150,130 1168,270 1030,362" fill="none" stroke="#e3b341" stroke-width="1.6" stroke-dasharray="6 5"/>
+  <text x="1096" y="166" text-anchor="middle" font-size="12" fill="#e3b341" stroke="#161b22" stroke-width="5" paint-order="stroke">⚡ neo</text>
+  <text x="1096" y="182" text-anchor="middle" font-size="11" fill="#8b949e" stroke="#161b22" stroke-width="5" paint-order="stroke">express lane</text>
+
+  <!-- review gate -->
+  <rect x="786" y="350" width="228" height="40" rx="8" fill="#0d1117" stroke="#3fb950" stroke-width="2"/>
+  <text x="900" y="375" text-anchor="middle" font-size="14" font-weight="bold" fill="#3fb950">review gate — GO ✓</text>
+
+  <!-- gate -> PR -->
+  <path d="M900,390 L900,432" fill="none" stroke="#3fb950" stroke-width="2" marker-end="url(#arr)"/>
+  <rect x="846" y="438" width="108" height="34" rx="8" fill="#0d1117" stroke="#30363d"/>
+  <text x="900" y="460" text-anchor="middle" font-size="13" font-weight="bold" fill="#c9d1d9">PR #42</text>
+
+  <text x="900" y="514" text-anchor="middle" font-size="14" fill="#c9d1d9">planned lanes · verified steps · one gate</text>
+</svg>

@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Verification matrix: first three rows verified.** The audit `path`-scope, audit `stale`-scope,
   and open 0-findings-pre-count-exit rows are now checked off, each run against a planted-debt
-  TypeScript scratch repo by driving the plugin headlessly (`claude --plugin-dir`). A dated
+  TypeScript scratch repo by driving the plugin headlessly (`claude --plugin-dir plugins/keymaker`).
+  A dated
   verification-log note records the method, the working-tree-unchanged evidence, and the two
   limitations these passes don't cover (interactive picker used its text fallback under headless;
   no edit/verify/commit, interactive-gate, or .NET row exercised yet). Each checked row is tagged

@@ -19,12 +19,9 @@ claude plugin marketplace add johantor/zion
 claude plugin install crew@zion
 ```
 
-<!-- Illustrative animation of a representative /crew:feature run: morpheus plans,
-     delegates to tank/trinity/oracle/dozer, passes the review gate, and opens a PR.
-     To replace with a real recording, capture with VHS
-     (https://github.com/charmbracelet/vhs) or asciinema (https://asciinema.org) +
-     agg (https://github.com/asciinema/agg) and overwrite docs/demo.gif. -->
-![Animated demo of a crew feature run](docs/demo.gif)
+<!-- Illustration source: docs/solo-vs-crew.svg (edit the SVG, then re-export the PNG).
+     A terminal-style animation of a /crew:feature run also lives at docs/demo.gif. -->
+![A solo agent juggling every concern, versus the zion crew: planned lanes, a review gate, then a PR](docs/solo-vs-crew.png)
 
 ## Plugins
 

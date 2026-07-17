@@ -1,10 +1,26 @@
 name: Migrate release tags
 
-# One-shot, manually-dispatched migration: rename the historical
-# `plugin--vX.Y.Z` releases (and their tags) to the current `plugin/vX.Y.Z`
-# scheme that auto-release.yml now emits. Safe to re-run — it skips anything
-# already migrated. Runs on GitHub's runners because renaming a published
-# Release needs the Releases API, which is only reachable from here.
+# One-shot, manually-dispatched migration: bring the historical
+# `plugin--vX.Y.Z` releases (and their tags) onto the current `plugin/vX.Y.Z`
+# scheme that auto-release.yml now emits. Idempotent — safe to re-run, including
+# after a partially-failed run.
+#
+# It does two things per old release:
+#   * dedupe — if a `plugin/vX.Y.Z` release already exists (e.g. auto-release
+#     re-cut the current version under the new scheme on merge), the leftover
+#     `plugin--vX.Y.Z` release is a redundant duplicate, so drop it + its tag.
+#   * migrate — otherwise recreate the tag at the same commit, repoint the
+#     Release onto it, and delete the old tag.
+#
+# TOKEN REQUIREMENT (for a real run): most release commits carry
+# `.github/workflows/*` that differ from the default branch, and GitHub refuses
+# to let the built-in GITHUB_TOKEN push a tag onto such a commit ("refusing to
+# allow a GitHub App to create or update workflow … without workflows
+# permission"). Supply a Personal Access Token with the `workflow` scope as the
+# `RELEASE_MIGRATION_TOKEN` secret:
+#   * classic PAT: scopes `repo` + `workflow`, or
+#   * fine-grained PAT (this repo): `Contents: write` + `Workflows: write`.
+# A dry run works without it.
 #
 # Run it from the Actions tab → "Migrate release tags" → Run workflow.
 # Leave dry_run = true first to see the plan without changing anything.
@@ -13,7 +29,7 @@ on:
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "Print the plan without renaming anything"
+        description: "Print the plan without changing anything"
         type: boolean
         default: true
 
@@ -29,22 +45,54 @@ jobs:
           # Full history + tags: we resolve each old tag to its commit and
           # recreate it under the new name at the same commit.
           fetch-depth: 0
+          # Persist the migration PAT (if set) as the git credential so tag
+          # pushes onto workflow-bearing commits are allowed; fall back to the
+          # built-in token so dry runs work without a secret.
+          token: ${{ secrets.RELEASE_MIGRATION_TOKEN || github.token }}
 
       - name: Rename `plugin--vX.Y.Z` releases to `plugin/vX.Y.Z`
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_MIGRATION_TOKEN || github.token }}
           DRY_RUN: ${{ inputs.dry_run }}
+          HAS_PAT: ${{ secrets.RELEASE_MIGRATION_TOKEN != '' }}
         run: |
           set -euo pipefail
+
+          # A real run pushing tags onto historical workflow commits needs the
+          # PAT — fail early with a clear message rather than mid-loop.
+          if [ "$DRY_RUN" != "true" ] && [ "$HAS_PAT" != "true" ]; then
+            echo "::error::Set the RELEASE_MIGRATION_TOKEN secret (a PAT with \`workflow\` scope) before applying — the built-in token cannot push tags onto historical workflow-bearing commits."
+            exit 1
+          fi
+
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # Delete a remote tag only when it still exists on the remote. A tag
+          # that's already gone is fine (nothing to do); a rejected push must
+          # surface — never masked. `git ls-remote --exit-code` returns 0 when
+          # the ref is present and 2 when it isn't; any other code is a real
+          # remote/auth/network error and fails the job rather than being
+          # mistaken for "tag missing".
+          drop_remote_tag() {
+            local rc=0
+            git ls-remote --exit-code --tags origin "refs/tags/$1" >/dev/null || rc=$?
+            case "$rc" in
+              0) git push origin ":refs/tags/$1" ;;
+              2) : ;;  # not on the remote — nothing to delete
+              *) echo "::error::git ls-remote failed (exit $rc) while checking refs/tags/$1"; return "$rc" ;;
+            esac
+          }
+
           migrated=0
-          skipped=0
+          deduped=0
 
           # Every release whose tag still uses the old double-dash form.
           old_tags="$(gh release list --repo "${GITHUB_REPOSITORY}" --limit 200 \
             --json tagName -q '.[].tagName' | { grep -- '--v' || true; })"
 
           if [ -z "$old_tags" ]; then
-            echo "No \`plugin--v\` releases left — nothing to migrate."
+            echo "No \`plugin--v\` releases left — nothing to do."
             exit 0
           fi
 
@@ -53,31 +101,57 @@ jobs:
             # crew--v3.5.2 -> crew/v3.5.2  (replace the first `--v` with `/v`)
             new="${old/--v//v}"
 
-            if git rev-parse --verify "refs/tags/${new}" >/dev/null 2>&1; then
-              echo "→ $new already exists — skipping $old."
-              skipped=$((skipped + 1))
+            # Case A — the new-scheme release already exists: the old dash
+            # release is a redundant duplicate. Drop its tag first (so a failed
+            # tag push leaves the release for the next run to retry), then the
+            # release itself.
+            if gh release view "$new" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+              echo "dedupe: $new already exists — dropping redundant $old"
+              if [ "$DRY_RUN" != "true" ]; then
+                drop_remote_tag "$old"
+                gh release delete "$old" --repo "${GITHUB_REPOSITORY}" --yes
+              fi
+              deduped=$((deduped + 1))
               continue
             fi
 
-            sha="$(git rev-list -n1 "$old")"
+            # Case B — migrate. Resolve the target commit from the old tag,
+            # falling back to the new tag if a prior run already deleted the old
+            # one before finishing.
+            sha="$(git rev-list -n1 "$old" 2>/dev/null || git rev-list -n1 "$new" 2>/dev/null || true)"
+            if [ -z "$sha" ]; then
+              echo "::error::cannot resolve a commit for $old (neither $old nor $new tag exists)."
+              exit 1
+            fi
             echo "migrate: $old -> $new   (@ ${sha:0:9})"
 
-            if [ "$DRY_RUN" = "true" ]; then
-              continue
+            if [ "$DRY_RUN" != "true" ]; then
+              # 1) ensure the new tag exists at the right commit — idempotent
+              #    across reruns; refuse to move a new tag that already points
+              #    somewhere else.
+              if git rev-parse -q --verify "refs/tags/${new}" >/dev/null; then
+                cur="$(git rev-list -n1 "refs/tags/${new}")"
+                if [ "$cur" != "$sha" ]; then
+                  echo "::error::$new already exists at ${cur:0:9} but $old is ${sha:0:9} — refusing to move it."
+                  exit 1
+                fi
+                echo "  reusing existing $new (already at ${sha:0:9})"
+              else
+                git tag "$new" "$sha"
+                git push origin "refs/tags/${new}"
+              fi
+              # 2) drop the old tag before repointing, so a partial failure
+              #    re-enters Case B cleanly rather than orphaning a tag.
+              drop_remote_tag "$old"
+              # 3) repoint the Release onto the new tag (resolves by the tag_name
+              #    still stored on the release, even though its git tag is gone).
+              gh release edit "$old" --repo "${GITHUB_REPOSITORY}" --tag "$new"
             fi
-
-            # 1) create the new tag at the same commit and push it
-            git tag "$new" "$sha"
-            git push origin "refs/tags/${new}"
-            # 2) repoint the existing Release onto the new tag
-            gh release edit "$old" --repo "${GITHUB_REPOSITORY}" --tag "$new"
-            # 3) drop the old tag (the Release now lives on $new)
-            git push origin ":refs/tags/${old}"
             migrated=$((migrated + 1))
           done <<< "$old_tags"
 
           if [ "$DRY_RUN" = "true" ]; then
-            echo "Dry run — no changes made. Re-run with dry_run = false to apply."
+            echo "Dry run — no changes made. Plan: migrate $migrated, dedupe $deduped."
           else
-            echo "Migrated: $migrated   Skipped (already done): $skipped"
+            echo "Done. Migrated: $migrated   Deduped: $deduped."
           fi

@@ -2,6 +2,10 @@ name: Publish draft releases
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/publish-draft-releases.yml
 
 jobs:
   publish-drafts:

@@ -13,8 +13,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   TypeScript scratch repo by driving the plugin headlessly (`claude --plugin-dir`). A dated
   verification-log note records the method, the working-tree-unchanged evidence, and the two
   limitations these passes don't cover (interactive picker used its text fallback under headless;
-  no edit/verify/commit, interactive-gate, or .NET row exercised yet). The beta banner stays until
-  every row is green.
+  no edit/verify/commit, interactive-gate, or .NET row exercised yet). Each checked row is tagged
+  **[TS]** for the stack exercised — the row text stays stack-neutral as the scenario spec, so the
+  tag marks the TypeScript instance as passing while that row's .NET variant stays pending. The
+  beta banner stays until every row is green.
 
 ## [0.7.1] - 2026-07-16
 

@@ -5,6 +5,17 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.0] - 2026-07-18
+
+### Added
+- **Two new principles in the `engineering-principles` skill: `Observability` and `Backward
+  compatibility`.** Observability — make failures diagnosable (log with enough context, surface
+  errors where they'll be seen, match the repo's logging idiom, keep the happy path quiet).
+  Backward compatibility — don't break existing callers or data (preserve public signatures,
+  serialized formats, and observable behavior unless changing them is the task; migrate or
+  version deliberately). Shipped byte-for-byte by the standalone `engineering-principles`
+  plugin too (v1.2.0).
+
 ## [3.6.0] - 2026-07-18
 
 ### Added

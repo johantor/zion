@@ -1,6 +1,6 @@
 {
   "name": "engineering-principles",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "license": "Apache-2.0",
   "description": "Standalone engineering-principles skill plugin for focused code review standards.",
   "author": {

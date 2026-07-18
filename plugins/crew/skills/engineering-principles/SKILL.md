@@ -13,6 +13,7 @@ Defaults, not dogma — when a rule conflicts with the repo's established patter
 - **Small units.** One thing, one reason to change; short functions; composition over inheritance; minimal public surface.
 - **Naming/comments.** Intention-revealing names; comments explain *why*, not *what*; no commented-out code; no TODO graveyards.
 - **Errors.** Fail fast, handle explicitly, validate at boundaries; never silently swallow.
+- **Security.** Treat external input as untrusted — validate and encode at trust boundaries; prefer the framework's safe API (parameterized queries, safe templating) over hand-rolled escaping. Never hardcode or log secrets; least privilege by default.
 - **Minimal-scope diffs.** Smallest change that solves the problem; don't sprawl refactors into unrelated files; list unrelated improvements instead of doing them.
 - **Dependencies.** Prefer stdlib/existing deps; don't add a package for something trivial.
 - **Reach for new code last.** Before writing any, check these in order and stop at the first that applies. Subordinate to *match the repo*: never pick a shorter option over the house pattern.

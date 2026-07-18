@@ -1,9 +1,11 @@
 # Zion
 
-<!-- Release-tag scheme is `plugin/vX.Y.Z` (see auto-release.yml). -->
-[![crew](https://img.shields.io/github/v/release/johantor/zion?filter=crew/v*&label=crew)](https://github.com/johantor/zion/releases)
-[![keymaker](https://img.shields.io/github/v/release/johantor/zion?filter=keymaker/v*&label=keymaker)](https://github.com/johantor/zion/releases)
-[![engineering-principles](https://img.shields.io/github/v/release/johantor/zion?filter=engineering-principles/v*&label=engineering-principles)](https://github.com/johantor/zion/releases)
+<!-- Release-tag scheme is `plugin/vX.Y.Z` (see auto-release.yml). The label is
+     blanked (`&label=`) so each badge is a single pill of the tag itself — which
+     already names the plugin — instead of doubling it up as "crew crew/v3.5.2". -->
+[![crew](https://img.shields.io/github/v/release/johantor/zion?filter=crew/v*&label=)](https://github.com/johantor/zion/releases)
+[![keymaker](https://img.shields.io/github/v/release/johantor/zion?filter=keymaker/v*&label=)](https://github.com/johantor/zion/releases)
+[![engineering-principles](https://img.shields.io/github/v/release/johantor/zion?filter=engineering-principles/v*&label=)](https://github.com/johantor/zion/releases)
 [![Validate](https://github.com/johantor/zion/actions/workflows/validate.yml/badge.svg)](https://github.com/johantor/zion/actions/workflows/validate.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 

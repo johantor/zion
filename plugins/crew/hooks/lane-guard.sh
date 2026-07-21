@@ -80,7 +80,9 @@ lane_globs() {
 # paths are configured. Extensions alone can't separate tank's `.ts`/`.js` from
 # trinity's when the backend is also Node, so these probes read the repo's
 # markers instead. Common non-source directories are pruned so a large tree
-# doesn't slow the hook.
+# doesn't slow the hook. The framework allowlists below are not exhaustive and
+# need periodic review as the ecosystem grows — a miss fails silently (the
+# same-language guard just doesn't fire); see plugins/crew/CLAUDE.md.
 prune_args=(-type d \( -name node_modules -o -name .git -o -name dist -o -name bin -o -name obj -o -name coverage -o -name .next \) -prune -o)
 has_dotnet_backend() {
   find . "${prune_args[@]}" \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
@@ -89,14 +91,14 @@ has_node_backend() {
   # Scan every package.json (not just the repo root) so a workspace/monorepo
   # backend under e.g. apps/api/package.json is still detected.
   while IFS= read -r pj; do
-    grep -Eq '"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core)"[[:space:]]*:' "$pj" && return 0
+    grep -Eq '"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core|hono|elysia|@trpc/server)"[[:space:]]*:' "$pj" && return 0
   done < <(find . "${prune_args[@]}" -name package.json -print 2>/dev/null)
   return 1
 }
 has_frontend() {
   # Same workspace-aware scan for a frontend dep in any package.json...
   while IFS= read -r pj; do
-    grep -Eq '"(react|react-dom|next|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro)"[[:space:]]*:' "$pj" && return 0
+    grep -Eq '"(react|react-dom|next|nuxt|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro|gatsby|@remix-run/react|react-router|@builder\.io/qwik)"[[:space:]]*:' "$pj" && return 0
   done < <(find . "${prune_args[@]}" -name package.json -print 2>/dev/null)
   # ...or any JSX/TSX file anywhere in the tree.
   find . "${prune_args[@]}" \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .

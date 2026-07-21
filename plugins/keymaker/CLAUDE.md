@@ -41,6 +41,10 @@ anything stated here updates this file in the same commit.** Conventions live in
 ## Gotchas & release
 
 - Stage new/renamed skill files before running the validator (`git ls-files`-based indexes).
+- Status: **Beta** until v1.0. Graduation criteria live in the README's *Graduation to Stable*
+  section — v1.0 = the verification matrix green end-to-end for **one** supported stack (TS is in
+  flight; .NET follows post-v1.0), covering the full pipeline, not just the read-only rows. #52
+  (in-band acks) is explicitly not a v1.0 blocker. Flipping to Stable is the `1.0.0` release.
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   `plugins/keymaker/CHANGELOG.md` (every plugin keeps its own changelog next to its
   manifest). Auto-release tags `keymaker/vX.Y.Z` on merge.

@@ -11,8 +11,7 @@ it privately before it's public.
 **Please do not open a public issue for a security report.** Use GitHub's
 private vulnerability reporting instead:
 
-1. Go to the [Security tab](https://github.com/johantor/zion/security) of this
-   repository.
+1. Open the **Security** tab of this repository and select **Advisories**.
 2. Click **Report a vulnerability** and describe the issue.
 
 That keeps the details private until a fix ships. We'll acknowledge the report,

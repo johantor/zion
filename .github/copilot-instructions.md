@@ -55,7 +55,9 @@ a matching `CHANGELOG.md` entry. Version each plugin independently. Users only r
 changes via `claude plugin update`, which keys on `version`, so an unbumped version ships
 silently. Flag a missing bump/changelog entry as a **Warning** (or **Blocking** if it would
 prevent users from receiving a fix). Pure docs/CI/test-only changes that don't affect
-installed behavior do not require a bump.
+installed behavior do not require a bump. Keep changelog entries terse — one bullet per change,
+leading with what changed, with the rationale in the PR rather than the entry (see AGENTS.md
+*Releasing*); an overly verbose entry is a minor style nit, not a Warning.
 
 For review responses, use this exact heading structure:
 

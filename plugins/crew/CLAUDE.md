@@ -28,8 +28,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
   cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7) and is not shipped
   with this plugin.
-- `tests/` — zero-dependency bash suite (`run.sh` drives `*.test.sh`, `lib.sh` is the harness)
-  covering the hooks' **behavior**: each is a pure `stdin JSON → exit 0/2` guard, fed crafted
+- `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
+  hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
+  **behavior**: each is a pure `stdin JSON → exit 0/2` guard, fed crafted
   payloads and asserted on allow/block (+ stderr substring). A change to a hook's guard logic
   **must add/adjust a case** here, on both the allow and block sides. Also self-tests the
   validator (§2h/§2g/§4 bite). Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.

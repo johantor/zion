@@ -21,7 +21,14 @@ tests_failed=0
 
 # All fixtures live under one root so cleanup works even though the helpers below
 # are called in command substitutions (a subshell can't mutate a parent array).
-FIXTURE_ROOT="$(mktemp -d)"
+# mktemp is given an explicit XXXXXX template throughout (never bare `mktemp` or
+# the GNU-only `-p`) so the suite also runs on BSD/macOS, where contributors run
+# it locally — same portability discipline the hooks keep (POSIX classes, no \s).
+FIXTURE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/crew-hook-tests.XXXXXX")"
+
+# new_tmpdir -> echoes a throwaway dir under FIXTURE_ROOT (so the EXIT trap alone
+# cleans it up). Lets callers make scratch dirs without touching FIXTURE_ROOT.
+new_tmpdir() { mktemp -d "$FIXTURE_ROOT/d.XXXXXX"; }
 
 _pass() { tests_run=$((tests_run + 1)); }
 _fail() {
@@ -38,10 +45,10 @@ run_hook() {
   local hook="$1" payload="$2" cwd="${3:-}"
   local tmp_cwd="" err_file
   if [ -z "$cwd" ]; then
-    tmp_cwd="$(mktemp -d)"
+    tmp_cwd="$(new_tmpdir)"
     cwd="$tmp_cwd"
   fi
-  err_file="$(mktemp)"
+  err_file="$(mktemp "$FIXTURE_ROOT/err.XXXXXX")"
   _status=0
   printf '%s' "$payload" | ( cd "$cwd" && exec "$HOOKS_DIR/$hook" ) 2>"$err_file" || _status=$?
   _stderr="$(cat "$err_file")"
@@ -106,7 +113,7 @@ payload_read() {
 # make_git_branch <branch> -> echoes a throwaway git repo checked out on <branch>
 make_git_branch() {
   local branch="$1" dir
-  dir="$(mktemp -d -p "$FIXTURE_ROOT")"
+  dir="$(new_tmpdir)"
   git init -q -b "$branch" "$dir" 2>/dev/null \
     || { git init -q "$dir"; git -C "$dir" symbolic-ref HEAD "refs/heads/$branch"; }
   printf '%s' "$dir"
@@ -115,14 +122,10 @@ make_git_branch() {
 # make_claude_md <content> -> echoes a throwaway dir containing a CLAUDE.md
 make_claude_md() {
   local dir
-  dir="$(mktemp -d -p "$FIXTURE_ROOT")"
+  dir="$(new_tmpdir)"
   printf '%s\n' "$1" > "$dir/CLAUDE.md"
   printf '%s' "$dir"
 }
-
-# new_tmpdir -> echoes a throwaway dir under the suite's fixture root. Lets test
-# files create scratch dirs without referencing FIXTURE_ROOT directly.
-new_tmpdir() { mktemp -d -p "$FIXTURE_ROOT"; }
 
 trap 'rm -rf "$FIXTURE_ROOT"' EXIT
 

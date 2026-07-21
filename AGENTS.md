@@ -161,9 +161,10 @@ bash scripts/validate-plugin.sh
 bash plugins/crew/tests/run.sh
 ```
 
-`plugins/crew/tests/` is a zero-dependency bash suite that exercises the crew hooks'
-*behavior* — each hook is a pure `stdin JSON → allow (exit 0) / block (exit 2)` function, so
-its allow/block decisions are unit-testable with no LLM. It complements the structural checks
+`plugins/crew/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
+and `git` (the same tools the hooks and validator already require) — that exercises the crew
+hooks' *behavior*: each hook is a pure `stdin JSON → allow (exit 0) / block (exit 2)` function,
+so its allow/block decisions are unit-testable with no LLM. It complements the structural checks
 (`validate-plugin.sh` + `shellcheck`): **a change to a hook's guard logic must add or adjust a
 case there**, covering both the allow and block sides. The suite also self-tests
 `validate-plugin.sh`, asserting its §2h/§2g/§4 guards actually bite.
@@ -193,6 +194,10 @@ Versions are per-plugin. To cut a release:
 ## Conventions
 
 - Hooks are Bash scripts (`#!/usr/bin/env bash`); keep them shellcheck-clean.
+- Shell scripts (hooks, `tests/`, tooling) stay BSD/macOS-portable — contributors and users run
+  them there too, not just on CI's Linux. Avoid GNU-only constructs: give `mktemp` an explicit
+  `XXXXXX` template (never bare `mktemp` or the GNU `-p` flag), use POSIX `[[:space:]]` rather
+  than `\s`, and prefer flags/behavior common to both GNU and BSD implementations.
 - Agent/command/skill definitions are Markdown with YAML frontmatter — match the field
   shape of existing files in the same directory.
 - Local agent memory lives in `.claude/agent-memory-local/` and is gitignored. Don't commit it.

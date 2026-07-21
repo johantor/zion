@@ -28,6 +28,13 @@ anything stated here updates this file in the same commit.** Conventions live in
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
   cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7) and is not shipped
   with this plugin.
+- `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
+  hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
+  **behavior**: each is a pure `stdin JSON → exit 0/2` guard, fed crafted
+  payloads and asserted on allow/block (+ stderr substring). A change to a hook's guard logic
+  **must add/adjust a case** here, on both the allow and block sides. Also self-tests the
+  validator (§2h/§2g/§4 bite). Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
+  Not shipped with the plugin — repo tooling.
 
 ## Schemas & conventions
 
@@ -47,8 +54,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 
 - §2g/§4 index skills via `git ls-files` — **stage new/renamed skill files before running the
   validator** or they won't resolve.
-- Validate = what CI runs: `bash scripts/validate-plugin.sh` +
-  `shellcheck plugins/*/hooks/*.sh scripts/*.sh` (shellcheck may be missing
+- Validate = what CI runs: `bash scripts/validate-plugin.sh` + `bash plugins/crew/tests/run.sh` +
+  `shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh` (shellcheck may be missing
   locally; CI covers it).
 - `lane-guard.sh`'s `has_node_backend`/`has_frontend` probes match **hardcoded framework
   allowlists** (used only when stacks are *unset* and no lane paths are set). They aren't

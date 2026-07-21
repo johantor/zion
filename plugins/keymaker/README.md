@@ -1,6 +1,6 @@
 # keymaker
 
-> **Beta** — keymaker's agents, taxonomy, and commands are defined but have not yet been run in a live project (see the [Verification matrix](#verification-matrix) — this banner drops when every box is green). The design is intentional and the guardrails are in place, but expect rough edges and breaking changes before v1.0. Feedback and bug reports are welcome.
+> **Beta** — keymaker's agents, taxonomy, and commands are defined and only partly exercised (see the [Verification matrix](#verification-matrix)). The banner drops at v1.0 once the matrix is green end-to-end for one supported stack — the bar is spelled out under [Graduation to Stable](#graduation-to-stable-v10). The design is intentional and the guardrails are in place, but expect rough edges and breaking changes before v1.0. Feedback and bug reports are welcome.
 
 A Claude Code plugin: pointer-driven tech debt remediation and dependency upgrades. Part of the [Zion](../../README.md) marketplace.
 
@@ -141,9 +141,32 @@ Keymaker reads the same `CLAUDE.md` **Crew configuration** slots that the `crew`
 
 The [beta banner](#keymaker) stays until keymaker has been exercised — against a real project or a
 purpose-built scratch repo — on every gate and exit path below. Each row is one scenario: a minimal
-planted-debt setup and the behavior that counts as a pass. Check it off once you've run it; when
-every box is green, drop the banner (or move it to a v1.0 note). This is the written definition of
-"run in a live project" that the banner refers to.
+planted-debt setup and the behavior that counts as a pass. Check it off once you've run it. This is
+the written definition of "run in a live project" that the banner refers to; the bar for dropping it
+is under [Graduation to Stable](#graduation-to-stable-v10).
+
+### Graduation to Stable (v1.0)
+
+keymaker stays **Beta** until it clears the bar below; meeting it is what flips the Status to
+**Stable** and releases v1.0:
+
+- **One supported stack fully verified.** Every row in the matrix below is green for at least one
+  stack — TypeScript/JavaScript is the one in flight. The rows are stack-neutral scenario specs, so
+  a stack-tagged pass (e.g. **[TS]**) counts toward that stack only.
+- **The whole pipeline, not just the read-only paths.** The three rows checked today are all
+  read-only / early-exit; v1.0 additionally needs the blast-radius-gate, delegate/verify/commit, and
+  loop-mode rows green (the unchecked boxes below).
+- **Remaining stacks are a post-v1.0 follow-up.** The other advertised stack (.NET/C#) is tracked
+  row-by-row *after* v1.0, not as a blocker — Stable means the pipeline is proven end-to-end on a
+  real stack, not that every stack is verified.
+
+**Not** v1.0 blockers: in-band acks (#52) and other
+audit-UX refinements — the core classify → gate → fix → verify → commit pipeline is what graduates;
+those improve it afterward.
+
+When the bar is met, flip the Status to **Stable** (here and in the [root README](../../README.md)),
+drop the banner, and bump the plugin to `1.0.0` with a `CHANGELOG.md` entry. That release is the only
+version change these criteria imply — documenting them is docs-only.
 
 A scratch repo for these is cheap, and you build it **in your own terminal, not inside a Claude
 agent session** — keymaker's hooks block `git` for agents (twins especially), so the `git init`

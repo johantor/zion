@@ -16,6 +16,12 @@ HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../hooks" && pwd)"
 
 command -v jq >/dev/null 2>&1 || { echo "FATAL: jq is required to run the hook tests" >&2; exit 1; }
 
+# Abort the whole run. The fixture helpers below run in command substitutions, so
+# a plain `exit` there would only leave the subshell; kill "$$" (the main PID —
+# unchanged inside subshells) tears the run down for real. Guards mktemp failures
+# so a helper never returns an empty path a later `git init`/hook would misuse.
+die() { echo "FATAL: $*" >&2; kill "$$" 2>/dev/null; exit 1; }
+
 tests_run=0
 tests_failed=0
 
@@ -24,11 +30,11 @@ tests_failed=0
 # mktemp is given an explicit XXXXXX template throughout (never bare `mktemp` or
 # the GNU-only `-p`) so the suite also runs on BSD/macOS, where contributors run
 # it locally — same portability discipline the hooks keep (POSIX classes, no \s).
-FIXTURE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/crew-hook-tests.XXXXXX")"
+FIXTURE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/crew-hook-tests.XXXXXX")" || die "mktemp -d failed"
 
 # new_tmpdir -> echoes a throwaway dir under FIXTURE_ROOT (so the EXIT trap alone
 # cleans it up). Lets callers make scratch dirs without touching FIXTURE_ROOT.
-new_tmpdir() { mktemp -d "$FIXTURE_ROOT/d.XXXXXX"; }
+new_tmpdir() { mktemp -d "$FIXTURE_ROOT/d.XXXXXX" || die "mktemp -d failed under $FIXTURE_ROOT"; }
 
 _pass() { tests_run=$((tests_run + 1)); }
 _fail() {
@@ -48,7 +54,7 @@ run_hook() {
     tmp_cwd="$(new_tmpdir)"
     cwd="$tmp_cwd"
   fi
-  err_file="$(mktemp "$FIXTURE_ROOT/err.XXXXXX")"
+  err_file="$(mktemp "$FIXTURE_ROOT/err.XXXXXX")" || die "mktemp failed under $FIXTURE_ROOT"
   _status=0
   printf '%s' "$payload" | ( cd "$cwd" && exec "$HOOKS_DIR/$hook" ) 2>"$err_file" || _status=$?
   _stderr="$(cat "$err_file")"

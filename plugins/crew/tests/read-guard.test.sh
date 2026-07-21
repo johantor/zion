@@ -9,8 +9,10 @@ work="$(new_tmpdir)"
 
 big="$work/big.txt"
 small="$work/small.txt"
-head -c 70000 /dev/zero | tr '\0' 'x' > "$big"      # > 64 KiB
-head -c 1000  /dev/zero | tr '\0' 'x' > "$small"    # <= 64 KiB
+# The guard only inspects byte size, so the content is irrelevant — printf a run
+# of spaces of a known length (portable; avoids /dev/zero + NUL-translating tr).
+printf '%*s' 70000 '' > "$big"      # > 64 KiB
+printf '%*s' 1000  '' > "$small"    # <= 64 KiB
 
 assert_block "raw read of a >64 KiB file" "$HOOK" "$(payload_read "$big")" "Don't read it raw"
 assert_allow "raw read of a small file"   "$HOOK" "$(payload_read "$small")"

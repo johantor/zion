@@ -156,9 +156,17 @@ list is the general lens to apply proactively so they don't recur in a new shape
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck plugins/*/hooks/*.sh scripts/*.sh
+shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh
 bash scripts/validate-plugin.sh
+bash plugins/crew/tests/run.sh
 ```
+
+`plugins/crew/tests/` is a zero-dependency bash suite that exercises the crew hooks'
+*behavior* — each hook is a pure `stdin JSON → allow (exit 0) / block (exit 2)` function, so
+its allow/block decisions are unit-testable with no LLM. It complements the structural checks
+(`validate-plugin.sh` + `shellcheck`): **a change to a hook's guard logic must add or adjust a
+case there**, covering both the allow and block sides. The suite also self-tests
+`validate-plugin.sh`, asserting its §2h/§2g/§4 guards actually bite.
 
 `validate-plugin.sh` parses each `plugins/*/agents/*.md` YAML frontmatter and verifies every
 entry in its `skills:` list resolves to some `plugins/*/skills/<name>/SKILL.md` in the repo

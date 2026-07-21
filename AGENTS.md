@@ -191,6 +191,19 @@ Versions are per-plugin. To cut a release:
    matching changelog entry → it skips with a warning. No manual tagging is needed
    (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
 
+**Changelog entries are terse.** One bullet per change under its Keep-a-Changelog heading
+(`Added`/`Changed`/`Fixed`/`Removed`); lead with *what changed* in plain terms, one line — two
+at most. The entry becomes the GitHub Release notes, so it's a scannable list, not a narrative:
+the *why*, mechanics, and background belong in the PR and commit message, not here. Prefer:
+
+```
+### Added
+- `engineering-principles`: add `Observability` and `Backward compatibility` principles
+  (also shipped by the standalone plugin, v1.2.0).
+```
+
+over a multi-sentence paragraph restating each principle's contents.
+
 ## Conventions
 
 - Hooks are Bash scripts (`#!/usr/bin/env bash`); keep them shellcheck-clean.

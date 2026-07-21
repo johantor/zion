@@ -160,7 +160,7 @@ keymaker stays **Beta** until it clears the bar below; meeting it is what flips 
   row-by-row *after* v1.0, not as a blocker — Stable means the pipeline is proven end-to-end on a
   real stack, not that every stack is verified.
 
-**Not** v1.0 blockers: in-band acks ([#52](https://github.com/johantor/zion/issues/52)) and other
+**Not** v1.0 blockers: in-band acks (#52) and other
 audit-UX refinements — the core classify → gate → fix → verify → commit pipeline is what graduates;
 those improve it afterward.
 

@@ -17,9 +17,9 @@ VALIDATOR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/scripts/valida
 new_repo() {
   local d
   d="$(new_tmpdir)"
-  git init -q "$d"
-  mkdir -p "$d/scripts"
-  cp "$VALIDATOR" "$d/scripts/validate-plugin.sh"
+  git init -q "$d" || die "git init failed in $d"
+  mkdir -p "$d/scripts" || die "mkdir failed in $d"
+  cp "$VALIDATOR" "$d/scripts/validate-plugin.sh" || die "cp validator failed into $d"
   printf '%s' "$d"
 }
 

@@ -14,7 +14,9 @@ set -uo pipefail
 
 HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../hooks" && pwd)"
 
-command -v jq >/dev/null 2>&1 || { echo "FATAL: jq is required to run the hook tests" >&2; exit 1; }
+for _tool in jq git; do
+  command -v "$_tool" >/dev/null 2>&1 || { echo "FATAL: $_tool is required to run the hook tests" >&2; exit 1; }
+done
 
 # Abort the whole run. The fixture helpers below run in command substitutions, so
 # a plain `exit` there would only leave the subshell; kill "$$" (the main PID —

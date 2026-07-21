@@ -54,8 +54,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 
 - §2g/§4 index skills via `git ls-files` — **stage new/renamed skill files before running the
   validator** or they won't resolve.
-- Validate = what CI runs: `bash scripts/validate-plugin.sh` +
-  `shellcheck plugins/*/hooks/*.sh scripts/*.sh` (shellcheck may be missing
+- Validate = what CI runs: `bash scripts/validate-plugin.sh` + `bash plugins/crew/tests/run.sh` +
+  `shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh` (shellcheck may be missing
   locally; CI covers it).
 - `lane-guard.sh`'s `has_node_backend`/`has_frontend` probes match **hardcoded framework
   allowlists** (used only when stacks are *unset* and no lane paths are set). They aren't

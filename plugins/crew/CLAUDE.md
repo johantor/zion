@@ -50,6 +50,12 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Validate = what CI runs: `bash scripts/validate-plugin.sh` +
   `shellcheck plugins/*/hooks/*.sh scripts/*.sh` (shellcheck may be missing
   locally; CI covers it).
+- `lane-guard.sh`'s `has_node_backend`/`has_frontend` probes match **hardcoded framework
+  allowlists** (used only when stacks are *unset* and no lane paths are set). They aren't
+  exhaustive and drift as the ecosystem grows; a miss fails **silently** — the same-language
+  ambiguity guard just doesn't fire, so tank/trinity fall back to extension lanes that can't
+  tell them apart. Add new mainstream frameworks as they appear. Once #128's hook test suite
+  lands, add a fixture per framework so a missing entry becomes a failing test, not a silent gap.
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   this plugin's `CHANGELOG.md` (every plugin keeps its own changelog next to its manifest).
   On merge to main, auto-release tags `crew/vX.Y.Z` from that section.

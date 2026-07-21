@@ -1,6 +1,6 @@
 {
   "name": "crew",
-  "version": "3.7.0",
+  "version": "3.7.1",
   "license": "Apache-2.0",
   "description": "Claude Code crew/plugin pack with orchestrated agents, commands, hooks, and skills for feature delivery.",
   "author": {

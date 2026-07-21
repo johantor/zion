@@ -5,6 +5,18 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.7.1] - 2026-07-21
+
+### Fixed
+- **`lane-guard.sh` framework detection now recognizes more mainstream frameworks.** When the
+  stack slots are *unset* and no lane paths are configured, the guard probes `package.json`
+  markers to decide whether extension-based lanes are safe. The allowlists had drifted behind
+  the ecosystem, so a repo built only on an unlisted framework was read as "no backend/frontend
+  detected" and the same-language ambiguity guard silently didn't fire — falling back to
+  extension lanes that can't separate tank from trinity. Added `hono`, `elysia`, `@trpc/server`
+  (backend) and `nuxt`, `gatsby`, `@remix-run/react`, `react-router`, `@builder.io/qwik`
+  (frontend). Documented in `plugins/crew/CLAUDE.md` that the lists need periodic review.
+
 ## [3.7.0] - 2026-07-18
 
 ### Added

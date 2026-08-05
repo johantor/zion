@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`morpheus` now detects and resumes a worker that was cut off mid-task.** A worker that
   exhausts its own `maxTurns` returns a truncated result as an ordinary completion — previously
   indistinguishable from finished work, so it could be accepted as done. `morpheus` now judges
-  each return for completeness (ends mid-step, missing the required pass/fail evidence, or
-  tool-use count at/near the worker's cap), keeps and commits whatever sub-part is complete, and
+  each return for completeness — a result that ends mid-step or is missing the required pass/fail
+  evidence — keeps and commits whatever sub-part is complete, and
   re-dispatches the remainder as a fresh narrower step — reusing the durable-resume
   "`in-progress` is unconfirmed" rule. A truncation-resume does not consume a retry-cap attempt.
 

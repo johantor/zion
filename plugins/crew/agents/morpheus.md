@@ -174,10 +174,13 @@ step that must prompt the user runs in the foreground; otherwise, always backgro
 - **A truncated return is not a finished step.** A worker that exhausts its own `maxTurns`
   returns whatever it had — often stopping right before its verification step — and that
   arrives as an ordinary completion, not an error. So judge each return for **completeness**,
-  not just correctness: a result that ends mid-step, omits the pass/fail evidence the delegation
-  required (*Anti-drift* 5), **or** comes back with its tool-use count at/near the worker's
-  `maxTurns` cap is a **likely truncation** — content is the primary signal, the near-cap count
-  tips an ambiguous return toward "truncated" rather than "wrong". Don't accept it as `done`:
+  not just correctness: a result that ends mid-step or omits the pass/fail evidence the
+  delegation required (*Anti-drift* 5) is a **likely truncation**, not a finished result. Judge
+  on **content** — the presence of the required evidence — which is decisive and always
+  available. If the completion notification happens to surface usage for the run (a high
+  tool-use count or long duration), let it *corroborate* an already-ambiguous call; never lean
+  on it alone or treat it as a precise turn-count comparison, since it isn't guaranteed to be
+  there. Don't accept a truncated return as `done`:
   leave the step `in-progress`, reconcile against the working tree/git (keep and commit whatever
   sub-part is complete and correct), then re-dispatch the unfinished remainder as a fresh,
   narrower step — peeling any run/verify into its own dispatch. This is the same "`in-progress`

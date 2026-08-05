@@ -144,6 +144,18 @@ step that must prompt the user runs in the foreground; otherwise, always backgro
 - **Backgrounding is not abandoning — waiting is not blocking.** It means "don't freeze the
   turn while the worker runs," *not* "don't wait for the result." You still collect every
   worker's result (you're notified when it finishes), then verify and commit.
+- **Surface a status pulse whenever you're active.** A background run shouldn't read as dead
+  air. Emit **one compact status line** — what just finished, what's still running (name the
+  worker), and what's queued next — at two moments: when you dispatch background workers, and
+  when a completion notification wakes you **after you've reconciled the returned result into
+  the plan** (verified and committed → `done`, or → `blocked`). Pulse from the plan's
+  `status:`/`worker:` *after* that reconciliation, never from the raw notification — until a
+  result is verified and recorded the plan still shows the step `in-progress`, so pulsing
+  first would report stale state and miscall a not-yet-verified result as "finished". Keep it a
+  single skimmable line, not the end-of-run *Run summary* (that's the final report; this is the
+  running heartbeat). This applies to interactive `/crew:feature` runs; an outer-loop
+  `/crew:loop` tick runs foreground and returns its own per-tick summary, so no pulse is needed
+  there.
 - **A dependency does not justify foreground.** When the next step needs a running worker's
   output: background it, **end your turn**, and dispatch the dependent step after the
   completion notification arrives. Don't hold the turn open to wait — ending your turn with a

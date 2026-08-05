@@ -5,6 +5,15 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.8.0] - 2026-08-05
+
+### Added
+- **`morpheus` now emits a compact status pulse during interactive background runs.** On
+  dispatching background workers and on each completion-resume, it surfaces a one-line status
+  (what finished, what's still running, what's queued) from the plan file — so a long
+  `/crew:feature` run no longer reads as dead air while workers grind. Foreground `/crew:loop`
+  ticks are unaffected.
+
 ## [3.7.1] - 2026-07-21
 
 ### Fixed

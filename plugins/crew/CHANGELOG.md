@@ -5,6 +5,29 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.9.0] - 2026-08-05
+
+### Added
+- **`morpheus` now detects and resumes a worker that was cut off mid-task.** A worker that
+  exhausts its own `maxTurns` returns a truncated result as an ordinary completion — previously
+  indistinguishable from finished work, so it could be accepted as done. `morpheus` now judges
+  each return for completeness — a result that ends mid-step or is missing the required pass/fail
+  evidence — keeps and commits whatever sub-part is complete, and
+  re-dispatches the remainder as a fresh narrower step — reusing the durable-resume
+  "`in-progress` is unconfirmed" rule. A truncation-resume does not consume a retry-cap attempt.
+
+### Changed
+- **Dispatch scoping is now explicit: author and verify in separate dispatches, sized to fit
+  the turn budget.** Bundling implement + write tests + run + fix into one dispatch is what
+  overflows a worker's budget; `morpheus` now splits authoring from a separate `haiku`
+  run-and-report step and splits oversized plan steps at planning time.
+- **Authoring workers report an explicit completion marker.** `tank`, `trinity`, and `neo` end
+  with what they completed plus a `remaining:` line when anything is left undone; `oracle` and
+  `dozer` must report an unfinished run as unfinished rather than letting silence read as green.
+- **Modest `maxTurns` headroom for the workers that were truncating.** `tank`/`trinity` 40→56,
+  `oracle`/`dozer`/`neo` 30→40 (`seraph` unchanged) — headroom for real feature slices, secondary
+  to the detection/resume and scoping changes above.
+
 ## [3.8.0] - 2026-08-05
 
 ### Added

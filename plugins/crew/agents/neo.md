@@ -3,7 +3,7 @@ name: neo
 description: Express-lane generalist for small, low-risk changes (a typo, a rename, a constant, an obvious one-liner, a small localized bug) — possibly cross-lane. Invoked by the morpheus orchestrator on its size-triage express path. Not for standalone or automatic use.
 tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, mcp__context7
 model: sonnet
-maxTurns: 30
+maxTurns: 40
 color: blue
 memory: local
 skills:
@@ -45,5 +45,7 @@ Rules:
   consult it for current, version-specific APIs rather than memory; fetch the specific topic,
   not a dump (`context-discipline`).
 - Consult local memory before starting and update it after finishing.
-- Return a concise file-change summary and rationale — and, if you escalated, exactly what
-  pushed the task past the express lane.
+- Return a concise file-change summary and rationale, ending with an explicit completion marker
+  (what you completed; a `remaining:` line if anything is left undone) — and, if you escalated,
+  exactly what pushed the task past the express lane. Don't report the change complete when you
+  stopped short of it.

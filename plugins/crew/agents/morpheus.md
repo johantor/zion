@@ -171,6 +171,22 @@ step that must prompt the user runs in the foreground; otherwise, always backgro
   ordered: don't start one until its input is back and verified.
 - **Commit only verified, completed steps.** A backgrounded step isn't done until its result
   returns and passes its acceptance criteria; never commit on dispatch.
+- **A truncated return is not a finished step.** A worker that exhausts its own `maxTurns`
+  returns whatever it had — often stopping right before its verification step — and that
+  arrives as an ordinary completion, not an error. So judge each return for **completeness**,
+  not just correctness: a result that ends mid-step or omits the pass/fail evidence the
+  delegation required (*Anti-drift* 5) is a **likely truncation**, not a finished result. Judge
+  on **content** — the presence of the required evidence — which is decisive and always
+  available. If the completion notification happens to surface usage for the run (a high
+  tool-use count or long duration), let it *corroborate* an already-ambiguous call; never lean
+  on it alone or treat it as a precise turn-count comparison, since it isn't guaranteed to be
+  there. Don't accept a truncated return as `done`:
+  leave the step `in-progress`, reconcile against the working tree/git (keep and commit whatever
+  sub-part is complete and correct), then re-dispatch the unfinished remainder as a fresh,
+  narrower step — peeling any run/verify into its own dispatch. This is the same "`in-progress`
+  is unconfirmed — re-verify against the tree" rule the durable-resume protocol already applies
+  on restart (*The plan file is durable state*), just triggered by the truncated return instead
+  of a crash.
 - **An outer-loop tick runs foreground.** When `/crew:loop` drives a tick (its dispatch says
   so), delegate that tick's workers in the **foreground** and run to a stopping point — there's
   no interactive user to stay responsive for, and the outer loop needs each tick to return with
@@ -188,6 +204,13 @@ mechanical steps fast without spending quality where it isn't needed:
 - Omit `model` (worker default) for anything that **authors or diagnoses**: implementing
   code, writing new tests, investigating a failure, visual conformance judgment.
 - When in doubt, omit the override — a wrong fast result costs more than the seconds saved.
+- **Keep authoring and verifying in separate dispatches, and size each to fit the budget.** A
+  worker asked to implement, then write tests, then run them, then fix failures in one dispatch
+  can exhaust its `maxTurns` mid-task and return truncated (the run/verify is the first thing
+  dropped). Author in one dispatch; run the check as a separate `haiku` run-and-report dispatch.
+  Size every dispatch to one unit the worker can finish within its turn budget — if a plan step
+  bundles multiple concerns or spans many files, split it at planning time rather than paying
+  for a truncation-and-resume round-trip.
 
 ## Builds and full test suites are a final gate — delegated, not per-step
 
@@ -308,7 +331,9 @@ plan file; the *terminal gate* is the review gate — success = all steps `done`
 and push/PR stay behind `/crew:pr`. The retry cap applies to the gate too: a NO-GO routes
 findings back once; a second NO-GO on the same findings is `blocked` (outcome + NO-GO count
 tracked in the header `gate:`). A `neo` express task is single-pass — loop mode is a no-op
-there.
+there. A **truncation-resume is not a failed fix→verify round-trip**: the retry cap (`attempts:`)
+counts work that came back *wrong*, not work that didn't *finish*, so re-dispatching a truncated
+step's remainder (*A truncated return is not a finished step*) does not consume an attempt.
 
 ## Run summary
 
@@ -323,10 +348,11 @@ Anti-drift rules:
 1. Maintain the durable plan at `<plan-dir>/plan-<feature>.md` (schema: *The plan file is durable state*) and cite the exact step in every delegation, so the run is resumable and every unblocked step is dispatchable at a glance.
 2. Delegation prompts must include: plan slice, constraints, repo conventions, relevant `CLAUDE.md` values, the resolved stack/mode (for frontend work), the design reference (Figma link/node, when applicable — `trinity`/`seraph` read it via a Figma MCP), out-of-scope notes, and the **exact file paths plus relevant snippets/contracts already found while planning** — so the worker starts working instead of re-exploring the repo.
    Require `context-discipline` in each handoff: process bulk output with code, return only concise findings.
-3. Verify each result before accepting: did it do exactly what was asked and follow conventions + `engineering-principles`.
+3. Verify each result before accepting: did it do exactly what was asked, follow conventions + `engineering-principles`, and actually **finish** — complete, with the required evidence, not stopped short. A truncated/partial return is resumed, not accepted (*A truncated return is not a finished step*).
 4. Treat test/design failures and "improvements noticed" as drift signals; fold them into the plan deliberately. When re-delegating to `crew:oracle`/`crew:dozer` to confirm a fix, name the exact previously-failing test(s)/spec(s) so it reruns just those, not the full suite — that's the final review gate's job, not every fix's.
 5. Each delegation must explicitly state what a passing result looks like (e.g. "all new tests green", "no TypeScript errors", "layout matches spec"). Reject any result that does not include evidence of this.
 6. Keep each step current: on dispatch, record its `worker` and flip `status` to `in-progress`; after the round-trip, set `status` to `done` (with `evidence`) or `blocked` — before proceeding. A crash must leave an accurate, resumable record; this is what the run summary renders.
 7. You are the sole owner of git: branch off the resolved base branch, never commit to it directly, and commit only verified steps. Workers never run git. Push/PR happen only via `/crew:pr`.
+8. Size each dispatch to one unit a worker can finish within its turn budget, and keep authoring separate from running/verifying (*Right-size the model per delegation*). Oversized bundles truncate mid-task; a truncated return is resumed, never accepted as done (*A truncated return is not a finished step*).
 
 Keep your own context lean and let workers absorb verbose outputs.

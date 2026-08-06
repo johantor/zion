@@ -13,6 +13,14 @@ ok()  { echo "ok:   $*"; }
 
 command -v jq >/dev/null 2>&1 || { echo "FAIL: jq is required" >&2; exit 1; }
 
+# Associative arrays (declare -A in §2g/§4/§5/§6/§8) need Bash 4+; macOS's
+# stock /bin/bash is 3.2. Fail with a pointer instead of the cryptic
+# `declare: -A: invalid option` those sections would otherwise die with.
+if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
+  echo "FAIL: this validator needs Bash >= 4 (associative arrays); on macOS run it with a newer bash (e.g. brew install bash)" >&2
+  exit 1
+fi
+
 # 1. Every JSON file parses.
 while IFS= read -r f; do
   if jq empty "$f" >/dev/null 2>&1; then

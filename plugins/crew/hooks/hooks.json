@@ -45,7 +45,8 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/turn-budget.sh"
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/turn-budget.sh",
+            "timeout": 10
           }
         ]
       }

@@ -27,6 +27,18 @@ call_n() {
   done
 }
 
+# assert_quiet <label> <payload> — a silent call must be exit 0 AND say nothing:
+# a regression that still prints a warning but exits 0 must fail here, so this
+# is stricter than assert_allow (which only checks the exit code).
+assert_quiet() {
+  run_hook turn-budget.sh "$2"
+  if [ "$_status" -eq 0 ] && [ -z "$_stderr" ]; then
+    _pass
+  else
+    _fail "$1: expected exit 0 with no stderr, got exit $_status${_stderr:+ — stderr: $_stderr}"
+  fi
+}
+
 CREW_TURN_BUDGET_DIR="$(new_tmpdir)"
 export CREW_TURN_BUDGET_DIR
 
@@ -36,16 +48,15 @@ call_n 14 seraph /tmp/t/seraph-a.jsonl
 if [ "$_status" -eq 0 ] && [ -z "$_stderr" ]; then _pass; else _fail "silent below 75%: expected exit 0 with no stderr, got exit $_status — $_stderr"; fi
 # Call 15 (75%): wind-down warning, once.
 assert_block "wind-down warning at 75%" turn-budget.sh "$(payload_post seraph /tmp/t/seraph-a.jsonl)" "Turn budget: ~15/20"
-run_hook turn-budget.sh "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
-if [ "$_status" -eq 0 ]; then _pass; else _fail "silent again after the 75% warning fired once, got exit $_status — $_stderr"; fi
-# Call 17: still silent; call 18 (90%): stop-now warning, once; 19+: silent.
-run_hook turn-budget.sh "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
+# Calls 16-17: silent again — the 75% warning fires exactly once.
+assert_quiet "call 16 silent after the 75% warning fired once" "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
+assert_quiet "call 17 still silent before the 90% threshold" "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
+# Call 18 (90%): stop-now warning, once; 19+: silent.
 assert_block "stop-now warning at 90%" turn-budget.sh "$(payload_post seraph /tmp/t/seraph-a.jsonl)" "Stop now"
-run_hook turn-budget.sh "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
-if [ "$_status" -eq 0 ]; then _pass; else _fail "silent after the 90% warning fired once, got exit $_status — $_stderr"; fi
+assert_quiet "call 19 silent after the 90% warning fired once" "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
 
 # --- Instance isolation: a different transcript keeps its own counter ----------
-assert_allow "fresh transcript starts a fresh counter" turn-budget.sh "$(payload_post seraph /tmp/t/seraph-b.jsonl)"
+assert_quiet "fresh transcript starts a fresh counter" "$(payload_post seraph /tmp/t/seraph-b.jsonl)"
 
 # --- Fail-open paths ------------------------------------------------------------
 assert_allow "no agent_type (user session) is never warned" turn-budget.sh "$(payload_post "" /tmp/t/user.jsonl)"

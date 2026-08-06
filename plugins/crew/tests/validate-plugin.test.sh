@@ -2,10 +2,21 @@
 # Self-tests for scripts/validate-plugin.sh: prove every section's guards bite.
 # Each case builds a throwaway git repo with a copy of the validator and a
 # minimal plugin layout, then asserts the specific guard's FAIL message appears
-# (bite) and is absent from an otherwise-identical control (silent). We assert on
-# the guard's own message, not the overall exit, so unrelated scaffolding gaps a
-# minimal fixture can't satisfy (e.g. §7's .claude/settings.json mirror) don't
-# mask which guard fired.
+# (bite). Every section additionally carries at least one silent control — a
+# valid tree the guard must stay quiet on — which is what proves the guard
+# discriminates rather than firing unconditionally. Controls are per section, not
+# per bite: several bites in a section share one control, since the guards differ
+# only in which way the same fixture is broken.
+#
+# We assert on the guard's own message, not the overall exit, so unrelated
+# scaffolding gaps a minimal fixture can't satisfy (e.g. §7's
+# .claude/settings.json mirror) don't mask which guard fired.
+#
+# Choosing that substring is the subtle part: it must not also appear in the
+# validator's `ok:` lines, or the silent control can never pass. §5 asserts on
+# the shared "hook drift" prefix rather than either message's tail for exactly
+# this reason — "shared-guard regions in" also occurs in "ok: hook shared-guard
+# regions in sync". Prefer the FAIL-only prefix over a distinctive-looking tail.
 #
 # Every validator section carries at least one negative fixture here — a check
 # that silently stopped checking is the worst failure mode for an enforcement

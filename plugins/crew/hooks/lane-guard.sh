@@ -101,8 +101,11 @@ scan_markers() {
       *.csproj|*.sln) _det_dotnet=1 ;;
       *.tsx|*.jsx)    _det_frontend=1 ;;
       *package.json)
-        if [ "$_det_node" = 0 ] && grep -Eq "$node_backend_deps" "$f"; then _det_node=1; fi
-        if [ "$_det_frontend" = 0 ] && grep -Eq "$frontend_deps" "$f"; then _det_frontend=1; fi
+        # grep's stderr is dropped so an unreadable package.json can't prepend a
+        # stray error to a block message. Detection is unaffected either way:
+        # grep already reports an unreadable file as "no match" via its status.
+        if [ "$_det_node" = 0 ] && grep -Eq "$node_backend_deps" "$f" 2>/dev/null; then _det_node=1; fi
+        if [ "$_det_frontend" = 0 ] && grep -Eq "$frontend_deps" "$f" 2>/dev/null; then _det_frontend=1; fi
         ;;
     esac
   done < <(find . "${prune_args[@]}" \

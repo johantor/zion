@@ -53,7 +53,7 @@ done
 # run_bounded <cmd...> — run a formatter quietly under that bound, returning its
 # exit status (124 when the bound killed it).
 run_bounded() {
-  _st=0
+  local _st=0
   if [ -n "$timeout_bin" ]; then
     "$timeout_bin" "$FORMAT_TIMEOUT" "$@" >/dev/null 2>&1 || _st=$?
   else

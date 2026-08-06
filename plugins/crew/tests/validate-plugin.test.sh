@@ -49,6 +49,39 @@ assert_silent() { # <label> <dir> <substr>
 mk_manifest() { mkdir -p "$1/.claude-plugin"; printf '{"name":"%s","version":"%s"}\n' "$2" "$3" > "$1/.claude-plugin/plugin.json"; }
 mk_changelog() { printf '## [%s]\n- note\n' "$2" > "$1/CHANGELOG.md"; }
 
+# Raw-JSON writers for the shapes the two above can't express: a manifest missing
+# a key, declaring component paths, or carrying a description; a marketplace.
+mk_manifest_json() { mkdir -p "$1/.claude-plugin"; printf '%s\n' "$2" > "$1/.claude-plugin/plugin.json"; }
+mk_marketplace()   { mkdir -p "$1/.claude-plugin"; printf '%s\n' "$2" > "$1/.claude-plugin/marketplace.json"; }
+
+# mk_hook <plugin_dir> <filename> <body> — a valid, executable hook, so §3's two
+# guards stay silent and the fixture isolates whichever section is under test.
+mk_hook() {
+  mkdir -p "$1/hooks"
+  printf '#!/usr/bin/env bash\n%s\n' "$3" > "$1/hooks/$2"
+  chmod +x "$1/hooks/$2"
+}
+# mk_hooks_json <plugin_dir> <command-string> — wiring in §6's expected shape.
+mk_hooks_json() {
+  mkdir -p "$1/hooks"
+  printf '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"%s"}]}]}}\n' "$2" > "$1/hooks/hooks.json"
+}
+# mk_dev_settings <repo> <command-string> <matcher> — §7's dev-side mirror.
+mk_dev_settings() {
+  mkdir -p "$1/.claude"
+  printf '{"hooks":{"PreToolUse":[{"matcher":"%s","hooks":[{"type":"command","command":"%s"}]}]}}\n' "$3" "$2" > "$1/.claude/settings.json"
+}
+
+# Wiring commands, shared by §2e/§6/§7. Single-quoted so the "${VAR}" text stays
+# literal — it is JSON content here, not a shell expansion — and the \" pairs
+# become real quotes when printf writes them.
+# shellcheck disable=SC2016
+wired_x='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/x.sh'
+# shellcheck disable=SC2016
+wired_missing='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/missing.sh'
+# shellcheck disable=SC2016
+dev_x='\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/x.sh'
+
 # --- §2h: manifest version must match the newest CHANGELOG entry ---------------
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 9.9.9; mk_changelog "$d/plugins/foo" 1.0.0
 assert_emits "§2h bites on version/changelog mismatch" "$d" "!= newest"
@@ -118,10 +151,6 @@ d="$(new_repo)"; mkdir -p "$d/plugins/foo"; printf '{"a":1}\n' > "$d/plugins/foo
 assert_silent "§1 silent on well-formed JSON" "$d" "invalid JSON: plugins/foo/broken.json"
 
 # --- §2a: manifest identity fields ---------------------------------------------
-# Raw-JSON writer for the manifest shapes mk_manifest can't express (missing
-# keys, declared component paths, descriptions).
-mk_manifest_json() { mkdir -p "$1/.claude-plugin"; printf '%s\n' "$2" > "$1/.claude-plugin/plugin.json"; }
-
 d="$(new_repo)"; mk_manifest_json "$d/plugins/foo" '{"name":"foo"}'; mk_changelog "$d/plugins/foo" 1.0.0
 assert_emits "§2a bites on a manifest missing version" "$d" "missing required key: version"
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
@@ -140,6 +169,9 @@ assert_silent "§2b silent when the declared path exists" "$d" "declared in"
 d="$(new_repo)"; mk_manifest_json "$d/plugins/foo" '{"name":"foo","version":"1.0.0","hooks":"hooks/hooks.json"}'
 mk_changelog "$d/plugins/foo" 1.0.0
 assert_emits "§2c bites when the manifest declares hooks/hooks.json" "$d" "declares the auto-loaded hooks/hooks.json"
+d="$(new_repo)"; mk_manifest_json "$d/plugins/foo" '{"name":"foo","version":"1.0.0","hooks":"hooks/extra.sh"}'
+mk_changelog "$d/plugins/foo" 1.0.0
+assert_emits "§2c bites on an additional hook file that is missing" "$d" "hooks -> hooks/extra.sh declared in"
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 assert_silent "§2c silent when the manifest omits it" "$d" "declares the auto-loaded hooks/hooks.json"
 
@@ -152,20 +184,6 @@ mkdir -p "$d/plugins/foo/agents"; printf -- '---\nname: bar\ndescription: d\n---
 assert_silent "§2d silent when agents/ holds an agent" "$d" "agents/ exists but has no .md agent files"
 
 # --- §2e: a hooks/ directory must carry the auto-loaded hooks.json -------------
-# Writes a hooks.json wiring exactly <script>, matching §6's expected shape.
-mk_hooks_json() {  # <plugin_dir> <command-string>
-  mkdir -p "$1/hooks"
-  printf '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"%s"}]}]}}\n' "$2" > "$1/hooks/hooks.json"
-}
-mk_hook() {  # <plugin_dir> <filename> <body>
-  mkdir -p "$1/hooks"
-  printf '#!/usr/bin/env bash\n%s\n' "$3" > "$1/hooks/$2"
-  chmod +x "$1/hooks/$2"
-}
-# The wiring prefix is literal text in the JSON, so it must not expand here.
-# shellcheck disable=SC2016
-wired_x='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/x.sh'
-
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_hook "$d/plugins/foo" x.sh 'exit 0'
 assert_emits "§2e bites on a hooks/ dir with no hooks.json" "$d" "hooks/ exists but hooks/hooks.json missing"
@@ -174,11 +192,15 @@ mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_hooks_json "$d/plugins/foo" "$wired_x
 assert_silent "§2e silent when hooks.json is present" "$d" "hooks/ exists but hooks/hooks.json missing"
 
 # --- §2f: marketplace entries agree with the plugins on disk -------------------
-mk_marketplace() { mkdir -p "$1/.claude-plugin"; printf '%s\n' "$2" > "$1/.claude-plugin/marketplace.json"; }
-
 d="$(new_repo)"
 mk_marketplace "$d" '{"name":"m","plugins":[{"name":"foo","source":"./plugins/nope"}]}'
 assert_emits "§2f bites on a source that does not exist" "$d" "source ./plugins/nope does not exist"
+
+# A source directory that exists but ships no manifest. git tracks files, not
+# dirs, so the fixture needs a file inside for the source to survive `git add`.
+d="$(new_repo)"; mkdir -p "$d/plugins/foo"; printf 'placeholder\n' > "$d/plugins/foo/README.md"
+mk_marketplace "$d" '{"name":"m","plugins":[{"name":"foo","source":"./plugins/foo"}]}'
+assert_emits "§2f bites on a source with no manifest" "$d" "plugins/foo/.claude-plugin/plugin.json missing"
 
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_marketplace "$d" '{"name":"m","plugins":[{"name":"bar","source":"./plugins/foo"}]}'
@@ -241,9 +263,6 @@ chmod +x "$d/plugins/bbb/hooks/shared.sh"
 assert_emits "§5 bites on a shared-guard block that never closes" "$d" "is never closed"
 
 # --- §6: hooks.json wiring resolves, and every hook script is wired ------------
-# shellcheck disable=SC2016
-wired_missing='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/missing.sh'
-
 d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_hooks_json "$d/plugins/foo" './hooks/x.sh'
 assert_emits "§6 bites on a command that skips CLAUDE_PLUGIN_ROOT" "$d" "does not start with"
 d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_hooks_json "$d/plugins/foo" "$wired_missing"
@@ -254,19 +273,17 @@ assert_emits "§6 bites on a hook script nothing wires" "$d" "plugins/foo/hooks/
 d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'
 mkdir -p "$d/plugins/foo/hooks"; printf '{"hooks":[]}\n' > "$d/plugins/foo/hooks/hooks.json"
 assert_emits "§6 bites on valid JSON of the wrong shape" "$d" "does not have the expected shape"
+d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'
+mkdir -p "$d/plugins/foo/hooks"; printf '{\n' > "$d/plugins/foo/hooks/hooks.json"
+assert_emits "§6 bites on unparseable wiring" "$d" "cannot cross-check its hook wiring"
 d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_hooks_json "$d/plugins/foo" "$wired_x"
 assert_silent "§6 silent when wiring and scripts agree" "$d" "is not wired"
 
 # --- §7: .claude/settings.json mirrors plugins/crew/hooks/hooks.json ----------
-# shellcheck disable=SC2016
-dev_x='\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/x.sh'
-mk_dev_settings() {  # <repo> <command-string> <matcher>
-  mkdir -p "$1/.claude"
-  printf '{"hooks":{"PreToolUse":[{"matcher":"%s","hooks":[{"type":"command","command":"%s"}]}]}}\n' "$3" "$2" > "$1/.claude/settings.json"
-}
-
 d="$(new_repo)"; mk_hook "$d/plugins/crew" x.sh 'exit 0'; mk_hooks_json "$d/plugins/crew" "$wired_x"
 assert_emits "§7 bites when the dev mirror is absent" "$d" ".claude/settings.json is missing"
+d="$(new_repo)"; mk_dev_settings "$d" "$dev_x" Bash
+assert_emits "§7 bites when the plugin wiring is absent" "$d" "plugins/crew/hooks/hooks.json is missing"
 d="$(new_repo)"; mk_hook "$d/plugins/crew" x.sh 'exit 0'; mk_hooks_json "$d/plugins/crew" "$wired_x"
 mk_dev_settings "$d" "$dev_x" Write
 assert_emits "§7 bites when the mirrored matcher drifts" "$d" "hook wiring drift"

@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   time), carrying context via the plan file rather than a live agent's memory.
 - **One writer per file, one owner per shared artifact.** Workers may author disjoint files
   concurrently, but shared setup (fixtures, helpers, base classes, config) gets a single owning
-  step the rest `depend-on` — two blind workers would each recreate it and clash. To collapse an
+  step the rest `depends-on` — two blind workers would each recreate it and clash. To collapse an
   overlap or replace a mis-scoped worker, `morpheus` stops one worker, reconciles its partial
   writes against the tree (as for a truncated return), then dispatches a single replacement; it
   never races two writers over the same file or setup.

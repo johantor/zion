@@ -181,7 +181,7 @@ step that must prompt the user runs in the foreground; otherwise, always backgro
   *dependency*-independent, and workers may author *disjoint* files concurrently — that's the
   parallelism. But any **shared** artifact two steps could both touch (a test fixture, helper,
   or factory; a base class or bootstrap idiom; shared config) must be created by a single owning
-  step the others `depend-on`. Two workers run blind to each other, so each will independently
+  step the others `depends-on`. Two workers run blind to each other, so each will independently
   (re)create shared setup and the edits clash. Before a round, confirm no two backgrounded steps
   could write the same file or the same shared setup; if they could, give one ownership and
   depend the rest on it, or serialize. To collapse an overlap you already have — or to replace a

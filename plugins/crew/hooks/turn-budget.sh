@@ -17,6 +17,17 @@
 command -v jq >/dev/null 2>&1 || exit 0
 
 payload="$(cat)"
+# Fast path, no subprocess. This hook is wired to PostToolUse `*`, so it runs
+# after every tool call in every session — overwhelmingly the user's own, where
+# it always exits 0 at the agent_type case below. A payload without an
+# `agent_type` key can only reach that same exit, so bail here rather than
+# forking jq for it. A payload that merely mentions the key in its tool input
+# falls through to the normal parse, so this only ever saves work.
+case "$payload" in
+  *'"agent_type"'*) ;;
+  *) exit 0 ;;
+esac
+
 rs=$'\x1e'
 # transcript_path (fallback session_id) keys the counter per agent *instance*;
 # agent_type is last so the harness-controlled small value anchors the split

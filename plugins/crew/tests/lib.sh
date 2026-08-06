@@ -138,6 +138,22 @@ make_claude_md() {
   printf '%s' "$dir"
 }
 
+# make_tree <relpath>:<content> ... -> echoes a throwaway dir containing each
+# file, parent directories created. Splits each argument on its first colon, so
+# the content may contain colons (JSON) but the path may not. For fixtures whose
+# shape is what the hook reads — the marker files lane-guard probes for, a
+# project's config files.
+make_tree() {
+  local dir spec rel
+  dir="$(new_tmpdir)"
+  for spec in "$@"; do
+    rel="${spec%%:*}"
+    mkdir -p "$dir/$(dirname "$rel")"
+    printf '%s\n' "${spec#*:}" > "$dir/$rel"
+  done
+  printf '%s' "$dir"
+}
+
 trap 'rm -rf "$FIXTURE_ROOT"' EXIT
 
 # finish — call at the end of each test file. Prints a one-line summary (named

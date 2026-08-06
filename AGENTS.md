@@ -166,8 +166,11 @@ bash plugins/crew/tests/run.sh
 
 `plugins/crew/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
 and `git` (the same tools the hooks and validator already require) — that exercises the crew
-hooks' *behavior*: each hook is a pure `stdin JSON → allow (exit 0) / block (exit 2)` function,
-so its allow/block decisions are unit-testable with no LLM. It complements the structural checks
+hooks' *behavior*: each guard is a pure `stdin JSON → allow (exit 0) / block (exit 2)` function,
+so its allow/block decisions are unit-testable with no LLM. The two hooks that aren't guards are
+covered on their own terms — `turn-budget.sh` through its counter file, and `format.sh` (which
+never blocks) on the formatters it decides to run, faked in `node_modules/.bin` so no real
+toolchain is needed. It complements the structural checks
 (`validate-plugin.sh` + `shellcheck`): **a change to a hook's guard logic must add or adjust a
 case there**, covering both the allow and block sides. The suite also self-tests
 `validate-plugin.sh`, asserting its §2h/§2g/§4 guards actually bite.

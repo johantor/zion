@@ -5,6 +5,29 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.12.0] - 2026-08-06
+
+### Fixed
+- **`format.sh`: every formatter now runs under a wall-clock bound** (`CREW_FORMAT_TIMEOUT`,
+  default 20s). A hung formatter previously stalled the agent for the hook's whole budget
+  after *every* edit, and the harness's kill could land mid `--write`. Uses
+  `timeout`/`gtimeout` when present, degrades to an unbounded run when neither is (stock
+  macOS/BSD), and reports a hang distinctly from a formatter that failed.
+- **`lane-guard.sh`: stack detection walks the tree once instead of up to four times**, and
+  publishes its per-session cache by `mv` so parallel workers sharing a session can't read a
+  half-written one.
+
+### Changed
+- **`turn-budget.sh` bails before forking `jq`** when the payload carries no `agent_type` —
+  it is wired to PostToolUse `*`, so it ran on every tool call in every session, including
+  the user's own where it always no-ops.
+
+### Added
+- **Hook tests for `format.sh`** (previously the one uncovered hook, and the one that mutates
+  the user's files), and for `lane-guard.sh`'s marker detection — one fixture per framework
+  allowlist entry, so an entry dropped from the hook fails a test instead of silently
+  disabling the same-language ambiguity guard.
+
 ## [3.11.0] - 2026-08-06
 
 ### Added

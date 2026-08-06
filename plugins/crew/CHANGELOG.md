@@ -5,6 +5,31 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.13.0] - 2026-08-06
+
+### Added
+- **Agents declare their write-access facts, and CI checks them.** Every crew agent now
+  carries `owns-git: true|false` and `lane-guarded: true|false` in its frontmatter, and
+  validator §9 keeps those in lockstep with the rosters `bash-safety.sh` and `lane-guard.sh`
+  gate on — both directions, the same shape §8 already uses for `maxTurns`.
+
+  Both guards match a hardcoded list of agent names, so a name missing from one **fails
+  open**: adding an eighth agent would have silently given it unrestricted git and no write
+  lane, with nothing to catch it. §9 makes that a CI failure — an agent that declares
+  neither field, a roster entry naming no real agent, a Bash-capable non-owner missing from
+  the no-git roster, the git owner wrongly listed in it, or anything other than exactly one
+  `owns-git: true` per plugin. Bash-less agents (`seraph`) need no no-git entry, since
+  "can run git at all" is already derivable from `tools:`.
+
+  Each roster is preceded by a `# crew-roster: <name>` marker; the marker and the following
+  `a|b|c)` arm shape are load-bearing. Removing a marker while agents still declare the
+  fields is itself a failure, so the check can't be silently disabled. The section is
+  opt-in per plugin — `keymaker`, which gates git differently, is untouched.
+
+  Not covered: `lane-guard.sh`'s per-agent dispatch arms further down. They sit inside a
+  nested `case` on the e2e tool, and a parser that can't reliably separate the two would
+  report false lockstep; the hook's own comment still holds those in sync.
+
 ## [3.12.0] - 2026-08-06
 
 ### Fixed

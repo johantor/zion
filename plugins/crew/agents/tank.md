@@ -6,6 +6,8 @@ model: sonnet
 maxTurns: 72
 color: red
 memory: local
+owns-git: false
+lane-guarded: true
 skills:
   - engineering-principles
   - context-discipline

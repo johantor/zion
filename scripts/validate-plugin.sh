@@ -511,6 +511,150 @@ while IFS= read -r tb_hook; do
   done
 done < <(git ls-files 'plugins/*/hooks/turn-budget.sh')
 
+# 9. Hook rosters <-> agent frontmatter lockstep (same shape as §8, for the two
+#    facts that guard write access rather than turn count). A hook that gates on
+#    a hardcoded list of agent names fails OPEN for any name missing from it: add
+#    an eighth agent and it silently gets unrestricted git and no write lane. The
+#    agents declare the fact (`owns-git:`, `lane-guarded:`), the hooks carry the
+#    roster, and this keeps them equal both ways.
+#
+#    Opt-in per plugin: a plugin whose agents declare `owns-git` must carry the
+#    `# crew-roster: no-git` marker, and likewise `lane-guarded` <-> the
+#    `# crew-roster: lane-guarded` marker. A plugin that declares neither is
+#    skipped, so this doesn't force the shape onto plugins that gate differently
+#    (keymaker's twin check is a plain `[ "$agent_type" = ... ]`).
+#
+#    Note: lane-guard.sh's per-agent dispatch arms further down are NOT checked
+#    against the roster — they sit inside a nested `case` on the e2e tool, and a
+#    parser that can't reliably tell the two apart would report false lockstep.
+#    The hook's own comment is the only thing holding those in sync today.
+
+# Read one `key: value` from a Markdown file's YAML frontmatter.
+fm_field() {
+  awk -v key="$2" '
+    /^---[[:space:]]*$/ { if (in_fm == 0) { in_fm = 1; next } else exit }
+    in_fm && index($0, key ":") == 1 {
+      sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]]*$/, ""); print; exit
+    }
+  ' "$1"
+}
+
+# Read the `a|b|c)` case arm on the line following a `# crew-roster: <name>`
+# marker, as space-separated names.
+roster_arm() {
+  awk -v marker="# crew-roster: $2" '
+    found && /^[[:space:]]*[A-Za-z0-9_|-]+\)/ {
+      sub(/^[[:space:]]*/, ""); sub(/\).*$/, ""); gsub(/\|/, " "); print; exit
+    }
+    index($0, marker) == 1 { found = 1 }
+  ' "$1"
+}
+
+while IFS= read -r plugin_manifest; do
+  plugin_dir="${plugin_manifest%/.claude-plugin/plugin.json}"
+  agents=()
+  while IFS= read -r a; do [ -n "$a" ] && agents+=("$a"); done \
+    < <(git ls-files "$plugin_dir/agents/*.md")
+  [ "${#agents[@]}" -eq 0 ] && continue
+
+  # Does this plugin opt in? (any agent declaring the field)
+  declares_git=0 declares_lane=0
+  for agent in "${agents[@]}"; do
+    [ -n "$(fm_field "$agent" owns-git)" ] && declares_git=1
+    [ -n "$(fm_field "$agent" lane-guarded)" ] && declares_lane=1
+  done
+
+  if [ "$declares_git" -eq 1 ]; then
+    hook="$plugin_dir/hooks/bash-safety.sh"
+    # Not `arm="$([ -f ... ] && ...)"`: a missing hook makes the substitution
+    # exit non-zero, which under `set -e` aborts the whole validator.
+    arm=""
+    if [ -f "$hook" ]; then arm="$(roster_arm "$hook" no-git)"; fi
+    read -ra arm_names <<<"$arm"
+    if [ -z "$arm" ]; then
+      err "$plugin_dir agents declare 'owns-git' but $hook has no parseable '# crew-roster: no-git' marker + case arm; cannot verify the no-git roster"
+    else
+      declare -A no_git=() git_seen=()
+      for n in "${arm_names[@]}"; do no_git["$n"]=1; done
+      owners=()
+      for agent in "${agents[@]}"; do
+        aname="$(basename "$agent" .md)"
+        owns="$(fm_field "$agent" owns-git)"
+        case "$owns" in
+          true|false) ;;
+          "") err "$agent has no 'owns-git' (sibling agents declare it); add 'owns-git: true|false'"; continue ;;
+          *) err "$agent has 'owns-git: $owns'; expected true or false"; continue ;;
+        esac
+        [ "$owns" = true ] && owners+=("$aname")
+        git_seen["$aname"]=1
+        # Bash-less agents can't run git at all, so they need no roster entry.
+        has_bash=0
+        case ",$(fm_field "$agent" tools | tr -d ' ')," in *,Bash,*) has_bash=1 ;; esac
+        if [ "$owns" = true ]; then
+          if [ -n "${no_git[$aname]:-}" ]; then
+            err "$hook lists the git owner '$aname' in its no-git roster; remove it or flip 'owns-git' in $agent"
+          else
+            ok "$aname owns git and is absent from $hook's no-git roster"
+          fi
+        elif [ "$has_bash" -eq 1 ]; then
+          if [ -n "${no_git[$aname]:-}" ]; then
+            ok "$hook no-git roster covers Bash-capable '$aname'"
+          else
+            err "$hook has no no-git roster entry for '$aname' (owns-git: false, has Bash); it would run git unguarded -- add it to the arm"
+          fi
+        elif [ -n "${no_git[$aname]:-}" ]; then
+          err "$hook lists '$aname' in its no-git roster, but $agent has no Bash tool; remove the dead entry"
+        else
+          ok "$aname has no Bash tool (no no-git roster entry required)"
+        fi
+      done
+      if [ "${#owners[@]}" -ne 1 ]; then
+        err "$plugin_dir/agents must declare exactly one agent with 'owns-git: true' (found ${#owners[@]}: ${owners[*]:-none})"
+      fi
+      for n in "${arm_names[@]}"; do
+        if [ -z "${git_seen[$n]:-}" ]; then
+          err "$hook no-git roster entry '$n' does not match any $plugin_dir/agents/*.md; remove the stale name"
+        fi
+      done
+    fi
+  fi
+
+  if [ "$declares_lane" -eq 1 ]; then
+    hook="$plugin_dir/hooks/lane-guard.sh"
+    arm=""
+    if [ -f "$hook" ]; then arm="$(roster_arm "$hook" lane-guarded)"; fi
+    read -ra arm_names <<<"$arm"
+    if [ -z "$arm" ]; then
+      err "$plugin_dir agents declare 'lane-guarded' but $hook has no parseable '# crew-roster: lane-guarded' marker + case arm; cannot verify the lane roster"
+    else
+      declare -A laned=() lane_seen=()
+      for n in "${arm_names[@]}"; do laned["$n"]=1; done
+      for agent in "${agents[@]}"; do
+        aname="$(basename "$agent" .md)"
+        lg="$(fm_field "$agent" lane-guarded)"
+        case "$lg" in
+          true|false) ;;
+          "") err "$agent has no 'lane-guarded' (sibling agents declare it); add 'lane-guarded: true|false'"; continue ;;
+          *) err "$agent has 'lane-guarded: $lg'; expected true or false"; continue ;;
+        esac
+        lane_seen["$aname"]=1
+        if [ "$lg" = true ] && [ -z "${laned[$aname]:-}" ]; then
+          err "$agent declares 'lane-guarded: true' but $hook's roster omits '$aname'; it would write outside any lane -- add it to the arm"
+        elif [ "$lg" = false ] && [ -n "${laned[$aname]:-}" ]; then
+          err "$hook's roster lists '$aname' but $agent declares 'lane-guarded: false'; drop one side"
+        else
+          ok "$aname lane-guarded: $lg matches $hook's roster"
+        fi
+      done
+      for n in "${arm_names[@]}"; do
+        if [ -z "${lane_seen[$n]:-}" ]; then
+          err "$hook lane roster entry '$n' does not match any $plugin_dir/agents/*.md; remove the stale name"
+        fi
+      done
+    fi
+  fi
+done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

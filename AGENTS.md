@@ -180,6 +180,15 @@ entry in its `skills:` list resolves to some `plugins/*/skills/<name>/SKILL.md` 
 (skills are referenced unqualified, per existing convention). A typo here would otherwise fail
 silently at runtime — the skill just doesn't load and the agent guesses.
 
+It also keeps the guard hooks' hardcoded agent rosters in lockstep with the agents themselves
+(§9). `bash-safety.sh` and `lane-guard.sh` gate on a list of agent names, and a name missing
+from one of those lists **fails open** — a newly added agent would silently get unrestricted
+git and no write lane. So each agent declares `owns-git: true|false` and
+`lane-guarded: true|false` in its frontmatter, each roster carries a `# crew-roster: <name>`
+marker, and §9 checks both directions: every agent classified, every roster entry real, and
+exactly one git owner per plugin. Adding an agent without those two fields fails CI.
+The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
+
 ## Releasing
 
 Versions are per-plugin. To cut a release:

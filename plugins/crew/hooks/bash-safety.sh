@@ -65,6 +65,9 @@ fi
 # Bash tool, so it needs no entry); the prefix consumes env assignments and
 # env/command wrappers so they can't smuggle git past the anchor.
 git_at_cmd='(^|[;&|][&|]?[[:space:]]*)([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*git([[:space:]]|$)'
+# crew-roster: no-git -- validator §9 keeps the arm on the next line in lockstep
+# with the agents' frontmatter `owns-git`. Every Bash-capable agent that doesn't
+# own git belongs here; the marker and the `a|b|c)` arm shape are load-bearing.
 case "$agent_type" in
   tank|trinity|oracle|dozer|neo)
     if echo "$normalized" | grep -Eq "$git_at_cmd"; then

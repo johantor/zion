@@ -21,9 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `owns-git: true` per plugin. Bash-less agents (`seraph`) need no no-git entry, since
   "can run git at all" is already derivable from `tools:`.
 
-  Each roster is preceded by a `# crew-roster: <name>` marker; the marker and the following
-  `a|b|c)` arm shape are load-bearing. Removing a marker while agents still declare the
-  fields is itself a failure, so the check can't be silently disabled. The section is
+  Each roster is preceded by a `# crew-roster: <name>` marker; the marker, the `case` header,
+  and the `a|b|c)` arm on the line after it are load-bearing. The parse is pinned to exactly
+  that shape rather than "first arm-looking line after the marker" — these hooks hold other
+  case statements (`bash-safety`'s protected-branch `main|master|develop)`), and an unbounded
+  scan would silently read the wrong roster if the arm's formatting changed. Reformatting the
+  arm now reports the roster unverifiable. Removing a marker while agents still declare the
+  fields is likewise a failure, so the check can't be silently disabled. The section is
   opt-in per plugin — `keymaker`, which gates git differently, is untouched.
 
   Not covered: `lane-guard.sh`'s per-agent dispatch arms further down. They sit inside a

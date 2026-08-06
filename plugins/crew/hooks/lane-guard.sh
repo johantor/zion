@@ -40,9 +40,9 @@ path="${fields#*"$rs"}"
 # across any lane — so it has no lane restriction by design and bails here
 # rather than reaching the lane dispatch below. Kept in sync with that
 # dispatch's arms.
-# crew-roster: lane-guarded -- validator §9 keeps the arm on the next line in
-# lockstep with the agents' frontmatter `lane-guarded`; the marker and the
-# `a|b|c)` arm shape are load-bearing.
+# crew-roster: lane-guarded -- validator §9 keeps the arm below in lockstep with
+# the agents' frontmatter `lane-guarded`. Load-bearing shape: this marker, then
+# the `case` header, then the `a|b|c)` arm on the very next line.
 case "$agent_type" in
   oracle|dozer|tank|trinity) ;;
   *) exit 0 ;;

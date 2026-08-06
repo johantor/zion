@@ -539,14 +539,31 @@ fm_field() {
   ' "$1"
 }
 
-# Read the `a|b|c)` case arm on the line following a `# crew-roster: <name>`
-# marker, as space-separated names.
+# Read the `a|b|c)` case arm introduced by a `# crew-roster: <name>` marker, as
+# space-separated names.
+#
+# The scan is deliberately pinned rather than "first arm-looking line after the
+# marker": these hooks contain other case statements (bash-safety's protected-
+# branch `main|master|develop)` a few lines below), so an unbounded scan silently
+# reads the wrong roster when the arm's formatting changes. Pinned means: the
+# marker's comment block, then `case ... in`, then the arm on the very next line.
+# Anything else yields nothing, which the caller reports as unparseable.
 roster_arm() {
   awk -v marker="# crew-roster: $2" '
-    found && /^[[:space:]]*[A-Za-z0-9_|-]+\)/ {
-      sub(/^[[:space:]]*/, ""); sub(/\).*$/, ""); gsub(/\|/, " "); print; exit
+    index($0, marker) == 1 { found = 1; next }
+    !found { next }
+    /^[[:space:]]*#/ { next }                       # rest of the marker comment
+    /^[[:space:]]*$/ { next }
+    !seen_case {                                    # must be the case header
+      if ($0 ~ /^[[:space:]]*case[[:space:]]/) { seen_case = 1; next }
+      exit
     }
-    index($0, marker) == 1 { found = 1 }
+    {                                               # the very next line is the arm
+      if ($0 ~ /^[[:space:]]*[A-Za-z0-9_|-]+\)/) {
+        sub(/^[[:space:]]*/, ""); sub(/\).*$/, ""); gsub(/\|/, " "); print
+      }
+      exit
+    }
   ' "$1"
 }
 
@@ -575,7 +592,10 @@ while IFS= read -r plugin_manifest; do
       err "$plugin_dir agents declare 'owns-git' but $hook has no parseable '# crew-roster: no-git' marker + case arm; cannot verify the no-git roster"
     else
       declare -A no_git=() git_seen=()
-      for n in "${arm_names[@]}"; do no_git["$n"]=1; done
+      for n in "${arm_names[@]}"; do
+        [ -n "${no_git[$n]:-}" ] && err "$hook no-git roster names '$n' more than once"
+        no_git["$n"]=1
+      done
       owners=()
       for agent in "${agents[@]}"; do
         aname="$(basename "$agent" .md)"
@@ -628,7 +648,10 @@ while IFS= read -r plugin_manifest; do
       err "$plugin_dir agents declare 'lane-guarded' but $hook has no parseable '# crew-roster: lane-guarded' marker + case arm; cannot verify the lane roster"
     else
       declare -A laned=() lane_seen=()
-      for n in "${arm_names[@]}"; do laned["$n"]=1; done
+      for n in "${arm_names[@]}"; do
+        [ -n "${laned[$n]:-}" ] && err "$hook lane roster names '$n' more than once"
+        laned["$n"]=1
+      done
       for agent in "${agents[@]}"; do
         aname="$(basename "$agent" .md)"
         lg="$(fm_field "$agent" lane-guarded)"

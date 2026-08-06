@@ -155,6 +155,25 @@ assert_emits "§9 bites when the hook file is absent entirely" "$d" \
   "has no parseable '# crew-roster: no-git'"
 assert_emits "§9 keeps running after an absent hook" "$d" "Plugin validation failed."
 
+# A reformatted arm must fail loudly, not silently resolve to another case
+# statement further down the hook (bash-safety has a `main|master|develop)` arm).
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
+mkdir -p "$d/plugins/foo/hooks"
+# shellcheck disable=SC2016
+printf '#!/usr/bin/env bash\n# crew-roster: no-git -- fixture\ncase "$agent_type" in\n  a | b)\n  ;;\nesac\ncase "$branch" in\n  main|master|develop) ;;\nesac\n' \
+  > "$d/plugins/foo/hooks/bash-safety.sh"
+assert_emits "§9 bites on a reformatted arm instead of scanning on" "$d" \
+  "has no parseable '# crew-roster: no-git'"
+assert_silent "§9 does not adopt a later case statement's arm" "$d" "'main'"
+
+# A duplicated roster name is a copy-paste error, not a silent dedupe.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
+mk_roster_agent "$d/plugins/foo" hand "Read, Bash" false false
+mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'hand|hand'
+assert_emits "§9 bites on a duplicated roster name" "$d" "names 'hand' more than once"
+
 # lane-guarded, both directions.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false

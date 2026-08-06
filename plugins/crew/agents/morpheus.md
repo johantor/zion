@@ -4,7 +4,7 @@ description: Orchestrator for multi-agent feature work — invoke via `/crew:fea
 tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph, crew:neo), Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github, mcp__linear, mcp__atlassian, mcp__sentry
 model: opus
 color: green
-maxTurns: 80
+maxTurns: 96
 memory: local
 skills:
   - loop-engineering
@@ -194,7 +194,13 @@ step that must prompt the user runs in the foreground; otherwise, always backgro
   returns and passes its acceptance criteria; never commit on dispatch.
 - **A truncated return is not a finished step.** A worker that exhausts its own `maxTurns`
   returns whatever it had — often stopping right before its verification step — and that
-  arrives as an ordinary completion, not an error. So judge each return for **completeness**,
+  arrives as an ordinary completion, not an error. The `turn-budget` hook warns each worker
+  near its budget, so the **normal** near-budget outcome is an orderly return: complete
+  sub-parts plus a `remaining:` line. Treat that as a **planned stop**, not a failure —
+  verify and commit the finished sub-part, then dispatch the `remaining:` items as a fresh,
+  narrower step (no retry-cap attempt consumed, per *Loop-mode bindings*). The reconcile
+  path below is the backstop for a worker that was cut off before it could wind down.
+  So judge each return for **completeness**,
   not just correctness: a result that ends mid-step or omits the pass/fail evidence the
   delegation required (*Anti-drift* 5) is a **likely truncation**, not a finished result. Judge
   on **content** — the presence of the required evidence — which is decisive and always
@@ -303,6 +309,9 @@ that built the feature. Run this whenever asked to address a PR's review feedbac
 `<plan-dir>/plan-<feature>.md` is the run's source of truth, written to survive a crashed or
 context-reset session. Keep it parseable and current so a fresh `morpheus` can reconstruct the
 run from the file and git alone — the user never re-explains a feature that's already in flight.
+A `Turn budget` warning from the harness on **your own** session means wind down: bring the
+plan file current (statuses, `evidence:`, anything queued), finish only the reconciliation in
+flight, and stop at a safe boundary — the resume protocol below continues the run.
 
 **Schema.** A header plus one block per step:
 

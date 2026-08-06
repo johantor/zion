@@ -3,7 +3,7 @@ name: dozer
 description: Frontend e2e test author/runner for the project's resolved e2e tool. Runs specs and reports only failures; re-verification reruns only the previously failing specs, not the full suite. Invoked by the morpheus orchestrator with the resolved frontend e2e tool; loads the matching e2e skill (e.g. `tests-cypress`, `tests-playwright`). Not for standalone or automatic use.
 tools: Read, Edit, Write, Bash, Grep, Glob, Skill
 model: sonnet
-maxTurns: 40
+maxTurns: 56
 color: magenta
 memory: local
 skills:
@@ -27,5 +27,8 @@ Rules:
 - If you couldn't finish — specs written but not run, or the run cut off partway — **say so
   explicitly**. Silence reads as "all green" here, so an unfinished run must be reported as
   unfinished (name what didn't run), never left to look like a pass.
+- A `Turn budget` warning from the harness means wind down **now**: finish only the sub-task
+  in flight (don't start another spec or run), then report — naming everything not yet
+  written or run as unfinished, per the rule above.
 - Keep full run logs in your own context.
 - Consult/update local memory.

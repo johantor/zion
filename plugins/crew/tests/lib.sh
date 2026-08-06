@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
-# Shared harness for the crew hook tests. Each hook is a pure PreToolUse guard:
-# it reads a JSON payload on stdin and signals allow (exit 0) or block (exit 2
-# + a message on stderr). We feed a crafted payload and assert on the exit code
-# (and, for blocks, an expected stderr substring). No LLM, no network — just the
-# deterministic guard logic.
+# Shared harness for the crew hook tests. The guards are pure PreToolUse
+# functions: a JSON payload on stdin, allow (exit 0) or block (exit 2 + a
+# message on stderr). turn-budget.sh is the one deliberate exception — a
+# stateful PostToolUse advisor whose counter lives in a file (its tests drive
+# it through the CREW_TURN_BUDGET_DIR override); exit 2 there means "warning
+# fed back", not "blocked", but the same exit/stderr assertions apply. We feed
+# a crafted payload and assert on the exit code (and an expected stderr
+# substring). No LLM, no network — just the deterministic hook logic.
 #
 # Sourced by the *.test.sh files; run.sh drives them. See plugins/crew/CLAUDE.md
 # ("tests/") for how this fits the repo.

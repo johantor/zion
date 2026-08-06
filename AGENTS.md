@@ -29,7 +29,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`;
     per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
-  - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, wired via `hooks/hooks.json`.
+  - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, `turn-budget.sh`
+    (warns an agent nearing its `maxTurns` so it hands back an orderly `remaining:` instead of
+    truncating; validator §8 keeps its budget table in lockstep with agent frontmatter), wired
+    via `hooks/hooks.json`.
   - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
 - `scripts/validate-plugin.sh` — repo tooling (not part of any plugin; it needs this
   monorepo's layout and never runs in an installed plugin): validates every plugin's

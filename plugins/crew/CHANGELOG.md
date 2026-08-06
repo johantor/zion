@@ -5,6 +5,26 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.11.0] - 2026-08-06
+
+### Added
+- **Turn-budget sensor: workers wind down instead of truncating mid-task.** A new
+  `turn-budget.sh` PostToolUse hook counts each crew agent's tool calls against its
+  `maxTurns` (a deliberately conservative heuristic — tool calls ≥ turns) and warns it once
+  at 75% (finish the sub-task in flight, stop at a safe boundary, report `remaining:`) and
+  once at 90% (stop now). Near-budget work ends as an orderly partial return `morpheus`
+  commits and resumes as a planned stop; the truncation-reconcile path stays as the backstop.
+  Advisory by design: the hook fails open on every path where it can't count.
+- **Validator §8 keeps the hook's budget table in lockstep with agent frontmatter.** Every
+  agent's `maxTurns` must have a matching `budget=` entry (and no stale rows), so a future
+  `maxTurns` edit that forgets the hook fails CI instead of silently miscalibrating the
+  warnings.
+
+### Changed
+- **Turn budgets raised where truncation actually bites.** `morpheus` 80→96, `tank`/`trinity`
+  56→72, `oracle`/`dozer` 40→56, `neo` 40→48 (`seraph` unchanged) — test authoring proved as
+  turn-hungry as implementation; headroom stays secondary to the wind-down sensor.
+
 ## [3.10.0] - 2026-08-06
 
 ### Added

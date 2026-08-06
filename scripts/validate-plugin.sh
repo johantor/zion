@@ -447,6 +447,62 @@ else
   fi
 fi
 
+# 8. Turn-budget table <-> agent frontmatter lockstep: a plugin that ships
+#    hooks/turn-budget.sh keeps a per-agent budget table (`<name>) budget=<n> ;;`
+#    lines — the hook documents that shape as load-bearing) that must equal each
+#    of that plugin's agents' frontmatter `maxTurns`, both ways: every agent
+#    with a maxTurns needs exactly one matching entry, and every entry must map
+#    back to such an agent (no stale rows after a rename/removal). Without this,
+#    a maxTurns edit silently miscalibrates the wind-down warnings.
+while IFS= read -r tb_hook; do
+  plugin_dir="${tb_hook%/hooks/turn-budget.sh}"
+  # Extract "name n" pairs from the table. A hook whose table yields nothing is
+  # a loud failure: a lockstep check that can't parse its subject can't verify
+  # its claim (see AGENTS.md).
+  table="$(sed -n 's/^[[:space:]]*\([A-Za-z0-9_-]\{1,\}\))[[:space:]]*budget=\([0-9]\{1,\}\)[[:space:]]*;;.*$/\1 \2/p' "$tb_hook")"
+  if [ -z "$table" ]; then
+    err "$tb_hook has no parseable budget table (expected '<agent>) budget=<n> ;;' lines); cannot verify it matches agent maxTurns"
+    continue
+  fi
+  declare -A tb_budget=() tb_seen=()
+  dup=0
+  while read -r tname tval; do
+    [ -z "$tname" ] && continue
+    if [ -n "${tb_budget[$tname]:-}" ]; then
+      err "$tb_hook has duplicate budget entries for '$tname'"
+      dup=1
+    fi
+    tb_budget["$tname"]="$tval"
+  done <<<"$table"
+  [ "$dup" -ne 0 ] && continue
+  while IFS= read -r agent; do
+    aname="$(basename "$agent" .md)"
+    aturns="$(awk '
+      /^---[[:space:]]*$/ { if (in_fm == 0) { in_fm = 1; next } else exit }
+      in_fm && /^maxTurns:[[:space:]]*[0-9]+[[:space:]]*$/ { sub(/^maxTurns:[[:space:]]*/, ""); sub(/[[:space:]]*$/, ""); print; exit }
+    ' "$agent")"
+    if [ -z "$aturns" ]; then
+      # No maxTurns -> unbounded agent, no budget to enforce; a table entry for
+      # it is stale and caught by the reverse pass below.
+      ok "$agent has no maxTurns (no turn-budget entry required)"
+      continue
+    fi
+    tb_seen["$aname"]=1
+    if [ -z "${tb_budget[$aname]:-}" ]; then
+      err "$tb_hook has no budget entry for agent '$aname' (maxTurns: $aturns); add '$aname) budget=$aturns ;;'"
+    elif [ "${tb_budget[$aname]}" = "$aturns" ]; then
+      ok "$tb_hook budget for '$aname' matches maxTurns ($aturns)"
+    else
+      err "$tb_hook budget for '$aname' (${tb_budget[$aname]}) != $agent maxTurns ($aturns); keep the table in lockstep"
+    fi
+  done < <(git ls-files "$plugin_dir/agents/*.md")
+  for tname in "${!tb_budget[@]}"; do
+    if [ -z "${tb_seen[$tname]:-}" ]; then
+      err "$tb_hook budget entry '$tname' does not match any $plugin_dir/agents/*.md with a maxTurns; remove the stale row"
+    fi
+  done
+done < <(git ls-files 'plugins/*/hooks/turn-budget.sh')
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

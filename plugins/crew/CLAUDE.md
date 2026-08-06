@@ -19,21 +19,29 @@ anything stated here updates this file in the same commit.** Conventions live in
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
   backstop; watch/dev commands refused), `read-guard.sh` (>64 KiB raw reads; an explicit
-  `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes), `format.sh`. Wiring in
+  `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes), `format.sh`,
+  `turn-budget.sh` (PostToolUse `*`: counts a crew agent's tool calls against its
+  frontmatter `maxTurns` — a conservative heuristic, tool calls ≥ turns — and warns once at
+  75% and once at 90% so it winds down and hands back `remaining:` instead of truncating;
+  **advisory, fails open** on every can't-count path, unlike the fail-closed guards; its
+  `<agent>) budget=<n> ;;` table shape is load-bearing — validator §8 keeps it in lockstep
+  with agent `maxTurns`, both directions). Wiring in
   `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
   `read-guard.sh` and `bash-safety.sh`'s marked shared-guard regions are byte-synced with
   keymaker's copies (validator §5; crew canonical — edit here first).
 - No `scripts/` dir: the validator is repo tooling at the repo root
   (`scripts/validate-plugin.sh`) — it validates **all** plugins (manifests + marketplace
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
-  cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7) and is not shipped
-  with this plugin.
+  cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7, turn-budget table ↔
+  agent `maxTurns` lockstep §8) and is not shipped with this plugin.
 - `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
   hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
-  **behavior**: each is a pure `stdin JSON → exit 0/2` guard, fed crafted
-  payloads and asserted on allow/block (+ stderr substring). A change to a hook's guard logic
+  **behavior**: each guard is a pure `stdin JSON → exit 0/2` function, fed crafted
+  payloads and asserted on allow/block (+ stderr substring); `turn-budget.sh` is the one
+  stateful exception (per-instance counter file, driven via the `CREW_TURN_BUDGET_DIR`
+  override — exit 2 there is a fed-back warning, not a block). A change to a hook's logic
   **must add/adjust a case** here, on both the allow and block sides. Also self-tests the
-  validator (§2h/§2g/§4 bite). Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
+  validator (§2h/§2g/§4/§8 bite). Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
   Not shipped with the plugin — repo tooling.
 
 ## Schemas & conventions

@@ -3,7 +3,7 @@ name: neo
 description: Express-lane generalist for small, low-risk changes (a typo, a rename, a constant, an obvious one-liner, a small localized bug) — possibly cross-lane. Invoked by the morpheus orchestrator on its size-triage express path. Not for standalone or automatic use.
 tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, mcp__context7
 model: sonnet
-maxTurns: 40
+maxTurns: 48
 color: blue
 memory: local
 skills:
@@ -48,4 +48,6 @@ Rules:
 - Return a concise file-change summary and rationale, ending with an explicit completion marker
   (what you completed; a `remaining:` line if anything is left undone) — and, if you escalated,
   exactly what pushed the task past the express lane. Don't report the change complete when you
-  stopped short of it.
+  stopped short of it. A `Turn budget` warning from the harness means hand back **now**: finish
+  only the change in flight and report — an express task that outgrows its budget is escalation
+  evidence, not something to push through.

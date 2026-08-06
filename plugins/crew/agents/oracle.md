@@ -3,7 +3,7 @@ name: oracle
 description: Unit test author/runner for the project's resolved backend stack and, when a frontend unit test tool is configured, frontend component tests too. Runs tests and reports only failures; re-verification reruns only the previously failing tests, not the full suite. Invoked by the morpheus orchestrator with the resolved backend stack and (when applicable) the frontend unit test tool; loads the matching skill(s). Not for standalone or automatic use.
 tools: Read, Write, Edit, Bash, Grep, Glob, ToolSearch, Skill, mcp__mssql, mcp__postgres
 model: sonnet
-maxTurns: 40
+maxTurns: 56
 color: blue
 memory: local
 skills:
@@ -30,6 +30,9 @@ Rules:
 - If you couldn't finish — tests written but not run, or the run cut off partway — **say so
   explicitly**. Silence reads as "all green" here, so an unfinished run must be reported as
   unfinished (name what didn't run), never left to look like a pass.
+- A `Turn budget` warning from the harness means wind down **now**: finish only the sub-task
+  in flight (don't start another test, fixture, or run), then report — naming everything not
+  yet written or run as unfinished, per the rule above.
 - When a database MCP (SQL Server / Postgres) is available, use it to check schema and to
   seed/verify integration-test data; query targeted metadata/rows, not full dumps.
 - Keep full run logs in your own context.

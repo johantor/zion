@@ -96,7 +96,7 @@ any built-in or other-plugin commands of the same short name.
   resolved) — `backend-dotnet`, `backend-node`, `cms-optimizely`, `frontend-react`,
   `frontend-nextjs`; per-test-tool — `tests-xunit`, `tests-node`, `tests-cypress`,
   `tests-playwright`, `tests-vitest`, `tests-jest-frontend`
-- `hooks/`: lane guard, read guard, bash safety, formatter entrypoint
+- `hooks/`: lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor
 - `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`, `/crew:loop`
 
 ## Hooks & enforcement
@@ -139,6 +139,16 @@ plugin):
   Prettier, ESLint, Stylelint — each detected by its config file and run in fix mode, only
   when installed locally (never an `npx` download); anything else (e.g. `.cshtml`) is
   skipped cleanly. Best-effort — fails open.
+- **turn-budget** warns a crew agent as it nears its turn cap (`maxTurns`), so oversized
+  work ends as an orderly hand-back — finish the sub-task in flight, report a `remaining:`
+  line — instead of a mid-task truncation `morpheus` has to reconcile from the tree. It
+  counts the agent's tool calls (a conservative stand-in for turns: one turn may batch
+  several calls, so the warning errs early) and fires **once at 75%** (wind down) and
+  **once at 90%** (stop now) of that agent's budget. Advisory, not a guard: on any path
+  where it can't count (unknown agent, unwritable state, malformed payload) it stays
+  silent rather than blocking — and it never fires for your own main session. The
+  per-agent budget table is kept in lockstep with the agents' `maxTurns` frontmatter by
+  the repo validator, so the two can't drift.
 
 ## Recommended MCP servers
 

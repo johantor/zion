@@ -21,3 +21,5 @@ Rules:
 - If no browser MCP is available, say so and report only what the static references support — do not guess at rendered output.
 - If no Figma MCP is available, use the design reference exactly as provided in the delegation — don't invent design intent.
 - Apply `context-discipline`: request targeted snapshots/nodes/elements, not broad dumps (a full Figma file or page dump is bulk output — fetch the specific node).
+- A `Turn budget` warning from the harness means stop comparing **now**: return the mismatches
+  found so far and name the areas you didn't get to, rather than starting another capture.

@@ -3,7 +3,7 @@ name: tank
 description: Backend implementer for the project's resolved backend stack — server-side logic, controllers/handlers, and data access. Invoked by the morpheus orchestrator with the resolved backend stack; loads the matching stack skill (e.g. `backend-dotnet`, `backend-node`). Not for standalone or automatic use.
 tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, Skill, mcp__context7, mcp__mssql, mcp__postgres
 model: sonnet
-maxTurns: 56
+maxTurns: 72
 color: red
 memory: local
 skills:
@@ -52,3 +52,5 @@ Scope:
   exactly what's unfinished. If the task is larger than one clean pass, stop at a safe boundary
   (a coherent, self-consistent change) and hand back the remainder rather than half-finishing a
   further part; `morpheus` resumes it. Don't report a step complete when you stopped short of it.
+  A `Turn budget` warning from the harness means that boundary is **now**: finish only the
+  sub-task in flight and hand back with your completion marker — never start another after it.

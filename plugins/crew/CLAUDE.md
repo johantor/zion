@@ -29,6 +29,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
   `read-guard.sh` and `bash-safety.sh`'s marked shared-guard regions are byte-synced with
   keymaker's copies (validator §5; crew canonical — edit here first).
+  `format.sh` runs every formatter under a wall-clock bound (`CREW_FORMAT_TIMEOUT`,
+  default 20s) via `timeout`/`gtimeout`, degrading to an unbounded run where neither
+  exists (stock macOS/BSD); a hang is reported distinctly from a formatter that failed.
 - No `scripts/` dir: the validator is repo tooling at the repo root
   (`scripts/validate-plugin.sh`) — it validates **all** plugins (manifests + marketplace
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
@@ -37,10 +40,13 @@ anything stated here updates this file in the same commit.** Conventions live in
 - `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
   hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
   **behavior**: each guard is a pure `stdin JSON → exit 0/2` function, fed crafted
-  payloads and asserted on allow/block (+ stderr substring); `turn-budget.sh` is the one
-  stateful exception (per-instance counter file, driven via the `CREW_TURN_BUDGET_DIR`
-  override — exit 2 there is a fed-back warning, not a block). A change to a hook's logic
-  **must add/adjust a case** here, on both the allow and block sides. Also self-tests the
+  payloads and asserted on allow/block (+ stderr substring). Two hooks are deliberate
+  exceptions to that shape: `turn-budget.sh` is stateful (per-instance counter file, driven
+  via the `CREW_TURN_BUDGET_DIR` override — exit 2 there is a fed-back warning, not a block),
+  and `format.sh` never blocks at all, so its cases assert on the stderr report and drive
+  real formatter runs through fakes in `node_modules/.bin` (with `CREW_FORMAT_TIMEOUT`
+  shortened for the hang case). A change to a hook's logic **must add/adjust a case** here,
+  on both the allow and block sides. Also self-tests the
   validator (§2h/§2g/§4/§8 bite). Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
   Not shipped with the plugin — repo tooling.
 
@@ -65,12 +71,17 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Validate = what CI runs: `bash scripts/validate-plugin.sh` + `bash plugins/crew/tests/run.sh` +
   `shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh` (shellcheck may be missing
   locally; CI covers it).
-- `lane-guard.sh`'s `has_node_backend`/`has_frontend` probes match **hardcoded framework
-  allowlists** (used only when stacks are *unset* and no lane paths are set). They aren't
-  exhaustive and drift as the ecosystem grows; a miss fails **silently** — the same-language
-  ambiguity guard just doesn't fire, so tank/trinity fall back to extension lanes that can't
-  tell them apart. Add new mainstream frameworks as they appear. Once #128's hook test suite
-  lands, add a fixture per framework so a missing entry becomes a failing test, not a silent gap.
+- `lane-guard.sh`'s `scan_markers` probe matches **hardcoded framework allowlists**
+  (`node_backend_deps`/`frontend_deps`, used only when stacks are *unset* and no lane paths
+  are set). They aren't exhaustive and drift as the ecosystem grows; a miss fails
+  **silently** — the same-language ambiguity guard just doesn't fire, so tank/trinity fall
+  back to extension lanes that can't tell them apart. Add new mainstream frameworks as they
+  appear, **and a fixture in `tests/lane-guard.test.sh`** — it asserts one per allowlist
+  entry, so an entry dropped from the hook fails a test instead of going silent.
+  `scan_markers` collects every marker in **one** `find` walk (it runs inside a PreToolUse
+  hook, so a walk per marker is latency the agent pays before its edit lands), and
+  `detect_regime` caches the verdict per `session_id`, publishing it by `mv` so parallel
+  workers sharing a session can't read a half-written cache.
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   this plugin's `CHANGELOG.md` (every plugin keeps its own changelog next to its manifest).
   On merge to main, auto-release tags `crew/vX.Y.Z` from that section.

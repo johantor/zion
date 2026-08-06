@@ -78,41 +78,50 @@ lane_globs() {
 
 # Marker detection — used only when the stack slots are *unset* and no lane
 # paths are configured. Extensions alone can't separate tank's `.ts`/`.js` from
-# trinity's when the backend is also Node, so these probes read the repo's
-# markers instead. Common non-source directories are pruned so a large tree
-# doesn't slow the hook. The framework allowlists below are not exhaustive and
-# need periodic review as the ecosystem grows — a miss fails silently (the
-# same-language guard just doesn't fire); see plugins/crew/CLAUDE.md.
+# trinity's when the backend is also Node, so this probe reads the repo's
+# markers instead. Common non-source directories are pruned, and every marker is
+# collected in a **single** traversal: this runs inside a PreToolUse hook, so a
+# separate full-tree walk per marker is latency the agent pays before its edit
+# lands. The framework allowlists below are not exhaustive and need periodic
+# review as the ecosystem grows — a miss fails silently (the same-language guard
+# just doesn't fire); see plugins/crew/CLAUDE.md.
+node_backend_deps='"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core|hono|elysia|@trpc/server)"[[:space:]]*:'
+frontend_deps='"(react|react-dom|next|nuxt|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro|gatsby|@remix-run/react|react-router|@builder\.io/qwik)"[[:space:]]*:'
 prune_args=(-type d \( -name node_modules -o -name .git -o -name dist -o -name bin -o -name obj -o -name coverage -o -name .next \) -prune -o)
-has_dotnet_backend() {
-  find . "${prune_args[@]}" \( -name '*.csproj' -o -name '*.sln' \) -print 2>/dev/null | grep -q .
-}
-has_node_backend() {
-  # Scan every package.json (not just the repo root) so a workspace/monorepo
-  # backend under e.g. apps/api/package.json is still detected.
-  while IFS= read -r pj; do
-    grep -Eq '"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core|hono|elysia|@trpc/server)"[[:space:]]*:' "$pj" && return 0
-  done < <(find . "${prune_args[@]}" -name package.json -print 2>/dev/null)
-  return 1
-}
-has_frontend() {
-  # Same workspace-aware scan for a frontend dep in any package.json...
-  while IFS= read -r pj; do
-    grep -Eq '"(react|react-dom|next|nuxt|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro|gatsby|@remix-run/react|react-router|@builder\.io/qwik)"[[:space:]]*:' "$pj" && return 0
-  done < <(find . "${prune_args[@]}" -name package.json -print 2>/dev/null)
-  # ...or any JSX/TSX file anywhere in the tree.
-  find . "${prune_args[@]}" \( -name '*.tsx' -o -name '*.jsx' \) -print 2>/dev/null | grep -q .
+
+# Sets _det_dotnet / _det_node / _det_frontend to 0 or 1 from one walk of the
+# tree. package.json is scanned wherever it lives (not just the repo root) so a
+# workspace/monorepo backend under e.g. apps/api/package.json is still detected;
+# a frontend is a framework dep in any package.json, or any JSX/TSX file.
+scan_markers() {
+  _det_dotnet=0 _det_node=0 _det_frontend=0
+  local f
+  while IFS= read -r f; do
+    case "$f" in
+      *.csproj|*.sln) _det_dotnet=1 ;;
+      *.tsx|*.jsx)    _det_frontend=1 ;;
+      *package.json)
+        # grep's stderr is dropped so an unreadable package.json can't prepend a
+        # stray error to a block message. Detection is unaffected either way:
+        # grep already reports an unreadable file as "no match" via its status.
+        if [ "$_det_node" = 0 ] && grep -Eq "$node_backend_deps" "$f" 2>/dev/null; then _det_node=1; fi
+        if [ "$_det_frontend" = 0 ] && grep -Eq "$frontend_deps" "$f" 2>/dev/null; then _det_frontend=1; fi
+        ;;
+    esac
+  done < <(find . "${prune_args[@]}" \
+    \( -name '*.csproj' -o -name '*.sln' -o -name 'package.json' -o -name '*.tsx' -o -name '*.jsx' \) \
+    -print 2>/dev/null)
 }
 
-# Cache detection for the session so the three probes above run at most once,
-# not on every Edit/Write — their markers don't change mid-feature. Keyed by
+# Cache detection for the session so the walk above runs at most once, not on
+# every Edit/Write — its markers don't change mid-feature. Keyed by
 # session_id, and only persisted when one is present: a cache keyed on cwd
 # alone would outlive the session it was written for (nothing ever expires a
 # /tmp file), and could be reused by an unrelated later session in the same
 # directory with stale results — unsafe for a fail-closed guard. Without a
 # session_id, detection is simply recomputed every call, as before caching.
 detect_regime() {
-  local cache session_id
+  local cache="" session_id tmp
   session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"
   if [ -n "$session_id" ]; then
     cache="${TMPDIR:-/tmp}/claude-lane-guard-detect-$(printf '%s' "$session_id" | tr -c 'A-Za-z0-9_' '_')"
@@ -123,11 +132,17 @@ detect_regime() {
       fi
     fi
   fi
-  has_dotnet_backend && _det_dotnet=1 || _det_dotnet=0
-  has_node_backend && _det_node=1 || _det_node=0
-  has_frontend && _det_frontend=1 || _det_frontend=0
-  if [ -n "$session_id" ]; then
-    { printf '%s\n' "$_det_dotnet" "$_det_node" "$_det_frontend" > "$cache"; } 2>/dev/null || true
+  scan_markers
+  # Publish the cache by rename, not by writing in place: crew dispatches
+  # workers in parallel, so several Edit/Write hooks can share one session_id
+  # and race here. A reader then sees either the previous file or the complete
+  # new one — never a half-written one it would have to fall back from.
+  if [ -n "$cache" ] && tmp="$(mktemp "$cache.XXXXXX" 2>/dev/null)"; then
+    if printf '%s\n' "$_det_dotnet" "$_det_node" "$_det_frontend" > "$tmp" 2>/dev/null; then
+      mv -f "$tmp" "$cache" 2>/dev/null || rm -f "$tmp"
+    else
+      rm -f "$tmp"
+    fi
   fi
 }
 

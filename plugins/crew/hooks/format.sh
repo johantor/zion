@@ -11,14 +11,16 @@ command -v jq >/dev/null 2>&1 || exit 0
 # Read the payload once; jq from the variable (stdin can only be consumed once).
 payload="$(cat)"
 agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty' 2>/dev/null || true)"
-path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
 case "$agent_type" in
   # neo is the cross-lane express-lane generalist, so it gets the same
   # extension-based routing as tank/trinity (below) rather than a fixed lane.
   tank|trinity|neo) : ;;
   *)                exit 0 ;;
 esac
-# Extension-based routing needs a path to route on; without one there's nothing to format.
+# Extension-based routing needs a path to route on; without one there's nothing
+# to format. Looked up only after the agent gate, so the far more common
+# no-op call (any other agent, or the main session) doesn't pay for a second jq.
+path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
 [ -n "$path" ] || exit 0
 
 ext="${path##*.}"
@@ -32,6 +34,40 @@ esac
 # through literally and simply fail the -e test).
 cfg() { for _p in "$@"; do [ -e "$_p" ] && return 0; done; return 1; }
 
+# Every formatter runs under a wall-clock bound. This hook fires after *every*
+# edit tank/trinity/neo make, so a formatter that hangs — a stalled tool server,
+# a package restore waiting on the network, a tool that reads stdin — otherwise
+# stalls the agent for the hook's whole budget on each one, and the harness's
+# kill can land mid `--write` and leave a truncated source file. `timeout` is GNU
+# coreutils and absent on stock macOS/BSD, so it's used when present (as
+# `timeout` or `gtimeout`) and skipped when not — the same degrade-don't-fail
+# posture as the missing-jq path above. The bound is a plain SIGTERM (no `-k`,
+# which not every `timeout` build accepts): it holds for tools that terminate on
+# a signal, which every formatter routed here does, not for one that ignores it.
+FORMAT_TIMEOUT="${CREW_FORMAT_TIMEOUT:-20}"
+timeout_bin=""
+for _t in timeout gtimeout; do
+  if command -v "$_t" >/dev/null 2>&1; then timeout_bin="$_t"; break; fi
+done
+
+# run_bounded <cmd...> — run a formatter quietly under that bound, returning its
+# exit status (124 when the bound killed it).
+run_bounded() {
+  local _st=0
+  if [ -n "$timeout_bin" ]; then
+    "$timeout_bin" "$FORMAT_TIMEOUT" "$@" >/dev/null 2>&1 || _st=$?
+  else
+    "$@" >/dev/null 2>&1 || _st=$?
+  fi
+  return "$_st"
+}
+
+# hung <status> — true when the bound killed the tool, so a hang is reported
+# distinctly from a tool that ran and rejected the file. 124 is `timeout`'s
+# convention; no formatter used here exits 124 of its own accord, and without a
+# timeout binary nothing can have been killed.
+hung() { [ -n "$timeout_bin" ] && [ "$1" = 124 ]; }
+
 case "$lane" in
   dotnet)
     command -v dotnet >/dev/null 2>&1 || exit 0  # fail open if dotnet isn't available
@@ -44,13 +80,21 @@ case "$lane" in
     # formats a single file directly, without evaluating the project. Otherwise
     # fall back to `dotnet format whitespace`, which skips analyzer evaluation.
     if cfg .csharpierrc .csharpierrc.* ; then
-      if dotnet csharpier format "$path" >/dev/null 2>&1; then
+      st=0; run_bounded dotnet csharpier format "$path" || st=$?
+      if [ "$st" = 0 ]; then
         echo "format hook: ran csharpier on $path" >&2
+      elif hung "$st"; then
+        echo "format hook: csharpier timed out after ${FORMAT_TIMEOUT}s on $path" >&2
       else
         echo "format hook: csharpier configured but failed (is it restored? 'dotnet tool restore')" >&2
       fi
     else
-      dotnet format whitespace --include "$path" >/dev/null 2>&1 || echo "format hook: dotnet format whitespace failed" >&2
+      st=0; run_bounded dotnet format whitespace --include "$path" || st=$?
+      if hung "$st"; then
+        echo "format hook: dotnet format whitespace timed out after ${FORMAT_TIMEOUT}s on $path" >&2
+      elif [ "$st" != 0 ]; then
+        echo "format hook: dotnet format whitespace failed" >&2
+      fi
     fi
     ;;
   web)
@@ -63,10 +107,12 @@ case "$lane" in
     ran=""
     # Run a locally-installed tool in fix mode; record it, report failures.
     runfix() {
-      _t="$1"; shift
-      [ -x "$bin/$_t" ] || return 0
-      if "$bin/$_t" "$@" >/dev/null 2>&1; then ran="$ran $_t"
-      else echo "format hook: $_t failed on $path" >&2; fi
+      _tool="$1"; shift
+      [ -x "$bin/$_tool" ] || return 0
+      st=0; run_bounded "$bin/$_tool" "$@" || st=$?
+      if [ "$st" = 0 ]; then ran="$ran $_tool"
+      elif hung "$st"; then echo "format hook: $_tool timed out after ${FORMAT_TIMEOUT}s on $path" >&2
+      else echo "format hook: $_tool failed on $path" >&2; fi
     }
 
     # Biome formats + lints JS/TS/JSON/CSS in one pass when configured.

@@ -70,7 +70,12 @@ mk_turns_agent() {  # <plugin_dir> <name> <maxTurns>
 }
 mk_turn_budget() {  # <plugin_dir> <case-table-body>
   mkdir -p "$1/hooks"
+  # Both formats intentionally emit their `$`-expressions as literal text into
+  # the generated fixture — that's the shape §8 and §6 parse — so they must not
+  # expand here.
+  # shellcheck disable=SC2016
   printf '#!/usr/bin/env bash\ncase "$agent_type" in\n%s\n  *) exit 0 ;;\nesac\n' "$2" > "$1/hooks/turn-budget.sh"
+  # shellcheck disable=SC2016
   printf '{"hooks":{"PostToolUse":[{"matcher":"*","hooks":[{"type":"command","command":"\\"${CLAUDE_PLUGIN_ROOT}\\"/hooks/turn-budget.sh"}]}]}}\n' > "$1/hooks/hooks.json"
 }
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0

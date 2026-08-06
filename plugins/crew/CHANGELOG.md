@@ -5,6 +5,22 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.10.0] - 2026-08-06
+
+### Added
+- **`morpheus` never counts on continuing a running worker.** `Agent` always spawns a fresh
+  worker, and morph can't rely on a `SendMessage`-style continue tool (its canonical
+  `claude --agent crew:morpheus` launch typically has none) — so "extend the scope of the
+  running worker" just spawned a second worker into the first's scope. `morpheus` now widens an
+  in-flight worker by waiting and re-dispatching a fresh, wider step (or splitting at planning
+  time), carrying context via the plan file rather than a live agent's memory.
+- **One writer per file, one owner per shared artifact.** Workers may author disjoint files
+  concurrently, but shared setup (fixtures, helpers, base classes, config) gets a single owning
+  step the rest `depends-on` — two blind workers would each recreate it and clash. To collapse an
+  overlap or replace a mis-scoped worker, `morpheus` stops one worker, reconciles its partial
+  writes against the tree (as for a truncated return), then dispatches a single replacement; it
+  never races two writers over the same file or setup.
+
 ## [3.9.0] - 2026-08-05
 
 ### Added

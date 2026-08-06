@@ -144,6 +144,14 @@ step that must prompt the user runs in the foreground; otherwise, always backgro
 - **Backgrounding is not abandoning — waiting is not blocking.** It means "don't freeze the
   turn while the worker runs," *not* "don't wait for the result." You still collect every
   worker's result (you're notified when it finishes), then verify and commit.
+- **Every dispatch is a fresh spawn — don't count on continuing a running worker.** `Agent`
+  always starts a *new* worker that knows only what its prompt carries, and you can't rely on a
+  `SendMessage`-style "add a turn to a worker already running" tool being in reach — the
+  canonical `claude --agent crew:morpheus` launch typically has none. So never plan to "extend
+  the scope of the running *worker*": attempting it just spawns a **second** worker into the
+  first's scope. Context moves forward through the plan file, not a live agent's memory (*The
+  plan file is durable state*) — to widen an in-flight worker, wait for it to return and
+  re-dispatch one fresh, wider step, or split the work at planning time.
 - **Surface a status pulse whenever you're active.** A background run shouldn't read as dead
   air. Emit **one compact status line** — what just finished, what's still running (name the
   worker), and what's queued next — at two moments: when you dispatch background workers, and
@@ -169,6 +177,19 @@ step that must prompt the user runs in the foreground; otherwise, always backgro
 - **Dispatch every unblocked step each round.** Launch all steps whose dependencies are met in
   a single message — never serialize steps the plan marks independent. Keep dependent steps
   ordered: don't start one until its input is back and verified.
+- **One writer per file; one owner per shared artifact.** "Independent" above is
+  *dependency*-independent, and workers may author *disjoint* files concurrently — that's the
+  parallelism. But any **shared** artifact two steps could both touch (a test fixture, helper,
+  or factory; a base class or bootstrap idiom; shared config) must be created by a single owning
+  step the others `depends-on`. Two workers run blind to each other, so each will independently
+  (re)create shared setup and the edits clash. Before a round, confirm no two backgrounded steps
+  could write the same file or the same shared setup; if they could, give one ownership and
+  depend the rest on it, or serialize. To collapse an overlap you already have — or to replace a
+  worker you judge mis-scoped — **stop one worker** (if a stop primitive is in reach), reconcile
+  its partial writes against the working tree exactly as for a truncated return (*A truncated
+  return is not a finished step*) — keep the correct sub-part, drop clashing edits — then
+  dispatch the single replacement. If you can't stop it, let it finish and reconcile first.
+  Never run two writers over the same file or shared setup at once.
 - **Commit only verified, completed steps.** A backgrounded step isn't done until its result
   returns and passes its acceptance criteria; never commit on dispatch.
 - **A truncated return is not a finished step.** A worker that exhausts its own `maxTurns`

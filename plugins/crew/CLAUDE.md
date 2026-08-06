@@ -47,7 +47,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   real formatter runs through fakes in `node_modules/.bin` (with `CREW_FORMAT_TIMEOUT`
   shortened for the hang case). A change to a hook's logic **must add/adjust a case** here,
   on both the allow and block sides. Also self-tests the
-  validator (§2h/§2g/§4/§8 bite). Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
+  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8) has at least one
+  negative fixture plus a silent control, and a new section lands with its fixture in the same
+  commit (AGENTS.md, *Validating changes*). Asserts key on the guard's FAIL message, not the
+  exit code. Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
   Not shipped with the plugin — repo tooling.
 
 ## Schemas & conventions

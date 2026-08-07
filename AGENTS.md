@@ -251,6 +251,10 @@ over a multi-sentence paragraph restating each principle's contents.
     justify, it is a review thread, not a PR body.
   - Detail a reviewer must have to approve safely (a deliberate omission, a risky assumption)
     stays — compressed to a sentence or two, not an essay.
+- **Every review comment gets a reply, then the thread gets resolved.** Fixed it — say so and
+  name the commit. Declining — say why. Duplicate of another thread — say which. Silence leaves
+  the author guessing whether it was seen. Resolve only after replying, so the thread reads as
+  closed rather than ignored; leave it open if the answer is still pending.
 - When a PR resolves an issue, link it with a GitHub closing keyword in the body —
   `Closes #N` / `Fixes #N` / `Resolves #N` — so the issue auto-closes on merge. Plain
   references like `Implements #N` only cross-link; they do not close the issue.

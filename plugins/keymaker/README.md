@@ -184,12 +184,20 @@ When the bar is met, flip the Status to **Stable** (here and in the [root README
 drop the banner, and bump the plugin to `1.0.0` with a `CHANGELOG.md` entry. That release is the only
 version change these criteria imply — documenting them is docs-only.
 
-A scratch repo for these is cheap, and you build it **in your own terminal, not inside a Claude
-agent session** — keymaker's hooks block `git` for agents (twins especially), so the `git init`
-and setup steps below are yours to run directly. In a throwaway directory: `git init`, add the
-marker file(s) for the stack under test (`*.csproj` / `package.json` + `tsconfig.json`), plant the
-specific suppression, version pin, or violation each row names, then point `/keymaker:audit` or
-`/keymaker:open` at it.
+A scratch repo for these is cheap, and `tests/fixtures/keymaker-scratch.sh` in this repo builds
+one — it prints the path on stdout so it composes directly:
+
+```bash
+repo="$(bash tests/fixtures/keymaker-scratch.sh --stack ts)"   # or --stack dotnet
+cd "$repo" && claude --plugin-dir /path/to/plugins/keymaker -p "/keymaker:audit src/"
+```
+
+It plants same-rule suppressions where some carry a meaningful native justification and some
+don't, plus a justified-*and*-stale one and an annotated skipped test — the two documented filter
+exemptions. Build it **in your own terminal, not inside a Claude agent session**: keymaker's hooks
+block `git` for agents (twins especially), so the `git init` is the script's to run, not an
+agent's. For rows the generator doesn't cover, plant the specific suppression, version pin, or
+violation the row names and point `/keymaker:audit` or `/keymaker:open` at it.
 
 > **Verification log — 2026-07-17.** The three read-only / early-exit rows checked below were run
 > against a planted-debt TypeScript scratch repo (`package.json` + `tsconfig.json`, four suppressions
@@ -205,6 +213,18 @@ specific suppression, version pin, or violation each row names, then point `/key
 > TypeScript instance passed and that row's .NET variant (e.g. `#pragma warning disable`, `CS8602`)
 > is still pending, not that the whole row is done.
 
+> **Verification log — 2026-08-07 (0.8.0 justification rows).** The three justification rows were
+> run against a scratch repo from `tests/fixtures/keymaker-scratch.sh --stack ts`, driving the
+> plugin headlessly (`claude --plugin-dir plugins/keymaker -p "/keymaker:audit …"`, sonnet). Observed:
+> `/keymaker:audit src/` returned **"4 findings (1 justified) — 3 shown"**, listing `total.ts` and
+> `format.ts` as unjustified and excluding `vendor.ts` as rubric class 1 while quoting its ESLint
+> `--` description; `/keymaker:audit stale` listed the justified-and-stale `lookup.ts` candidate
+> **tagged `justified`**, stating the filter is exempt in that scope; `/keymaker:audit skipped-tests`
+> reported the annotated `it.skip` as class 4 and said in as many words that the rationale comment
+> does not exclude it. The working tree was unchanged after all three (`git status` clean, one
+> commit). Caveats: TypeScript only — the .NET variants of these rows are still pending, and the
+> headless runs had no `AskUserQuestion`, so the audit's picker used its documented text fallback.
+
 ### Audit mode (read-only scouting)
 
 - [x] **`path` scope** **[TS]** — `/keymaker:audit src/Foo/` over a handful of suppressions → ranked report (~12 max), each finding a ready-to-run `/keymaker:open`; nothing edited.
@@ -214,9 +234,9 @@ specific suppression, version pin, or violation each row names, then point `/key
 - [ ] **`outdated` scope** — a `package.json` / `.csproj` with an outdated pin → each `current → target` triaged SAFE/REVIEW/CAUTION; metadata only, no install/restore/build.
 - [ ] **`diff` scope** — `/keymaker:audit diff` on a branch with changes → report scoped to the changed files vs base.
 - [ ] **report cap** — 50+ hits for a single rule → folded into one "50+ for rule X" entry; total report stays ≤ ~12.
-- [ ] **justified suppressions excluded** — a tree where one of three same-rule suppressions carries a meaningful native justification → report lists the two unjustified ones and its totals line accounts for the third as justified; nothing edited.
-- [ ] **`stale` ignores justifications** — a justified suppression that is also a stale candidate → still listed under `/keymaker:audit stale`, tagged justified.
-- [ ] **skipped tests never excluded** — a `[Fact(Skip="…")]` / `it.skip` with a descriptive reason → still reported as needs-investigation.
+- [x] **justified suppressions excluded** **[TS]** — a tree where one of three same-rule suppressions carries a meaningful native justification → report lists the two unjustified ones and its totals line accounts for the third as justified; nothing edited.
+- [x] **`stale` ignores justifications** **[TS]** — a justified suppression that is also a stale candidate → still listed under `/keymaker:audit stale`, tagged justified.
+- [x] **skipped tests never excluded** **[TS]** — a `[Fact(Skip="…")]` / `it.skip` with a descriptive reason → still reported as needs-investigation.
 
 ### Open mode — early exits (before any edit)
 

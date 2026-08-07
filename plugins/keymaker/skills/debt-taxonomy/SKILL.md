@@ -142,8 +142,13 @@ declares that slot per mechanism, and names the mechanisms that have none.
 - the text is not *solely* a deferral marker: `TODO`, `FIXME`, `HACK`, `XXX`, `WIP`,
   `fix later`, `temporary`, `for now`, `n/a`, `-`, `?`, `see above`.
 
-A deferral marker says the debt is still owed — the opposite of a keep-decision. **When it is
-ambiguous, surface the finding:** excluding one hides debt, so the bias runs toward showing it.
+A deferral marker says the debt is still owed — the opposite of a keep-decision.
+
+This is a **heuristic, not a guarantee**: two words of genuine nonsense ("needed here") passes it,
+and a terse-but-real reason may read as thin. It is calibrated to be cheap and grep-only, so it
+will misjudge in both directions. That is why the bias is fixed: **when it is ambiguous, surface
+the finding.** Excluding one hides debt, and a re-surfaced suppression costs a glance whereas a
+hidden one costs nothing until it matters.
 
 **Effect on the report.** A justified suppression classifies **rubric class 1** and is excluded
 from the ranked report, but **still counted in totals** — e.g. `14 findings (3 justified,

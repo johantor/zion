@@ -54,6 +54,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   that drives real agents against throwaway repos to check the untrusted-input rules hold, plus
   `mocks/git-host-mcp.js`, a dependency-free mock git-host MCP with its own LLM-free self-test.
   See *Adversarial scenario suite* below; it is never a required PR check.
+- `tests/fixtures/` — repo tooling: scratch-repo generators for exercising a plugin's verification
+  matrix by hand (`keymaker-scratch.sh` plants same-rule suppressions, justified and not, plus the
+  justification filter's two exemptions). Prints the repo path on stdout so it composes into a
+  headless `claude --plugin-dir …` run.
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
 - `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation + hook tests +
   the mock's self-test.
@@ -270,7 +274,7 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh
+shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
 bash scripts/validate-plugin.sh
 bash plugins/crew/tests/run.sh
 bash tests/scenarios/mocks/selftest.sh

@@ -2,7 +2,7 @@
 description: Fix one identified tech debt item — a suppression, rule, or dependency upgrade. Classifies the pointer, enumerates blast radius, gates, and delegates fixes to twin workers in batches. For platform-scale migrations, produces a morpheus-compatible handoff outline instead.
 ---
 
-Given `$ARGUMENTS` (the pointer):
+Given `$ARGUMENTS` (the pointer, optionally with `--force`):
 
 Launch the `keymaker:keymaker` agent (via the Agent tool, **`run_in_background: false`**) in
 **open mode** with `$ARGUMENTS` and the instructions below. Open mode must prompt for its own
@@ -16,7 +16,9 @@ Instructions for `keymaker:keymaker`:
 
 You are in **open mode**. The pointer is: `$ARGUMENTS`. Follow your own open-mode flow end
 to end, per your exit contract — recognise the pointer form, cheap pre-count and early exit,
-classify, enumerate, the fallback 0-findings exit, gate, resolve decisions, delegate to
-twins, verify, and commit (or produce a tier-2 handoff outline).
+the already-justified exit, classify, enumerate, the fallback 0-findings exit, gate, resolve
+decisions, delegate to twins, verify, and commit (or produce a tier-2 handoff outline).
+A `--force` token in the pointer argument skips the justification check and treats every site
+as in scope; it changes nothing else.
 
 When `keymaker:keymaker` returns, relay its consolidated status to the user.

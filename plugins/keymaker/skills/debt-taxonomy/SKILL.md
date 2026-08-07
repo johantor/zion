@@ -128,6 +128,51 @@ Classify every suppression *before* gating. Applied in order:
 4. **Needs investigation** — skipped tests, blanket suppressions without context, any suppression with no commit rationale and an unclear rule. Action: `git log -1 --format="%s %ae %ar" -- <file>` to surface committer/date; flag in report; do not auto-fix.
 5. **Environmental** — suppresses a tooling/build-environment quirk not fixable in application code (generated code, vendored files, CI-only paths). Action: mark legitimate; suggest a justification.
 
+## Justified suppressions — what audit skips
+
+A suppression the team already decided to keep should not be re-surfaced every audit. keymaker
+**reads** justifications; it never writes or demands them. There is no ack command and no
+keymaker-specific syntax: the justification is whatever the developer wrote in the mechanism's
+**own** justification slot when they wrote the suppression. Each `debt-taxonomy-<stack>` skill
+declares that slot per mechanism, and names the mechanisms that have none.
+
+**What counts as a justification.** Grep-checkable only — audit never compiles:
+
+- The mechanism's native slot is present and carries **at least two words**, and
+- the text is not *solely* a deferral marker: `TODO`, `FIXME`, `HACK`, `XXX`, `WIP`,
+  `fix later`, `temporary`, `for now`, `n/a`, `-`, `?`, `see above`.
+
+A deferral marker says the debt is still owed — the opposite of a keep-decision. **When it is
+ambiguous, surface the finding:** excluding one hides debt, so the bias runs toward showing it.
+
+**Effect on the report.** A justified suppression classifies **rubric class 1** and is excluded
+from the ranked report, but **still counted in totals** — e.g. `14 findings (3 justified,
+excluded)` — so the debt is never silently invisible. This formalizes class 1's existing
+"verify justification; leave the suppression; remove from backlog" action.
+
+**Scope exemptions — the filter does not apply everywhere:**
+
+| Audit scope | Justification filter |
+|---|---|
+| path, lane, rule family, `diff` | **Applies** — justified findings excluded from the report, counted in totals |
+| `stale` | **Does not apply.** Staleness is orthogonal to legitimacy: a justified suppression whose diagnostic no longer fires is still removable, and the justification explains why it was *added*, not why it should stay now. Justified candidates are listed, tagged `justified` |
+| `outdated` | Not applicable — no suppressions involved |
+
+**Skipped tests are never excluded by this filter.** A `Skip="…"` reason or an `it.skip`
+comment is not a legitimacy justification; skipped tests stay **rubric class 4**
+(needs-investigation) and stay in the report however they are annotated.
+
+**`open` respects it too.** When *every* site a pointer resolves to carries a justification,
+`/keymaker:open` exits with a one-liner quoting the rationale — same shape as the 0-findings
+exit — and `--force` overrides to work it anyway. When only *some* sites are justified, proceed
+with the rest and note the excluded count; a partly-justified rule is still real work.
+
+**Rule- or path-level policy belongs in the project's own `AGENTS.md`/`CLAUDE.md`** — a coarse
+standing decision ("we don't chase `no-explicit-any` under `src/legacy/**` — scheduled for
+deletion") is one prose statement rather than fifty annotations. Honor such a section's
+exclusions and report them in the totals. No section → exclude nothing on that basis; unclear
+intent → surface the finding and say the policy was ambiguous rather than guessing.
+
 ## Behavior sensitivity (orthogonal to the rubric)
 
 Independently of the rubric class, tag every finding as **behavior-preserving** or

@@ -241,6 +241,29 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   suppressions — that is exactly the claim under test.
 - **The batch ledger is durable state.** Open mode may run many batches across many turns, so a
   crash or context reset would otherwise lose the run.
+- **Justified suppressions — why keymaker only reads them** (0.8.0, was #52). The store had to be
+  the codebase itself. Two alternatives were rejected: `memory: local` is gitignored, so it would
+  solve the re-surfacing problem for exactly one clone on one machine while every teammate's
+  audit re-flagged the same site and CI lost the rationale entirely — a keep-decision is a shared
+  fact about the code, not a machine-local preference. A per-site registry in the project's
+  `AGENTS.md` is committed and shared, but needs **keying** (`file:line` rots as soon as anything
+  above it shifts; a hash was explicitly unwanted) and rots into **staleness** — change the
+  suppression and the entry lingers, silently suppressing a *new* decision, with no validator
+  possible since the file lives in the user's project. A native justification slot has keying,
+  lifecycle, and PR-review locality for free. Project-level *policy* keeps the AGENTS.md route,
+  because one coarse statement beats annotating fifty sites.
+  There is deliberately **no ack command and no keymaker-specific token**: requiring an explicit
+  gesture to record a keep-decision is a step the user shouldn't have to take, and once nothing
+  writes the ack, the token, the lifecycle machinery, and the side log all stop being needed.
+  The cost is that slot-less mechanisms (`<NoWarn>`, `.editorconfig` severity, a bare `#pragma`)
+  have no per-site ack; they fall to project policy or stay surfaced. Accepted until it bites.
+- **Why `stale` scope ignores the filter, and skipped tests are never excluded.** A justification
+  explains why a suppression was *added*, not why it should stay now — so it cannot make a stale
+  suppression un-removable, and `@ts-expect-error` in particular is always removable because TS
+  self-reports unused directives. A `Skip="…"` reason says why a test is off, which is not the
+  same claim as "this debt is accepted", so skipped tests stay needs-investigation however they
+  are annotated. Both exemptions exist because the filter *hides* findings: the failure mode to
+  design against is a scope reported clean when it merely excluded everything.
 
 ## Validating changes
 

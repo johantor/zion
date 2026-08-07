@@ -28,6 +28,14 @@ Rules:
 - The delegation names the stack. **Load that stack's `debt-taxonomy-<stack>` skill via the Skill tool** — the `debt-taxonomy` Stack detection table maps stack → skill (e.g. a `.NET` delegation loads `debt-taxonomy-dotnet`) — for the safe-removal recipe of the suppression mechanism named in the delegation. If the delegation omits the stack, ask `keymaker:keymaker` rather than guessing.
 - The delegation tags each finding **behavior-preserving** or **behavior-sensitive**. For behavior-preserving, the targeted compiler/linter check is sufficient evidence. For behavior-sensitive, run the **tests** named in the acceptance criteria — a clean linter is not acceptable evidence — and in your return, describe the behavioral change you made (what now runs differently and why it is equivalent). If no tests exist, say so and describe the change in enough detail for `keymaker:keymaker` to judge it.
 - After fixing, **delete the suppression** — never leave both the fix and the suppression in place.
+- **Never add or edit a justification to make a finding go away.** A justification on a
+  suppression's native slot (`Justification =`, biome's `reason`, ESLint's `--` description,
+  trailing text on a TS directive) excludes it from future audits (`debt-taxonomy` *Justified
+  suppressions*), so writing one is a way to hide the debt rather than fix it — the same cheat as
+  swapping one suppression mechanism for another, and `keymaker:keymaker` checks for it. Removing
+  the suppression takes its justification with it, which is fine and expected. If you conclude the
+  suppression genuinely *should* stay, don't annotate it: say so in your return with your
+  reasoning and let `keymaker:keymaker` take it to the user.
 - Never run `git` — `keymaker:keymaker` owns branching and commits.
 - Don't run the *whole* project build/test suite as a routine self-check — run only the targeted check named in the acceptance criteria: compile the affected project, lint the affected files, or run the specific scoped test(s) the delegation names for a behavior-sensitive fix. If you think a broader check is warranted, say so in your return summary and let `keymaker:keymaker` decide.
 - When `mcp__context7` is available and the delegation involves a package upgrade with migration guidance, fetch version-specific docs for the affected API before editing — targeted topic, not a dump (`context-discipline`).

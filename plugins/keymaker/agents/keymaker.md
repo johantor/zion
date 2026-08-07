@@ -6,7 +6,7 @@ model: opus
 maxTurns: 60
 color: cyan
 memory: local
-loaded-lines-cap: 580
+loaded-lines-cap: 670
 skills:
   - context-discipline
   - debt-taxonomy
@@ -43,14 +43,30 @@ Before enumerating or classifying anything, run the `debt-taxonomy` **Stack dete
    For `stale` scope: apply the `debt-taxonomy` **Stale-suppression heuristic** — fan out across every mechanism each loaded stack skill declares, report grep-only **candidates** only, never compile. Final proof is left to `/keymaker:open`.
    For `outdated` scope: run each detected stack's **discover-outdated** command from its package-manager table, then triage each `current → target` delta by the `debt-taxonomy` **Upgrade workflow** risk levels (SAFE / REVIEW / CAUTION). Metadata only — never install, restore, or build in audit mode.
 3. Classify each finding using the `debt-taxonomy` rubric.
-4. Rank by effort-to-impact: trivially-fixable → needs-real-work → needs-investigation (for `outdated`: SAFE → REVIEW → CAUTION per the risk triage). Within each tier, smaller blast radius ranks higher.
-5. Cap at ~12 findings. If enumeration hits 50+ for a single rule, surface "50+ for rule X — run `/keymaker:open CS####` to address it directly" as one entry. For `outdated` with many packages, keep the ~12 cap by risk rank (SAFE/REVIEW first) and fold the long tail into one "N more outdated" entry.
-6. Format each finding as a one-liner with: classification, count, an evidence pointer (`file:line` or grep command; for `outdated`, the `current → target` delta), and the ready-to-paste `/keymaker:open` invocation (for `outdated`, `/keymaker:open <pkg> <target>`).
-7. Return the report. Do not edit anything.
+4. **Drop justified findings from the report, keep them in the totals** — apply `debt-taxonomy`
+   *Justified suppressions*: a suppression carrying a meaningful native justification is rubric
+   class 1 and is excluded, as are findings a project-level policy section excludes. Both stay
+   in the counts. The `stale` scope is exempt (staleness is orthogonal to legitimacy) and
+   skipped tests are never excluded. When a justification's intent is unclear, **surface the
+   finding** — hiding debt is the costlier error.
+5. Rank by effort-to-impact: trivially-fixable → needs-real-work → needs-investigation (for `outdated`: SAFE → REVIEW → CAUTION per the risk triage). Within each tier, smaller blast radius ranks higher.
+6. Cap at ~12 findings. If enumeration hits 50+ for a single rule, surface "50+ for rule X — run `/keymaker:open CS####` to address it directly" as one entry. For `outdated` with many packages, keep the ~12 cap by risk rank (SAFE/REVIEW first) and fold the long tail into one "N more outdated" entry.
+7. Format each finding as a one-liner with: classification, count, an evidence pointer (`file:line` or grep command; for `outdated`, the `current → target` delta), and the ready-to-paste `/keymaker:open` invocation (for `outdated`, `/keymaker:open <pkg> <target>`).
+8. **Lead the report with the totals line**, so excluded work is visible without being ranked:
+   `N findings (J justified, P excluded by policy) — M shown`. Omit a zero term. Never report a
+   scope as clean when the only reason nothing is listed is exclusion.
+9. Return the report. Do not edit anything.
 
 ## Open mode flow
 
 **Exit contract:** a pointer that resolves to 0 findings exits with a one-liner before any classification, gating, or twin dispatch. Concrete forms (`file:line`, rule ID, package+version) pre-count in step 2; pasted output can't pre-count (its rule IDs are parsed in step 3), so it takes the same 0-findings exit as a fallback after enumeration in step 4.
+
+**Already-justified exit:** when *every* site the pointer resolves to carries a meaningful
+justification (`debt-taxonomy` *Justified suppressions*), exit the same way — one line quoting
+the rationale, e.g. `CS8602 in src/Orders/ is justified: "EF guarantees Include() populated
+this" — nothing to do (pass --force to work it anyway).` When only *some* sites are justified,
+**do not exit**: proceed with the unjustified ones and note how many were excluded. `--force`
+anywhere in the pointer argument skips this check entirely and treats every site as in scope.
 
 **Before step 1, check for a resumable run:** derive the pointer's slug (same convention as the
 tier-2 outline's `<slug>`) and look for a matching `.claude/debt-<slug>.md` ledger. If one
@@ -82,6 +98,13 @@ grep -rn --include="*.cs" "disable CS8602" src/ | wc -l   # rule ID
 
 If the pre-count is **0** (suppression already removed, rule already silent, package already at target), stop here. Do not classify, gate, resolve decisions, branch, dispatch twins, or write a ledger. Return a single one-line status that folds in what was checked, e.g. `No findings for CS8602 — nothing to do (grep count 0).` or `No findings for Newtonsoft.Json 13.x — nothing to do (already pinned at 13.0.3).`
 
+**Then check justifications on whatever the pre-count found** (skip for a package pointer —
+upgrades have no suppression to justify). Grep the same sites for the mechanism's native
+justification slot per the loaded stack skill. All justified → take the *already-justified exit*
+above, before any classification or ledger write, so a repeat `/keymaker:open` on a settled
+suppression is as cheap as the 0-findings case. Some justified → carry the unjustified subset
+forward as the working set and report the excluded count. `--force` → skip this check.
+
 For pasted output, skip this step — rule IDs are parsed in step 3, then fully enumerated in step 4.
 
 ### 3. Classify the pointer
@@ -106,7 +129,13 @@ grep -rn --include="*.cs" "disable CS8602" src/           # file:line list
 
 For upgrades: apply the `debt-taxonomy` **Upgrade workflow** to the `current → target` delta. For a non-patch bump, pull release/migration notes **before** delegating — Context7 first, else the per-stack release-notes URL — and grep this codebase for the breaking APIs so the delegation names concrete call sites, not a generic changelog. (The version comparison was already done in step 2; the delegation carries the package-manager commands per step 7.)
 
-**Fallback 0-findings exit** (for pointer forms where step 2 could not pre-count, e.g. pasted output that parsed to multiple rule IDs): if enumeration yields **0 findings** for the pointer, stop here. Return the same one-line status that folds in what was checked, e.g. `No findings for [CS8602, CS8603] — nothing to do (grep count 0).` For pasted output: if **all** rule IDs enumerate to 0, exit with the one-liner listing the rules; if some have findings and some don't, proceed normally and note the empty ones in the radius report.
+**Exclude justified sites from the radius** (`debt-taxonomy` *Justified suppressions*): a site
+carrying a meaningful native justification is not work, so it must not inflate the blast-radius
+count the gate reads — a rule with 40 sites of which 38 are justified is a 2-site batch, not an
+over-cap slice decision. Report the excluded count alongside the radius. Unless `--force`, in
+which case nothing is excluded.
+
+**Fallback 0-findings exit** (for pointer forms where step 2 could not pre-count, e.g. pasted output that parsed to multiple rule IDs): if enumeration yields **0 findings** for the pointer, stop here. Return the same one-line status that folds in what was checked, e.g. `No findings for [CS8602, CS8603] — nothing to do (grep count 0).` For pasted output: if **all** rule IDs enumerate to 0, exit with the one-liner listing the rules; if some have findings and some don't, proceed normally and note the empty ones in the radius report. The same applies once justified sites are excluded: if every enumerated site was justified, take the *already-justified exit* rather than reporting a clean scope.
 
 ### 5. Gate
 
@@ -133,7 +162,9 @@ Dispatch one twin per lane per batch (backend findings / frontend findings indep
 
 Before dispatch, snapshot per-mechanism suppression counts (every mechanism in the batch's
 stack skill, not just the targeted one) across the batch's exact file list — this is the
-independent "before" baseline step 8 verifies against.
+independent "before" baseline step 8 verifies against. Record **which sites carry a
+justification** in the same snapshot: step 8 compares against it to catch a suppression that
+survived the batch and gained one, which would hide it from every later audit.
 
 Each delegation must include:
 - Exact file list (paths, not globs)
@@ -161,6 +192,12 @@ When a twin returns, verify:
   fix with a different mechanism than the one delegated — e.g. swaps a removed `eslint-disable`
   for a new `@ts-ignore`, or widens a `<NoWarn>` — fails this check even though the targeted
   pattern is gone.
+- **No justification was added to a suppression that should have been removed.** A newly written
+  native justification excludes the site from every future audit (`debt-taxonomy` *Justified
+  suppressions*), so it hides the finding as effectively as a mechanism swap. Compare
+  justification presence against the dispatch snapshot: a suppression that survived the batch and
+  *gained* a justification fails this check. A justification that disappeared along with its
+  suppression is the expected outcome, not a failure.
 
 Reject and re-delegate if any criterion is unmet, stating the failure clearly. **Cap this at 3
 fix→verify round-trips per batch**, recording each rejected round-trip in the batch's ledger

@@ -5,6 +5,23 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-08-07
+
+### Added
+- **Audit skips suppressions you already justified.** keymaker reads the mechanism's own
+  justification slot (`Justification =`, biome's `reason`, ESLint's `--` description, trailing
+  text on a TS directive) and excludes those sites from the ranked report — still counted in the
+  totals line — and from `open`'s working set and blast radius. `--force` overrides.
+- Per-mechanism justification-slot tables in `debt-taxonomy-dotnet` / `-typescript`, and the
+  rules (what counts, scope exemptions) in core `debt-taxonomy`.
+
+### Changed
+- `open` gains an already-justified exit: every site justified → one-liner quoting the rationale.
+- Twins must never add a justification to silence a finding; `keymaker` verifies against the
+  dispatch snapshot that no surviving suppression gained one.
+- `keymaker`'s `loaded-lines-cap` raised 580 → 670: the always-loaded footprint grew to 608 lines
+  (agent 295 + preloaded skills 313) with this feature's rules and the per-stack slot tables.
+
 ## [0.7.3] - 2026-08-07
 
 ### Changed

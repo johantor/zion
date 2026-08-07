@@ -59,6 +59,22 @@ Returns a ranked, capped (~12 findings) report. Every finding is formatted as a 
 
 **`stale` is the cheap-wins scope:** it surfaces suppressions whose underlying diagnostic likely no longer fires — `@ts-expect-error` removals (always safe to attempt, since TS reports unused directives), `#pragma warning disable` blocks over lines with no obvious trigger, `eslint-disable-next-line` over lines that no longer match the rule. Audit stays grep-only, so `stale` reports *candidates*; `/keymaker:open` does the actual proof via the twin (compile or lint).
 
+**Suppressions you already decided to keep stay out of the report.** keymaker reads the
+justification the mechanism itself provides — `Justification =` on `[SuppressMessage]`, biome's
+required `reason`, ESLint's `--` description, trailing text on `@ts-expect-error`/`@ts-ignore` —
+and treats a suppression carrying a meaningful one as settled: excluded from the ranked report,
+still **counted in the totals line** so the debt is never invisible. `/keymaker:open` on such a
+pointer exits with a one-liner quoting the rationale; `--force` works it anyway.
+
+There is **no ack command and no keymaker-specific syntax**: keymaker only ever *reads*
+justifications, written the way you already write them. If none exist, audit behaves exactly as
+it would otherwise. Two deliberate exceptions: the `stale` scope ignores justifications (a stale
+suppression is removable whatever the reason it was added), and skipped tests are never excluded
+however they are annotated — they stay needs-investigation. For coarse standing decisions, a line
+in your project's own `AGENTS.md`/`CLAUDE.md` ("we don't chase `no-explicit-any` under
+`src/legacy/**` — scheduled for deletion") beats annotating fifty sites; keymaker honors such a
+section and reports what it excluded.
+
 **`outdated` is the dependency-hygiene scope:** it runs each detected stack's discover-outdated command and triages every package by version delta — **SAFE** (patch), **REVIEW** (minor, read release notes), **CAUTION** (major, migration guide). Pick the ones to bump and each goes to `/keymaker:open <pkg> <target>`, which pulls release notes (Context7 or the package's release page), applies the bump, stops on a peer/transitive conflict rather than forcing it, and verifies — patch is build-clean, minor/major is tests-green. Package-manager-agnostic: npm/yarn/pnpm and NuGet today, a new manager is one row in the stack skill. Audit itself never installs or builds.
 
 ## Guardrails
@@ -160,9 +176,9 @@ keymaker stays **Beta** until it clears the bar below; meeting it is what flips 
   row-by-row *after* v1.0, not as a blocker — Stable means the pipeline is proven end-to-end on a
   real stack, not that every stack is verified.
 
-**Not** v1.0 blockers: in-band acks (#52) and other
-audit-UX refinements — the core classify → gate → fix → verify → commit pipeline is what graduates;
-those improve it afterward.
+**Not** v1.0 blockers: audit-UX refinements — the core classify → gate → fix → verify → commit
+pipeline is what graduates; those improve it afterward. (Justification-aware audit, once tracked
+as #52, shipped in 0.8.0 as a read-only filter; it added no gate to the pipeline.)
 
 When the bar is met, flip the Status to **Stable** (here and in the [root README](../../README.md)),
 drop the banner, and bump the plugin to `1.0.0` with a `CHANGELOG.md` entry. That release is the only
@@ -198,6 +214,9 @@ specific suppression, version pin, or violation each row names, then point `/key
 - [ ] **`outdated` scope** — a `package.json` / `.csproj` with an outdated pin → each `current → target` triaged SAFE/REVIEW/CAUTION; metadata only, no install/restore/build.
 - [ ] **`diff` scope** — `/keymaker:audit diff` on a branch with changes → report scoped to the changed files vs base.
 - [ ] **report cap** — 50+ hits for a single rule → folded into one "50+ for rule X" entry; total report stays ≤ ~12.
+- [ ] **justified suppressions excluded** — a tree where one of three same-rule suppressions carries a meaningful native justification → report lists the two unjustified ones and its totals line accounts for the third as justified; nothing edited.
+- [ ] **`stale` ignores justifications** — a justified suppression that is also a stale candidate → still listed under `/keymaker:audit stale`, tagged justified.
+- [ ] **skipped tests never excluded** — a `[Fact(Skip="…")]` / `it.skip` with a descriptive reason → still reported as needs-investigation.
 
 ### Open mode — early exits (before any edit)
 

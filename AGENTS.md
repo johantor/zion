@@ -241,6 +241,16 @@ over a multi-sentence paragraph restating each principle's contents.
 - PR titles follow Conventional Commits: `type(scope): summary`, with a `(vX.Y.Z)` suffix
   when the PR bumps a plugin version. Use `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope
   the plugin when the change is plugin-specific (e.g. `feat(crew): … (v1.9.0)`).
+- **Keep PR descriptions short.** They are read on phones, often while reviewing. Fill in the
+  template's sections and stop. Aim for a screenful: what changed and why, in a few sentences;
+  the checkboxes; the issue link. The diff shows the *what* — the body carries the *why*.
+  - Skip the narrative. No blow-by-blow of how the work went, no self-review write-up, no
+    bugs-I-found-and-fixed log. Those belong in commit messages, or in a review comment on the
+    line in question.
+  - One short paragraph per section, not one per idea. If a caveat needs three paragraphs to
+    justify, it is a review thread, not a PR body.
+  - Detail a reviewer must have to approve safely (a deliberate omission, a risky assumption)
+    stays — compressed to a sentence or two, not an essay.
 - When a PR resolves an issue, link it with a GitHub closing keyword in the body —
   `Closes #N` / `Fixes #N` / `Resolves #N` — so the issue auto-closes on merge. Plain
   references like `Implements #N` only cross-link; they do not close the issue.

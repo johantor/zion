@@ -241,6 +241,15 @@ mk_roster_hook "$d/plugins/foo" lane-guard.sh lane-guarded 'laned|laned'
 assert_emits "§9 bites on a duplicated lane roster name" "$d" \
   "lane roster names 'laned' more than once"
 
+# An empty `owns-git:` must fail loudly, not skip §9 for the whole plugin.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mkdir -p "$d/plugins/foo/agents"
+printf -- '---\nname: boss\ndescription: d\ntools: Read, Bash\nowns-git:\nlane-guarded: false\n---\nbody\n' \
+  > "$d/plugins/foo/agents/boss.md"
+mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'none'
+assert_emits "§9 opt-in keys on presence, not value" "$d" \
+  "plugins/foo/agents/boss.md has no 'owns-git'"
+
 # A Bash-less agent in the no-git roster is a dead entry: it can never run git.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false

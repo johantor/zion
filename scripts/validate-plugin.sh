@@ -547,6 +547,17 @@ fm_field() {
   ' "$1"
 }
 
+# True when the key is present in frontmatter at all, whatever its value.
+# Opt-in must key on presence, not value: `owns-git:` with an empty value would
+# otherwise skip §9 for the whole plugin rather than failing the empty value.
+fm_has_key() {
+  awk -v key="$2" '
+    /^---[[:space:]]*$/ { if (in_fm == 0) { in_fm = 1; next } else exit }
+    in_fm && index($0, key ":") == 1 { found = 1; exit }
+    END { exit(found ? 0 : 1) }
+  ' "$1"
+}
+
 # Read the `a|b|c)` case arm introduced by a `# crew-roster: <name>` marker, as
 # space-separated names.
 #
@@ -585,8 +596,8 @@ while IFS= read -r plugin_manifest; do
   # Does this plugin opt in? (any agent declaring the field)
   declares_git=0 declares_lane=0
   for agent in "${agents[@]}"; do
-    [ -n "$(fm_field "$agent" owns-git)" ] && declares_git=1
-    [ -n "$(fm_field "$agent" lane-guarded)" ] && declares_lane=1
+    fm_has_key "$agent" owns-git && declares_git=1
+    fm_has_key "$agent" lane-guarded && declares_lane=1
   done
 
   if [ "$declares_git" -eq 1 ]; then

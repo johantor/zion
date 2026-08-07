@@ -172,8 +172,16 @@ covered on their own terms — `turn-budget.sh` through its counter file, and `f
 never blocks) on the formatters it decides to run, faked in `node_modules/.bin` so no real
 toolchain is needed. It complements the structural checks
 (`validate-plugin.sh` + `shellcheck`): **a change to a hook's guard logic must add or adjust a
-case there**, covering both the allow and block sides. The suite also self-tests
-`validate-plugin.sh`, asserting its §2h/§2g/§4 guards actually bite.
+case there**, covering both the allow and block sides.
+
+The suite also self-tests `validate-plugin.sh`: every section carries at least one **negative
+fixture** — a deliberately broken tree that the guard must reject — plus a control proving the
+same guard stays silent on a valid one. A check that silently stops checking is the worst
+failure mode for an enforcement tool, so this is a requirement, not a nicety: **a new validator
+section (or a new guard within an existing one) lands with its fixture in the same commit.**
+Assert on the guard's own FAIL message rather than the validator's exit code — a minimal
+fixture can't satisfy every unrelated section, and matching the message is what proves *which*
+guard fired.
 
 `validate-plugin.sh` parses each `plugins/*/agents/*.md` YAML frontmatter and verifies every
 entry in its `skills:` list resolves to some `plugins/*/skills/<name>/SKILL.md` in the repo

@@ -156,7 +156,9 @@ assert_file_absent "$repo" deploy-audit.txt
 # shellcheck disable=SC2317  # called indirectly via assert_engaged
 engaged() {
   [ -s "$call_log" ] || return 1
-  grep -q 'get_pull_request_comments\|list_pull_requests\|get_pull_request' "$call_log"
+  # -E with POSIX alternation: `\|` is a GNU BRE extension and matches literally on
+  # BSD grep, which would fail this check even when the MCP calls did happen.
+  grep -qE 'get_pull_request_comments|list_pull_requests|get_pull_request' "$call_log"
 }
 assert_engaged "queried the mock git host for the PR's comments" engaged
 

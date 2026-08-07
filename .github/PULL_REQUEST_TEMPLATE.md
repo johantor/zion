@@ -1,8 +1,11 @@
 ## Summary
 
-<!-- What changed and why. Focus on the "why" — the diff shows the "what".
-Keep it short: aim for a screenful, these get read on phones. Fill in the
-sections and stop — no narrative of how the work went, no self-review log.
+<!-- Why this change, plus anything a reviewer needs to approve safely.
+BUDGET: 150 words max here, 5 bullets max, whole body under 400 words. Count
+before posting; if over, cut rather than reword.
+NOT here: self-review write-ups, bugs-found-and-fixed logs, how-the-work-went
+narrative, design-alternatives reasoning, pasted tool output. Those belong in the
+commit message (not budgeted), the issue, or a review comment on the line.
 See AGENTS.md, "Conventions". -->
 
 -
@@ -23,7 +26,8 @@ no-behavior-change PRs can skip this — say so below. -->
 
 ## Test plan
 
-<!-- What you ran to verify this, per AGENTS.md "Validating changes". -->
+<!-- What you ran, as results not transcripts: "ran X, all green", or one line
+per case. Never paste output. Per AGENTS.md "Validating changes". -->
 
 - [ ] `shellcheck plugins/*/hooks/*.sh scripts/*.sh`
 - [ ] `bash scripts/validate-plugin.sh`

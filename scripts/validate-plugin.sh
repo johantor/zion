@@ -697,6 +697,66 @@ while IFS= read -r plugin_manifest; do
   fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
+# 10. Every `<plugin>:<name>` in prose must resolve to an agent or command file
+#     (§2g does this for `skills:` frontmatter). Namespaces no plugin here
+#     declares are ignored. See AGENTS.md, "Validating changes".
+plugin_names=""
+while IFS= read -r m; do
+  d="${m%/.claude-plugin/plugin.json}"
+  plugin_names="$plugin_names ${d##*/}"
+done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
+
+while IFS= read -r doc; do
+  # A leading delimiter stands in for `\b`, which is a GNU extension (AGENTS.md:
+  # stay BSD/macOS-portable); sed drops it again. Without it, `xcrew:tank` would
+  # match the `crew:tank` inside it.
+  # `|| true`: grep's exit 1 on no match would abort the run under `set -e`.
+  refs="$(grep -ohE '(^|[^A-Za-z0-9_-])('"$(echo "$plugin_names" | tr -s ' ' '|' | sed 's/^|//; s/|$//')"'):[a-z][a-z0-9-]*' "$doc" 2>/dev/null \
+    | sed 's/^[^A-Za-z]//' | sort -u || true)"
+  [ -z "$refs" ] && continue
+  while IFS= read -r ref; do
+    [ -z "$ref" ] && continue
+    rp="${ref%%:*}"; rn="${ref##*:}"
+    if [ -f "plugins/$rp/agents/$rn.md" ] || [ -f "plugins/$rp/commands/$rn.md" ]; then
+      ok "$doc -> $ref resolves"
+    else
+      err "$doc references '$ref' but no plugins/$rp/agents/$rn.md or plugins/$rp/commands/$rn.md exists"
+    fi
+  done <<<"$refs"
+done < <(git ls-files 'plugins/*/agents/*.md' 'plugins/*/commands/*.md' 'plugins/*/skills/*/SKILL.md')
+
+# 11. init.md §1 (the declared source of truth for crew config slots) <-> the
+#     `## Crew configuration` block in the root CLAUDE.md, both directions.
+#     Reads only the two exact line shapes below -- bold elsewhere is emphasis,
+#     not a slot. See AGENTS.md, "Validating changes".
+init_cmd="plugins/crew/commands/init.md"
+if [ -f "$init_cmd" ] && [ -f CLAUDE.md ]; then
+  # Both patterns require the delimiter the docs describe -- `- **Slot** —` here
+  # and `- **Slot:**` in the block -- so a non-slot bold bullet isn't read as one.
+  init_slots="$(sed -n '/^## 1\./,/^## 2\./p' "$init_cmd" | sed -n 's/^- \*\*\([^*]*\)\*\* —.*/\1/p')"
+  cfg_block="$(sed -n '/^## Crew configuration/,$p' CLAUDE.md)"
+  if [ -z "$init_slots" ]; then
+    err "$init_cmd has no parseable slot list under '## 1.' (expected '- **<Slot>** -- ...' lines); cannot verify the CLAUDE.md config block"
+  elif [ -z "$cfg_block" ]; then
+    err "CLAUDE.md has no '## Crew configuration' section; $init_cmd §1 declares slots that reconcile must write there"
+  else
+    cfg_slots="$(grep -oE '^- \*\*[^*]+:\*\*' <<<"$cfg_block" | sed 's/^- \*\*//; s/:\*\*$//' || true)"
+    while IFS= read -r s; do
+      [ -z "$s" ] && continue
+      if grep -qxF "$s" <<<"$cfg_slots"; then
+        ok "crew config slot '$s' present in CLAUDE.md"
+      else
+        err "$init_cmd §1 declares slot '$s' but CLAUDE.md's '## Crew configuration' block has no '- **$s:**' entry; /crew:init would write a slot the block never carries"
+      fi
+    done <<<"$init_slots"
+    while IFS= read -r u; do
+      [ -z "$u" ] && continue
+      grep -qxF "$u" <<<"$init_slots" || \
+        err "CLAUDE.md's '## Crew configuration' block lists '$u', which is not a slot in $init_cmd §1 (the declared source of truth); add it there or drop it here"
+    done <<<"$cfg_slots"
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

@@ -39,8 +39,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   (`scripts/validate-plugin.sh`) — it validates **all** plugins (manifests + marketplace
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
   cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7, turn-budget table ↔
-  agent `maxTurns` lockstep §8, guard rosters ↔ agent `owns-git`/`lane-guarded` lockstep §9)
-  and is not shipped with this plugin.
+  agent `maxTurns` lockstep §8, guard rosters ↔ agent `owns-git`/`lane-guarded` lockstep §9,
+  namespaced prose refs resolving §10, `init.md` §1 slots ↔ the root CLAUDE.md crew-config
+  block §11) and is not shipped with this plugin.
 - `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
   hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
   **behavior**: each guard is a pure `stdin JSON → exit 0/2` function, fed crafted
@@ -51,7 +52,7 @@ anything stated here updates this file in the same commit.** Conventions live in
   real formatter runs through fakes in `node_modules/.bin` (with `CREW_FORMAT_TIMEOUT`
   shortened for the hang case). A change to a hook's logic **must add/adjust a case** here,
   on both the allow and block sides. Also self-tests the
-  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9) has at least one
+  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11) has at least one
   negative fixture plus a silent control, and a new section lands with its fixture in the same
   commit (AGENTS.md, *Validating changes*). Asserts key on the guard's FAIL message, not the
   exit code. Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.

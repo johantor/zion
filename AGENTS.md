@@ -197,6 +197,15 @@ marker, and §9 checks both directions: every agent classified, every roster ent
 exactly one git owner per plugin. Adding an agent without those two fields fails CI.
 The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
 
+Two more checks cover prose that names something the harness has to resolve. §10 requires every
+`crew:`/`keymaker:` reference in an agent, command, or skill body to resolve to a real agent or
+command file — a typo there fails silently and late, since the delegation simply doesn't launch.
+§11 keeps `commands/init.md` §1 — which declares itself the source of truth for the crew
+configuration slots — in lockstep with the `## Crew configuration` block in the root `CLAUDE.md`,
+both directions, so a slot can't exist in one and not the other. Both read one exact line shape
+(`- **<Slot>** —` and `- **<Slot>:**`) and never infer a slot from bold text elsewhere; an
+unparseable list is reported rather than passed over.
+
 ## Releasing
 
 Versions are per-plugin. To cut a release:

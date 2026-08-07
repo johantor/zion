@@ -3,14 +3,12 @@
 # `agent_type` the harness adds to the payload; plugin agents can't carry their
 # own hooks, so the lanes are centralized here.
 #
-# Directory-based lanes (CLAUDE.md path config) apply when set; otherwise falls
-# back to extension-based globs. A same-language pair (node backend + node/JS
-# frontend) with no lane paths fails closed — extensions alone can't tell tank's
-# and trinity's files apart there. That case is recognized whether the stacks are
-# pinned in CLAUDE.md or left unset (morpheus resolves them via memory/detection):
-# when unset, the guard probes the repo's markers (server framework in
-# package.json, .NET project files) to decide. Backend-only Node repos (no frontend
-# lane) skip enforcement since there's no same-language conflict to resolve.
+# Directory lanes (CLAUDE.md path config) win when set, else extension globs. A
+# same-language pair (node backend + JS frontend) with no lane paths fails
+# CLOSED -- extensions can't separate tank's files from trinity's. Caught
+# whether the stacks are pinned or unset; when unset the guard probes repo
+# markers (server framework in package.json, .NET project files). A
+# backend-only Node repo has no such conflict, so enforcement is skipped.
 
 # Fail closed: a guard that can't read its input must block, not allow.
 if ! command -v jq >/dev/null 2>&1; then

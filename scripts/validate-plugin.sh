@@ -231,16 +231,12 @@ while IFS= read -r h; do
   fi
 done < <(git ls-files 'plugins/*/hooks/*.sh')
 
-# 4. Skill drift: any skill name shipped by more than one plugin must stay
-#    byte-for-byte identical across every copy. Generic by skill *name*, not
-#    hardcoded to any specific pair of plugins — grouping every SKILL.md by its
-#    directory basename catches drift between any two plugins that happen to
-#    ship the same skill, today or in the future, not just ones crew is party
-#    to. When crew ships the skill, its copy is the reference (crew is the
-#    documented canonical source for shared skills — see AGENTS.md); otherwise
-#    the first copy found is the reference, and every other copy is compared
-#    against it. Compares whole skill directories (diff -rq) so missing/extra
-#    reference files count as drift too, not just SKILL.md changes.
+# 4. Skill drift: a skill name shipped by more than one plugin must stay
+#    byte-identical across every copy. Grouped by directory basename, so it
+#    catches any two plugins sharing a skill, not just ones crew is party to.
+#    Crew's copy is the reference when crew ships it (see AGENTS.md), else the
+#    first found. Compares whole directories (diff -rq), so a missing or extra
+#    reference file counts as drift too.
 declare -A skill_dirs=()
 while IFS= read -r skill_md; do
   dir="$(dirname "$skill_md")"
@@ -277,10 +273,9 @@ done
 #        "# --- END shared guard: <label> ---" -> only the marked regions must
 #        match (labels, contents, and order), since the rest is per-plugin
 #        policy (today: bash-safety.sh).
-#    Structurally invalid markers — a stray END, a nested BEGIN, a label that
-#    doesn't pair up, an unclosed block, or a marker missing its trailing
-#    " ---" — are a failure: a sync check that can't parse its regions can't
-#    verify its claim, and would otherwise silently compare the wrong content.
+#    Malformed markers (stray END, nested BEGIN, unpaired label, unclosed
+#    block, missing trailing " ---") are a failure: a sync check that can't
+#    parse its regions would silently compare the wrong content.
 declare -A hook_groups=()
 while IFS= read -r h; do
   b="$(basename "$h")"
@@ -511,23 +506,14 @@ while IFS= read -r tb_hook; do
   done
 done < <(git ls-files 'plugins/*/hooks/turn-budget.sh')
 
-# 9. Hook rosters <-> agent frontmatter lockstep (same shape as §8, for the two
-#    facts that guard write access rather than turn count). A hook that gates on
-#    a hardcoded list of agent names fails OPEN for any name missing from it: add
-#    an eighth agent and it silently gets unrestricted git and no write lane. The
-#    agents declare the fact (`owns-git:`, `lane-guarded:`), the hooks carry the
-#    roster, and this keeps them equal both ways.
+# 9. Hook rosters <-> agent `owns-git`/`lane-guarded` (same lockstep shape as
+#    §8). These hooks gate on a hardcoded name list, which fails OPEN for any
+#    name missing from it. See AGENTS.md, "Validating changes".
 #
-#    Opt-in per plugin: a plugin whose agents declare `owns-git` must carry the
-#    `# crew-roster: no-git` marker, and likewise `lane-guarded` <-> the
-#    `# crew-roster: lane-guarded` marker. A plugin that declares neither is
-#    skipped, so this doesn't force the shape onto plugins that gate differently
-#    (keymaker's twin check is a plain `[ "$agent_type" = ... ]`).
-#
-#    Note: lane-guard.sh's per-agent dispatch arms further down are NOT checked
-#    against the roster — they sit inside a nested `case` on the e2e tool, and a
-#    parser that can't reliably tell the two apart would report false lockstep.
-#    The hook's own comment is the only thing holding those in sync today.
+#    Opt-in per plugin, keyed on the fields being declared, so plugins that gate
+#    differently (keymaker's twin check) are skipped. lane-guard's per-agent
+#    dispatch arms are deliberately NOT checked -- nested `case`, and a parser
+#    that misread them would report false lockstep.
 
 # Read one `key: value` from a Markdown file's YAML frontmatter.
 #

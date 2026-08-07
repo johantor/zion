@@ -1,38 +1,32 @@
 #!/usr/bin/env bash
 # PreToolUse(Bash) guard for the keymaker crew. Blocks destructive commands,
 # git misuse (twins never run git; no commits on a protected branch),
-# never-terminating watch/dev/serve commands, and raw/streaming reads that
-# bypass context discipline. The marked "shared guard" regions mirror crew's
-# bash-safety.sh so a standalone keymaker install (without crew) keeps the same
-# floor — byte-synced by validate-plugin.sh §5, crew's copy is canonical (edit
-# there and mirror here). With both plugins installed both guards fire —
-# redundant but compatible.
+# never-terminating watch/dev/serve commands, and raw/streaming reads.
 #
-# Fail closed: a security guard that can't read its input must block, not let
-# the command through uninspected. jq is a documented dependency (also required
-# by write-guard).
+# The marked "shared guard" regions mirror crew's bash-safety.sh, so a
+# standalone keymaker install keeps the same floor -- byte-synced by validator
+# §5, crew's copy canonical. Both installed means both fire: redundant, fine.
+#
+# Fails closed: a guard that can't read its input must block, not pass the
+# command through uninspected. jq is a documented dependency.
 if ! command -v jq >/dev/null 2>&1; then
   echo "Blocked: bash-safety needs jq to inspect commands." >&2
   exit 2
 fi
 payload="$(cat)"
-# One jq call for both fields. jq's own exit status is the payload-validity
-# check (checked directly by `if !` below, not by inspecting $fields — a
-# failed jq still assigns $fields, typically to an empty string). Fields are
-# joined with a record-separator byte via -j (raw, unescaped) rather than
-# @tsv, so cmd's own newlines/tabs survive intact for the flatten step below —
-# @tsv would have escaped them to literal "\n"/"\t" text.
+# One jq call for both fields; its exit status is the validity check (`if !`
+# below -- a failed jq still assigns $fields). Joined with a record-separator
+# byte via -j, not @tsv: @tsv would escape cmd's newlines/tabs to literal
+# "\n"/"\t" and break the flatten step below.
 rs=$'\x1e'
 if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" '(.tool_input.command // "") + $rs + (.agent_type // "")' 2>/dev/null)"; then
   echo "Blocked: bash-safety could not parse the hook payload." >&2
   exit 2
 fi
-# Split on the LAST separator, not the first: cmd is arbitrary command text
-# and could in principle contain the separator byte itself, whereas
-# agent_type (the trailing field) is a small, harness-controlled value that
-# never does. Splitting on the first occurrence would let an embedded
-# separator inside cmd truncate what gets inspected below — silently hiding
-# whatever follows it from the safety regexes.
+# Split on the LAST separator: cmd is arbitrary text and could contain the
+# separator byte, while agent_type (trailing, harness-controlled) never does.
+# Splitting on the first would let an embedded separator truncate what the
+# safety regexes below inspect.
 cmd="${fields%"$rs"*}"
 agent_type="${fields##*"$rs"}"
 

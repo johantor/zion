@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
-# PostToolUse(*) advisor. Counts a crew agent's tool calls against its turn
-# budget (the agent's frontmatter maxTurns) and warns it — once at 75%, once at
-# 90% — so near-budget work ends as an orderly hand-back with a `remaining:`
-# line instead of a mid-task truncation. Exit 2 on PostToolUse feeds stderr
-# back to the agent without blocking anything (the tool already ran).
+# PostToolUse(*) advisor. Counts a crew agent's tool calls against its
+# frontmatter maxTurns and warns at 75% and 90%, so near-budget work hands back
+# a `remaining:` line instead of truncating. Exit 2 here feeds stderr to the
+# agent without blocking (the tool already ran). Tool calls >= turns, so the
+# count errs early on purpose.
 #
-# Tool calls >= turns (one turn may batch several calls), so the count is a
-# conservative heuristic that errs early — a warning slightly before it's
-# needed beats a truncation. See AGENTS.md "How the crew works" and
-# agents/morpheus.md "A truncated return is not a finished step".
-#
-# Unlike bash-safety (an enforcement guard that fails closed), this hook is
-# advisory: on any path where it can't count — missing jq, unparseable payload,
-# unknown agent, unwritable state — it must fail OPEN (exit 0). A broken
-# advisor must never block or nag real work.
+# Advisory, not a guard: every can't-count path (missing jq, bad payload,
+# unknown agent, unwritable state) must fail OPEN. See AGENTS.md, "How the
+# crew works".
 command -v jq >/dev/null 2>&1 || exit 0
 
 payload="$(cat)"

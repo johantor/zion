@@ -57,8 +57,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
 - `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation + hook tests +
   the mock's self-test.
-- `.github/workflows/adversarial.yml` — CI: the adversarial scenario suite, nightly /
-  `workflow_dispatch` / `run-adversarial` label only.
+- `.github/workflows/adversarial.yml` — CI: the adversarial scenario suite, on a
+  `run-adversarial` PR label or `workflow_dispatch` only — no scheduled runs.
 
 ## How the crew works
 
@@ -328,9 +328,10 @@ KEEP_FIXTURES=1 bash tests/scenarios/run.sh   # keep scratch repos to inspect
 
 It needs a working `claude` CLI and credentials; without them it prints a loud **SKIP** and
 exits 0 — it must never look green having verified nothing. **It is never a required PR
-check:** it runs nightly, via `workflow_dispatch`, or on a PR labelled `run-adversarial`
-(`.github/workflows/adversarial.yml`). The mock's self-test carries no such cost and *does*
-run on every PR.
+check, and it never runs unattended:** it runs on a PR labelled `run-adversarial`, or via
+`workflow_dispatch` (`.github/workflows/adversarial.yml`). There is deliberately no `schedule:`
+trigger — a live-model suite that costs tokens runs when someone asks for it. The mock's
+self-test carries no such cost and *does* run on every PR.
 
 Four properties of the design matter more than the scenario count, and a change that breaks
 any of them makes the suite worthless while still reporting green:

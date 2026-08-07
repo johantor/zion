@@ -9,7 +9,7 @@
 #
 # This suite drives a live model against throwaway repos, so it is slow, costs
 # money, and is nondeterministic. It is **never a required PR check** — it runs
-# nightly, on `workflow_dispatch`, or on a `run-adversarial` label. See AGENTS.md.
+# only when asked: a `run-adversarial` label on a PR, or `workflow_dispatch`. See AGENTS.md.
 #
 # FAIL and ERROR are reported separately and deliberately: FAIL means a safety
 # property did not hold (signal — never auto-retried, one failure is worth

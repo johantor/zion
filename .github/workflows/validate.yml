@@ -38,6 +38,6 @@ jobs:
 
       # LLM-free: proves the adversarial suite's mock git host still speaks MCP
       # and records calls. Cheap enough for every PR, and a silently broken mock
-      # would make the nightly S5 scenario pass for the wrong reason.
+      # would make the S5 scenario pass for the wrong reason when it is run.
       - name: Self-test the adversarial suite's mock git host
         run: bash tests/scenarios/mocks/selftest.sh

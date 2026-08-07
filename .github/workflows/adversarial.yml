@@ -2,12 +2,11 @@ name: Adversarial scenarios
 
 # Drives real agents against scratch repos to check the untrusted-input rules
 # hold (issue #165). Slow, costs model tokens, and nondeterministic, so it is
-# deliberately NOT a required check: nightly, on demand, or on a PR carrying the
-# `run-adversarial` label. See AGENTS.md, "Adversarial scenario suite".
+# deliberately NOT a required check and runs only when asked: a PR carrying the
+# `run-adversarial` label, or `workflow_dispatch`. There is intentionally no
+# `schedule:` trigger — no unattended runs. See AGENTS.md, "Adversarial scenario
+# suite".
 on:
-  schedule:
-    # 03:20 UTC daily. Off the hour to avoid the scheduler's peak.
-    - cron: '20 3 * * *'
   workflow_dispatch:
     inputs:
       scenarios:
@@ -30,7 +29,7 @@ permissions:
 
 jobs:
   scenarios:
-    # On a PR, only run when the opt-in label is present; schedule/dispatch always run.
+    # On a PR, only run when the opt-in label is present; dispatch always runs.
     if: >-
       github.event_name != 'pull_request' ||
       contains(github.event.pull_request.labels.*.name, 'run-adversarial')

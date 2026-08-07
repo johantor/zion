@@ -697,6 +697,74 @@ while IFS= read -r plugin_manifest; do
   fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
+# 10. Namespaced references in prose must resolve. §2g checks an agent's
+#     `skills:` frontmatter; this extends the same idea to the prose body, where
+#     `crew:tank` / `/keymaker:audit` name an agent or command the harness has to
+#     resolve at runtime. A typo there fails silently and late -- the delegation
+#     just doesn't launch -- so it belongs in CI, not in a reviewer's memory.
+#
+#     Only `<plugin>:<name>` for plugins that exist in this repo is checked, so
+#     prose mentioning another marketplace's namespace is left alone. Code spans
+#     are included deliberately: these references are nearly always written as
+#     `crew:tank`, so skipping backticks would skip the whole check.
+plugin_names=""
+while IFS= read -r m; do
+  d="${m%/.claude-plugin/plugin.json}"
+  plugin_names="$plugin_names ${d##*/}"
+done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
+
+while IFS= read -r doc; do
+  # `|| true`: most docs carry no namespaced reference, and grep's exit 1 would
+  # otherwise propagate through the assignment and abort the run under `set -e`.
+  refs="$(grep -ohE '\b('"$(echo "$plugin_names" | tr -s ' ' '|' | sed 's/^|//; s/|$//')"'):[a-z][a-z0-9-]*' "$doc" 2>/dev/null | sort -u || true)"
+  [ -z "$refs" ] && continue
+  while IFS= read -r ref; do
+    [ -z "$ref" ] && continue
+    rp="${ref%%:*}"; rn="${ref##*:}"
+    if [ -f "plugins/$rp/agents/$rn.md" ] || [ -f "plugins/$rp/commands/$rn.md" ]; then
+      ok "$doc -> $ref resolves"
+    else
+      err "$doc references '$ref' but no plugins/$rp/agents/$rn.md or plugins/$rp/commands/$rn.md exists"
+    fi
+  done <<<"$refs"
+done < <(git ls-files 'plugins/*/agents/*.md' 'plugins/*/commands/*.md' 'plugins/*/skills/*/SKILL.md')
+
+# 11. Crew configuration slots <-> the block /crew:init writes. init.md §1 calls
+#     itself "the source of truth for what 'complete' means", and the root
+#     CLAUDE.md carries the block that reconcile fills in. Nothing checked that
+#     the two agree, so a slot added to one and not the other silently means
+#     either a slot no agent can read or a config key init never writes.
+#
+#     Both are prose lists, but each has an exact machine-readable shape:
+#     `- **<Slot>** --` under `## 1.` in init.md, and `- **<Slot>:**` in the
+#     CLAUDE.md block. Anything else is emphasis, not a slot, so the check reads
+#     only those two shapes and never guesses from bold text elsewhere.
+init_cmd="plugins/crew/commands/init.md"
+if [ -f "$init_cmd" ] && [ -f CLAUDE.md ]; then
+  init_slots="$(sed -n '/^## 1\./,/^## 2\./p' "$init_cmd" | sed -n 's/^- \*\*\([^*]*\)\*\*.*/\1/p')"
+  cfg_block="$(sed -n '/^## Crew configuration/,$p' CLAUDE.md)"
+  if [ -z "$init_slots" ]; then
+    err "$init_cmd has no parseable slot list under '## 1.' (expected '- **<Slot>** -- ...' lines); cannot verify the CLAUDE.md config block"
+  elif [ -z "$cfg_block" ]; then
+    err "CLAUDE.md has no '## Crew configuration' section; $init_cmd §1 declares slots that reconcile must write there"
+  else
+    cfg_slots="$(grep -oE '^- \*\*[^*]+\*\*' <<<"$cfg_block" | sed 's/^- \*\*//; s/\*\*$//; s/:$//' || true)"
+    while IFS= read -r s; do
+      [ -z "$s" ] && continue
+      if grep -qxF "$s" <<<"$cfg_slots"; then
+        ok "crew config slot '$s' present in CLAUDE.md"
+      else
+        err "$init_cmd §1 declares slot '$s' but CLAUDE.md's '## Crew configuration' block has no '- **$s:**' entry; /crew:init would write a slot the block never carries"
+      fi
+    done <<<"$init_slots"
+    while IFS= read -r u; do
+      [ -z "$u" ] && continue
+      grep -qxF "$u" <<<"$init_slots" || \
+        err "CLAUDE.md's '## Crew configuration' block lists '$u', which is not a slot in $init_cmd §1 (the declared source of truth); add it there or drop it here"
+    done <<<"$cfg_slots"
+  fi
+fi
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

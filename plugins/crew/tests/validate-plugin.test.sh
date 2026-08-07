@@ -452,4 +452,68 @@ d="$(new_repo)"; mk_hook "$d/plugins/crew" x.sh 'exit 0'; mk_hooks_json "$d/plug
 mk_dev_settings "$d" "$dev_x" Bash
 assert_silent "§7 silent when the mirror matches modulo root variable" "$d" "hook wiring drift"
 
+# --- §10: namespaced refs in prose must resolve to an agent or command --------
+mk_prose_agent() {  # <plugin_dir> <name> <body>
+  mkdir -p "$1/agents"
+  printf -- '---\nname: %s\ndescription: d\n---\n%s\n' "$2" "$3" > "$1/agents/$2.md"
+}
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+# The backticks below are Markdown code spans in the fixture's prose, not command
+# substitution — these references are nearly always written as `crew:tank`, so the
+# fixtures have to carry them that way for §10 to be exercised as it runs for real.
+# shellcheck disable=SC2016
+mk_prose_agent "$d/plugins/foo" bar 'Delegate to `foo:ghost` when stuck.'
+assert_emits "§10 bites on a prose ref to a nonexistent agent" "$d" \
+  "references 'foo:ghost' but no plugins/foo/agents/ghost.md"
+
+# A ref that resolves to a command, not an agent, is equally valid.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+# shellcheck disable=SC2016
+mk_prose_agent "$d/plugins/foo" bar 'Run `/foo:ship` to finish.'
+mkdir -p "$d/plugins/foo/commands"; printf -- '---\nname: ship\ndescription: d\n---\nbody\n' > "$d/plugins/foo/commands/ship.md"
+assert_silent "§10 silent when the ref resolves to a command" "$d" "but no plugins/foo"
+
+# An unknown namespace is another marketplace's business, not ours.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+# shellcheck disable=SC2016
+mk_prose_agent "$d/plugins/foo" bar 'See `other:thing` for details.'
+assert_silent "§10 ignores a namespace no plugin here declares" "$d" "other:thing"
+
+# --- §11: init.md §1 slots <-> the CLAUDE.md crew-configuration block ---------
+mk_init_slots() {  # <repo> <slot-lines>
+  mkdir -p "$1/plugins/crew/commands"
+  printf '## 1. Canonical configuration slots\n\n%s\n\n## 2. Detect\n' "$2" \
+    > "$1/plugins/crew/commands/init.md"
+}
+mk_config_block() { printf '# Notes\n\n## Crew configuration\n\n%s\n' "$2" > "$1/CLAUDE.md"; }
+
+d="$(new_repo)"
+mk_init_slots "$d" '- **Base branch** — the branch to cut from.
+- **Plan directory** — where plans go.'
+mk_config_block "$d" '- **Base branch:** main'
+assert_emits "§11 bites on a slot missing from the CLAUDE.md block" "$d" \
+  "declares slot 'Plan directory' but CLAUDE.md"
+
+d="$(new_repo)"
+mk_init_slots "$d" '- **Base branch** — the branch to cut from.'
+mk_config_block "$d" '- **Base branch:** main
+- **Deploy target:** prod'
+assert_emits "§11 bites on a block entry that is not a declared slot" "$d" \
+  "lists 'Deploy target', which is not a slot"
+
+# An unparseable slot list must report, not silently verify nothing.
+d="$(new_repo)"
+mk_init_slots "$d" 'No slots here, just prose.'
+mk_config_block "$d" '- **Base branch:** main'
+assert_emits "§11 bites when the slot list is unparseable" "$d" \
+  "has no parseable slot list"
+
+d="$(new_repo)"
+mk_init_slots "$d" '- **Base branch** — the branch to cut from.
+- **Plan directory** — where plans go.'
+mk_config_block "$d" '- **Base branch:** main
+- **Plan directory:** docs/plans/'
+assert_silent "§11 silent when the slot lists agree" "$d" "not a slot in"
+assert_silent "§11 silent: no missing-slot complaint when they agree" "$d" "but CLAUDE.md's"
+
 finish

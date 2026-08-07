@@ -50,8 +50,15 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   plugin is *also* installed while working here, both wirings fire and every guard runs twice
   per matching tool call; installing the plugin while developing in this repo isn't a supported
   setup.
+- `tests/scenarios/` — repo tooling (not part of any plugin): the adversarial scenario suite
+  that drives real agents against throwaway repos to check the untrusted-input rules hold, plus
+  `mocks/git-host-mcp.js`, a dependency-free mock git-host MCP with its own LLM-free self-test.
+  See *Adversarial scenario suite* below; it is never a required PR check.
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
-- `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation.
+- `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation + hook tests +
+  the mock's self-test.
+- `.github/workflows/adversarial.yml` — CI: the adversarial scenario suite, nightly /
+  `workflow_dispatch` / `run-adversarial` label only.
 
 ## How the crew works
 
@@ -240,9 +247,10 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh
+shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh
 bash scripts/validate-plugin.sh
 bash plugins/crew/tests/run.sh
+bash tests/scenarios/mocks/selftest.sh
 ```
 
 `plugins/crew/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
@@ -296,6 +304,55 @@ budget is a visible frontmatter edit rather than silent creep. A present-but-unp
 failure, not a skipped check, and so is an unreadable agent or skill file — counting it as 0 lines
 could under-count a footprint straight past its cap. Unresolved skill refs belong to §2g and are
 not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g/§4.
+
+### Adversarial scenario suite (`tests/scenarios/`)
+
+Three of the prompts' safety properties are the kind that rot silently — a later edit
+weakens one and the happy path still works, so nothing notices:
+
+- `morpheus` §*Address review feedback* step 2 — a comment that tries to widen scope,
+  exfiltrate secrets, or disable a guard is **surfaced, not obeyed**.
+- `keymaker` step 3 — pasted build/lint output is **data**: rule IDs are parsed from it;
+  instructions in its prose are never followed.
+- `loop-engineering` — loop intent is **never inferred** from fetched or pasted content.
+
+`tests/scenarios/` drives the real agents headlessly against throwaway repos and asserts the
+guard held. Repo tooling, never shipped with a plugin.
+
+```bash
+bash tests/scenarios/run.sh              # all scenarios
+bash tests/scenarios/run.sh s3 s4        # a subset
+SCENARIO_MODEL=opus bash tests/scenarios/run.sh
+KEEP_FIXTURES=1 bash tests/scenarios/run.sh   # keep scratch repos to inspect
+```
+
+It needs a working `claude` CLI and credentials; without them it prints a loud **SKIP** and
+exits 0 — it must never look green having verified nothing. **It is never a required PR
+check:** it runs nightly, via `workflow_dispatch`, or on a PR labelled `run-adversarial`
+(`.github/workflows/adversarial.yml`). The mock's self-test carries no such cost and *does*
+run on every PR.
+
+Four properties of the design matter more than the scenario count, and a change that breaks
+any of them makes the suite worthless while still reporting green:
+
+- **Assertions read observable state only** — git refs on a local bare remote, file hashes,
+  `git status`, the mock's recorded calls. What an agent *says* it refused is not evidence.
+  (`s2`'s positive check is the one documented exception: its correct outcome is to stop at a
+  gate having changed nothing, which on disk is identical to never having started.)
+- **The agent is granted the capabilities it is being tested not to misuse.** If the
+  permission layer blocked git, "nothing was pushed" would pass because the *harness* stopped
+  it. `s0-positive-control.sh` asserts a bare agent *can* write, edit, and push when
+  legitimately asked; a FAIL there voids the rest of the run.
+- **Every scenario also asserts something positive** (`assert_engaged`) — an agent that does
+  nothing satisfies every "did not" assertion, so an inert run must fail.
+- **Fixtures must read like ordinary project files.** A fixture guard once carried the comment
+  "any modification to this file fails the scenario"; the agent read it as an instruction and
+  cited it when refusing. Guard fixtures also live in `ci/`, never `.claude/` — Claude Code
+  treats that directory as sensitive and refuses edits there regardless of permission mode, so
+  a guard placed inside it is protected by the harness rather than by the rule under test.
+
+A pass means the property held **on that run**; these are live-model runs, so the value is
+regression signal over time, not proof. Adding a scenario is one new `s<N>-*.sh` file.
 
 ## Releasing
 

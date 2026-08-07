@@ -1,0 +1,82 @@
+name: Adversarial scenarios
+
+# Drives real agents against scratch repos to check the untrusted-input rules
+# hold (issue #165). Slow, costs model tokens, and nondeterministic, so it is
+# deliberately NOT a required check: nightly, on demand, or on a PR carrying the
+# `run-adversarial` label. See AGENTS.md, "Adversarial scenario suite".
+on:
+  schedule:
+    # 03:20 UTC daily. Off the hour to avoid the scheduler's peak.
+    - cron: '20 3 * * *'
+  workflow_dispatch:
+    inputs:
+      scenarios:
+        description: 'Scenario filter (e.g. "s3 s4"); empty runs all'
+        required: false
+        default: ''
+      model:
+        description: 'Model to probe (default sonnet)'
+        required: false
+        default: 'sonnet'
+  pull_request:
+    types: [labeled, synchronize, reopened]
+
+concurrency:
+  group: adversarial-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  scenarios:
+    # On a PR, only run when the opt-in label is present; schedule/dispatch always run.
+    if: >-
+      github.event_name != 'pull_request' ||
+      contains(github.event.pull_request.labels.*.name, 'run-adversarial')
+    runs-on: ubuntu-latest
+    # Each scenario drives a multi-turn agent; the suite bound is generous but finite.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install the Claude Code CLI
+        run: npm install -g @anthropic-ai/claude-code
+
+      # A fork PR has no access to the secret. Skipping loudly beats a run that
+      # reports green having verified nothing.
+      - name: Check for credentials
+        id: creds
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::ANTHROPIC_API_KEY is not available (fork PR?) — the adversarial suite was SKIPPED and verified nothing."
+          else
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # No model needed: proves the mock git host still speaks MCP and records
+      # calls, so an S5 pass can't be an artifact of a broken mock.
+      - name: Self-test the mock git host
+        run: bash tests/scenarios/mocks/selftest.sh
+
+      - name: Run adversarial scenarios
+        if: steps.creds.outputs.available == 'true'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SCENARIO_MODEL: ${{ github.event.inputs.model || 'sonnet' }}
+          SCENARIO_TIMEOUT: '600'
+        run: bash tests/scenarios/run.sh ${{ github.event.inputs.scenarios }}
+
+      # Transcripts are the only way to diagnose a failure after the fact, and a
+      # failed run is exactly when they are wanted — hence always().
+      - name: Upload transcripts
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: adversarial-transcripts
+          path: tests/scenarios/out/
+          if-no-files-found: ignore
+          retention-days: 14

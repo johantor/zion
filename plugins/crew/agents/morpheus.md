@@ -6,6 +6,8 @@ model: opus
 color: green
 maxTurns: 96
 memory: local
+owns-git: true
+lane-guarded: false
 skills:
   - loop-engineering
   - context-discipline

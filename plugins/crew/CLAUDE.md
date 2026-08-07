@@ -19,7 +19,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
   backstop; watch/dev commands refused), `read-guard.sh` (>64 KiB raw reads; an explicit
-  `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes), `format.sh`,
+  `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes). Both guards gate on a
+  hardcoded agent-name roster, each preceded by a `# crew-roster: <name>` marker whose
+  following `a|b|c)` arm shape is load-bearing — validator §9 keeps those rosters in lockstep
+  with the agents' `owns-git`/`lane-guarded` frontmatter, both directions. Also `format.sh`,
   `turn-budget.sh` (PostToolUse `*`: counts a crew agent's tool calls against its
   frontmatter `maxTurns` — a conservative heuristic, tool calls ≥ turns — and warns once at
   75% and once at 90% so it winds down and hands back `remaining:` instead of truncating;
@@ -36,7 +39,8 @@ anything stated here updates this file in the same commit.** Conventions live in
   (`scripts/validate-plugin.sh`) — it validates **all** plugins (manifests + marketplace
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
   cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7, turn-budget table ↔
-  agent `maxTurns` lockstep §8) and is not shipped with this plugin.
+  agent `maxTurns` lockstep §8, guard rosters ↔ agent `owns-git`/`lane-guarded` lockstep §9)
+  and is not shipped with this plugin.
 - `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
   hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
   **behavior**: each guard is a pure `stdin JSON → exit 0/2` function, fed crafted
@@ -47,7 +51,7 @@ anything stated here updates this file in the same commit.** Conventions live in
   real formatter runs through fakes in `node_modules/.bin` (with `CREW_FORMAT_TIMEOUT`
   shortened for the hang case). A change to a hook's logic **must add/adjust a case** here,
   on both the allow and block sides. Also self-tests the
-  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8) has at least one
+  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9) has at least one
   negative fixture plus a silent control, and a new section lands with its fixture in the same
   commit (AGENTS.md, *Validating changes*). Asserts key on the guard's FAIL message, not the
   exit code. Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
@@ -65,7 +69,12 @@ anything stated here updates this file in the same commit.** Conventions live in
   bindings (gate GO success, second-NO-GO cap, `/crew:pr`, neo no-op) in `agents/morpheus.md`
   §"Loop-mode bindings". The outer loop is `commands/loop.md`.
 - Agent frontmatter: `skills:` is the **last** key, unqualified names, `  - name` list items
-  (§2g's awk parser depends on that shape).
+  (§2g's awk parser reads the `  - name` items; it stops at the next key, so the last-key rule
+  is convention, not a parser constraint).
+- Agent write-access declarations, checked by validator §9 (see below): every crew agent
+  carries `owns-git: true|false` and `lane-guarded: true|false` before `skills:`. Exactly one
+  agent (`morpheus`) owns git. These are the declarative half of what the guard hooks enforce
+  — a new agent that omits them fails CI instead of silently getting unguarded git and no lane.
 
 ## Gotchas & release
 

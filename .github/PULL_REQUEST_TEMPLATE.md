@@ -1,6 +1,9 @@
 ## Summary
 
-<!-- What changed and why. Focus on the "why" — the diff shows the "what". -->
+<!-- What changed and why. Focus on the "why" — the diff shows the "what".
+Keep it short: aim for a screenful, these get read on phones. Fill in the
+sections and stop — no narrative of how the work went, no self-review log.
+See AGENTS.md, "Conventions". -->
 
 -
 

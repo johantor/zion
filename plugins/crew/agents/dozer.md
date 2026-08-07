@@ -6,6 +6,8 @@ model: sonnet
 maxTurns: 56
 color: magenta
 memory: local
+owns-git: false
+lane-guarded: true
 skills:
   - context-discipline
 ---

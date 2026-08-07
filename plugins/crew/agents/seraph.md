@@ -5,6 +5,8 @@ tools: Read, Grep, Glob, ToolSearch, mcp__figma, mcp__claude_ai_Figma, mcp__play
 model: sonnet
 maxTurns: 20
 color: yellow
+owns-git: false
+lane-guarded: false
 skills:
   - context-discipline
 ---

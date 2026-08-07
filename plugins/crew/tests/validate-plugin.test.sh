@@ -472,6 +472,12 @@ mk_prose_agent "$d/plugins/foo" bar 'Run `/foo:ship` to finish.'
 mkdir -p "$d/plugins/foo/commands"; printf -- '---\nname: ship\ndescription: d\n---\nbody\n' > "$d/plugins/foo/commands/ship.md"
 assert_silent "§10 silent when the ref resolves to a command" "$d" "but no plugins/foo"
 
+# A plugin name embedded in a longer word is not a reference. Guards the
+# delimiter group that stands in for `\b` (a GNU extension we can't use).
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_prose_agent "$d/plugins/foo" bar 'The xfoo:ghost marker is not a reference.'
+assert_silent "§10 ignores a plugin name embedded in a longer word" "$d" "ghost"
+
 # An unknown namespace is another marketplace's business, not ours.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 # shellcheck disable=SC2016
@@ -499,6 +505,16 @@ mk_config_block "$d" '- **Base branch:** main
 - **Deploy target:** prod'
 assert_emits "§11 bites on a block entry that is not a declared slot" "$d" \
   "lists 'Deploy target', which is not a slot"
+
+# Only the documented line shapes count as slots: `- **Slot** —` under §1, and
+# `- **Slot:**` in the block. Bold used for emphasis is not a slot declaration.
+d="$(new_repo)"
+mk_init_slots "$d" '- **Base branch** — the branch to cut from.
+- **Note** this bullet is emphasis, not a slot.'
+mk_config_block "$d" '- **Base branch:** main
+- **Heads up** this is prose, not a slot.'
+assert_silent "§11 ignores a non-slot bold bullet under §1" "$d" "'Note'"
+assert_silent "§11 ignores a bold bullet without a colon in the block" "$d" "'Heads up'"
 
 # An unparseable slot list must report, not silently verify nothing.
 d="$(new_repo)"

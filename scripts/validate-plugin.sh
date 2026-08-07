@@ -707,8 +707,12 @@ while IFS= read -r m; do
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
 while IFS= read -r doc; do
+  # A leading delimiter stands in for `\b`, which is a GNU extension (AGENTS.md:
+  # stay BSD/macOS-portable); sed drops it again. Without it, `xcrew:tank` would
+  # match the `crew:tank` inside it.
   # `|| true`: grep's exit 1 on no match would abort the run under `set -e`.
-  refs="$(grep -ohE '\b('"$(echo "$plugin_names" | tr -s ' ' '|' | sed 's/^|//; s/|$//')"'):[a-z][a-z0-9-]*' "$doc" 2>/dev/null | sort -u || true)"
+  refs="$(grep -ohE '(^|[^A-Za-z0-9_-])('"$(echo "$plugin_names" | tr -s ' ' '|' | sed 's/^|//; s/|$//')"'):[a-z][a-z0-9-]*' "$doc" 2>/dev/null \
+    | sed 's/^[^A-Za-z]//' | sort -u || true)"
   [ -z "$refs" ] && continue
   while IFS= read -r ref; do
     [ -z "$ref" ] && continue
@@ -727,14 +731,16 @@ done < <(git ls-files 'plugins/*/agents/*.md' 'plugins/*/commands/*.md' 'plugins
 #     not a slot. See AGENTS.md, "Validating changes".
 init_cmd="plugins/crew/commands/init.md"
 if [ -f "$init_cmd" ] && [ -f CLAUDE.md ]; then
-  init_slots="$(sed -n '/^## 1\./,/^## 2\./p' "$init_cmd" | sed -n 's/^- \*\*\([^*]*\)\*\*.*/\1/p')"
+  # Both patterns require the delimiter the docs describe -- `- **Slot** —` here
+  # and `- **Slot:**` in the block -- so a non-slot bold bullet isn't read as one.
+  init_slots="$(sed -n '/^## 1\./,/^## 2\./p' "$init_cmd" | sed -n 's/^- \*\*\([^*]*\)\*\* —.*/\1/p')"
   cfg_block="$(sed -n '/^## Crew configuration/,$p' CLAUDE.md)"
   if [ -z "$init_slots" ]; then
     err "$init_cmd has no parseable slot list under '## 1.' (expected '- **<Slot>** -- ...' lines); cannot verify the CLAUDE.md config block"
   elif [ -z "$cfg_block" ]; then
     err "CLAUDE.md has no '## Crew configuration' section; $init_cmd §1 declares slots that reconcile must write there"
   else
-    cfg_slots="$(grep -oE '^- \*\*[^*]+\*\*' <<<"$cfg_block" | sed 's/^- \*\*//; s/\*\*$//; s/:$//' || true)"
+    cfg_slots="$(grep -oE '^- \*\*[^*]+:\*\*' <<<"$cfg_block" | sed 's/^- \*\*//; s/:\*\*$//' || true)"
     while IFS= read -r s; do
       [ -z "$s" ] && continue
       if grep -qxF "$s" <<<"$cfg_slots"; then

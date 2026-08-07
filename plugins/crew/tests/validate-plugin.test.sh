@@ -519,4 +519,68 @@ mk_config_block "$d" '- **Base branch:** main
 assert_silent "§11 silent when the slot lists agree" "$d" "not a slot in"
 assert_silent "§11 silent: no missing-slot complaint when they agree" "$d" "but CLAUDE.md's"
 
+# --- §12: always-loaded footprint is reported, and an opt-in cap is enforced ----
+# mk_capped_agent <plugin_dir> <name> <cap-or-empty> <body-line-count> [skill-ref]
+# The cap line is omitted entirely when <cap> is empty, so the same helper builds
+# both the opt-in and the report-only (uncapped) cases.
+mk_capped_agent() {
+  local dir="$1" name="$2" cap="$3" body="$4" skill="${5:-}" i
+  mkdir -p "$dir/agents"
+  {
+    printf -- '---\nname: %s\ndescription: d\n' "$name"
+    [ -n "$cap" ] && printf 'loaded-lines-cap: %s\n' "$cap"
+    [ -n "$skill" ] && printf 'skills:\n  - %s\n' "$skill"
+    printf -- '---\n'
+    for ((i = 0; i < body; i++)); do printf 'body line %d\n' "$i"; done
+  } > "$dir/agents/$name.md"
+}
+# mk_sized_skill <plugin_dir> <name> <extra-body-lines>
+mk_sized_skill() {
+  local dir="$1" name="$2" extra="$3" i
+  mkdir -p "$dir/skills/$name"
+  {
+    printf -- '---\nname: %s\ndescription: d\n---\n' "$name"
+    for ((i = 0; i < extra; i++)); do printf 'skill line %d\n' "$i"; done
+  } > "$dir/skills/$name/SKILL.md"
+}
+
+# The footprint is reported for every agent, capped or not.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_capped_agent "$d/plugins/foo" plain "" 5
+assert_emits "§12 reports an uncapped agent's footprint" "$d" "plain.md loaded footprint: 9 lines"
+
+# A cap is enforced, and the preloaded skills count toward it: the agent body
+# alone fits under 12, the agent plus its 6-line skill does not.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_sized_skill "$d/plugins/foo" heavy 2
+mk_capped_agent "$d/plugins/foo" fat 12 5 heavy
+assert_emits "§12 bites when the footprint exceeds its cap" "$d" \
+  "fat.md loaded footprint 18 exceeds its 'loaded-lines-cap: 12'"
+assert_emits "§12 counts preloaded skills toward the footprint" "$d" "(agent 12 + skills 6)"
+
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_sized_skill "$d/plugins/foo" heavy 2
+mk_capped_agent "$d/plugins/foo" lean 40 5 heavy
+assert_silent "§12 silent when the footprint is within its cap" "$d" "exceeds its"
+
+# A cap that can't be parsed must fail loudly, not silently stop enforcing.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_capped_agent "$d/plugins/foo" bad "not-a-number" 5
+assert_emits "§12 bites on a non-numeric cap" "$d" "expected a plain line count"
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_capped_agent "$d/plugins/foo" empty "" 5
+# Written by hand: mk_capped_agent omits the key entirely when the cap is empty,
+# but a present-with-no-value key is the case that must not skip the check.
+printf -- '---\nname: empty\ndescription: d\nloaded-lines-cap:\n---\nbody\n' \
+  > "$d/plugins/foo/agents/empty.md"
+assert_emits "§12 bites on a present-but-empty cap" "$d" "has an empty 'loaded-lines-cap'"
+
+# An unresolved skill ref is §2g's failure; §12 must not double-report it, and
+# must still report the agent's own footprint.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_capped_agent "$d/plugins/foo" typo 40 5 ghost-skill
+assert_emits "§12 still reports a footprint when a skill ref is unresolved" "$d" \
+  "typo.md loaded footprint: 12 lines (agent 12 + skills 0)"
+assert_silent "§12 leaves the unresolved ref to §2g" "$d" "measure its loaded footprint"
+
 finish

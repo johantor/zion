@@ -5,6 +5,15 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.3] - 2026-08-07
+
+### Changed
+- `keymaker`: moved design rationale out of the always-loaded prompt into the repo's
+  `AGENTS.md` ("Prompt design rationale"), behind a single pointer line. Every behavioral
+  instruction and gate is unchanged.
+- `keymaker` declares `loaded-lines-cap: 580`, enforced by validator §12 (new), which reports
+  every agent's always-loaded footprint (agent file + preloaded skills).
+
 ## [0.7.2] - 2026-07-17
 
 ### Changed

@@ -41,7 +41,8 @@ anything stated here updates this file in the same commit.** Conventions live in
   cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7, turn-budget table ↔
   agent `maxTurns` lockstep §8, guard rosters ↔ agent `owns-git`/`lane-guarded` lockstep §9,
   namespaced prose refs resolving §10, `init.md` §1 slots ↔ the root CLAUDE.md crew-config
-  block §11) and is not shipped with this plugin.
+  block §11, per-agent always-loaded footprint report + opt-in `loaded-lines-cap` §12) and is
+  not shipped with this plugin.
 - `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
   hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
   **behavior**: each guard is a pure `stdin JSON → exit 0/2` function, fed crafted
@@ -52,7 +53,7 @@ anything stated here updates this file in the same commit.** Conventions live in
   real formatter runs through fakes in `node_modules/.bin` (with `CREW_FORMAT_TIMEOUT`
   shortened for the hang case). A change to a hook's logic **must add/adjust a case** here,
   on both the allow and block sides. Also self-tests the
-  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11) has at least one
+  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11 · §12) has at least one
   negative fixture plus a silent control, and a new section lands with its fixture in the same
   commit (AGENTS.md, *Validating changes*). Asserts key on the guard's FAIL message, not the
   exit code. Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
@@ -72,6 +73,10 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Agent frontmatter: `skills:` is the **last** key, unqualified names, `  - name` list items
   (§2g's awk parser reads the `  - name` items; it stops at the next key, so the last-key rule
   is convention, not a parser constraint).
+- Always-loaded footprint: validator §12 reports every agent's agent-file + preloaded-skill line
+  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 480).
+  Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —
+  agent prompts carry instruction, not justification; each trimmed prompt points there once.
 - Agent write-access declarations, checked by validator §9 (see below): every crew agent
   carries `owns-git: true|false` and `lane-guarded: true|false` before `skills:`. Exactly one
   agent (`morpheus`) owns git. These are the declarative half of what the guard hooks enforce

@@ -743,6 +743,88 @@ if [ -f "$init_cmd" ] && [ -f CLAUDE.md ]; then
   fi
 fi
 
+# 12. Always-loaded context footprint per agent: the agent file plus every skill
+#     its frontmatter preloads is in the window on every single run, so the repo
+#     measures what it preaches to workers (`context-discipline`). The number is
+#     always reported; an agent may additionally declare `loaded-lines-cap: <n>`
+#     to fail CI when it grows past a chosen budget, so raising the budget is a
+#     visible frontmatter edit rather than silent creep. See AGENTS.md,
+#     "Prompt design rationale".
+#
+#     Unresolvable skill refs are §2g's failure, not this section's: they are
+#     skipped here (not counted, not re-reported) so one typo yields one error.
+
+# Line count of a file, or empty if unreadable.
+file_lines() { [ -f "$1" ] && awk 'END { print NR }' "$1"; }
+
+# Echo the resolved SKILL.md path for an unqualified skill name, if any. Same
+# resolution rule as §2g: any plugin's skills/<name>/SKILL.md.
+skill_path() {
+  local candidate
+  for candidate in plugins/*/skills/"$1"/SKILL.md; do
+    [ -f "$candidate" ] && { printf '%s' "$candidate"; return 0; }
+  done
+  return 1
+}
+
+# The frontmatter `skills:` list, one name per line (§2g's parser, reused).
+agent_skill_refs() {
+  awk '
+    BEGIN { in_fm = 0; in_skills = 0 }
+    /^---[[:space:]]*$/ {
+      if (in_fm == 0) { in_fm = 1; next }
+      else { exit }
+    }
+    in_fm && in_skills {
+      if ($0 ~ /^[[:space:]]+-[[:space:]]+/) {
+        sub(/^[[:space:]]+-[[:space:]]+/, "")
+        sub(/[[:space:]]+#.*$/, "")
+        sub(/[[:space:]]+$/, "")
+        gsub(/^["\047]|["\047]$/, "")
+        if (length($0)) print
+        next
+      } else if ($0 !~ /^[[:space:]]*$/) {
+        in_skills = 0
+      }
+    }
+    in_fm && /^skills:[[:space:]]*$/ { in_skills = 1 }
+  ' "$1"
+}
+
+while IFS= read -r agent; do
+  agent_lines="$(file_lines "$agent")"
+  if [ -z "$agent_lines" ]; then
+    err "$agent could not be read to measure its loaded footprint"
+    continue
+  fi
+  skill_lines=0
+  while IFS= read -r skill_ref; do
+    [ -z "$skill_ref" ] && continue
+    # An unresolved ref is already a §2g failure; don't double-report it.
+    resolved="$(skill_path "$skill_ref")" || continue
+    n="$(file_lines "$resolved")"
+    [ -n "$n" ] && skill_lines=$((skill_lines + n))
+  done < <(agent_skill_refs "$agent")
+  footprint=$((agent_lines + skill_lines))
+  ok "$agent loaded footprint: $footprint lines (agent $agent_lines + skills $skill_lines)"
+
+  # The cap is opt-in, but a present-and-unusable value is a hard failure: a
+  # check that can't parse its own threshold cannot verify its claim.
+  fm_has_key "$agent" loaded-lines-cap || continue
+  cap="$(fm_field "$agent" loaded-lines-cap)"
+  case "$cap" in
+    "") err "$agent has an empty 'loaded-lines-cap'; give it a number or remove the key" ;;
+    *[!0-9]*) err "$agent has 'loaded-lines-cap: $cap'; expected a plain line count" ;;
+    *)
+      if [ "$footprint" -le "$cap" ]; then
+        ok "$agent loaded footprint $footprint within its cap of $cap"
+      else
+        err "$agent loaded footprint $footprint exceeds its 'loaded-lines-cap: $cap' (agent $agent_lines + skills $skill_lines); trim the prompt (AGENTS.md, 'Prompt design rationale') or raise the cap deliberately in its frontmatter"
+      fi
+      ;;
+  esac
+done < <(git ls-files 'plugins/*/agents/*.md')
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

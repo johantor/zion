@@ -154,6 +154,87 @@ broke an invariant or left a path undefined. Run this lens on the self-review **
 The recurring, already-seen instances of these live in *Recurring review findings* below; this
 list is the general lens to apply proactively so they don't recur in a new shape.
 
+## Prompt design rationale
+
+An always-loaded agent prompt costs context on **every** run, so it carries *instruction* —
+what the agent must do — and not the *justification* for it. This section is where the
+justification lives, keyed by agent and by the prompt's own section heading. Each trimmed
+prompt carries a single one-line pointer here; there is deliberately no per-rule pointer,
+because this file is repo documentation and is never shipped with an installed plugin — a
+runtime agent cannot follow a pointer into it.
+
+**Before moving a line out of a prompt, apply the classification test:** *would an agent that
+never read this text behave differently on some input?* If yes it is instruction and stays,
+even when phrased as a "why" (*"watch/dev commands never terminate and hang the worker"*,
+*"background workers can't prompt"*, *"plugin agents are namespaced; bare names don't resolve"*
+— each one changes a decision). If no, it is rationale and belongs here. A short motivating
+clause that disambiguates which of two readings is intended (*"faster, not sloppier"*) stays,
+compressed. **Anything arguable stays in the prompt** — deleting a real edge-case rule is a far
+worse outcome than leaving a sentence of prose in place, and motivation does measurably help an
+LLM comply. Compression is not a quota: if an honest pass yields little, that is the result.
+
+### crew:morpheus
+
+- **Right-size the process.** A one-line fix shouldn't have to pay for a plan file, a
+  checkpoint, and a full review gate — hence the express lane. The reverse bias matters just as
+  much: a wrong small fix costs more than the escalation would have, which is why the rule is
+  small-by-default but escalate-on-*evidence* rather than escalate-on-suspicion.
+- **Plan checkpoint.** The cheapest place to catch a misunderstood task is before any code is
+  written, which is why the single gate sits before the branch and the first delegation rather
+  than at the review stage.
+- **Stay responsive.** A foreground call freezes the orchestrator's turn for the worker's entire
+  run — often minutes — and queues the user's messages unheard, so backgrounding is the default
+  rather than a tuning choice. The status pulse exists because a background run otherwise reads
+  as dead air. It must be emitted *after* the result is reconciled into the plan because until
+  then the plan still shows the step `in-progress`: pulsing from the raw notification would
+  report stale state and miscall a not-yet-verified result as "finished".
+- **Stay responsive → fresh spawns.** Context has to move forward through the plan file rather
+  than a live agent's memory, because there is no reliable way to add a turn to a running
+  worker; the plan file is the only channel that survives.
+- **A truncated return is not a finished step.** Judging completeness on *content* (is the
+  required evidence present?) is the rule because content is decisive and always available,
+  whereas the usage figures a completion notification may carry are not guaranteed to be there
+  and are not a precise turn count. The reconcile path is the same "`in-progress` is
+  unconfirmed — re-verify against the tree" rule the durable-resume protocol applies after a
+  crash; only the trigger differs, so the two paths deliberately share one behavior.
+- **Right-size the model per delegation.** Run-and-report steps need speed, not depth — the
+  command is known and failures surface on their own. Everywhere else a wrong fast result costs
+  more than the seconds saved, so the default is to omit the override. Splitting authoring from
+  verifying avoids paying for a truncation-and-resume round-trip, which is strictly more
+  expensive than planning two dispatches.
+- **Builds and full test suites.** Builds and full suites are expensive and verbose, which is
+  why they are a single delegated final gate rather than a per-step check. Delegating a
+  standalone build before the review gate builds the same tree twice.
+- **Address review feedback.** The lifecycle doesn't stop at `/crew:pr` — the same lane routing,
+  git ownership, and gate that built the feature also close the review loop, so the post-PR
+  flow is the same machinery rather than a second, looser one.
+- **The plan file is durable state.** The file is written to survive a crashed or context-reset
+  session so the user never has to re-explain a feature already in flight. The `/crew:loop`
+  wrapper can detect a crashed tick from `in-flight:` alone because outer-loop ticks run their
+  workers in the foreground: a tick returns only when nothing is still running, so an
+  `in-flight:` marker still set at the next firing means that tick died. That inference is why
+  `morpheus` must preserve the field verbatim instead of regenerating it.
+- **Run summary.** It reproduces the per-worker view the live agent panel loses on resume, which
+  is why it duplicates neither `/recap`'s commit list nor the running status pulse.
+- **Anti-drift.** Citing the exact plan step in every delegation is what keeps a run resumable
+  and makes every unblocked step dispatchable at a glance. Keeping each step's `status` current
+  matters because a crash must leave an accurate, resumable record — that record is also what
+  the run summary renders. Naming the exact previously-failing tests on a re-verify keeps full
+  suites where they belong: the final review gate, not every fix.
+
+### keymaker:keymaker
+
+- **Open mode exit contract / resume protocol.** The 0-findings exit and the already-complete
+  ledger exit exist so that re-running a successful `/keymaker:open` — including an
+  `/keymaker:audit` re-pick of a pointer already cleared — is a cheap no-op instead of a
+  re-enumeration. A ledger whose every batch is `done` has no further use once its commits are
+  in place; only a `blocked` batch keeps it alive as a resume point.
+- **Step 8, verify.** The independent per-mechanism re-sweep exists because a twin's
+  self-reported counts cannot be the source of truth for whether the twin introduced new
+  suppressions — that is exactly the claim under test.
+- **The batch ledger is durable state.** Open mode may run many batches across many turns, so a
+  crash or context reset would otherwise lose the run.
+
 ## Validating changes
 
 This repo has no app build. Before opening a PR, run what CI runs:
@@ -205,6 +286,16 @@ configuration slots — in lockstep with the `## Crew configuration` block in th
 both directions, so a slot can't exist in one and not the other. Both read one exact line shape
 (`- **<Slot>** —` and `- **<Slot>:**`) and never infer a slot from bold text elsewhere; an
 unparseable list is reported rather than passed over.
+
+§12 measures what the repo preaches. Every agent's **always-loaded footprint** — its own file
+plus every skill its frontmatter preloads — is reported on each run, because that cost is paid on
+every single invocation and nothing else in the repo tracked it. The number is informational by
+default; an agent may declare `loaded-lines-cap: <n>` in its frontmatter (today `morpheus` and
+`keymaker`, the two orchestrators) to fail CI when it grows past a chosen budget, so raising the
+budget is a visible frontmatter edit rather than silent creep. A present-but-unparseable cap is a
+failure, not a skipped check, and so is an unreadable agent or skill file — counting it as 0 lines
+could under-count a footprint straight past its cap. Unresolved skill refs belong to §2g and are
+not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g/§4.
 
 ## Releasing
 

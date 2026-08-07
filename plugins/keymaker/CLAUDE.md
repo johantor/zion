@@ -37,6 +37,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   `agents/keymaker.md` §"Loop-mode bindings".
 - Acknowledgement gates (stop-and-ask): no-test warning on behavior-sensitive/upgrade
   batches, >40-findings slice choice, tier-2 offer, transitive/peer package conflicts.
+- Always-loaded footprint: `keymaker` declares `loaded-lines-cap: 580` (validator §12 reports
+  every agent's agent-file + preloaded-skill lines and fails CI past the cap; `debt-taxonomy`'s
+  203 lines dominate it). Rationale for the prompt's rules lives in the root `AGENTS.md`
+  §"Prompt design rationale" — the prompt carries instruction and points there once.
 
 ## Gotchas & release
 

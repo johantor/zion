@@ -697,16 +697,9 @@ while IFS= read -r plugin_manifest; do
   fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
-# 10. Namespaced references in prose must resolve. §2g checks an agent's
-#     `skills:` frontmatter; this extends the same idea to the prose body, where
-#     `crew:tank` / `/keymaker:audit` name an agent or command the harness has to
-#     resolve at runtime. A typo there fails silently and late -- the delegation
-#     just doesn't launch -- so it belongs in CI, not in a reviewer's memory.
-#
-#     Only `<plugin>:<name>` for plugins that exist in this repo is checked, so
-#     prose mentioning another marketplace's namespace is left alone. Code spans
-#     are included deliberately: these references are nearly always written as
-#     `crew:tank`, so skipping backticks would skip the whole check.
+# 10. Every `<plugin>:<name>` in prose must resolve to an agent or command file
+#     (§2g does this for `skills:` frontmatter). Namespaces no plugin here
+#     declares are ignored. See AGENTS.md, "Validating changes".
 plugin_names=""
 while IFS= read -r m; do
   d="${m%/.claude-plugin/plugin.json}"
@@ -714,8 +707,7 @@ while IFS= read -r m; do
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
 while IFS= read -r doc; do
-  # `|| true`: most docs carry no namespaced reference, and grep's exit 1 would
-  # otherwise propagate through the assignment and abort the run under `set -e`.
+  # `|| true`: grep's exit 1 on no match would abort the run under `set -e`.
   refs="$(grep -ohE '\b('"$(echo "$plugin_names" | tr -s ' ' '|' | sed 's/^|//; s/|$//')"'):[a-z][a-z0-9-]*' "$doc" 2>/dev/null | sort -u || true)"
   [ -z "$refs" ] && continue
   while IFS= read -r ref; do
@@ -729,16 +721,10 @@ while IFS= read -r doc; do
   done <<<"$refs"
 done < <(git ls-files 'plugins/*/agents/*.md' 'plugins/*/commands/*.md' 'plugins/*/skills/*/SKILL.md')
 
-# 11. Crew configuration slots <-> the block /crew:init writes. init.md §1 calls
-#     itself "the source of truth for what 'complete' means", and the root
-#     CLAUDE.md carries the block that reconcile fills in. Nothing checked that
-#     the two agree, so a slot added to one and not the other silently means
-#     either a slot no agent can read or a config key init never writes.
-#
-#     Both are prose lists, but each has an exact machine-readable shape:
-#     `- **<Slot>** --` under `## 1.` in init.md, and `- **<Slot>:**` in the
-#     CLAUDE.md block. Anything else is emphasis, not a slot, so the check reads
-#     only those two shapes and never guesses from bold text elsewhere.
+# 11. init.md §1 (the declared source of truth for crew config slots) <-> the
+#     `## Crew configuration` block in the root CLAUDE.md, both directions.
+#     Reads only the two exact line shapes below -- bold elsewhere is emphasis,
+#     not a slot. See AGENTS.md, "Validating changes".
 init_cmd="plugins/crew/commands/init.md"
 if [ -f "$init_cmd" ] && [ -f CLAUDE.md ]; then
   init_slots="$(sed -n '/^## 1\./,/^## 2\./p' "$init_cmd" | sed -n 's/^- \*\*\([^*]*\)\*\*.*/\1/p')"

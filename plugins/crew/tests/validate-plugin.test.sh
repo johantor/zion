@@ -458,9 +458,8 @@ mk_prose_agent() {  # <plugin_dir> <name> <body>
   printf -- '---\nname: %s\ndescription: d\n---\n%s\n' "$2" "$3" > "$1/agents/$2.md"
 }
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
-# The backticks below are Markdown code spans in the fixture's prose, not command
-# substitution — these references are nearly always written as `crew:tank`, so the
-# fixtures have to carry them that way for §10 to be exercised as it runs for real.
+# Backticks below are Markdown code spans in fixture prose, not substitution:
+# these refs are nearly always written as `crew:tank`, so §10 must see that form.
 # shellcheck disable=SC2016
 mk_prose_agent "$d/plugins/foo" bar 'Delegate to `foo:ghost` when stuck.'
 assert_emits "§10 bites on a prose ref to a nonexistent agent" "$d" \

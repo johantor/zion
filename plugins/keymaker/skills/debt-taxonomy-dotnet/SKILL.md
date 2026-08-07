@@ -42,6 +42,24 @@ the affected project, then check the diagnostic is absent).
 | `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Each entry is a separate candidate. Heuristic: grep the `Target` symbol in `*.cs` source files (`grep -rn --include="*.cs" "<symbol>" src/`) — if the target member no longer exists in source, the suppression is a strong candidate. |
 | `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | Never a stale candidate — skipped tests are rubric class 4 (needs-investigation), not removable without confirmation. |
 
+## Justification slots (for the core skill's justified-suppression filter)
+
+Where a keep-decision lives per mechanism. .NET is the weaker stack here: only the
+`SuppressMessage` family has a native slot, so the rest rely on project-level policy — see core
+`debt-taxonomy` for what counts as meaningful and which audit scopes the filter applies to.
+
+| Mechanism | Native justification slot | Example |
+|---|---|---|
+| `[SuppressMessage("category", "id", Justification = "…")]` | Yes — the `Justification` named param | `[SuppressMessage("Design", "CA1062", Justification = "validated by the ASP.NET model binder")]` |
+| `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Yes — same `Justification` param, per entry | as above, one entry at a time |
+| `#pragma warning disable CS####` | **No native slot.** A trailing `// reason` on the `disable` line is the community convention and is read as the justification when present | `#pragma warning disable CS8602 // EF guarantees Include() populated this` |
+| `<NoWarn>CS####</NoWarn>` in `.csproj` / `Directory.Build.props` | **No** — project/solution-wide, not a site. Use project-level policy |
+| `.editorconfig` `dotnet_diagnostic.CS####.severity = none` | **No** — config, not a site. Use project-level policy |
+| `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | N/A — **never excluded**; the `Skip` reason says why a test is off, not that the debt is accepted. Rubric class 4 regardless |
+
+The `#pragma` trailing-comment reading is a convention, not a language feature: treat a bare
+`#pragma warning disable` with no trailing text as **unjustified** and surface it.
+
 ## Behavior sensitivity (which fixes need tests, not just a clean build)
 
 Tag every finding before delegating (see core `debt-taxonomy`):

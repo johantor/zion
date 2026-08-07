@@ -14,7 +14,9 @@ report format — and return the ranked report. Do not edit any files.
 
 When `keymaker:keymaker` returns:
 
-1. Relay its ranked report to the user verbatim (all findings).
+1. Relay its ranked report to the user verbatim (all findings), **including its totals line** —
+   that line is where suppressions excluded as already-justified or by project policy are
+   accounted for, so dropping it would report a scope as cleaner than it is.
 2. **Offer an interactive pick** (this happens in your main session — the audit agent can't prompt).
    Present an `AskUserQuestion` with `multiSelect: true`. Build its options from the **first 3
    findings in the report's existing rank order** (trivial → needs-investigation, smaller blast

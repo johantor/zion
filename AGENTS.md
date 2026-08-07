@@ -54,6 +54,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   that drives real agents against throwaway repos to check the untrusted-input rules hold, plus
   `mocks/git-host-mcp.js`, a dependency-free mock git-host MCP with its own LLM-free self-test.
   See *Adversarial scenario suite* below; it is never a required PR check.
+- `tests/fixtures/` — repo tooling: scratch-repo generators for exercising a plugin's verification
+  matrix by hand (`keymaker-scratch.sh` plants same-rule suppressions, justified and not, plus the
+  justification filter's two exemptions). Prints the repo path on stdout so it composes into a
+  headless `claude --plugin-dir …` run.
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
 - `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation + hook tests +
   the mock's self-test.
@@ -241,13 +245,36 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   suppressions — that is exactly the claim under test.
 - **The batch ledger is durable state.** Open mode may run many batches across many turns, so a
   crash or context reset would otherwise lose the run.
+- **Justified suppressions — why keymaker only reads them** (0.8.0, was #52). The store had to be
+  the codebase itself. Two alternatives were rejected: `memory: local` is gitignored, so it would
+  solve the re-surfacing problem for exactly one clone on one machine while every teammate's
+  audit re-flagged the same site and CI lost the rationale entirely — a keep-decision is a shared
+  fact about the code, not a machine-local preference. A per-site registry in the project's
+  `AGENTS.md` is committed and shared, but needs **keying** (`file:line` rots as soon as anything
+  above it shifts; a hash was explicitly unwanted) and rots into **staleness** — change the
+  suppression and the entry lingers, silently suppressing a *new* decision, with no validator
+  possible since the file lives in the user's project. A native justification slot has keying,
+  lifecycle, and PR-review locality for free. Project-level *policy* keeps the AGENTS.md route,
+  because one coarse statement beats annotating fifty sites.
+  There is deliberately **no ack command and no keymaker-specific token**: requiring an explicit
+  gesture to record a keep-decision is a step the user shouldn't have to take, and once nothing
+  writes the ack, the token, the lifecycle machinery, and the side log all stop being needed.
+  The cost is that slot-less mechanisms (`<NoWarn>`, `.editorconfig` severity, a bare `#pragma`)
+  have no per-site ack; they fall to project policy or stay surfaced. Accepted until it bites.
+- **Why `stale` scope ignores the filter, and skipped tests are never excluded.** A justification
+  explains why a suppression was *added*, not why it should stay now — so it cannot make a stale
+  suppression un-removable, and `@ts-expect-error` in particular is always removable because TS
+  self-reports unused directives. A `Skip="…"` reason says why a test is off, which is not the
+  same claim as "this debt is accepted", so skipped tests stay needs-investigation however they
+  are annotated. Both exemptions exist because the filter *hides* findings: the failure mode to
+  design against is a scope reported clean when it merely excluded everything.
 
 ## Validating changes
 
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh
+shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
 bash scripts/validate-plugin.sh
 bash plugins/crew/tests/run.sh
 bash tests/scenarios/mocks/selftest.sh
@@ -399,16 +426,23 @@ over a multi-sentence paragraph restating each principle's contents.
 - PR titles follow Conventional Commits: `type(scope): summary`, with a `(vX.Y.Z)` suffix
   when the PR bumps a plugin version. Use `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope
   the plugin when the change is plugin-specific (e.g. `feat(crew): … (v1.9.0)`).
-- **Keep PR descriptions short.** They are read on phones, often while reviewing. Fill in the
-  template's sections and stop. Aim for a screenful: what changed and why, in a few sentences;
-  the checkboxes; the issue link. The diff shows the *what* — the body carries the *why*.
-  - Skip the narrative. No blow-by-blow of how the work went, no self-review write-up, no
-    bugs-I-found-and-fixed log. Those belong in commit messages, or in a review comment on the
-    line in question.
-  - One short paragraph per section, not one per idea. If a caveat needs three paragraphs to
-    justify, it is a review thread, not a PR body.
-  - Detail a reviewer must have to approve safely (a deliberate omission, a risky assumption)
-    stays — compressed to a sentence or two, not an essay.
+- **Keep PR descriptions short — this one has a hard budget, because "aim for short" gets
+  rationalised away.** A reviewer opens the PR to decide whether to approve, usually on a phone.
+  Anything that does not help that decision costs them time.
+  - **Summary: 150 words max, and at most 5 bullets.** Whole body under 400 words including the
+    template's sections. Count before posting; if it is over, cut rather than reword.
+  - **What the body is for:** why this change, and anything a reviewer needs in order to approve
+    safely (a deliberate omission, a risky assumption, a behaviour change). One sentence each.
+  - **Never in the body:** a self-review write-up, a bugs-I-found-and-fixed log, a
+    how-the-work-went narrative, design-alternatives reasoning, or quoted tool/agent output beyond
+    a single short line. Those go in the commit message (the natural home for depth), the issue,
+    or a review comment on the line in question — all of which a reviewer can *choose* to open.
+  - **Verification is a result, not a transcript.** "Ran X, all green" or a one-line-per-row list.
+    Never paste the output.
+  - If a caveat needs three paragraphs to justify, it is a review thread, not a PR body.
+  - The commit message carries the depth and is not budgeted. Writing a thorough commit message is
+    what makes a short PR body safe: nothing is lost, it is just moved somewhere it does not tax
+    every reviewer.
 - **Every review comment gets a reply, then the thread gets resolved.** Fixed it — say so and
   name the commit. Declining — say why. Duplicate of another thread — say which. Silence leaves
   the author guessing whether it was seen. Resolve only after replying, so the thread reads as

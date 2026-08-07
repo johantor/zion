@@ -25,6 +25,27 @@ skill.
 | `tsconfig.json` `"strict": false` or disabled checks (`noImplicitAny`, `strictNullChecks`) | Project-wide | Tier 2 — outline only. Flipping these surfaces a flood of errors. |
 | ESLint `rules: { "rule": "off" }` in config | Project-wide | Like a blanket disable — expand to **diagnostic count** before gating. |
 
+## Justification slots (for the core skill's justified-suppression filter)
+
+Where a keep-decision lives per mechanism. Most JS/TS mechanisms have a **native** slot, so no
+keymaker-specific syntax is needed — see core `debt-taxonomy` for what counts as meaningful and
+which audit scopes the filter applies to.
+
+| Mechanism | Native justification slot | Example |
+|---|---|---|
+| `// eslint-disable-next-line <rule>` | Yes — ESLint's `--` description (v7+) | `// eslint-disable-next-line no-explicit-any -- vendor payload is genuinely untyped` |
+| `// eslint-disable <rule>` … `// eslint-enable` | Yes — same `--` description on the `disable` | `/* eslint-disable no-console -- CLI writes to stdout by design */` |
+| `// biome-ignore lint/category/rule: reason` | Yes — the `reason` is **required** by biome | `// biome-ignore lint/style/noVar: emitted by codegen` |
+| `@ts-expect-error` | Yes — trailing text after the directive | `// @ts-expect-error upstream types wrong until DT#1234 lands` |
+| `@ts-ignore` | Yes — trailing text after the directive | `// @ts-ignore generated client has no types` |
+| `/* eslint-disable */` (no rule, file scope) | **No** — file-wide, nothing to attach a per-rule reason to. Stays surfaced; use project-level policy instead |
+| ESLint `rules: { "rule": "off" }` in config | **No** — config, not a site. Use project-level policy |
+| `it.skip` / `test.skip` / `xit` / `xdescribe` | N/A — **never excluded**; rubric class 4 regardless of any comment |
+
+Note the interaction with the stale heuristics below: a justified `@ts-expect-error` is still
+**always** a stale candidate. TypeScript self-reports unused directives, so if the underlying
+issue is fixed the directive must go whatever its text says.
+
 ## Behavior sensitivity (which rules need tests, not just lint)
 
 Tag every JS/TS finding before delegating (see core `debt-taxonomy`):

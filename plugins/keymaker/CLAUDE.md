@@ -37,7 +37,15 @@ anything stated here updates this file in the same commit.** Conventions live in
   `agents/keymaker.md` §"Loop-mode bindings".
 - Acknowledgement gates (stop-and-ask): no-test warning on behavior-sensitive/upgrade
   batches, >40-findings slice choice, tier-2 offer, transitive/peer package conflicts.
-- Always-loaded footprint: `keymaker` declares `loaded-lines-cap: 580` (validator §12 reports
+- Justified suppressions (0.8.0, was #52): keymaker **reads** the mechanism's native
+  justification slot and excludes those sites from the audit report (counted in totals) and from
+  `open`'s working set / blast radius; `--force` overrides. No ack command, no custom token — the
+  slots are declared per mechanism in each `debt-taxonomy-<stack>` skill, the rules in core
+  `debt-taxonomy` §"Justified suppressions". Exemptions that are load-bearing: `stale` scope
+  ignores the filter, and skipped tests are never excluded. Twins must never *add* a
+  justification (it would hide the finding) — keymaker.md step 8 checks for it against the
+  dispatch snapshot.
+- Always-loaded footprint: `keymaker` declares `loaded-lines-cap: 670` (validator §12 reports
   every agent's agent-file + preloaded-skill lines and fails CI past the cap; `debt-taxonomy`'s
   203 lines dominate it). Rationale for the prompt's rules lives in the root `AGENTS.md`
   §"Prompt design rationale" — the prompt carries instruction and points there once.
@@ -47,8 +55,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Stage new/renamed skill files before running the validator (`git ls-files`-based indexes).
 - Status: **Beta** until v1.0. Graduation criteria live in the README's *Graduation to Stable*
   section — v1.0 = the verification matrix green end-to-end for **one** supported stack (TS is in
-  flight; .NET follows post-v1.0), covering the full pipeline, not just the read-only rows. #52
-  (in-band acks) is explicitly not a v1.0 blocker. Flipping to Stable is the `1.0.0` release.
+  flight; .NET follows post-v1.0), covering the full pipeline, not just the read-only rows.
+  Flipping to Stable is the `1.0.0` release.
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   `plugins/keymaker/CHANGELOG.md` (every plugin keeps its own changelog next to its
   manifest). Auto-release tags `keymaker/vX.Y.Z` on merge.

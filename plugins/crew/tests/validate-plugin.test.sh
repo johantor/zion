@@ -1,27 +1,15 @@
 #!/usr/bin/env bash
 # Self-tests for scripts/validate-plugin.sh: prove every section's guards bite.
-# Each case builds a throwaway git repo with a copy of the validator and a
-# minimal plugin layout, then asserts the specific guard's FAIL message appears
-# (bite). Every section additionally carries at least one silent control — a
-# valid tree the guard must stay quiet on — which is what proves the guard
-# discriminates rather than firing unconditionally. Controls are per section, not
-# per bite: several bites in a section share one control, since the guards differ
-# only in which way the same fixture is broken.
+# Each case builds a throwaway repo, breaks one thing, and asserts that guard's
+# FAIL message. A per-section silent control (shared by that section's bites)
+# proves the guard discriminates rather than firing unconditionally.
 #
-# We assert on the guard's own message, not the overall exit, so unrelated
-# scaffolding gaps a minimal fixture can't satisfy (e.g. §7's
-# .claude/settings.json mirror) don't mask which guard fired.
+# Assert on the guard's message, not the exit code: a minimal fixture trips
+# unrelated sections (e.g. §7's settings mirror), which would mask which fired.
+# Pick a substring that appears ONLY in the FAIL text -- §5 keys on the "hook
+# drift" prefix because "shared-guard regions in" also occurs in its ok: line.
 #
-# Choosing that substring is the subtle part: it must not also appear in the
-# validator's `ok:` lines, or the silent control can never pass. §5 asserts on
-# the shared "hook drift" prefix rather than either message's tail for exactly
-# this reason — "shared-guard regions in" also occurs in "ok: hook shared-guard
-# regions in sync". Prefer the FAIL-only prefix over a distinctive-looking tail.
-#
-# Every validator section carries at least one negative fixture here — a check
-# that silently stopped checking is the worst failure mode for an enforcement
-# tool. A new section (or a new guard within one) lands with its fixture; see
-# AGENTS.md ("Validating changes").
+# Every section carries a fixture; see AGENTS.md, "Validating changes".
 # shellcheck source=plugins/crew/tests/lib.sh
 # shellcheck disable=SC1090,SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"

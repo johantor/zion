@@ -1,13 +1,11 @@
 #!/usr/bin/env bash
-# PreToolUse(Edit|Write) allowlist for the keymaker orchestrator. keymaker
-# never implements code itself — source edits are delegated to twins
-# (keymaker.md operating rules). Its Write/Edit tools exist for the batch
-# ledger (.claude/debt-<slug>.md), tier-2 outlines (.claude/plan-<slug>.md),
-# and session notes, so writes are confined to .claude/ plus scratch/temp
-# locations. Twins and the main session are not restricted here (a twin's
-# file-list confinement is prose-enforced by its delegation contract).
+# PreToolUse(Edit|Write) allowlist for the keymaker orchestrator. keymaker never
+# implements code -- source edits go to twins -- so its writes are confined to
+# .claude/ (batch ledger, tier-2 outlines, notes) plus scratch/temp. Twins and
+# the main session aren't restricted here; a twin's file-list confinement is
+# prose-enforced by its delegation contract. See agents/keymaker.md.
 #
-# Fail closed: a guard that can't read its input must block, not allow.
+# Fails closed: a guard that can't read its input must block, not allow.
 if ! command -v jq >/dev/null 2>&1; then
   echo "Blocked: write-guard needs jq to enforce keymaker's write allowlist." >&2
   exit 2

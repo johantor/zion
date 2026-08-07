@@ -34,16 +34,13 @@ esac
 # through literally and simply fail the -e test).
 cfg() { for _p in "$@"; do [ -e "$_p" ] && return 0; done; return 1; }
 
-# Every formatter runs under a wall-clock bound. This hook fires after *every*
-# edit tank/trinity/neo make, so a formatter that hangs — a stalled tool server,
-# a package restore waiting on the network, a tool that reads stdin — otherwise
-# stalls the agent for the hook's whole budget on each one, and the harness's
-# kill can land mid `--write` and leave a truncated source file. `timeout` is GNU
-# coreutils and absent on stock macOS/BSD, so it's used when present (as
-# `timeout` or `gtimeout`) and skipped when not — the same degrade-don't-fail
-# posture as the missing-jq path above. The bound is a plain SIGTERM (no `-k`,
-# which not every `timeout` build accepts): it holds for tools that terminate on
-# a signal, which every formatter routed here does, not for one that ignores it.
+# Every formatter runs under a wall-clock bound. This fires after *every* edit,
+# so a hang (stalled tool server, network-bound restore, a tool reading stdin)
+# would stall the agent each time, and the harness's kill can land mid `--write`
+# and truncate a source file. `timeout`/`gtimeout` is used when present and
+# skipped when not (absent on stock macOS/BSD) -- same degrade-don't-fail
+# posture as the missing-jq path above. Plain SIGTERM, no `-k`: not every
+# `timeout` build accepts it, and every formatter routed here dies on a signal.
 FORMAT_TIMEOUT="${CREW_FORMAT_TIMEOUT:-20}"
 timeout_bin=""
 for _t in timeout gtimeout; do

@@ -583,4 +583,35 @@ assert_emits "§12 still reports a footprint when a skill ref is unresolved" "$d
   "typo.md loaded footprint: 12 lines (agent 12 + skills 0)"
 assert_silent "§12 leaves the unresolved ref to §2g" "$d" "measure its loaded footprint"
 
+# A tracked file deleted from the worktree is listed by git ls-files but can't
+# be read. §12 must report that loudly (not abort under set -e, not count 0 and
+# maybe pass a cap). run_validator would re-stage the deletion away, so this
+# runs the validator on the already-staged tree.
+assert_emits_prestaged() {  # <label> <dir> <substr>
+  _vout="$(cd "$2" && bash scripts/validate-plugin.sh 2>&1)" || true
+  if [[ "$_vout" == *"$3"* ]]; then _pass; else _fail "$1: validator did not emit '$3' — output: $_vout"; fi
+}
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_capped_agent "$d/plugins/foo" gone "" 5
+git -C "$d" add -A >/dev/null 2>&1; rm "$d/plugins/foo/agents/gone.md"
+assert_emits_prestaged "§12 bites on a staged-but-deleted agent file" "$d" \
+  "gone.md could not be read to measure its loaded footprint"
+assert_emits_prestaged "§12 keeps running after an unreadable agent file" "$d" \
+  "Plugin validation failed."
+
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_sized_skill "$d/plugins/foo" heavy 2
+mk_capped_agent "$d/plugins/foo" fine 12 5 heavy
+git -C "$d" add -A >/dev/null 2>&1; rm "$d/plugins/foo/skills/heavy/SKILL.md"
+assert_emits_prestaged "§12 bites on a staged-but-deleted skill file" "$d" \
+  "preloads 'heavy' but plugins/foo/skills/heavy/SKILL.md could not be read"
+# No footprint or cap verdict may be emitted for an uncountable agent: a 0-line
+# count for the missing skill would have squeaked 'fine' under its cap of 12.
+assert_emits_prestaged "§12 withholds the cap verdict when a skill is unreadable" "$d" \
+  "Plugin validation failed."
+_vout_check="$(cd "$d" && bash scripts/validate-plugin.sh 2>&1)" || true
+if [[ "$_vout_check" != *"fine.md loaded footprint"* ]]; then _pass; else
+  _fail "§12 reported a footprint for an agent whose skill was unreadable"
+fi
+
 finish

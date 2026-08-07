@@ -293,8 +293,9 @@ every single invocation and nothing else in the repo tracked it. The number is i
 default; an agent may declare `loaded-lines-cap: <n>` in its frontmatter (today `morpheus` and
 `keymaker`, the two orchestrators) to fail CI when it grows past a chosen budget, so raising the
 budget is a visible frontmatter edit rather than silent creep. A present-but-unparseable cap is a
-failure, not a skipped check. Unresolved skill refs belong to §2g and are not double-reported here;
-skills are indexed via `git ls-files`, the same staging rule as §2g/§4.
+failure, not a skipped check, and so is an unreadable agent or skill file — counting it as 0 lines
+could under-count a footprint straight past its cap. Unresolved skill refs belong to §2g and are
+not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g/§4.
 
 ## Releasing
 

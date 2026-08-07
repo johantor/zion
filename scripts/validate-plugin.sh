@@ -754,8 +754,13 @@ fi
 #     Unresolvable skill refs are §2g's failure, not this section's: they are
 #     skipped here (not counted, not re-reported) so one typo yields one error.
 
-# Line count of a file, or empty if unreadable.
-file_lines() { [ -f "$1" ] && awk 'END { print NR }' "$1"; }
+# Line count of a file, or empty if missing/unreadable. Always exits 0: a
+# non-zero status inside the callers' `$(...)` assignments would trip `set -e`
+# and kill the validator before it could report the unreadable file.
+file_lines() {
+  if [ -f "$1" ] && [ -r "$1" ]; then awk 'END { print NR }' "$1"; fi
+  return 0
+}
 
 # Skill name -> SKILL.md path, indexed via git ls-files exactly like §2g/§4, so
 # all three sections share one staging rule (see the plugin CLAUDE.md gotcha).
@@ -797,15 +802,23 @@ while IFS= read -r agent; do
     err "$agent could not be read to measure its loaded footprint"
     continue
   fi
-  skill_lines=0
+  skill_lines=0 skills_readable=1
   while IFS= read -r skill_ref; do
     [ -z "$skill_ref" ] && continue
     # An unresolved ref is already a §2g failure; don't double-report it.
     resolved="${skill_file[$skill_ref]:-}"
     [ -z "$resolved" ] && continue
     n="$(file_lines "$resolved")"
-    [ -n "$n" ] && skill_lines=$((skill_lines + n))
+    if [ -z "$n" ]; then
+      # A resolved-but-unreadable skill must fail loudly: silently counting it
+      # as 0 lines could under-count the footprint straight past a cap.
+      err "$agent preloads '$skill_ref' but $resolved could not be read; cannot verify the loaded footprint"
+      skills_readable=0
+      continue
+    fi
+    skill_lines=$((skill_lines + n))
   done < <(agent_skill_refs "$agent")
+  [ "$skills_readable" -eq 1 ] || continue
   footprint=$((agent_lines + skill_lines))
   ok "$agent loaded footprint: $footprint lines (agent $agent_lines + skills $skill_lines)"
 

@@ -278,14 +278,6 @@ marker, and §9 checks both directions: every agent classified, every roster ent
 exactly one git owner per plugin. Adding an agent without those two fields fails CI.
 The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
 
-§12 measures what the repo preaches. Every agent's **always-loaded footprint** — its own file
-plus every skill its frontmatter preloads — is reported on each run, because that cost is paid on
-every single invocation and nothing else in the repo tracked it. The number is informational by
-default; an agent may declare `loaded-lines-cap: <n>` in its frontmatter (today `morpheus` and
-`keymaker`, the two orchestrators) to fail CI when it grows past a chosen budget, so raising the
-budget is a visible frontmatter edit rather than silent creep. A present-but-unparseable cap is a
-failure, not a skipped check. Unresolved skill refs belong to §2g and are not double-reported here.
-
 Two more checks cover prose that names something the harness has to resolve. §10 requires every
 `crew:`/`keymaker:` reference in an agent, command, or skill body to resolve to a real agent or
 command file — a typo there fails silently and late, since the delegation simply doesn't launch.
@@ -294,6 +286,15 @@ configuration slots — in lockstep with the `## Crew configuration` block in th
 both directions, so a slot can't exist in one and not the other. Both read one exact line shape
 (`- **<Slot>** —` and `- **<Slot>:**`) and never infer a slot from bold text elsewhere; an
 unparseable list is reported rather than passed over.
+
+§12 measures what the repo preaches. Every agent's **always-loaded footprint** — its own file
+plus every skill its frontmatter preloads — is reported on each run, because that cost is paid on
+every single invocation and nothing else in the repo tracked it. The number is informational by
+default; an agent may declare `loaded-lines-cap: <n>` in its frontmatter (today `morpheus` and
+`keymaker`, the two orchestrators) to fail CI when it grows past a chosen budget, so raising the
+budget is a visible frontmatter edit rather than silent creep. A present-but-unparseable cap is a
+failure, not a skipped check. Unresolved skill refs belong to §2g and are not double-reported here;
+skills are indexed via `git ls-files`, the same staging rule as §2g/§4.
 
 ## Releasing
 

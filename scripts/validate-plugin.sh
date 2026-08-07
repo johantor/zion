@@ -757,15 +757,15 @@ fi
 # Line count of a file, or empty if unreadable.
 file_lines() { [ -f "$1" ] && awk 'END { print NR }' "$1"; }
 
-# Echo the resolved SKILL.md path for an unqualified skill name, if any. Same
-# resolution rule as §2g: any plugin's skills/<name>/SKILL.md.
-skill_path() {
-  local candidate
-  for candidate in plugins/*/skills/"$1"/SKILL.md; do
-    [ -f "$candidate" ] && { printf '%s' "$candidate"; return 0; }
-  done
-  return 1
-}
+# Skill name -> SKILL.md path, indexed via git ls-files exactly like §2g/§4, so
+# all three sections share one staging rule (see the plugin CLAUDE.md gotcha).
+# A name shipped by several plugins keeps the first path found — §4 pins the
+# copies byte-identical, so their line counts agree.
+declare -A skill_file=()
+while IFS= read -r skill_md; do
+  sname="$(basename "$(dirname "$skill_md")")"
+  [ -n "${skill_file[$sname]:-}" ] || skill_file["$sname"]="$skill_md"
+done < <(git ls-files 'plugins/*/skills/*/SKILL.md')
 
 # The frontmatter `skills:` list, one name per line (§2g's parser, reused).
 agent_skill_refs() {
@@ -801,7 +801,8 @@ while IFS= read -r agent; do
   while IFS= read -r skill_ref; do
     [ -z "$skill_ref" ] && continue
     # An unresolved ref is already a §2g failure; don't double-report it.
-    resolved="$(skill_path "$skill_ref")" || continue
+    resolved="${skill_file[$skill_ref]:-}"
+    [ -z "$resolved" ] && continue
     n="$(file_lines "$resolved")"
     [ -n "$n" ] && skill_lines=$((skill_lines + n))
   done < <(agent_skill_refs "$agent")

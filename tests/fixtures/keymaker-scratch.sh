@@ -23,8 +23,15 @@ stack=ts
 dir=""
 while [ "$#" -gt 0 ]; do
   case "$1" in
-    --stack) stack="${2:-}"; shift 2 ;;
-    --dir) dir="${2:-}"; shift 2 ;;
+    # The arg-count guard is load-bearing: `shift 2` with one argument left fails
+    # *without shifting*, and with no `set -e` the loop would spin on the same $1
+    # forever rather than erroring.
+    --stack)
+      [ "$#" -ge 2 ] || { echo "FATAL: --stack needs a value (ts|dotnet)" >&2; exit 1; }
+      stack="$2"; shift 2 ;;
+    --dir)
+      [ "$#" -ge 2 ] || { echo "FATAL: --dir needs a path" >&2; exit 1; }
+      dir="$2"; shift 2 ;;
     -h|--help) sed -n '2,20p' "$0" >&2; exit 0 ;;
     *) echo "unknown argument: $1" >&2; exit 1 ;;
   esac
@@ -38,7 +45,10 @@ if [ -z "$dir" ]; then
 fi
 mkdir -p "$dir" || { echo "FATAL: cannot create $dir" >&2; exit 1; }
 
-w() { mkdir -p "$dir/$(dirname "$1")"; cat > "$dir/$1"; }
+w() {
+  mkdir -p "$dir/$(dirname "$1")" || { echo "FATAL: could not create the directory for $1" >&2; exit 1; }
+  cat > "$dir/$1" || { echo "FATAL: could not write $1" >&2; exit 1; }
+}
 
 # Crew-config block: keymaker reads these slots, and an unset one makes it ask —
 # which a headless run cannot answer. Plan dir is outside .claude/ because Claude

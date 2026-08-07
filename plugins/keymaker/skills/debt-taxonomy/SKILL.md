@@ -169,7 +169,8 @@ comment is not a legitimacy justification; skipped tests stay **rubric class 4**
 
 **`open` respects it too.** When *every* site a pointer resolves to carries a justification,
 `/keymaker:open` exits with a one-liner quoting the rationale — same shape as the 0-findings
-exit — and `--force` overrides to work it anyway. When only *some* sites are justified, proceed
+exit — and `--force` (an **`open`-only** flag; audit has no override, it lists exclusions instead)
+overrides to work it anyway. When only *some* sites are justified, proceed
 with the rest and note the excluded count; a partly-justified rule is still real work.
 
 **Rule- or path-level policy belongs in the project's own `AGENTS.md`/`CLAUDE.md`** — a coarse

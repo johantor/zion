@@ -49,6 +49,10 @@ Before enumerating or classifying anything, run the `debt-taxonomy` **Stack dete
    in the counts. The `stale` scope is exempt (staleness is orthogonal to legitimacy) and
    skipped tests are never excluded. When a justification's intent is unclear, **surface the
    finding** — hiding debt is the costlier error.
+   **Audit has no `--force`** — that flag is open-mode only. A `--force` token in an audit
+   argument is not a scope, so step 1's usage hint applies. Excluded work stays visible two ways
+   instead: the totals line counts it, and an *Excluded from the ranking* list names each site
+   with its rationale, so nothing needs an override to be seen.
 5. Rank by effort-to-impact: trivially-fixable → needs-real-work → needs-investigation (for `outdated`: SAFE → REVIEW → CAUTION per the risk triage). Within each tier, smaller blast radius ranks higher.
 6. Cap at ~12 findings. If enumeration hits 50+ for a single rule, surface "50+ for rule X — run `/keymaker:open CS####` to address it directly" as one entry. For `outdated` with many packages, keep the ~12 cap by risk rank (SAFE/REVIEW first) and fold the long tail into one "N more outdated" entry.
 7. Format each finding as a one-liner with: classification, count, an evidence pointer (`file:line` or grep command; for `outdated`, the `current → target` delta), and the ready-to-paste `/keymaker:open` invocation (for `outdated`, `/keymaker:open <pkg> <target>`).

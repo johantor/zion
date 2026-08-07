@@ -20,7 +20,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Lint hook & script shell files
-        run: shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh
+        run: shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh
 
   plugin:
     runs-on: ubuntu-latest
@@ -35,3 +35,9 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Run crew hook behavior tests
         run: bash plugins/crew/tests/run.sh
+
+      # LLM-free: proves the adversarial suite's mock git host still speaks MCP
+      # and records calls. Cheap enough for every PR, and a silently broken mock
+      # would make the S5 scenario pass for the wrong reason when it is run.
+      - name: Self-test the adversarial suite's mock git host
+        run: bash tests/scenarios/mocks/selftest.sh

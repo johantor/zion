@@ -530,11 +530,19 @@ done < <(git ls-files 'plugins/*/hooks/turn-budget.sh')
 #    The hook's own comment is the only thing holding those in sync today.
 
 # Read one `key: value` from a Markdown file's YAML frontmatter.
+#
+# The key must start at column 1: top-level YAML keys always do, so an indented
+# `owns-git:` is a nested key belonging to something else and must not match.
+# A trailing `  # comment` is stripped -- YAML requires whitespace before an
+# inline comment, so this can't truncate a value that merely contains a `#`.
 fm_field() {
   awk -v key="$2" '
     /^---[[:space:]]*$/ { if (in_fm == 0) { in_fm = 1; next } else exit }
     in_fm && index($0, key ":") == 1 {
-      sub(/^[^:]*:[[:space:]]*/, ""); sub(/[[:space:]]*$/, ""); print; exit
+      sub(/^[^:]*:[[:space:]]*/, "")
+      sub(/[[:space:]]+#.*$/, "")
+      sub(/[[:space:]]*$/, "")
+      print; exit
     }
   ' "$1"
 }

@@ -149,8 +149,8 @@ Only a step that must prompt the user runs in the foreground; otherwise, always 
   so re-dispatching to widen an in-flight step just puts two workers into one scope. Use
   `SendMessage` instead — a running worker treats a message from you as ordinary task direction
   and folds it into the work it's already doing, its context intact. Address it by the **agent ID**
-  the spawn returned, never by name: a later worker may have taken that name, and the send is then
-  refused rather than misdelivered. A worker **the user** stopped won't resume on a message —
+  the spawn returned — recorded in the step's `agent-id:` on dispatch — never by name: a later
+  worker may have taken that name, and the send is then refused rather than misdelivered. A worker **the user** stopped won't resume on a message —
   re-dispatch that one. **If `SendMessage` isn't in reach at all** (it depends on the host's
   version, platform, and provider, and crew runs on machines you know nothing about), nothing
   here is a blocker: wait for the worker to return and re-dispatch a fresh, wider step, exactly
@@ -332,7 +332,9 @@ boundary — the resume protocol below continues the run.
   crashed tick.
 - Each step: `id:` (stable), `status:` `pending`\|`in-progress`\|`done`\|`blocked`,
   `depends-on:` (step `id`s or `independent`), `acceptance:` (pass criteria), `worker:` (the
-  delegated agent, e.g. `crew:tank`, recorded on dispatch), in loop mode `attempts:` (failed
+  delegated agent, e.g. `crew:tank`, recorded on dispatch), `agent-id:` (the id the dispatch
+  returned — record it alongside `worker:`, since it's the only reliable address for steering
+  that worker later, and drop it once the step is `done`), in loop mode `attempts:` (failed
   fix→verify round-trips so far — the retry cap reads it on resume), and once done,
   `evidence:` — the **commit SHA first**, optionally followed by the proof that satisfied
   acceptance.

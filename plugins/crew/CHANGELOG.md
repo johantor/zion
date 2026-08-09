@@ -8,39 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.14.0] - 2026-08-09
 
 ### Added
-- **`morpheus` can steer a worker that's already running.** It now carries `SendMessage`, and a
-  running worker takes a message from the agent that launched it as ordinary task direction — so
-  a small in-lane correction (a renamed symbol, a missed edge case, a convention the prompt got
-  wrong) reaches `tank` mid-run instead of waiting for it to return.
-
-  Previously the prompt told morpheus the opposite: continuing a running worker wasn't something
-  it could count on, because its `tools:` allowlist had no `SendMessage`. That's now stated as
-  the capability it is, with the choice it forces. Steering is the narrow path, not the default —
-  it spends the target's remaining `maxTurns` (a late steer buys a half-done step and a
-  `remaining:` line), it is still blocked by `lane-guard` when the change is outside that
-  worker's lane, and it can't stand in for a user decision a background worker can't prompt for.
-  Re-dispatching a fresh, wider step remains correct in all three cases.
-
-  Two existing rules pick it up: a mid-run user comment is steered into the running worker when it
-  sits inside that worker's lane and current step (otherwise queued as its own step, as before),
-  and an overlap on a shared artifact is now first collapsed by steering one worker off the file
-  — cheaper than stopping it, and it keeps the rest of that worker's work.
-
-  Addressing is by the **agent ID** the spawn returned, never the name: a later worker can take a
-  name, and the send is refused rather than misdelivered. A worker the *user* stopped doesn't
-  resume on a message and must be re-dispatched.
-
-  `SendMessage` availability depends on the host's version, platform, and provider, and crew ships
-  to machines we know nothing about — so the prompt states the pre-`SendMessage` behavior as the
-  explicit fallback (wait for the worker, re-dispatch a wider step) and tells `morpheus` **not** to
-  treat an unavailable `SendMessage` as a blocker to stop and report on. Without that, a missing
-  tool would trip its "if you cannot delegate a step, STOP and report" rule.
+- `morpheus`: gains `SendMessage` and steers a still-running worker for small, in-lane
+  corrections instead of waiting for it to return and re-dispatching.
+- Plan steps carry `agent-id:`, recorded on dispatch — the address a steer is sent to.
 
 ### Changed
-- `morpheus`: steering a worker **amends that step in the plan file as the message is sent** — a
-  steered worker returns more than its `acceptance:` says, and the commit is judged against the
-  plan. Durable state still moves through the plan file; a message adds a turn to a live run and
-  dies with it.
+- `morpheus`: steering amends the step's `acceptance:` as the message is sent; durable state
+  still moves through the plan file.
 
 ## [3.13.1] - 2026-08-07
 

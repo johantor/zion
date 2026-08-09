@@ -408,7 +408,8 @@ Versions are per-plugin. To cut a release:
 **Changelog entries are terse.** One bullet per change under its Keep-a-Changelog heading
 (`Added`/`Changed`/`Fixed`/`Removed`); lead with *what changed* in plain terms, one line — two
 at most. The entry becomes the GitHub Release notes, so it's a scannable list, not a narrative:
-the *why*, mechanics, and background belong in the PR and commit message, not here. Prefer:
+the *why*, mechanics, and background belong in the PR and commit message, not here. Reference the
+PR or issue as `(#N)` so the detail is one click away. Prefer:
 
 ```
 ### Added

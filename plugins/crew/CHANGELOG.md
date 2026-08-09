@@ -8,13 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.14.0] - 2026-08-09
 
 ### Added
-- `morpheus`: gains `SendMessage` and steers a still-running worker for small, in-lane
-  corrections instead of waiting for it to return and re-dispatching.
-- Plan steps carry `agent-id:`, recorded on dispatch — the address a steer is sent to.
-
-### Changed
-- `morpheus`: steering amends the step's `acceptance:` as the message is sent; durable state
-  still moves through the plan file.
+- `morpheus`: steers a still-running worker via `SendMessage` for small, in-lane corrections,
+  instead of waiting for it to return and re-dispatching (#176). Plan steps carry `agent-id:`
+  as the address.
 
 ## [3.13.1] - 2026-08-07
 

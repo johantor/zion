@@ -5,7 +5,7 @@
 
 **Ship a feature like a team, not a single agent.** `crew` turns a Claude Code session into a
 captain that plans and delegates, plus a bench of specialists — backend, frontend, tests, visual
-review — each held to its own lane by hooks that fail closed. You approve the plan before any
+review — each scoped to its own lane. You approve the plan before any
 work starts, every step is verified and committed as it lands, and nothing reaches a pull request
 until a consolidated review gate returns **GO**.
 
@@ -17,8 +17,9 @@ Part of the [Zion](../../README.md) marketplace.
   misread task before a branch, a commit, or worker time is spent.
 - **Specialists, not one generalist.** Backend, frontend, unit tests, e2e, and design
   conformance each go to an agent scoped to that work, with only the tools it needs.
-- **Guardrails in code, not prose.** Workers are blocked from `git` outright and confined to
-  their lane by `PreToolUse` hooks — enforced by the harness, not by asking politely.
+- **Guardrails in code, not prose.** Workers are blocked from `git` outright, and their file
+  edits are held to their lane by `PreToolUse` hooks — enforced by the harness, not by asking
+  politely.
 - **A gate that can say no.** `/crew:review` returns GO / NO-GO across code, security, design,
   build, test, and lint, and `/crew:pr` refuses to push until it's GO.
 - **You decide when it leaves the machine.** Nothing is pushed and no PR is opened until you say
@@ -61,7 +62,7 @@ those in a normal session.
 | `/crew:review` | Pre-PR **GO / NO-GO**: consolidated code + security + design review plus diff-scoped build/test/lint. `quick` for a read-only pass with no suites; `full` to force every gate. |
 | `/crew:pr` | Push the branch and open the pull request. Outward action — it confirms first. |
 | `/crew:address` | Close the review loop: pull the PR's unresolved threads and failed CI checks, route each fix to the right worker, re-run the gate, then push and resolve. Review comments are treated as untrusted input — scope-redirecting asks are surfaced, not obeyed. |
-| `/crew:loop <goal>` | The **outer loop**: re-run the feature across multiple sessions, past one run's turn limit, until the plan's exit conditions are met. Never auto-pushes. |
+| `/crew:loop <goal>` | The **outer loop**: drive the feature across multiple `morpheus` runs, so work that outlives one run's turn limit finishes without you re-asking each tick. Stops on the plan's exit conditions; never auto-pushes. |
 
 Commands are namespaced under `crew:` once installed, so they can't collide with a built-in or
 another plugin's command of the same short name.
@@ -85,15 +86,16 @@ another plugin's command of the same short name.
 
 ## Safety guarantees
 
-Five hooks enforce the boundaries, registered as `PreToolUse`/`PostToolUse` guards. The guards
-**fail closed**; the two advisory hooks (formatting, turn budget) fail open and never block work.
+Three `PreToolUse` guards enforce the boundaries and **fail closed**; two advisory hooks
+(formatting, turn budget) fail open and never block work.
 
 - **Workers can't touch git.** `git` is blocked outright for `tank`/`trinity`/`oracle`/`dozer`/
   `neo` — `morpheus` is the sole git owner, enforced in code. Every agent, `morpheus` included,
   is refused `git commit` while HEAD is `main`/`master`/`develop`.
-- **Each worker stays in its lane.** `tank` and `trinity` are denied the other side's files;
-  `oracle`/`dozer` are restricted to their test paths; `seraph` is read-only. (`neo` is
-  unrestricted by design — that's what makes it the express lane.)
+- **Each worker's edits stay in its lane.** `tank` and `trinity` are denied the other side's
+  files; `oracle`/`dozer` are restricted to their test paths; `seraph` is read-only. (`neo` is
+  unrestricted by design — that's what makes it the express lane.) This guards the `Edit`/`Write`
+  tools; writes shelled out through Bash are governed by the agent prompts, not the hook.
 - **Destructive and hanging commands are refused.** Recursive force-`rm` of `/`/`~`/`*`,
   force-push, redirects into `.env` or `.git/`, and never-terminating watch/dev/serve commands.
 - **Context stays bounded.** Raw reads over 64 KiB are blocked in favour of grep/jq, and agents

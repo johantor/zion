@@ -199,9 +199,15 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   as dead air. It must be emitted *after* the result is reconciled into the plan because until
   then the plan still shows the step `in-progress`: pulsing from the raw notification would
   report stale state and miscall a not-yet-verified result as "finished".
-- **Stay responsive → fresh spawns.** Context has to move forward through the plan file rather
-  than a live agent's memory, because there is no reliable way to add a turn to a running
-  worker; the plan file is the only channel that survives.
+- **Stay responsive → fresh spawns, and steering as the narrow exception.** `Agent` never
+  continues a worker, so re-dispatching to widen a running step is always a second worker in one
+  scope — `SendMessage` is the only way to add a turn to a live one. Steering stays deliberately
+  narrow because its costs land on the target: it spends that worker's remaining `maxTurns`, it
+  is still bounded by the same lane guard, and it dies with the run. So durable context still
+  moves through the plan file, the only channel that survives a fresh spawn, a truncation, or a
+  crash. Steering nudges a run in flight; the plan file carries the state. The "amend the step as
+  you send" rule follows from the same split — the commit is judged against the plan's
+  `acceptance:`, so a steer that widens the work without widening the step makes the two disagree.
 - **A truncated return is not a finished step.** Judging completeness on *content* (is the
   required evidence present?) is the rule because content is decisive and always available,
   whereas the usage figures a completion notification may carry are not guaranteed to be there
@@ -402,7 +408,8 @@ Versions are per-plugin. To cut a release:
 **Changelog entries are terse.** One bullet per change under its Keep-a-Changelog heading
 (`Added`/`Changed`/`Fixed`/`Removed`); lead with *what changed* in plain terms, one line — two
 at most. The entry becomes the GitHub Release notes, so it's a scannable list, not a narrative:
-the *why*, mechanics, and background belong in the PR and commit message, not here. Prefer:
+the *why*, mechanics, and background belong in the PR and commit message, not here. Reference the
+PR or issue as `(#N)` so the detail is one click away. Prefer:
 
 ```
 ### Added

@@ -34,6 +34,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     truncating; validator §8 keeps its budget table in lockstep with agent frontmatter), wired
     via `hooks/hooks.json`.
   - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
+  - `VERIFICATION.md` — the plugin's behavioral scenario matrix, kept out of the README so the
+    README stays a user-facing document. `keymaker` carries its own alongside its README.
 - `scripts/validate-plugin.sh` — repo tooling (not part of any plugin; it needs this
   monorepo's layout and never runs in an installed plugin): validates every plugin's
   manifest/structure, including skill-drift across plugins (§4 in the script), hook-script
@@ -519,6 +521,7 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
   underlying agent directly with that note rather than nesting a command that only forwards its
   own arguments.
 - **Behavioral verification means actually running the scenario, not asserting it in the PR.**
-  For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario (keymaker's
-  README verification matrix is the model) and cite the observed result — a checklist item that
-  reads "would pass" is not verification.
+  For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario from that
+  plugin's `VERIFICATION.md` ([crew](plugins/crew/VERIFICATION.md),
+  [keymaker](plugins/keymaker/VERIFICATION.md)) and cite the observed result — a checklist item
+  that reads "would pass" is not verification.

@@ -1,8 +1,8 @@
 # Zion
 
 <!-- Release-tag scheme is `plugin/vX.Y.Z` (see auto-release.yml). The label is
-     blanked (`&label=`) so each badge is a single pill of the tag itself — which
-     already names the plugin — instead of doubling it up as "crew crew/v3.5.2". -->
+     blanked (`&label=`) so each badge is a single pill of the tag itself, which
+     already names the plugin, instead of doubling it up as "crew crew/v3.5.2". -->
 [![crew](https://img.shields.io/github/v/release/johantor/zion?filter=crew/v*&label=)](https://github.com/johantor/zion/releases)
 [![keymaker](https://img.shields.io/github/v/release/johantor/zion?filter=keymaker/v*&label=)](https://github.com/johantor/zion/releases)
 [![engineering-principles](https://img.shields.io/github/v/release/johantor/zion?filter=engineering-principles/v*&label=)](https://github.com/johantor/zion/releases)
@@ -15,7 +15,7 @@ team-style software delivery: a captain that plans and delegates to backend,
 frontend, test, and design specialists behind hook-enforced guardrails
 (**crew**), a precision tool that pays down tech debt and upgrades dependencies
 one verified fix at a time (**keymaker**), and the shared review rubric behind
-both (**engineering-principles**) — installable together or independently.
+both (**engineering-principles**), installable together or independently.
 
 ```bash
 claude plugin marketplace add johantor/zion
@@ -32,18 +32,18 @@ claude plugin install crew@zion
 |---|---|---|---|
 | **[crew](plugins/crew/README.md)** | Stable | Orchestrated, multi-agent feature delivery: a captain (`morpheus`) plans the work and delegates to backend, frontend, test, and visual-review specialists, with a consolidated review gate before anything ships. | `/crew:*` commands, agents, safety hooks, skills |
 | **[keymaker](plugins/keymaker/README.md)** | [Beta](plugins/keymaker/README.md#graduation-to-stable-v10) | Pointer-driven tech debt remediation and dependency upgrades: fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:*` commands, agents, safety hooks, skills |
-| **[engineering-principles](plugins/engineering-principles/README.md)** | Stable | The code-review rubric used across the suite, packaged standalone for teams who only want the standards. | One skill — no commands, agents, or hooks |
+| **[engineering-principles](plugins/engineering-principles/README.md)** | Stable | The code-review rubric used across the suite, packaged standalone for teams who only want the standards. | One skill: no commands, agents, or hooks |
 
 The plugins are designed to compose: they share the same `CLAUDE.md`
 configuration slots and the same review rubric, so installing more than one adds
 capability without conflicts. `crew` already bundles the `engineering-principles`
-rubric — install the standalone plugin only if you *don't* use `crew`.
+rubric; install the standalone plugin only if you *don't* use `crew`.
 
 ## Requirements
 
 - [Claude Code](https://code.claude.com/docs/en/overview) with plugin support
   (CLI, desktop, or IDE extension).
-- A git repository — `crew` and `keymaker` branch and commit their work.
+- A git repository: `crew` and `keymaker` branch and commit their work.
 - Optional, for `crew`'s visual review and PR workflows: Playwright, Figma, and
   GitHub / Azure DevOps MCP servers. Setup is documented in the
   [crew README](plugins/crew/README.md); everything else works without them.
@@ -72,14 +72,14 @@ Alternatively, install from the UI: run `/plugin` in Claude Code and browse to
 ### crew — build a feature
 
 ```bash
-claude --agent crew:morpheus     # dedicated orchestration session — just describe the feature
+claude --agent crew:morpheus     # dedicated orchestration session, just describe the feature
 ```
 
 or, from a normal session:
 
 ```
 /crew:init                 # once per project: detect and record build/test/lint config
-/crew:feature <task>       # plan, delegate, build — stops at the review gate
+/crew:feature <task>       # plan, delegate, build, then stop at the gate
 /crew:review               # pre-PR GO / NO-GO: code + security + design review, build/test/lint
 /crew:pr                   # push the branch and open the pull request
 /crew:address              # route PR comments and CI failures back to the crew
@@ -100,7 +100,7 @@ mid-flight. Nothing is pushed and no PR is opened until you say so.
 ```
 
 Each fix is classified, gated on its blast radius, fixed in verified batches,
-and committed per batch — the deleted suppression makes the analyzer itself the
+and committed per batch. The deleted suppression makes the analyzer itself the
 regression test. Supports .NET / C# and TypeScript / JavaScript today.
 
 ### engineering-principles — the rubric, standalone
@@ -122,13 +122,13 @@ Release notes: [crew](plugins/crew/CHANGELOG.md) ·
 
 ## Documentation
 
-- [crew](plugins/crew/README.md) — agents, commands, hooks, background
+- [crew](plugins/crew/README.md): agents, commands, hooks, background
   delegation, and optional MCP setup.
-- [keymaker](plugins/keymaker/README.md) — pointer syntax, the fix pipeline,
+- [keymaker](plugins/keymaker/README.md): pointer syntax, the fix pipeline,
   and audit scopes.
-- [engineering-principles](plugins/engineering-principles/README.md) — what the
+- [engineering-principles](plugins/engineering-principles/README.md): what the
   rubric covers.
-- [AGENTS.md](AGENTS.md) — contributing a plugin or hacking on the crew.
+- [AGENTS.md](AGENTS.md): contributing a plugin or hacking on the crew.
 
 ## License
 
@@ -137,7 +137,7 @@ Release notes: [crew](plugins/crew/CHANGELOG.md) ·
 ---
 
 <details>
-<summary>Trivia — what's with the names?</summary>
+<summary>Trivia: what's with the names?</summary>
 
 Everything here is named from *The Matrix*. **Zion** is humanity's last city — the home
 that houses the resistance, and a fitting name for a marketplace of crews. The agents are

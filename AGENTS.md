@@ -488,9 +488,14 @@ that let a claim slide through without evidence behind it.
   `streamline`, `empower`, `elevate`, `pivotal`, "it's not just X, it's Y", "at its core", "in
   today's fast-paced …". They add nothing and they date the writing.
 
-Two things this repo deliberately does *not* police: em-dashes (used heavily throughout, including
-the root README — that's the house voice) and the occasional long parenthetical. Changelog entries
-have their own rule; see *Releasing*.
+- **Go easy on em-dashes.** They were the house habit and got thinned out deliberately: roughly
+  one every five lines across the READMEs, which reads as machine-written whatever wrote it. A
+  colon, a comma, or a full stop usually says the same thing, and splitting a dashed clause into
+  its own short sentence fixes the rhythm at the same time. Keep the ones doing work no other
+  mark does, mostly a matched pair around a real aside. This is a nudge, not a ban, and it is
+  not worth a review comment on its own.
+
+Changelog entries have their own rule; see *Releasing*.
 
 ## Recurring review findings — apply proactively
 

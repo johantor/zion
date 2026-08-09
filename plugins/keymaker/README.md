@@ -33,6 +33,17 @@ Part of the [Zion](../../README.md) marketplace.
 - **It stops rather than guesses.** Peer conflicts, platform-scale migrations, and unknown stacks
   are reported and handed back, never forced through.
 
+## What it won't do
+
+- **It ends at commit.** No push, no PR command. Getting the work reviewed is yours.
+- **Platform-scale migrations get an outline, not an implementation.** TFM bumps, bundler
+  replacements, major framework upgrades: keymaker classifies them tier 2, writes a handoff
+  outline, and stops.
+- **Two stacks today** — .NET/C# and TypeScript/JavaScript. On a stack it doesn't know it says so
+  and asks instead of guessing.
+- **The gates stop and wait.** A >40-finding slice choice, a missing test command, a peer
+  conflict — each one needs your answer before anything continues, loop mode included.
+
 ## Install
 
 ```bash
@@ -66,8 +77,6 @@ IDs out of it.
 |---|---|
 | `/keymaker:open <pointer>` | Fix one pointer: classify → enumerate blast radius → gate → fix in batches (twin workers, parallel by lane) → verify → commit per batch. Runs in the foreground so its gates can prompt. |
 | `/keymaker:audit <scope>` | Read-only scout: a ranked, capped (~12) report where every finding is a ready-to-paste `/keymaker:open`. Offers an interactive pick of the top 3; edits nothing itself. |
-
-There is **no push or PR command** — the flow ends at commit.
 
 ### Audit scopes
 

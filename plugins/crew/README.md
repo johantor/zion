@@ -22,6 +22,20 @@ Part of the [Zion](../../README.md) marketplace.
   code, security, design, build, test, and lint; `/crew:pr` refuses to push until it's GO, and
   nothing leaves the machine until you say so.
 
+## What it costs you
+
+- **A crew run is slower than one agent**, and it spends more tokens. Planning, delegation, and a
+  consolidated gate are not free. That's what the express lane is for — but if your whole workload
+  is one-line fixes, you don't need crew.
+- **The checkpoint is a real stop.** `morpheus` waits for your go-ahead before it branches or
+  delegates. Background workers can't prompt, so a step that still needs a decision has to get one
+  from you first.
+- **The lane guards will refuse things.** They fail closed: a same-language backend and frontend
+  with no lane paths configured gets a refusal rather than a guess. That's deliberate, and it
+  means `/crew:init` is not optional on those stacks.
+- **Nothing ships on its own.** No push, no PR, not even in loop mode. If you wanted
+  fire-and-forget, this is the wrong tool.
+
 ## Install
 
 ```bash

@@ -465,6 +465,33 @@ over a multi-sentence paragraph restating each principle's contents.
   from the latest `main` on a fresh branch:
   `git fetch origin main && git checkout -B <branch> origin/main`.
 
+### Writing style (READMEs, changelogs, PR bodies, issues)
+
+Prose here should read like a person wrote it. Generated-sounding docs are not a style problem —
+they are a trust problem, because the patterns that make text sound generated are the same ones
+that let a claim slide through without evidence behind it.
+
+- **Name the catch.** Every guarantee has a cost, a limit, or a case where it doesn't hold. State
+  it next to the claim, not in a footnote. A section that only sells gets skimmed and believed in
+  the wrong places — see the two lane-guard overclaims in #178, both of which survived exactly
+  because the sentence sounded confident.
+- **Specifics instead of adjectives.** Not "powerful guardrails" — name the hook, the tool it
+  gates, and what happens when it fires. If an adjective is carrying the sentence, replace it
+  with the thing it's pointing at.
+- **Take the stance.** "Both approaches have their place" is a dodge. Say which one this repo
+  picked and why. If a doc boils down to "it depends", it didn't need writing.
+- **Don't hedge every sentence.** One or two qualifiers is normal. Qualifying everything reads as
+  evasion, and buries the qualifier that actually matters.
+- **Vary the rhythm.** Uniform medium-length sentences in uniform three-bullet lists is the house
+  style of generated text. Mix long and short. A four-word sentence is allowed.
+- **Skip the tells.** `delve`, `leverage`, `robust`, `seamless`, `unlock`, `harness` (as a verb),
+  `streamline`, `empower`, `elevate`, `pivotal`, "it's not just X, it's Y", "at its core", "in
+  today's fast-paced …". They add nothing and they date the writing.
+
+Two things this repo deliberately does *not* police: em-dashes (used heavily throughout, including
+the root README — that's the house voice) and the occasional long parenthetical. Changelog entries
+have their own rule; see *Releasing*.
+
 ## Recurring review findings — apply proactively
 
 Patterns that showed up more than once in review feedback on this repo. Apply these up front

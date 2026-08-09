@@ -54,8 +54,9 @@ anything stated here updates this file in the same commit.** Conventions live in
 
 - Stage new/renamed skill files before running the validator (`git ls-files`-based indexes).
 - Status: **Beta** until v1.0. Graduation criteria live in the README's *Graduation to Stable*
-  section — v1.0 = the verification matrix green end-to-end for **one** supported stack (TS is in
-  flight; .NET follows post-v1.0), covering the full pipeline, not just the read-only rows.
+  section; the scenarios and their run logs are in `VERIFICATION.md` — v1.0 = that matrix green
+  end-to-end for **one** supported stack (TS is in flight; .NET follows post-v1.0), covering the
+  full pipeline, not just the read-only rows.
   Flipping to Stable is the `1.0.0` release.
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   `plugins/keymaker/CHANGELOG.md` (every plugin keeps its own changelog next to its

@@ -34,6 +34,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     truncating; validator §8 keeps its budget table in lockstep with agent frontmatter), wired
     via `hooks/hooks.json`.
   - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
+  - `VERIFICATION.md` — the plugin's behavioral scenario matrix, kept out of the README so the
+    README stays a user-facing document. `keymaker` carries its own alongside its README.
 - `scripts/validate-plugin.sh` — repo tooling (not part of any plugin; it needs this
   monorepo's layout and never runs in an installed plugin): validates every plugin's
   manifest/structure, including skill-drift across plugins (§4 in the script), hook-script
@@ -463,6 +465,38 @@ over a multi-sentence paragraph restating each principle's contents.
   from the latest `main` on a fresh branch:
   `git fetch origin main && git checkout -B <branch> origin/main`.
 
+### Writing style (READMEs, changelogs, PR bodies, issues)
+
+Prose here should read like a person wrote it. Generated-sounding docs are not a style problem —
+they are a trust problem, because the patterns that make text sound generated are the same ones
+that let a claim slide through without evidence behind it.
+
+- **Name the catch.** Every guarantee has a cost, a limit, or a case where it doesn't hold. State
+  it next to the claim, not in a footnote. A section that only sells gets skimmed and believed in
+  the wrong places — see the two lane-guard overclaims in #178, both of which survived exactly
+  because the sentence sounded confident.
+- **Specifics instead of adjectives.** Not "powerful guardrails" — name the hook, the tool it
+  gates, and what happens when it fires. If an adjective is carrying the sentence, replace it
+  with the thing it's pointing at.
+- **Take the stance.** "Both approaches have their place" is a dodge. Say which one this repo
+  picked and why. If a doc boils down to "it depends", it didn't need writing.
+- **Don't hedge every sentence.** One or two qualifiers is normal. Qualifying everything reads as
+  evasion, and buries the qualifier that actually matters.
+- **Vary the rhythm.** Uniform medium-length sentences in uniform three-bullet lists is the house
+  style of generated text. Mix long and short. A four-word sentence is allowed.
+- **Skip the tells.** `delve`, `leverage`, `robust`, `seamless`, `unlock`, `harness` (as a verb),
+  `streamline`, `empower`, `elevate`, `pivotal`, "it's not just X, it's Y", "at its core", "in
+  today's fast-paced …". They add nothing and they date the writing.
+
+- **Go easy on em-dashes.** They were the house habit and got thinned out deliberately: roughly
+  one every five lines across the READMEs, which reads as machine-written whatever wrote it. A
+  colon, a comma, or a full stop usually says the same thing, and splitting a dashed clause into
+  its own short sentence fixes the rhythm at the same time. Keep the ones doing work no other
+  mark does, mostly a matched pair around a real aside. This is a nudge, not a ban, and it is
+  not worth a review comment on its own.
+
+Changelog entries have their own rule; see *Releasing*.
+
 ## Recurring review findings — apply proactively
 
 Patterns that showed up more than once in review feedback on this repo. Apply these up front
@@ -519,6 +553,7 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
   underlying agent directly with that note rather than nesting a command that only forwards its
   own arguments.
 - **Behavioral verification means actually running the scenario, not asserting it in the PR.**
-  For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario (keymaker's
-  README verification matrix is the model) and cite the observed result — a checklist item that
-  reads "would pass" is not verification.
+  For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario from that
+  plugin's `VERIFICATION.md` ([crew](plugins/crew/VERIFICATION.md),
+  [keymaker](plugins/keymaker/VERIFICATION.md)) and cite the observed result — a checklist item
+  that reads "would pass" is not verification.

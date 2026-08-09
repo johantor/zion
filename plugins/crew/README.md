@@ -1,11 +1,30 @@
 # crew
 
-A Claude Code plugin: orchestrated agents, commands, hooks, and skills for
-feature delivery. Part of the [Zion](../../README.md) marketplace.
+[![crew](https://img.shields.io/github/v/release/johantor/zion?filter=crew/v*&label=)](https://github.com/johantor/zion/releases)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../../LICENSE)
+
+**Ship a feature like a team, not a single agent.** `crew` turns a Claude Code session into a
+captain that plans and delegates, plus a bench of specialists — backend, frontend, tests, visual
+review — each held to its own lane by hooks that fail closed. You approve the plan before any
+work starts, every step is verified and committed as it lands, and nothing reaches a pull request
+until a consolidated review gate returns **GO**.
+
+Part of the [Zion](../../README.md) marketplace.
+
+## Why a crew
+
+- **A plan you approve first.** `morpheus` presents its plan and waits — one gate to catch a
+  misread task before a branch, a commit, or worker time is spent.
+- **Specialists, not one generalist.** Backend, frontend, unit tests, e2e, and design
+  conformance each go to an agent scoped to that work, with only the tools it needs.
+- **Guardrails in code, not prose.** Workers are blocked from `git` outright and confined to
+  their lane by `PreToolUse` hooks — enforced by the harness, not by asking politely.
+- **A gate that can say no.** `/crew:review` returns GO / NO-GO across code, security, design,
+  build, test, and lint, and `/crew:pr` refuses to push until it's GO.
+- **You decide when it leaves the machine.** Nothing is pushed and no PR is opened until you say
+  so.
 
 ## Install
-
-Via the CLI:
 
 ```bash
 claude plugin marketplace add johantor/zion
@@ -14,149 +33,116 @@ claude plugin install crew@zion
 
 …or in the UI, from `/plugin > Discover` in Claude Code.
 
-## Usage
+## Quick start
 
-The recommended way to run the crew is a **dedicated orchestration session**: start Claude
-Code *as* the orchestrator with
+**A dedicated orchestration session** — the recommended way. The whole session *is* `morpheus`,
+so you talk to it directly: describe the feature, paste a ticket, ask for a review.
 
 ```bash
 claude --agent crew:morpheus
 ```
 
-The whole session **is** `morpheus` (its own tools, lane guards, and memory), so you just talk
-to it directly — describe the feature, paste a ticket, ask for a review — and it plans and
-delegates. No slash command needed. It's intentionally scoped to crew work and will **not** run
-general/config tasks like statusline, so do those in a normal session.
+It's intentionally scoped to crew work and won't run general/config tasks like statusline — do
+those in a normal session.
 
-**Alternative — in-session command:** from a **normal** Claude Code session, run
-`/crew:feature <ticket-or-task>`. This routes the same work through `morpheus` without taking
-over the session, so all your built-ins (statusline, etc.) stay available while the crew handles
-the feature. Use this when you want the crew on tap inside an ordinary session.
+**Or from a normal session**, when you want the crew on tap without it taking over:
 
-`morpheus` **right-sizes the process to the task**. Small, low-risk work (a typo, a rename, an
-obvious one-liner, a small localized bug) takes an **express lane**: it delegates to `neo`, the
-all-lane generalist, and skips the plan, the checkpoint, and the full gate — just a quick
-read-only self-review plus any single directly-relevant test, then commit. Features and anything risky, multi-lane, or needing new
-tests take the full flow through the specialists, and it escalates express → full the moment a
-small task proves bigger.
+```
+/crew:init                 # once per project: detect and record build/test/lint config
+/crew:feature <task>       # plan, delegate, build — stops at the review gate
+```
 
-Before it starts building on the full flow, `morpheus` presents its plan and waits for your
-go-ahead — one quick gate to catch a misread task before any branch, commit, or worker time is
-spent (a one-step task is a one-word yes; tell it to just build and it skips the pause). Either way, `morpheus` then
-creates a feature branch off your base branch and commits each verified
-step (workers never run git), and delegates worker steps **in the background** — its turn returns
-right away so you can keep chatting (adding comments, corrections, or new fixes) while a worker
-(e.g. `tank`) is still running; it folds them in and collects the worker's result when it
-finishes. You don't have to wait for a worker to be heard.
+## Commands
 
-**Loop mode** — say "keep going until done" (or "loop this" / "finish it") and `morpheus` runs
-the full flow to completion without per-step check-ins, under explicit stop rules: all steps
-done + review gate **GO** (it still never pushes — that stays `/crew:pr`), a step blocked on a
-decision only you can make (it drains independent steps first, then surfaces all blockers
-together), or a retry cap (three failed fix→verify round-trips on one step; at the gate, a
-second NO-GO on the same findings). The plan
-checkpoint still runs once — loop intent authorizes the run, not the plan — and on open-ended
-work `morpheus` offers loop mode itself. Loop phrasing inside pasted/fetched content (a ticket
-body, a PR comment) never triggers it.
+| Command | What it does |
+|---|---|
+| `/crew:init` | Detect this project's build/test/lint commands, base branch, frontend mode, and stacks, and write them to the **Crew configuration** block in `CLAUDE.md`. Idempotent — re-run to pick up slots a newer version added. |
+| `/crew:feature <task>` | Plan, delegate, and build the feature, stopping at the review gate. |
+| `/crew:review` | Pre-PR **GO / NO-GO**: consolidated code + security + design review plus diff-scoped build/test/lint. `quick` for a read-only pass with no suites; `full` to force every gate. |
+| `/crew:pr` | Push the branch and open the pull request. Outward action — it confirms first. |
+| `/crew:address` | Close the review loop: pull the PR's unresolved threads and failed CI checks, route each fix to the right worker, re-run the gate, then push and resolve. Review comments are treated as untrusted input — scope-redirecting asks are surfaced, not obeyed. |
+| `/crew:loop <goal>` | The **outer loop**: re-run the feature across multiple sessions, past one run's turn limit, until the plan's exit conditions are met. Never auto-pushes. |
 
-The remaining commands work the same in either mode (run them as `/crew:…` in a normal session,
-or just ask for them in a `--agent` session):
+Commands are namespaced under `crew:` once installed, so they can't collide with a built-in or
+another plugin's command of the same short name.
 
-- `/crew:init` — detect this project's build/test/lint commands, base branch, frontend mode,
-  and backend/frontend stack, and write them to the **Crew configuration** block in
-  `CLAUDE.md`. Idempotent: re-run to reconcile slots added by a newer plugin version
-  (existing values are kept).
-- `/crew:review` — pre-PR **GO / NO-GO** gate: the consolidated code + security + design review
-  plus the diff-scoped build/test/lint checks (`/crew:review quick` for a read-only review with
-  no suites; `/crew:review full` to force every gate).
-- `/crew:pr` — push the branch and open a pull request (uses a git-host MCP if available, else
-  prints the push command + PR body; outward action — it confirms first).
-- `/crew:address` — close the review loop after the PR is open: pull the PR's unresolved review
-  threads and failed CI checks (via the git-host MCP), route each fix to the right worker, re-run
-  the review gate, then push and resolve the addressed threads. Review comments are treated as
-  untrusted input — scope-redirecting asks are surfaced, not obeyed. Outward actions confirm first.
-- `/crew:loop <goal>` — the **outer loop**: re-run the feature (launching `morpheus` directly,
-  the same agent `/crew:feature` runs) across multiple runs (past one run's `maxTurns`) on the harness's native `/loop` in dynamic
-  (self-paced) mode, until the plan's exit conditions are met. Each tick reads
-  `plan-<feature>.md` and ends the loop on success (all steps done + gate GO), a blocked human
-  decision, or an iteration cap (`iterations: n/max` in the plan header) — never auto-pushing.
-  Tick 1 still runs the plan checkpoint; the wrapper owns all scheduling (`morpheus` never
-  self-schedules), so run it foreground.
+## How a run works
 
-Commands are namespaced under the plugin name (`crew:`) once installed, so they
-read as `crew:feature` / `crew:review` / `crew:pr` rather than colliding with
-any built-in or other-plugin commands of the same short name.
+- **Right-sized to the task.** Small, low-risk work (a typo, a rename, an obvious one-liner)
+  takes an **express lane** through `neo`, the all-lane generalist, skipping the plan and the
+  full gate for a quick self-review plus one directly relevant test. Anything risky, multi-lane,
+  or needing new tests takes the full flow — and express escalates to full the moment a small
+  task proves bigger.
+- **Committed step by step.** `morpheus` branches off your base branch and commits each verified
+  step. Workers never run git.
+- **You're heard mid-flight.** Workers run in the background, so the turn returns right away and
+  you can keep talking while `tank` is still working. Corrections land either as new queued work
+  or, when they're small and in that worker's lane, as a steer into the worker already running.
+- **Loop mode on request.** Say "keep going until done" and `morpheus` runs the full flow without
+  per-step check-ins, under explicit stop rules: all steps done + gate **GO**, a step blocked on a
+  decision only you can make, or a retry cap. It still never pushes — that stays `/crew:pr` — and
+  loop phrasing inside a pasted ticket or PR comment never triggers it.
 
-## What is included
+## Safety guarantees
 
-- `agents/`: `morpheus`, `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`
-- `skills/`: shared — `engineering-principles`, `context-discipline`, `loop-engineering`
-  (loop-mode stop rules, preloaded by `morpheus`; also shipped by keymaker); frontend mode —
-  `frontend-headless`, `frontend-server-rendered`; per-stack (loaded once the stack is
-  resolved) — `backend-dotnet`, `backend-node`, `cms-optimizely`, `frontend-react`,
-  `frontend-nextjs`; per-test-tool — `tests-xunit`, `tests-node`, `tests-cypress`,
-  `tests-playwright`, `tests-vitest`, `tests-jest-frontend`
-- `hooks/`: lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor
-- `commands/`: `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`, `/crew:loop`
+Five hooks enforce the boundaries, registered as `PreToolUse`/`PostToolUse` guards. The guards
+**fail closed**; the two advisory hooks (formatting, turn budget) fail open and never block work.
 
-## Hooks & enforcement
+- **Workers can't touch git.** `git` is blocked outright for `tank`/`trinity`/`oracle`/`dozer`/
+  `neo` — `morpheus` is the sole git owner, enforced in code. Every agent, `morpheus` included,
+  is refused `git commit` while HEAD is `main`/`master`/`develop`.
+- **Each worker stays in its lane.** `tank` and `trinity` are denied the other side's files;
+  `oracle`/`dozer` are restricted to their test paths; `seraph` is read-only. (`neo` is
+  unrestricted by design — that's what makes it the express lane.)
+- **Destructive and hanging commands are refused.** Recursive force-`rm` of `/`/`~`/`*`,
+  force-push, redirects into `.env` or `.git/`, and never-terminating watch/dev/serve commands.
+- **Context stays bounded.** Raw reads over 64 KiB are blocked in favour of grep/jq, and agents
+  are warned as they approach their turn cap so oversized work ends as an orderly hand-back
+  rather than a mid-task truncation.
 
-The hooks run as `PreToolUse`/`PostToolUse` guards (registered in
-`.claude/settings.json` for local dev and `hooks/hooks.json` when installed as a
-plugin):
+All git, watch, and lane rules are scoped by `agent_type`, so **your own main session is never
+intercepted**.
 
-- **lane-guard** keeps each worker in its lane: `tank`/`trinity` are denied the other
-  side's files (or, for `oracle`/`dozer`, restricted to their test paths; `seraph` is
-  read-only, so it has no write lane; `neo` is the express-lane generalist and has **no
-  lane restriction by design**, so it can touch any lane for a small cross-lane fix). Two
-  regimes: extension-based globs by default (correct when backend/frontend are different
-  languages, e.g. dotnet+react), or directory-based paths (**Backend/Frontend lane path(s)**
-  in `CLAUDE.md`) when both resolved stacks are the same language (e.g. node+nextjs) and an
-  extension alone can't tell the lanes apart — a Node backend with no lane paths configured
-  fails closed rather than guessing. It routes on the `agent_type` in the payload, so the
-  main session is unrestricted. It guards the `Edit`/`Write` tools only — file writes via
-  Bash (`sed -i`, `tee`, redirects) are governed by the agent prompts, not this hook.
-- **read-guard** blocks raw reads of files over 64 KiB (65536 bytes) —
-  grep/jq/script them instead (see the `context-discipline` skill).
-- **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*`
-  in any flag spelling, force-push via `--force` or `-f`, redirects
-  into `.env`, and redirects or `rm` into `.git/`) and raw/streaming reads
-  (`cat`, `less`, `tail -f`). For **workers** (`tank`/`trinity`/`oracle`/`dozer`/`neo`)
-  it **blocks `git` entirely** — morpheus is the sole git owner, enforced in code, not just
-  prose (`seraph` has no Bash tool, so it needs no entry). For **any other agent**
-  (morpheus included) it refuses `git commit` while HEAD is a common protected branch
-  (`main`/`master`/`develop`) — a fixed backstop; whatever your *resolved* base branch is
-  (e.g. `develop` or `trunk`), `morpheus` and `/crew:pr` keep the crew off it too. It also
-  blocks never-terminating **watch/dev/serve commands** in agent sessions (`dotnet watch`,
-  `npm run dev`, bare `vite`, `--watch`, …) — agents must use one-shot build/test commands.
-  All git and watch rules are scoped via `agent_type`, so your own main session is never
-  intercepted.
-- **format** discovers and runs the project's formatters after an edit, scoped to
-  the changed file and routed by its **extension** (not a fixed agent, since `tank`,
-  `trinity`, or the cross-lane `neo` can each touch either lane's files): `.cs`/`.csproj`
-  → `dotnet format`, plus `dotnet csharpier format` when the solution configures it
-  (`.csharpierrc`); known web extensions → every tool the project configures — Biome,
-  Prettier, ESLint, Stylelint — each detected by its config file and run in fix mode, only
-  when installed locally (never an `npx` download); anything else (e.g. `.cshtml`) is
-  skipped cleanly. Best-effort — fails open.
-- **turn-budget** warns a crew agent as it nears its turn cap (`maxTurns`), so oversized
-  work ends as an orderly hand-back — finish the sub-task in flight, report a `remaining:`
-  line — instead of a mid-task truncation `morpheus` has to reconcile from the tree. It
-  counts the agent's tool calls (a conservative stand-in for turns: one turn may batch
-  several calls, so the warning errs early) and fires **once at 75%** (wind down) and
-  **once at 90%** (stop now) of that agent's budget. Advisory, not a guard: on any path
-  where it can't count (unknown agent, unwritable state, malformed payload) it stays
-  silent rather than blocking — and it never fires for your own main session. The
-  per-agent budget table is kept in lockstep with the agents' `maxTurns` frontmatter by
-  the repo validator, so the two can't drift.
+<details>
+<summary>Hook mechanics in detail</summary>
 
-## Recommended MCP servers
+- **lane-guard** routes on the payload's `agent_type` and guards `Edit`/`Write` only — file
+  writes via Bash (`sed -i`, `tee`, redirects) are governed by the agent prompts, not this hook.
+  Two regimes: extension-based globs by default (correct when backend and frontend are different
+  languages, e.g. dotnet+react), or directory-based paths (**Backend/Frontend lane path(s)** in
+  `CLAUDE.md`) when both resolved stacks are the same language (e.g. node+nextjs) and an
+  extension alone can't tell the lanes apart. A Node backend with no lane paths configured fails
+  closed rather than guessing.
+- **read-guard** blocks raw reads of files over 64 KiB (65536 bytes); an explicit `limit` of
+  ≤ 2000 lines passes. See the `context-discipline` skill.
+- **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*` in any flag
+  spelling, force-push via `--force` or `-f`, redirects into `.env`, redirects or `rm` into
+  `.git/`) and raw/streaming reads (`cat`, `less`, `tail -f`). `seraph` has no Bash tool, so it
+  needs no entry. Whatever your *resolved* base branch is (`develop`, `trunk`, …), `morpheus` and
+  `/crew:pr` keep the crew off it too.
+- **format** runs the project's formatters after an edit, scoped to the changed file and routed
+  by **extension** (not by agent, since `tank`, `trinity`, or `neo` can each touch either lane):
+  `.cs`/`.csproj` → `dotnet format`, plus `dotnet csharpier format` when `.csharpierrc` is
+  present; known web extensions → every tool the project configures (Biome, Prettier, ESLint,
+  Stylelint), each detected by its config file and run only when installed locally, never via an
+  `npx` download. Anything else is skipped cleanly. Best-effort — fails open.
+- **turn-budget** counts an agent's tool calls as a conservative stand-in for turns and warns
+  **once at 75%** (wind down) and **once at 90%** (stop now) of that agent's `maxTurns`. On any
+  path where it can't count — unknown agent, unwritable state, malformed payload — it stays
+  silent rather than blocking. The per-agent budget table is kept in lockstep with the agents'
+  frontmatter by the repo validator, so the two can't drift.
 
-The plugin bundles no MCP servers. Agents use one only when it's present in your
-session and degrade gracefully when it isn't, so all of these are optional. Add MCP
-config in your own session (project `.mcp.json` or `claude mcp add`), not the plugin —
-the harness strips `mcpServers` from plugin-shipped agent frontmatter for security.
-Install each from its own docs (linked below):
+Hooks are registered in `.claude/settings.json` for local development and `hooks/hooks.json` when
+installed as a plugin.
+
+</details>
+
+## Optional MCP servers
+
+The plugin bundles no MCP servers, and every agent degrades gracefully when one isn't there — so
+all of these are optional. Add MCP config in your own session (project `.mcp.json` or
+`claude mcp add`), not the plugin: the harness strips `mcpServers` from plugin-shipped agent
+frontmatter for security.
 
 | Purpose | MCP server | Used by | Without it |
 | --- | --- | --- | --- |
@@ -164,39 +150,67 @@ Install each from its own docs (linked below):
 | Design reference | [Figma MCP](https://developers.figma.com/docs/figma-mcp-server/) — Dev Mode (local) or the hosted `claude.ai Figma` connector | `trinity`, `seraph` | both fall back to the design reference passed in the delegation |
 | Library & framework docs | [Context7](https://github.com/upstash/context7) | `tank`, `trinity` | implementers code from memory instead of current, version-specific API docs |
 | Issue tracking (ticket-in) | [Atlassian (Jira/Confluence)](https://www.atlassian.com/platform/remote-mcp-server) or [Linear](https://linear.app/docs/mcp) | `morpheus` | `morpheus` plans from the prompt alone; paste ticket details in by hand |
-| Git hosting (ticket-in / PR-out) | [GitHub](https://github.com/github/github-mcp-server) or [Azure DevOps](https://github.com/microsoft/azure-devops-mcp) | `morpheus` | crew stops at the local **GO/NO-GO** review gate; open the PR with `/crew:pr` |
+| Git hosting (ticket-in / PR-out) | [GitHub](https://github.com/github/github-mcp-server) or [Azure DevOps](https://github.com/microsoft/azure-devops-mcp) | `morpheus` | crew stops at the local **GO/NO-GO** gate; open the PR with `/crew:pr` |
 | Database (schema & test data) | [SQL Server](https://learn.microsoft.com/en-us/sql/mcp/) or [Postgres](https://github.com/crystaldba/postgres-mcp) | `tank`, `oracle` | data-access code and integration tests work from assumed schema |
 | Error monitoring | [Sentry](https://mcp.sentry.dev/) | `morpheus` | bug context (stack, breadcrumbs) must be pasted in by hand |
 
-Playwright and Chrome DevTools are interchangeable for the crew's needs — Chrome DevTools
-is Chrome-only but adds performance/Lighthouse and console/network inspection.
+Playwright and Chrome DevTools are interchangeable for the crew's needs — Chrome DevTools is
+Chrome-only but adds performance/Lighthouse and console/network inspection.
 
-**Server keys map to tool namespaces.** When you add a server you choose its *key* — e.g.
-`playwright` in `.mcp.json` (or `claude mcp add playwright …`). Claude Code exposes that
-server's tools under the matching `mcp__<key>` namespace, and that namespace is what the
-agents allowlist. Use these keys (each becomes `mcp__<key>`) so the allowlist matches out of
-the box:
+<details>
+<summary>Server keys map to tool namespaces</summary>
 
-- `playwright` / `chrome-devtools` (browser) and `figma` / `claude_ai_Figma` (design) — on `trinity` + `seraph`
+When you add a server you choose its *key* — e.g. `playwright` in `.mcp.json` (or
+`claude mcp add playwright …`). Claude Code exposes that server's tools under the matching
+`mcp__<key>` namespace, and that namespace is what the agents allowlist. Use these keys so the
+allowlist matches out of the box:
+
+- `playwright` / `chrome-devtools` (browser) and `figma` / `claude_ai_Figma` (design) — on
+  `trinity` + `seraph`
 - `context7` (docs) — on `tank` + `trinity`
 - `mssql` / `postgres` (database) — on `tank` + `oracle`
-- `github` / `ado` (git host), `linear` / `atlassian` (issue tracking), `sentry` (errors) — on `morpheus`
+- `github` / `ado` (git host), `linear` / `atlassian` (issue tracking), `sentry` (errors) — on
+  `morpheus`
 
 If you give a server a different key, grant the matching `mcp__<key>` to the relevant agent(s).
 
-## Verification matrix
+</details>
+
+## What's included
+
+- **Agents** — `morpheus` (captain) and the workers `tank` (backend), `trinity` (frontend),
+  `oracle` (unit tests), `dozer` (e2e), `seraph` (visual review), `neo` (express generalist).
+  Workers stay idle until `morpheus` delegates.
+- **Commands** — `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`,
+  `/crew:loop`.
+- **Hooks** — lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor.
+- **Skills** — shared: `engineering-principles`, `context-discipline`, `loop-engineering`.
+  Loaded once resolved: `frontend-headless` / `frontend-server-rendered`; `backend-dotnet`,
+  `backend-node`, `cms-optimizely`, `frontend-react`, `frontend-nextjs`; `tests-xunit`,
+  `tests-node`, `tests-cypress`, `tests-playwright`, `tests-vitest`, `tests-jest-frontend`.
+
+Local agent memory is git-ignored (`.claude/agent-memory-local/`).
+
+## Contributing
+
+Start with [AGENTS.md](../../AGENTS.md), the repository's contributor guide, and the
+plugin-specific map in [CLAUDE.md](CLAUDE.md). Release notes are in
+[CHANGELOG.md](CHANGELOG.md).
+
+<details>
+<summary>Verification matrix — behavioral scenarios for orchestration changes</summary>
 
 When a PR changes crew's orchestration behavior, exercise the relevant scenario below in a
-scratch repo and cite the observed result — this is what *behavioral verification* means for
-crew (see `AGENTS.md`). Each row is one scenario: a minimal setup and the behavior that counts
-as a pass. A checklist item that reads "would pass" is not verification — run it.
+scratch repo and cite the observed result — this is what *behavioral verification* means for crew
+(see `AGENTS.md`). Each row is one scenario: a minimal setup and the behavior that counts as a
+pass. A checklist item that reads "would pass" is not verification — run it.
 
 Build the scratch repo **in your own terminal, not inside a crew agent session** — the hooks
-block `git` for workers and protected-branch commits. In a throwaway directory: `git init`, add
-a trivial app (or just a README), then point `/crew:feature`, `/crew:review`, or `/crew:loop`
-at a small task.
+block `git` for workers and protected-branch commits. In a throwaway directory: `git init`, add a
+trivial app (or just a README), then point `/crew:feature`, `/crew:review`, or `/crew:loop` at a
+small task.
 
-### Plan checkpoint & durable resume
+**Plan checkpoint & durable resume**
 
 - [ ] **Checkpoint runs once** — `/crew:feature <task>` → `morpheus` presents the plan and waits
   before branching/delegating; a "just build it" skips the pause.
@@ -206,14 +220,14 @@ at a small task.
 - [ ] **`in-progress` reset on crash** — a step left `in-progress` by a lost round-trip is
   re-verified against the tree and reset to `pending` if unmet, not trusted as `done`.
 
-### Review gate
+**Review gate**
 
 - [ ] **GO / NO-GO** — `/crew:review` on a clean diff → **GO**; on a diff with a planted bug →
   **NO-GO** naming the blocking finding, and `/crew:pr` refuses to push until it's GO.
 - [ ] **Lane-scoped** — a backend-only diff skips the design-conformance (`seraph`) gate, reported
   as *lane untouched*; `/crew:review full` forces every gate.
 
-### Loop mode (inner — `loop-engineering`)
+**Loop mode (inner — `loop-engineering`)**
 
 - [ ] **Intent enters loop mode** — "keep going until done" on open-ended work → `morpheus` echoes
   the loop contract, then runs to the gate without per-step check-ins.
@@ -226,7 +240,7 @@ at a small task.
 - [ ] **Fetched prose doesn't trigger** — loop phrasing inside a pasted ticket/PR body does **not**
   enter loop mode; only the user in conversation does.
 
-### Outer loop (`/crew:loop`)
+**Outer loop (`/crew:loop`)**
 
 - [ ] **Multi-tick resume** — `/crew:loop <goal> max=3` on work that exceeds one run's `maxTurns` →
   each tick re-launches `morpheus`, which resumes from `plan-<goal>.md`; progress carries across
@@ -240,7 +254,4 @@ at a small task.
 - [ ] **`max` parsing** — `max=5` caps at 5; a malformed `max=0`/`max=abc` is left in the goal and
   the cap defaults to 10 (deterministic, no guess).
 
-## Notes
-
-- Worker agents stay idle until `morpheus` delegates.
-- Local memory is ignored via `.gitignore` (`.claude/agent-memory-local/`).
+</details>

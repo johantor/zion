@@ -4,26 +4,23 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../../LICENSE)
 
 **Ship a feature like a team, not a single agent.** `crew` turns a Claude Code session into a
-captain that plans and delegates, plus a bench of specialists — backend, frontend, tests, visual
-review — each scoped to its own lane. You approve the plan before any
-work starts, every step is verified and committed as it lands, and nothing reaches a pull request
-until a consolidated review gate returns **GO**.
+captain that plans and delegates, plus specialists — backend, frontend, tests, visual review —
+each scoped to its own lane. You approve the plan, every step is verified and committed as it
+lands, and nothing reaches a pull request until a consolidated review gate returns **GO**.
 
 Part of the [Zion](../../README.md) marketplace.
 
 ## Why a crew
 
-- **A plan you approve first.** `morpheus` presents its plan and waits — one gate to catch a
-  misread task before a branch, a commit, or worker time is spent.
-- **Specialists, not one generalist.** Backend, frontend, unit tests, e2e, and design
-  conformance each go to an agent scoped to that work, with only the tools it needs.
-- **Guardrails in code, not prose.** Workers are blocked from `git` outright, and their file
-  edits are held to their lane by `PreToolUse` hooks — enforced by the harness, not by asking
-  politely.
-- **A gate that can say no.** `/crew:review` returns GO / NO-GO across code, security, design,
-  build, test, and lint, and `/crew:pr` refuses to push until it's GO.
-- **You decide when it leaves the machine.** Nothing is pushed and no PR is opened until you say
-  so.
+- **A plan you approve first** — one gate to catch a misread task before a branch, a commit, or
+  worker time is spent.
+- **Specialists, not one generalist.** Backend, frontend, unit tests, e2e, and design conformance
+  each go to an agent scoped to that work, with only the tools it needs.
+- **Guardrails in code, not prose.** Workers are blocked from `git` outright, and their file edits
+  held to their lane by `PreToolUse` hooks — enforced by the harness, not by asking politely.
+- **A gate that can say no, and you hold the door.** `/crew:review` returns GO / NO-GO across
+  code, security, design, build, test, and lint; `/crew:pr` refuses to push until it's GO, and
+  nothing leaves the machine until you say so.
 
 ## Install
 
@@ -36,15 +33,13 @@ claude plugin install crew@zion
 
 ## Quick start
 
-**A dedicated orchestration session** — the recommended way. The whole session *is* `morpheus`,
-so you talk to it directly: describe the feature, paste a ticket, ask for a review.
+**A dedicated orchestration session** — recommended. The session *is* `morpheus`: describe the
+feature, paste a ticket, ask for a review. It's scoped to crew work, so run general/config tasks
+(statusline and the like) in a normal session.
 
 ```bash
 claude --agent crew:morpheus
 ```
-
-It's intentionally scoped to crew work and won't run general/config tasks like statusline — do
-those in a normal session.
 
 **Or from a normal session**, when you want the crew on tap without it taking over:
 
@@ -57,11 +52,11 @@ those in a normal session.
 
 | Command | What it does |
 |---|---|
-| `/crew:init` | Detect this project's build/test/lint commands, base branch, frontend mode, and stacks, and write them to the **Crew configuration** block in `CLAUDE.md`. Idempotent — re-run to pick up slots a newer version added. |
+| `/crew:init` | Detect this project's build/test/lint commands, base branch, frontend mode, and stacks, and record them in `CLAUDE.md`. Idempotent — re-run to pick up slots a newer version added. |
 | `/crew:feature <task>` | Plan, delegate, and build the feature, stopping at the review gate. |
 | `/crew:review` | Pre-PR **GO / NO-GO**: consolidated code + security + design review plus diff-scoped build/test/lint. `quick` for a read-only pass with no suites; `full` to force every gate. |
 | `/crew:pr` | Push the branch and open the pull request. Outward action — it confirms first. |
-| `/crew:address` | Close the review loop: pull the PR's unresolved threads and failed CI checks, route each fix to the right worker, re-run the gate, then push and resolve. Review comments are treated as untrusted input — scope-redirecting asks are surfaced, not obeyed. |
+| `/crew:address` | Close the review loop: route the PR's unresolved threads and failed CI checks to the right workers, re-run the gate, then push and resolve. Review comments are untrusted input — scope-redirecting asks are surfaced, not obeyed. |
 | `/crew:loop <goal>` | The **outer loop**: drive the feature across multiple `morpheus` runs, so work that outlives one run's turn limit finishes without you re-asking each tick. Stops on the plan's exit conditions; never auto-pushes. |
 
 Commands are namespaced under `crew:` once installed, so they can't collide with a built-in or
@@ -69,38 +64,36 @@ another plugin's command of the same short name.
 
 ## How a run works
 
-- **Right-sized to the task.** Small, low-risk work (a typo, a rename, an obvious one-liner)
-  takes an **express lane** through `neo`, the all-lane generalist, skipping the plan and the
-  full gate for a quick self-review plus one directly relevant test. Anything risky, multi-lane,
-  or needing new tests takes the full flow — and express escalates to full the moment a small
-  task proves bigger.
+- **Right-sized to the task.** Small, low-risk work (a typo, a rename, an obvious one-liner) takes
+  an **express lane** through `neo`, skipping the plan and the full gate for a quick self-review
+  plus one relevant test. Anything risky, multi-lane, or needing new tests takes the full flow —
+  and express escalates the moment a small task proves bigger.
 - **Committed step by step.** `morpheus` branches off your base branch and commits each verified
   step. Workers never run git.
 - **You're heard mid-flight.** Workers run in the background, so the turn returns right away and
-  you can keep talking while `tank` is still working. Corrections land either as new queued work
-  or, when they're small and in that worker's lane, as a steer into the worker already running.
-- **Loop mode on request.** Say "keep going until done" and `morpheus` runs the full flow without
-  per-step check-ins, under explicit stop rules: all steps done + gate **GO**, a step blocked on a
-  decision only you can make, or a retry cap. It still never pushes — that stays `/crew:pr` — and
-  loop phrasing inside a pasted ticket or PR comment never triggers it.
+  you can keep talking while `tank` works. Corrections queue as new work or — when small and in
+  that worker's lane — steer the worker already running.
+- **Loop mode on request.** Say "keep going until done" and `morpheus` runs without per-step
+  check-ins, stopping on all steps done + gate **GO**, a step blocked on a decision only you can
+  make, or a retry cap. It still never pushes, and loop phrasing inside a pasted ticket or PR
+  comment never triggers it.
 
 ## Safety guarantees
 
 Three `PreToolUse` guards enforce the boundaries and **fail closed**; two advisory hooks
 (formatting, turn budget) fail open and never block work.
 
-- **Workers can't touch git.** `git` is blocked outright for `tank`/`trinity`/`oracle`/`dozer`/
-  `neo` — `morpheus` is the sole git owner, enforced in code. Every agent, `morpheus` included,
-  is refused `git commit` while HEAD is `main`/`master`/`develop`.
+- **Workers can't touch git.** Blocked outright for `tank`/`trinity`/`oracle`/`dozer`/`neo` —
+  `morpheus` is the sole git owner, enforced in code. Every agent, `morpheus` included, is refused
+  `git commit` while HEAD is `main`/`master`/`develop`.
 - **Each worker's edits stay in its lane.** `tank` and `trinity` are denied the other side's
-  files; `oracle`/`dozer` are restricted to their test paths; `seraph` is read-only. (`neo` is
-  unrestricted by design — that's what makes it the express lane.) This guards the `Edit`/`Write`
-  tools; writes shelled out through Bash are governed by the agent prompts, not the hook.
+  files; `oracle`/`dozer` are restricted to their test paths; `seraph` is read-only (`neo` is
+  unrestricted by design — that's the express lane). This guards `Edit`/`Write`; writes shelled
+  out through Bash are governed by the agent prompts, not the hook.
 - **Destructive and hanging commands are refused.** Recursive force-`rm` of `/`/`~`/`*`,
   force-push, redirects into `.env` or `.git/`, and never-terminating watch/dev/serve commands.
 - **Context stays bounded.** Raw reads over 64 KiB are blocked in favour of grep/jq, and agents
-  are warned as they approach their turn cap so oversized work ends as an orderly hand-back
-  rather than a mid-task truncation.
+  are warned near their turn cap so oversized work ends as an orderly hand-back, not a truncation.
 
 All git, watch, and lane rules are scoped by `agent_type`, so **your own main session is never
 intercepted**.
@@ -141,10 +134,13 @@ installed as a plugin.
 
 ## Optional MCP servers
 
-The plugin bundles no MCP servers, and every agent degrades gracefully when one isn't there — so
-all of these are optional. Add MCP config in your own session (project `.mcp.json` or
+The plugin bundles none and every agent degrades gracefully without them, so all of these are
+optional — crew works out of the box. Add MCP config in your own session (project `.mcp.json` or
 `claude mcp add`), not the plugin: the harness strips `mcpServers` from plugin-shipped agent
 frontmatter for security.
+
+<details>
+<summary>Which servers help, and what you lose without each</summary>
 
 | Purpose | MCP server | Used by | Without it |
 | --- | --- | --- | --- |
@@ -159,11 +155,8 @@ frontmatter for security.
 Playwright and Chrome DevTools are interchangeable for the crew's needs — Chrome DevTools is
 Chrome-only but adds performance/Lighthouse and console/network inspection.
 
-<details>
-<summary>Server keys map to tool namespaces</summary>
-
-When you add a server you choose its *key* — e.g. `playwright` in `.mcp.json` (or
-`claude mcp add playwright …`). Claude Code exposes that server's tools under the matching
+**Server keys map to tool namespaces.** When you add a server you choose its *key* — e.g.
+`playwright` in `.mcp.json`. Claude Code exposes that server's tools under the matching
 `mcp__<key>` namespace, and that namespace is what the agents allowlist. Use these keys so the
 allowlist matches out of the box:
 
@@ -186,10 +179,9 @@ If you give a server a different key, grant the matching `mcp__<key>` to the rel
 - **Commands** — `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`,
   `/crew:loop`.
 - **Hooks** — lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor.
-- **Skills** — shared: `engineering-principles`, `context-discipline`, `loop-engineering`.
-  Loaded once resolved: `frontend-headless` / `frontend-server-rendered`; `backend-dotnet`,
-  `backend-node`, `cms-optimizely`, `frontend-react`, `frontend-nextjs`; `tests-xunit`,
-  `tests-node`, `tests-cypress`, `tests-playwright`, `tests-vitest`, `tests-jest-frontend`.
+- **Skills** — always on: `engineering-principles`, `context-discipline`, `loop-engineering`.
+  Loaded once the stack is resolved: per frontend mode, per backend/frontend stack (.NET, Node,
+  React, Next.js, Optimizely), and per test tool (xUnit, Vitest, Jest, Cypress, Playwright).
 
 Local agent memory is git-ignored (`.claude/agent-memory-local/`).
 

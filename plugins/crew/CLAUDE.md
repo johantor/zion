@@ -86,8 +86,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   list or `  - name` block), and rejects grants that cover less than they look like they do —
   tool-scoped `mcp__server__tool` and serverless `mcp__*`.
   Hosted connectors that can't ship in a plugin are exempt by name in the
-  validator's `mcp_connector_only` list (today `claude_ai_Figma`). `/crew:init` §5 reports the
-  namespaces a session can actually see; it writes nothing.
+  validator's `mcp_connector_only` list — both namespaces a connector can surface under
+  (`claude_ai_<Name>` in the CLI, bare `<Name>` on claude.ai surfaces) for Figma, GitHub, Linear,
+  Atlassian, and Sentry. `/crew:init` §5 reports the namespaces a session can actually see; it
+  writes nothing.
 - Agent write-access declarations, checked by validator §9 (see below): every crew agent
   carries `owns-git: true|false` and `lane-guarded: true|false` before `skills:`. Exactly one
   agent (`morpheus`) owns git. These are the declarative half of what the guard hooks enforce

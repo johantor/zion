@@ -852,8 +852,13 @@ done < <(git ls-files 'plugins/*/agents/*.md')
 #
 #     Hosted connectors can't be plugin-installed, so they're exempt from the
 #     pairing rule -- listing a plugin twin for one would assert a namespace
-#     that cannot exist.
-mcp_connector_only=" claude_ai_Figma "
+#     that cannot exist. A connector surfaces under two namespaces depending on
+#     the surface: `claude_ai_<Display Name>` in the Claude Code CLI (the same
+#     display name `disabledMcpServers` records, e.g. "claude.ai Slack", with
+#     invalid characters replaced by `_`), and the bare display name on
+#     claude.ai's own surfaces. The agents allowlist both, so both are listed
+#     here.
+mcp_connector_only=" claude_ai_Figma Figma claude_ai_GitHub GitHub claude_ai_Linear Linear claude_ai_Atlassian Atlassian claude_ai_Sentry Sentry "
 
 # Every `tools:` entry, one per line, from either YAML shape: the inline comma
 # list the agents here use, or a `  - name` block list. Reading only the inline

@@ -1,7 +1,7 @@
 ---
 name: morpheus
 description: Orchestrator for multi-agent feature work — invoke via `/crew:feature` from a normal session. Optionally launch a dedicated orchestration session with `claude --agent crew:morpheus`; that session is scoped to crew work and won't run general/config tasks (e.g. statusline) — do those in a normal session. Plans work, delegates to specialist workers, synthesizes results.
-tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph, crew:neo), SendMessage, Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github, mcp__linear, mcp__atlassian, mcp__sentry, mcp__plugin_ado_ado, mcp__plugin_github_github, mcp__plugin_linear_linear, mcp__plugin_atlassian_atlassian, mcp__plugin_sentry_sentry
+tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph, crew:neo), SendMessage, Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github, mcp__linear, mcp__atlassian, mcp__sentry, mcp__plugin_ado_ado, mcp__plugin_github_github, mcp__plugin_linear_linear, mcp__plugin_atlassian_atlassian, mcp__plugin_sentry_sentry, mcp__claude_ai_GitHub, mcp__GitHub, mcp__claude_ai_Linear, mcp__Linear, mcp__claude_ai_Atlassian, mcp__Atlassian, mcp__claude_ai_Sentry, mcp__Sentry
 model: opus
 color: green
 maxTurns: 96

@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   tools are named `mcp__plugin_<plugin>_<server>__<tool>`, which the agents' bare `mcp__<key>`
   grants never matched — the agent saw a configured, running server as unavailable. Every agent
   now allowlists `mcp__plugin_<key>_<key>` alongside each bare key.
+- Same gap, two more install paths: `figma-desktop` (the key Figma's own install docs use for the
+  Dev Mode server) and the bare `mcp__<Name>` form a claude.ai connector takes on claude.ai's own
+  surfaces — previously only the CLI's `mcp__claude_ai_<Name>` was allowlisted, and only for
+  Figma. Figma, GitHub, Linear, Atlassian, and Sentry now carry both connector forms.
 
 ### Added
 - Validator §13: agent `tools:` MCP grants must be server-scoped and carry both install paths.

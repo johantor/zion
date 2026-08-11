@@ -1,7 +1,7 @@
 ---
 name: tank
 description: Backend implementer for the project's resolved backend stack — server-side logic, controllers/handlers, and data access. Invoked by the morpheus orchestrator with the resolved backend stack; loads the matching stack skill (e.g. `backend-dotnet`, `backend-node`). Not for standalone or automatic use.
-tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, Skill, mcp__context7, mcp__mssql, mcp__postgres
+tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, Skill, mcp__context7, mcp__mssql, mcp__postgres, mcp__plugin_context7_context7, mcp__plugin_mssql_mssql, mcp__plugin_postgres_postgres
 model: sonnet
 maxTurns: 72
 color: red
@@ -47,6 +47,9 @@ Scope:
 - When a database MCP (SQL Server / Postgres) is available, inspect the real schema/columns/
   types for data-access work instead of guessing; query targeted metadata, not whole tables
   (`context-discipline`). Treat it as read-only unless the task explicitly calls for writes.
+- A server you expected but can't see may be plugin-installed (`mcp__plugin_<plugin>_<server>`)
+  and simply not in your `tools:` — report it by name in your handback rather than silently
+  working without it.
 - Follow repository conventions and `engineering-principles`.
 - Consult local memory before starting and update it after finishing.
 - Return a concise file-change summary and rationale, ending with an explicit completion

@@ -128,3 +128,24 @@ When the user picks the committed destination:
 Before writing, show the exact set of additions/changes (a short diff of slots) and apply only
 after the user confirms. After writing, report what was added, filled, and kept unchanged, and
 note that re-running reconciles again after future plugin updates.
+
+## 5. MCP namespace check (report-only)
+
+Not a configuration slot — nothing is written for this. MCP servers are configured in the user's
+own session, and the crew agents reach them through an allowlisted namespace, so a mismatch
+between the two is invisible at runtime: an agent sees a server it can't call exactly as it sees
+one that was never installed.
+
+Report, don't guess. From the MCP tools visible in this session, list each server's namespace and
+say which crew agent grants it (the plugin README's *Optional MCP servers* table is the mapping);
+tell the user to run `/mcp` for the authoritative list, since a session sees only what it loaded.
+Flag these two cases:
+
+- **A server keyed differently from the README's keys** — its tools are `mcp__<key>__…`, so the
+  fix is granting `mcp__<key>` to the relevant agent(s).
+- **A plugin-installed server** — its tools are `mcp__plugin_<plugin>_<server>__…`. The agents
+  already grant `mcp__plugin_<key>_<key>` for a plugin that ships one server under its own name;
+  any other combination needs that exact prefix added to the agent's `tools:`.
+
+If nothing is visible and the user expected a server, say so plainly rather than reporting the
+configuration as complete.

@@ -9,7 +9,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 - `agents/` — `morpheus` (orchestrator, `model: opus`, sole git owner) + workers `tank`
   (backend), `trinity` (frontend), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual,
   no Bash), `neo` (express generalist). Auto-discovered; not in the manifest.
-- `commands/` — `init`, `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path),
+- `commands/` — `init` (§1 slots are validator §11's source of truth; §5 is a report-only MCP
+  namespace check that writes nothing), `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path),
   `address`, `loop` (outer-loop driver: re-launches `morpheus` directly each tick — not by
   nesting `/crew:feature` — on the native `/loop` dynamic mode until the plan's exit
   conditions/iteration cap are met; wrapper owns scheduling). Namespaced `crew:*` when installed.
@@ -41,7 +42,8 @@ anything stated here updates this file in the same commit.** Conventions live in
   cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7, turn-budget table ↔
   agent `maxTurns` lockstep §8, guard rosters ↔ agent `owns-git`/`lane-guarded` lockstep §9,
   namespaced prose refs resolving §10, `init.md` §1 slots ↔ the root CLAUDE.md crew-config
-  block §11, per-agent always-loaded footprint report + opt-in `loaded-lines-cap` §12) and is
+  block §11, per-agent always-loaded footprint report + opt-in `loaded-lines-cap` §12,
+  agent `tools:` MCP grants server-scoped and paired across both install paths §13) and is
   not shipped with this plugin.
 - `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
   hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
@@ -53,7 +55,7 @@ anything stated here updates this file in the same commit.** Conventions live in
   real formatter runs through fakes in `node_modules/.bin` (with `CREW_FORMAT_TIMEOUT`
   shortened for the hang case). A change to a hook's logic **must add/adjust a case** here,
   on both the allow and block sides. Also self-tests the
-  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11 · §12) has at least one
+  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11 · §12 · §13) has at least one
   negative fixture plus a silent control, and a new section lands with its fixture in the same
   commit (AGENTS.md, *Validating changes*). Asserts key on the guard's FAIL message, not the
   exit code. Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
@@ -77,6 +79,17 @@ anything stated here updates this file in the same commit.** Conventions live in
   count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 480).
   Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —
   agent prompts carry instruction, not justification; each trimmed prompt points there once.
+- Agent `tools:` MCP grants come in pairs: bare `mcp__<key>` (server keyed in `.mcp.json` /
+  `claude mcp add`) **and** `mcp__plugin_<key>_<key>` (same server installed as a plugin — its
+  tools are named `mcp__plugin_<plugin>_<server>__<tool>`, which the bare form never matches).
+  Validator §13 enforces the pairing both ways, reads either YAML shape of `tools:` (inline
+  list or `  - name` block), and rejects grants that cover less than they look like they do —
+  tool-scoped `mcp__server__tool` and serverless `mcp__*`.
+  Hosted connectors that can't ship in a plugin are exempt by name in the
+  validator's `mcp_connector_only` list — both namespaces a connector can surface under
+  (`claude_ai_<Name>` in the CLI, bare `<Name>` on claude.ai surfaces) for Figma, GitHub, Linear,
+  Atlassian, and Sentry. `/crew:init` §5 reports the namespaces a session can actually see; it
+  writes nothing.
 - Agent write-access declarations, checked by validator §9 (see below): every crew agent
   carries `owns-git: true|false` and `lane-guarded: true|false` before `skills:`. Exactly one
   agent (`morpheus`) owns git. These are the declarative half of what the guard hooks enforce

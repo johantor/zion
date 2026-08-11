@@ -174,14 +174,32 @@ Chrome-only but adds performance/Lighthouse and console/network inspection.
 `mcp__<key>` namespace, and that namespace is what the agents allowlist. Use these keys so the
 allowlist matches out of the box:
 
-- `playwright` / `chrome-devtools` (browser) and `figma` / `claude_ai_Figma` (design):
+- `playwright` / `chrome-devtools` (browser) and `figma` / `figma-desktop` (design):
   `trinity` + `seraph`
 - `context7` (docs): `tank` + `trinity`
 - `mssql` / `postgres` (database): `tank` + `oracle`
 - `github` / `ado` (git host), `linear` / `atlassian` (issue tracking), `sentry` (errors):
   `morpheus`
 
+`figma-desktop` is the key Figma's own install docs use for the Dev Mode server; `figma` is
+allowlisted too, so either works.
+
 If you give a server a different key, grant the matching `mcp__<key>` to the relevant agent(s).
+
+**Connected it on claude.ai instead of adding it here?** A connector's namespace is its display
+name, and which form you get depends on the surface: `mcp__claude_ai_<Name>` in the Claude Code
+CLI, the bare `mcp__<Name>` on claude.ai's own surfaces. The design, git-host, issue-tracking, and
+error connectors are allowlisted in both forms (`claude_ai_Figma` / `Figma`, `claude_ai_GitHub` /
+`GitHub`, and so on for Linear, Atlassian, Sentry). A connector under any other display name needs
+its `mcp__<Name>` granted to the relevant agent(s).
+
+**Installed the server as a plugin instead?** Then its tools carry the plugin's name too —
+`mcp__plugin_<plugin>_<server>__<tool>` — and a bare `mcp__<key>` grant never matches them. The
+agents allowlist `mcp__plugin_<key>_<key>` alongside each bare key, which covers the common case
+of a plugin that ships one server under its own name. If your plugin or its server key differs,
+read the exact namespace off `/mcp` (or the tool name in an error) and grant that prefix to the
+relevant agent(s) instead. This bites quietly: an agent can't tell a server that isn't
+allowlisted from one that isn't installed, so it just reports the server as unavailable.
 
 </details>
 

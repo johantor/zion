@@ -5,6 +5,29 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.15.0] - 2026-08-11
+
+### Fixed
+- **A server installed as a plugin no longer reads as missing.** A plugin-bundled MCP server's
+  tools are named `mcp__plugin_<plugin>_<server>__<tool>`, which the agents' bare `mcp__<key>`
+  grants never matched — the agent saw a configured, running server as unavailable. Every agent
+  now allowlists `mcp__plugin_<key>_<key>` alongside each bare key.
+- Same gap, two more install paths: `figma-desktop` (the key Figma's own install docs use for the
+  Dev Mode server) and the bare `mcp__<Name>` form a claude.ai connector takes on claude.ai's own
+  surfaces — previously only the CLI's `mcp__claude_ai_<Name>` was allowlisted, and only for
+  Figma. Figma, GitHub, Linear, Atlassian, and Sentry now carry both connector forms.
+
+### Added
+- Validator §13: agent `tools:` MCP grants must be server-scoped and carry both install paths.
+  Reads either YAML shape of `tools:`, rejects tool-scoped (`mcp__server__tool`) and serverless
+  (`mcp__*`) grants, and exempts hosted connectors (`mcp__claude_ai_Figma`) by name.
+- `/crew:init` §5 — report-only MCP namespace check (no config slot, nothing written).
+
+### Changed
+- Workers name the server they expected when they report one missing, instead of silently
+  working without it; `morpheus` relays it with the namespace to check.
+- README's *Optional MCP servers*: how to derive the namespace for a plugin-installed server.
+
 ## [3.14.0] - 2026-08-09
 
 ### Added

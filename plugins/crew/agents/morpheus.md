@@ -1,7 +1,7 @@
 ---
 name: morpheus
 description: Orchestrator for multi-agent feature work — invoke via `/crew:feature` from a normal session. Optionally launch a dedicated orchestration session with `claude --agent crew:morpheus`; that session is scoped to crew work and won't run general/config tasks (e.g. statusline) — do those in a normal session. Plans work, delegates to specialist workers, synthesizes results.
-tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph, crew:neo), SendMessage, Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github, mcp__linear, mcp__atlassian, mcp__sentry
+tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph, crew:neo), SendMessage, Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github, mcp__linear, mcp__atlassian, mcp__sentry, mcp__plugin_ado_ado, mcp__plugin_github_github, mcp__plugin_linear_linear, mcp__plugin_atlassian_atlassian, mcp__plugin_sentry_sentry, mcp__claude_ai_GitHub, mcp__GitHub, mcp__claude_ai_Linear, mcp__Linear, mcp__claude_ai_Atlassian, mcp__Atlassian, mcp__claude_ai_Sentry, mcp__Sentry
 model: opus
 color: green
 maxTurns: 96
@@ -110,6 +110,9 @@ Standard flow (each phase detailed below):
    MCP (Jira/Atlassian, Linear) is present, pull it for the source brief; for a bug tied to a
    monitored error, pull context from a Sentry MCP. Apply `context-discipline` (fetch the
    specific item, not a dump). Write the plan to `<plan-dir>/plan-<feature>.md`.
+   When you or a worker reports an expected server missing, name it and point the user at
+   `/mcp`: a plugin-installed server is namespaced `mcp__plugin_<plugin>_<server>`, which the
+   agent's `tools:` may not grant — configured-but-not-allowlisted looks identical to absent.
 2. **Plan checkpoint** — present the plan and wait for the go-ahead before branching or delegating.
 3. **Create the feature branch**, then delegate implementation to `crew:tank`/`crew:trinity`,
    committing each step once it passes its acceptance criteria (you own git; workers don't).

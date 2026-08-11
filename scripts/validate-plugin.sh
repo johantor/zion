@@ -839,6 +839,122 @@ while IFS= read -r agent; do
   esac
 done < <(git ls-files 'plugins/*/agents/*.md')
 
+# 13. MCP entries in an agent's frontmatter `tools:` must be server-scoped, and
+#     every bare server key must be paired with its plugin-scoped twin. Tools
+#     from a plugin-bundled MCP server are named
+#     `mcp__plugin_<plugin>_<server>__<tool>`, so a bare `mcp__<key>` grant never
+#     matches them: the same server, installed as a plugin instead of keyed in
+#     `.mcp.json`, reads to the agent as "not configured" rather than as denied.
+#     Both forms are cheap to carry (an entry that resolves to nothing is inert
+#     as long as the list resolves to some tool), and the pairing is what keeps
+#     an agent working under either install path. See the crew README,
+#     "Server keys map to tool namespaces".
+#
+#     Hosted connectors can't be plugin-installed, so they're exempt from the
+#     pairing rule -- listing a plugin twin for one would assert a namespace
+#     that cannot exist. A connector surfaces under two namespaces depending on
+#     the surface: `claude_ai_<Display Name>` in the Claude Code CLI (the same
+#     display name `disabledMcpServers` records, e.g. "claude.ai Slack", with
+#     invalid characters replaced by `_`), and the bare display name on
+#     claude.ai's own surfaces. The agents allowlist both, so both are listed
+#     here.
+mcp_connector_only=" claude_ai_Figma Figma claude_ai_GitHub GitHub claude_ai_Linear Linear claude_ai_Atlassian Atlassian claude_ai_Sentry Sentry "
+
+# Every `tools:` entry, one per line, from either YAML shape: the inline comma
+# list the agents here use, or a `  - name` block list. Reading only the inline
+# form would let a list-form `tools:` skip this section silently -- the kind of
+# miss the repo treats as a bug, not a pass.
+#
+# `Agent(crew:tank, crew:trinity)` splits across commas too; those fragments
+# aren't MCP entries, and the `mcp__` filter below drops them.
+agent_tools_entries() {
+  awk '
+    /^---[[:space:]]*$/ { if (in_fm == 0) { in_fm = 1; next } else exit }
+    in_fm && in_list {
+      if ($0 ~ /^[[:space:]]+-[[:space:]]+/) {
+        sub(/^[[:space:]]+-[[:space:]]+/, ""); sub(/[[:space:]]+#.*$/, ""); print; next
+      } else if ($0 !~ /^[[:space:]]*$/) { in_list = 0 }
+    }
+    in_fm && index($0, "tools:") == 1 {
+      # A trailing YAML comment is dropped before the split, or it would ride
+      # along on the last entry and be read as part of a server name.
+      v = $0; sub(/^tools:[[:space:]]*/, "", v); sub(/[[:space:]]+#.*$/, "", v)
+      if (length(v)) { n = split(v, a, ","); for (i = 1; i <= n; i++) print a[i] }
+      else { in_list = 1 }
+    }
+  ' "$1"
+}
+
+# ...narrowed to the MCP grants, with any trailing `__*` wildcard dropped:
+# `mcp__x` and `mcp__x__*` name the same server.
+agent_mcp_entries() {
+  agent_tools_entries "$1" \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+    | grep '^mcp__' \
+    | sed 's/^\(mcp__..*\)__\*$/\1/' || true
+}
+
+while IFS= read -r agent; do
+  entries="$(agent_mcp_entries "$agent")"
+  [ -z "$entries" ] && continue
+
+  # A tool-scoped grant (`mcp__server__tool`) silently withholds the rest of the
+  # server's tools; the convention here is server-scoped entries only. Checked
+  # first so a malformed entry isn't then read as a server name below.
+  scoped_ok=1
+  while IFS= read -r e; do
+    [ -z "$e" ] && continue
+    case "${e#mcp__}" in
+      '*')
+        # `mcp__*` is a disallowedTools shape; as a grant it names no server, so
+        # it would silently match nothing. Report it instead of skipping it.
+        err "$agent tools -> 'mcp__*' names no server; allowlist each server it stands for"
+        scoped_ok=0
+        ;;
+      *__*)
+        srv="${e#mcp__}"; srv="${srv%%__*}"
+        err "$agent tools -> '$e' grants a single MCP tool; allowlist the whole server as 'mcp__$srv'"
+        scoped_ok=0
+        ;;
+    esac
+  done <<<"$entries"
+  [ "$scoped_ok" -eq 1 ] || continue
+
+  # Space-delimited for membership tests; iterated by read (not word-splitting)
+  # so a server name is never glob-expanded on its way through the loop.
+  servers=" $(printf '%s' "$entries" | sed 's/^mcp__//' | tr '\n' ' ') "
+  while IFS= read -r s; do
+    [ -z "$s" ] && continue
+    case "$s" in
+      plugin_*)
+        # `plugin_<p>_<s>` with p == s is the single-server plugin convention and
+        # implies a bare counterpart. An asymmetric name (plugin and server keyed
+        # differently) can't be split reliably, so it's left alone.
+        rest="${s#plugin_}"
+        half="${rest%%_*}"
+        [ "$rest" = "${half}_${half}" ] || continue
+        # The bare-side branch already reports the pair; only the gap is news.
+        case "$servers" in
+          *" $half "*) : ;;
+          *) err "$agent tools -> 'mcp__$s' has no bare 'mcp__$half'; the same server keyed in .mcp.json wouldn't resolve for this agent" ;;
+        esac
+        ;;
+      *)
+        case "$mcp_connector_only" in
+          *" $s "*)
+            ok "$agent tools -> mcp__$s is connector-only; no plugin twin expected"
+            continue
+            ;;
+        esac
+        case "$servers" in
+          *" plugin_${s}_${s} "*) ok "$agent tools -> mcp__$s paired with mcp__plugin_${s}_${s}" ;;
+          *) err "$agent tools -> 'mcp__$s' covers only a server keyed in .mcp.json; add 'mcp__plugin_${s}_${s}' so the same server installed as a plugin resolves too (its tools are named mcp__plugin_<plugin>_<server>__<tool>)" ;;
+        esac
+        ;;
+    esac
+  done < <(printf '%s\n' "$entries" | sed 's/^mcp__//')
+done < <(git ls-files 'plugins/*/agents/*.md')
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

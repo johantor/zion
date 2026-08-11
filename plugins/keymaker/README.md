@@ -225,6 +225,13 @@ keymaker reads the same `CLAUDE.md` **Crew configuration** slots the `crew` plug
 test, and lint commands, and the base branch. If they're unset, it asks once and remembers. No
 separate configuration needed.
 
+**Optional MCP:** [Context7](https://github.com/upstash/context7), for version-specific migration
+notes on upgrades. Without it, keymaker falls back to the package's release page. Key the server
+`context7` (`.mcp.json` or `claude mcp add`) and both agents pick it up. Installed as a plugin
+instead, its tools are namespaced `mcp__plugin_<plugin>_<server>__<tool>`; the agents allowlist
+`mcp__plugin_context7_context7` for that path, and any other plugin/server key needs its own
+prefix added to `keymaker`/`twin` `tools:` — read the exact one off `/mcp`.
+
 ## Agents
 
 - `keymaker` (orchestrator): classifies, enumerates, gates, delegates, verifies, commits; writes

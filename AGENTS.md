@@ -340,6 +340,16 @@ failure, not a skipped check, and so is an unreadable agent or skill file — co
 could under-count a footprint straight past its cap. Unresolved skill refs belong to §2g and are
 not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g/§4.
 
+§13 covers the `mcp__` entries of an agent's `tools:`. A plugin-bundled MCP server's tools are
+named `mcp__plugin_<plugin>_<server>__<tool>`, so a bare `mcp__<key>` grant — the form that
+matches a server keyed in `.mcp.json` — never matches them, and the agent reads a
+configured-but-not-allowlisted server as simply absent. The section requires every bare key to
+carry its `mcp__plugin_<key>_<key>` twin (and the reverse, when a plugin twin's two halves match),
+so both install paths resolve; extra entries are inert, an unmatched one is not. It also rejects
+tool-scoped grants (`mcp__server__tool`), which withhold the rest of a server's tools. Hosted
+connectors that can't be plugin-installed are exempt by name (`mcp__claude_ai_Figma`) — asserting
+a plugin twin for one would name a namespace that cannot exist.
+
 ### Adversarial scenario suite (`tests/scenarios/`)
 
 Three of the prompts' safety properties are the kind that rot silently — a later edit

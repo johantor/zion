@@ -614,4 +614,52 @@ if [[ "$_vout_check" != *"fine.md loaded footprint"* ]]; then _pass; else
   _fail "§12 reported a footprint for an agent whose skill was unreadable"
 fi
 
+# --- §13: MCP grants are server-scoped and cover both install paths ------------
+# mk_tools_agent <plugin_dir> <name> <tools-line>
+mk_tools_agent() {
+  mkdir -p "$1/agents"
+  printf -- '---\nname: %s\ndescription: d\ntools: %s\n---\nbody\n' "$2" "$3" > "$1/agents/$2.md"
+}
+
+# A bare server key alone leaves the plugin-install path unmatched.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" lonely "Read, mcp__figma"
+assert_emits "§13 bites on a bare server key with no plugin twin" "$d" \
+  "add 'mcp__plugin_figma_figma'"
+
+# ...and the reverse: a plugin twin alone leaves .mcp.json-keyed installs out.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" scoped_only "Read, mcp__plugin_figma_figma"
+assert_emits "§13 bites on a plugin twin with no bare key" "$d" \
+  "has no bare 'mcp__figma'"
+
+# A tool-scoped grant withholds the rest of the server's tools.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" narrow "Read, mcp__figma__get_design_context"
+assert_emits "§13 bites on a tool-scoped MCP grant" "$d" \
+  "grants a single MCP tool; allowlist the whole server as 'mcp__figma'"
+# The malformed entry must not then be read as a server name of its own.
+assert_silent "§13 doesn't re-report a malformed entry as an unpaired key" "$d" \
+  "mcp__plugin_figma__get_design_context"
+
+# A paired agent is silent, and `mcp__x__*` is the same grant as `mcp__x`.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" paired "Read, mcp__figma__*, mcp__plugin_figma_figma"
+assert_silent "§13 silent when both install paths are granted" "$d" \
+  "add 'mcp__plugin_figma_figma'"
+assert_emits "§13 treats mcp__x__* as the server grant" "$d" \
+  "paired.md tools -> mcp__figma paired with mcp__plugin_figma_figma"
+
+# Hosted connectors can't be plugin-installed, so they're exempt by name.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" hosted "Read, mcp__claude_ai_Figma"
+assert_emits "§13 exempts a connector-only namespace" "$d" \
+  "mcp__claude_ai_Figma is connector-only"
+
+# `Agent(a, b)` splits on the same commas as the tool list; those fragments are
+# not MCP entries and must not be read as one.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" delegator "Agent(foo:one, foo:two), Read, Bash"
+assert_silent "§13 ignores an agent with no MCP grants" "$d" "delegator.md tools ->"
+
 finish

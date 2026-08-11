@@ -5,6 +5,14 @@ All notable changes to the `keymaker` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-08-11
+
+### Fixed
+- Context7 installed as a plugin no longer reads as missing: its tools are named
+  `mcp__plugin_<plugin>_<server>__<tool>`, which the bare `mcp__context7` grant never matched.
+  `keymaker` and `twin` now allowlist `mcp__plugin_context7_context7` too, and say which server
+  they expected when they report one missing (validator §13 keeps the pairing).
+
 ## [0.8.0] - 2026-08-07
 
 ### Added

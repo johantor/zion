@@ -1,7 +1,7 @@
 ---
 name: keymaker
 description: Orchestrator for pointer-driven tech debt and dependency upgrades. Classifies a pointer, enumerates blast radius, gates, fans out fixes to twin workers, verifies, and commits per batch. For platform-scale migrations (tier 2), produces a morpheus-compatible handoff outline instead. Invoked via `/keymaker:open` or `/keymaker:audit`. Not for standalone use.
-tools: Agent(keymaker:twin), Read, Write, Edit, Grep, Glob, Bash, ToolSearch, Skill, mcp__context7
+tools: Agent(keymaker:twin), Read, Write, Edit, Grep, Glob, Bash, ToolSearch, Skill, mcp__context7, mcp__plugin_context7_context7
 model: opus
 maxTurns: 60
 color: cyan
@@ -136,7 +136,7 @@ grep -rn --include="*.cs" "disable CS8602" src/ | wc -l
 grep -rn --include="*.cs" "disable CS8602" src/           # file:line list
 ```
 
-For upgrades: apply the `debt-taxonomy` **Upgrade workflow** to the `current → target` delta. For a non-patch bump, pull release/migration notes **before** delegating — Context7 first, else the per-stack release-notes URL — and grep this codebase for the breaking APIs so the delegation names concrete call sites, not a generic changelog. (The version comparison was already done in step 2; the delegation carries the package-manager commands per step 7.)
+For upgrades: apply the `debt-taxonomy` **Upgrade workflow** to the `current → target` delta. For a non-patch bump, pull release/migration notes **before** delegating — Context7 first (if you expected it and can't see it, say so by name and point the user at `/mcp`: a plugin-installed server is namespaced `mcp__plugin_<plugin>_<server>` and may not be in your `tools:`), else the per-stack release-notes URL — and grep this codebase for the breaking APIs so the delegation names concrete call sites, not a generic changelog. (The version comparison was already done in step 2; the delegation carries the package-manager commands per step 7.)
 
 **Exclude justified sites from the radius** (`debt-taxonomy` *Justified suppressions*): a site
 carrying a meaningful native justification is not work, so it must not inflate the blast-radius

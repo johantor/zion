@@ -45,6 +45,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   ignores the filter, and skipped tests are never excluded. Twins must never *add* a
   justification (it would hide the finding) — keymaker.md step 8 checks for it against the
   dispatch snapshot.
+- Agent `tools:` MCP grants come in pairs — `mcp__context7` (keyed in `.mcp.json`) and
+  `mcp__plugin_context7_context7` (installed as a plugin, whose tools are named
+  `mcp__plugin_<plugin>_<server>__<tool>`). Validator §13 enforces the pairing for both agents.
 - Always-loaded footprint: `keymaker` declares `loaded-lines-cap: 670` (validator §12 reports
   every agent's agent-file + preloaded-skill lines and fails CI past the cap; `debt-taxonomy`'s
   203 lines dominate it). Rationale for the prompt's rules lives in the root `AGENTS.md`

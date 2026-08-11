@@ -1,7 +1,7 @@
 ---
 name: trinity
 description: Frontend implementer for the project's resolved frontend stack — the client/presentation layer, plus the markup/DOM of a shared server template in server-rendered mode. Invoked by the morpheus orchestrator with the resolved frontend stack and mode; loads the matching stack skill (e.g. `frontend-react`, `frontend-nextjs`) and mode skill. Not for standalone or automatic use.
-tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, Skill, mcp__figma, mcp__claude_ai_Figma, mcp__playwright, mcp__chrome-devtools, mcp__context7
+tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, Skill, mcp__figma, mcp__claude_ai_Figma, mcp__playwright, mcp__chrome-devtools, mcp__context7, mcp__plugin_figma_figma, mcp__plugin_playwright_playwright, mcp__plugin_chrome-devtools_chrome-devtools, mcp__plugin_context7_context7
 model: sonnet
 maxTurns: 72
 color: cyan
@@ -53,6 +53,9 @@ Rules:
 - If a docs MCP (e.g. Context7) is available, consult it for current, version-specific API
   docs for your stack's framework/libraries before coding against them; fetch the specific
   topic, not a dump (`context-discipline`).
+- A server you expected but can't see may be plugin-installed (`mcp__plugin_<plugin>_<server>`)
+  and simply not in your `tools:` — report it by name in your handback rather than silently
+  working without it.
 - Consult/update local memory.
 - Return an implementation summary and design assumptions, ending with an explicit completion
   marker: what you completed, and — if anything is left undone — a `remaining:` line naming

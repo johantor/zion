@@ -920,39 +920,46 @@ while IFS= read -r agent; do
   done <<<"$entries"
   [ "$scoped_ok" -eq 1 ] || continue
 
-  # Space-delimited for membership tests; iterated by read (not word-splitting)
-  # so a server name is never glob-expanded on its way through the loop.
-  servers=" $(printf '%s' "$entries" | sed 's/^mcp__//' | tr '\n' ' ') "
+  # The two grant forms, each space-delimited for membership tests. A plugin and
+  # the server it bundles are keyed independently -- `chrome-devtools-mcp` ships
+  # `chrome-devtools` -- so the halves are matched by suffix, not by assuming the
+  # two names are equal: `plugin_<anything>_<key>` is the plugin form of `<key>`.
+  # The trailing space in the pattern anchors that suffix to the end of an entry.
+  bare_keys="" plugin_keys=""
   while IFS= read -r s; do
     [ -z "$s" ] && continue
     case "$s" in
-      plugin_*)
-        # `plugin_<p>_<s>` with p == s is the single-server plugin convention and
-        # implies a bare counterpart. An asymmetric name (plugin and server keyed
-        # differently) can't be split reliably, so it's left alone.
-        rest="${s#plugin_}"
-        half="${rest%%_*}"
-        [ "$rest" = "${half}_${half}" ] || continue
-        # The bare-side branch already reports the pair; only the gap is news.
-        case "$servers" in
-          *" $half "*) : ;;
-          *) err "$agent tools -> 'mcp__$s' has no bare 'mcp__$half'; the same server keyed in .mcp.json wouldn't resolve for this agent" ;;
-        esac
-        ;;
-      *)
-        case "$mcp_connector_only" in
-          *" $s "*)
-            ok "$agent tools -> mcp__$s is connector-only; no plugin twin expected"
-            continue
-            ;;
-        esac
-        case "$servers" in
-          *" plugin_${s}_${s} "*) ok "$agent tools -> mcp__$s paired with mcp__plugin_${s}_${s}" ;;
-          *) err "$agent tools -> 'mcp__$s' covers only a server keyed in .mcp.json; add 'mcp__plugin_${s}_${s}' so the same server installed as a plugin resolves too (its tools are named mcp__plugin_<plugin>_<server>__<tool>)" ;;
-        esac
-        ;;
+      plugin_*) plugin_keys="$plugin_keys $s " ;;
+      *) bare_keys="$bare_keys $s " ;;
     esac
   done < <(printf '%s\n' "$entries" | sed 's/^mcp__//')
+
+  while IFS= read -r k; do
+    [ -z "$k" ] && continue
+    case "$mcp_connector_only" in
+      *" $k "*)
+        ok "$agent tools -> mcp__$k is connector-only; no plugin form expected"
+        continue
+        ;;
+    esac
+    case "$plugin_keys " in
+      *"_$k "*) ok "$agent tools -> mcp__$k has its plugin form" ;;
+      *) err "$agent tools -> 'mcp__$k' covers only a server keyed in .mcp.json; add the plugin form 'mcp__plugin_<plugin>_$k' so the same server installed as a plugin resolves too (its tools are named mcp__plugin_<plugin>_<server>__<tool>)" ;;
+    esac
+  done < <(printf '%s\n' "$bare_keys" | tr ' ' '\n')
+
+  # ...and the reverse, so a plugin form can't stand alone: whichever way the
+  # user installed it, the other path must resolve too.
+  while IFS= read -r p; do
+    [ -z "$p" ] && continue
+    p_matched=0
+    while IFS= read -r k; do
+      [ -z "$k" ] && continue
+      case "$p" in *"_$k") p_matched=1; break ;; esac
+    done < <(printf '%s\n' "$bare_keys" | tr ' ' '\n')
+    [ "$p_matched" -eq 1 ] && continue
+    err "$agent tools -> 'mcp__$p' names a server no bare key covers; add 'mcp__<server>' for its .mcp.json install path"
+  done < <(printf '%s\n' "$plugin_keys" | tr ' ' '\n')
 done < <(git ls-files 'plugins/*/agents/*.md')
 
 if [ "$fail" -ne 0 ]; then

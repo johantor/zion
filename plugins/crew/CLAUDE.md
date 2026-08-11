@@ -80,8 +80,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —
   agent prompts carry instruction, not justification; each trimmed prompt points there once.
 - Agent `tools:` MCP grants come in pairs: bare `mcp__<key>` (server keyed in `.mcp.json` /
-  `claude mcp add`) **and** `mcp__plugin_<key>_<key>` (same server installed as a plugin — its
+  `claude mcp add`) **and** `mcp__plugin_<plugin>_<key>` (same server installed as a plugin — its
   tools are named `mcp__plugin_<plugin>_<server>__<tool>`, which the bare form never matches).
+  The plugin and its server are keyed independently (`chrome-devtools-mcp` ships
+  `chrome-devtools`), so §13 pairs them on the **server** half, by suffix.
   Validator §13 enforces the pairing both ways, reads either YAML shape of `tools:` (inline
   list or `  - name` block), and rejects grants that cover less than they look like they do —
   tool-scoped `mcp__server__tool` and serverless `mcp__*`.

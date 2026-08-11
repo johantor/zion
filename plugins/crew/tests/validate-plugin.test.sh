@@ -624,14 +624,31 @@ mk_tools_agent() {
 # A bare server key alone leaves the plugin-install path unmatched.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_tools_agent "$d/plugins/foo" lonely "Read, mcp__figma"
-assert_emits "§13 bites on a bare server key with no plugin twin" "$d" \
-  "add 'mcp__plugin_figma_figma'"
+assert_emits "§13 bites on a bare server key with no plugin form" "$d" \
+  "add the plugin form 'mcp__plugin_<plugin>_figma'"
 
-# ...and the reverse: a plugin twin alone leaves .mcp.json-keyed installs out.
+# ...and the reverse: a plugin form alone leaves .mcp.json-keyed installs out.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_tools_agent "$d/plugins/foo" scoped_only "Read, mcp__plugin_figma_figma"
-assert_emits "§13 bites on a plugin twin with no bare key" "$d" \
-  "has no bare 'mcp__figma'"
+assert_emits "§13 bites on a plugin form with no bare key" "$d" \
+  "'mcp__plugin_figma_figma' names a server no bare key covers"
+
+# A plugin and the server it bundles are keyed independently — the real
+# chrome-devtools-mcp plugin ships a server called chrome-devtools — so the
+# halves pair by suffix, not by being equal.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" asym \
+  "Read, mcp__chrome-devtools, mcp__plugin_chrome-devtools-mcp_chrome-devtools"
+assert_emits "§13 pairs a plugin whose name differs from its server" "$d" \
+  "asym.md tools -> mcp__chrome-devtools has its plugin form"
+assert_silent "§13 doesn't demand a same-name plugin form" "$d" \
+  "add the plugin form"
+
+# The suffix must be the server half, not any substring of the plugin half.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" wrong_half "Read, mcp__chrome-devtools, mcp__plugin_chrome-devtools_ohno"
+assert_emits "§13 bites when only the plugin half matches the bare key" "$d" \
+  "'mcp__chrome-devtools' covers only a server keyed in .mcp.json"
 
 # A tool-scoped grant withholds the rest of the server's tools.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
@@ -646,9 +663,9 @@ assert_silent "§13 doesn't re-report a malformed entry as an unpaired key" "$d"
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_tools_agent "$d/plugins/foo" paired "Read, mcp__figma__*, mcp__plugin_figma_figma"
 assert_silent "§13 silent when both install paths are granted" "$d" \
-  "add 'mcp__plugin_figma_figma'"
+  "add the plugin form"
 assert_emits "§13 treats mcp__x__* as the server grant" "$d" \
-  "paired.md tools -> mcp__figma paired with mcp__plugin_figma_figma"
+  "paired.md tools -> mcp__figma has its plugin form"
 
 # Hosted connectors can't be plugin-installed, so they're exempt by name.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
@@ -674,7 +691,7 @@ mk_tools_agent "$d/plugins/foo" commented "Read, mcp__plugin_figma_figma, mcp__f
 assert_silent "§13 strips a trailing comment from the tools list" "$d" \
   "figma # design"
 assert_emits "§13 reads the commented entry as its server" "$d" \
-  "commented.md tools -> mcp__figma paired with mcp__plugin_figma_figma"
+  "commented.md tools -> mcp__figma has its plugin form"
 
 # `mcp__*` grants no server, so it must be reported rather than passed over.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0

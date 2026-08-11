@@ -197,11 +197,13 @@ its `mcp__<Name>` granted to the relevant agent(s).
 `mcp__plugin_<plugin>_<server>__<tool>` — and a bare `mcp__<key>` grant never matches them. Note
 the plugin and the server it bundles are keyed independently: the `chrome-devtools-mcp` plugin
 ships a server called `chrome-devtools`, so its tools are
-`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`. The agents allowlist the plugin forms of the
-servers above, under both the plugin's own name and the `<name>-mcp` packaging. If yours differs,
-read the exact namespace off `/mcp` (the server line reads `plugin:<plugin>:<server>`) and grant
-that prefix to the relevant agent(s). This bites quietly: an agent can't tell a server that isn't
-allowlisted from one that isn't installed, so it just reports the server as unavailable.
+`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`. The agents allowlist one plugin namespace per
+server — the packaging we've seen for it, so `chrome-devtools` is covered as
+`mcp__plugin_chrome-devtools-mcp_chrome-devtools` and most others as `mcp__plugin_<key>_<key>`;
+Playwright carries both, since either packaging is plausible. If yours differs, read the exact
+namespace off `/mcp` (the server line reads `plugin:<plugin>:<server>`) and grant that prefix to
+the relevant agent(s). This bites quietly: an agent can't tell a server that isn't allowlisted from
+one that isn't installed, so it just reports the server as unavailable.
 
 </details>
 

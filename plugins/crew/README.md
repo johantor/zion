@@ -194,12 +194,16 @@ error connectors are allowlisted in both forms (`claude_ai_Figma` / `Figma`, `cl
 its `mcp__<Name>` granted to the relevant agent(s).
 
 **Installed the server as a plugin instead?** Then its tools carry the plugin's name too —
-`mcp__plugin_<plugin>_<server>__<tool>` — and a bare `mcp__<key>` grant never matches them. The
-agents allowlist `mcp__plugin_<key>_<key>` alongside each bare key, which covers the common case
-of a plugin that ships one server under its own name. If your plugin or its server key differs,
-read the exact namespace off `/mcp` (or the tool name in an error) and grant that prefix to the
-relevant agent(s) instead. This bites quietly: an agent can't tell a server that isn't
-allowlisted from one that isn't installed, so it just reports the server as unavailable.
+`mcp__plugin_<plugin>_<server>__<tool>` — and a bare `mcp__<key>` grant never matches them. Note
+the plugin and the server it bundles are keyed independently: the `chrome-devtools-mcp` plugin
+ships a server called `chrome-devtools`, so its tools are
+`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`. The agents allowlist one plugin namespace per
+server — the packaging we've seen for it, so `chrome-devtools` is covered as
+`mcp__plugin_chrome-devtools-mcp_chrome-devtools` and most others as `mcp__plugin_<key>_<key>`;
+Playwright carries both, since either packaging is plausible. If yours differs, read the exact
+namespace off `/mcp` (the server line reads `plugin:<plugin>:<server>`) and grant that prefix to
+the relevant agent(s). This bites quietly: an agent can't tell a server that isn't allowlisted from
+one that isn't installed, so it just reports the server as unavailable.
 
 </details>
 

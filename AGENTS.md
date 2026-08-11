@@ -344,8 +344,11 @@ not double-reported here; skills are indexed via `git ls-files`, the same stagin
 named `mcp__plugin_<plugin>_<server>__<tool>`, so a bare `mcp__<key>` grant — the form that
 matches a server keyed in `.mcp.json` — never matches them, and the agent reads a
 configured-but-not-allowlisted server as simply absent. The section requires every bare key to
-carry its `mcp__plugin_<key>_<key>` twin (and the reverse, when a plugin twin's two halves match),
-so both install paths resolve; extra entries are inert, an unmatched one is not. It also rejects
+carry a plugin form, and every plugin form a bare key, so both install paths resolve; extra
+entries are inert, an unmatched one is not. The two halves are matched by **suffix**, not by
+assuming they're equal: a plugin and the server it bundles are keyed independently — the real
+`chrome-devtools-mcp` plugin ships a server called `chrome-devtools`, so
+`mcp__plugin_chrome-devtools-mcp_chrome-devtools` is what pairs with `mcp__chrome-devtools`. It also rejects
 the two grants that quietly cover less than they look like they do: a tool-scoped
 `mcp__server__tool`, which withholds the rest of that server's tools, and a bare `mcp__*`, which
 names no server at all. Both YAML shapes of `tools:` are read — the inline comma list the agents

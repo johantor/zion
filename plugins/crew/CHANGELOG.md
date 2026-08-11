@@ -5,6 +5,20 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.16.0] - 2026-08-11
+
+### Fixed
+- **Chrome DevTools installed as a plugin now reaches `seraph` and `trinity`.** 3.15.0 assumed a
+  plugin and the server it bundles share a name; the real `chrome-devtools-mcp` plugin ships a
+  server called `chrome-devtools`, so its tools are
+  `mcp__plugin_chrome-devtools-mcp_chrome-devtools__*` and the allowlisted
+  `mcp__plugin_chrome-devtools_chrome-devtools` matched nothing. Corrected, and Playwright's
+  `<name>-mcp` packaging (`mcp__plugin_playwright-mcp_playwright`) added alongside.
+
+### Changed
+- Validator §13 pairs the two grant forms on the **server** half by suffix, instead of requiring
+  the plugin and server names to be equal — the assumption that hid this.
+
 ## [3.15.0] - 2026-08-11
 
 ### Fixed

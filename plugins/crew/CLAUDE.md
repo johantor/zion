@@ -82,8 +82,10 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Agent `tools:` MCP grants come in pairs: bare `mcp__<key>` (server keyed in `.mcp.json` /
   `claude mcp add`) **and** `mcp__plugin_<key>_<key>` (same server installed as a plugin — its
   tools are named `mcp__plugin_<plugin>_<server>__<tool>`, which the bare form never matches).
-  Validator §13 enforces the pairing both ways and rejects tool-scoped grants
-  (`mcp__server__tool`). Hosted connectors that can't ship in a plugin are exempt by name in the
+  Validator §13 enforces the pairing both ways, reads either YAML shape of `tools:` (inline
+  list or `  - name` block), and rejects grants that cover less than they look like they do —
+  tool-scoped `mcp__server__tool` and serverless `mcp__*`.
+  Hosted connectors that can't ship in a plugin are exempt by name in the
   validator's `mcp_connector_only` list (today `claude_ai_Figma`). `/crew:init` §5 reports the
   namespaces a session can actually see; it writes nothing.
 - Agent write-access declarations, checked by validator §9 (see below): every crew agent

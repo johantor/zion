@@ -14,8 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   now allowlists `mcp__plugin_<key>_<key>` alongside each bare key.
 
 ### Added
-- Validator §13: agent `tools:` MCP grants must be server-scoped and carry both install paths;
-  hosted connectors (`mcp__claude_ai_Figma`) are exempt by name.
+- Validator §13: agent `tools:` MCP grants must be server-scoped and carry both install paths.
+  Reads either YAML shape of `tools:`, rejects tool-scoped (`mcp__server__tool`) and serverless
+  (`mcp__*`) grants, and exempts hosted connectors (`mcp__claude_ai_Figma`) by name.
 - `/crew:init` §5 — report-only MCP namespace check (no config slot, nothing written).
 
 ### Changed

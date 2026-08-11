@@ -855,14 +855,38 @@ done < <(git ls-files 'plugins/*/agents/*.md')
 #     that cannot exist.
 mcp_connector_only=" claude_ai_Figma "
 
-# The `mcp__` entries of an agent's `tools:`, one per line, with any trailing
-# `__*` wildcard dropped -- `mcp__x` and `mcp__x__*` grant the same server.
-# `Agent(crew:tank, ...)` splits across commas too; those fragments never start
-# with `mcp__`, so filtering on the prefix drops them.
+# Every `tools:` entry, one per line, from either YAML shape: the inline comma
+# list the agents here use, or a `  - name` block list. Reading only the inline
+# form would let a list-form `tools:` skip this section silently -- the kind of
+# miss the repo treats as a bug, not a pass.
+#
+# `Agent(crew:tank, crew:trinity)` splits across commas too; those fragments
+# aren't MCP entries, and the `mcp__` filter below drops them.
+agent_tools_entries() {
+  awk '
+    /^---[[:space:]]*$/ { if (in_fm == 0) { in_fm = 1; next } else exit }
+    in_fm && in_list {
+      if ($0 ~ /^[[:space:]]+-[[:space:]]+/) {
+        sub(/^[[:space:]]+-[[:space:]]+/, ""); sub(/[[:space:]]+#.*$/, ""); print; next
+      } else if ($0 !~ /^[[:space:]]*$/) { in_list = 0 }
+    }
+    in_fm && index($0, "tools:") == 1 {
+      # A trailing YAML comment is dropped before the split, or it would ride
+      # along on the last entry and be read as part of a server name.
+      v = $0; sub(/^tools:[[:space:]]*/, "", v); sub(/[[:space:]]+#.*$/, "", v)
+      if (length(v)) { n = split(v, a, ","); for (i = 1; i <= n; i++) print a[i] }
+      else { in_list = 1 }
+    }
+  ' "$1"
+}
+
+# ...narrowed to the MCP grants, with any trailing `__*` wildcard dropped:
+# `mcp__x` and `mcp__x__*` name the same server.
 agent_mcp_entries() {
-  fm_field "$1" tools | tr ',' '\n' \
-    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/__\*$//' \
-    | grep '^mcp__' || true
+  agent_tools_entries "$1" \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//' \
+    | grep '^mcp__' \
+    | sed 's/^\(mcp__..*\)__\*$/\1/' || true
 }
 
 while IFS= read -r agent; do
@@ -876,6 +900,12 @@ while IFS= read -r agent; do
   while IFS= read -r e; do
     [ -z "$e" ] && continue
     case "${e#mcp__}" in
+      '*')
+        # `mcp__*` is a disallowedTools shape; as a grant it names no server, so
+        # it would silently match nothing. Report it instead of skipping it.
+        err "$agent tools -> 'mcp__*' names no server; allowlist each server it stands for"
+        scoped_ok=0
+        ;;
       *__*)
         srv="${e#mcp__}"; srv="${srv%%__*}"
         err "$agent tools -> '$e' grants a single MCP tool; allowlist the whole server as 'mcp__$srv'"

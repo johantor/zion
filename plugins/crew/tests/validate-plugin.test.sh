@@ -656,6 +656,32 @@ mk_tools_agent "$d/plugins/foo" hosted "Read, mcp__claude_ai_Figma"
 assert_emits "§13 exempts a connector-only namespace" "$d" \
   "mcp__claude_ai_Figma is connector-only"
 
+# The block-list `tools:` shape is read too — reading only the inline form would
+# let a list-form allowlist skip the section without a word.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mkdir -p "$d/plugins/foo/agents"
+printf -- '---\nname: listy\ndescription: d\ntools:\n  - Read\n  - mcp__figma\n---\nbody\n' \
+  > "$d/plugins/foo/agents/listy.md"
+assert_emits "§13 reads a list-form tools: block" "$d" \
+  "listy.md tools -> 'mcp__figma' covers only a server keyed in .mcp.json"
+
+# A trailing YAML comment must not ride along into the server name.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+# The commented entry is last and bare, so without stripping it becomes the
+# server name `figma # design` and the pairing check fails on a name that isn't
+# in the file.
+mk_tools_agent "$d/plugins/foo" commented "Read, mcp__plugin_figma_figma, mcp__figma # design"
+assert_silent "§13 strips a trailing comment from the tools list" "$d" \
+  "figma # design"
+assert_emits "§13 reads the commented entry as its server" "$d" \
+  "commented.md tools -> mcp__figma paired with mcp__plugin_figma_figma"
+
+# `mcp__*` grants no server, so it must be reported rather than passed over.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_tools_agent "$d/plugins/foo" starry "Read, mcp__*"
+assert_emits "§13 bites on a serverless mcp__* grant" "$d" \
+  "'mcp__*' names no server"
+
 # `Agent(a, b)` splits on the same commas as the tool list; those fragments are
 # not MCP entries and must not be read as one.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0

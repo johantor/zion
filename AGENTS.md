@@ -346,7 +346,11 @@ matches a server keyed in `.mcp.json` — never matches them, and the agent read
 configured-but-not-allowlisted server as simply absent. The section requires every bare key to
 carry its `mcp__plugin_<key>_<key>` twin (and the reverse, when a plugin twin's two halves match),
 so both install paths resolve; extra entries are inert, an unmatched one is not. It also rejects
-tool-scoped grants (`mcp__server__tool`), which withhold the rest of a server's tools. Hosted
+the two grants that quietly cover less than they look like they do: a tool-scoped
+`mcp__server__tool`, which withholds the rest of that server's tools, and a bare `mcp__*`, which
+names no server at all. Both YAML shapes of `tools:` are read — the inline comma list the agents
+here use and a `  - name` block list — since reading only one would let the other skip the
+section without a word. Hosted
 connectors that can't be plugin-installed are exempt by name (`mcp__claude_ai_Figma`) — asserting
 a plugin twin for one would name a namespace that cannot exist.
 

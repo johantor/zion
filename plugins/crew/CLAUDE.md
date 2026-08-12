@@ -8,12 +8,16 @@ anything stated here updates this file in the same commit.** Conventions live in
 
 - `agents/` — `morpheus` (orchestrator, `model: opus`, sole git owner) + workers `tank`
   (backend), `trinity` (frontend), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual,
-  no Bash), `neo` (express generalist). Auto-discovered; not in the manifest.
+  no Bash), `neo` (express generalist), `sentinel` (post-merge triage; no Write/Edit/**Bash**,
+  so its read-only posture is the `tools:` grant itself and needs no guard hook — history comes
+  from the git-host MCP, not local git). Auto-discovered; not in the manifest.
 - `commands/` — `init` (§1 slots are validator §11's source of truth; §5 is a report-only MCP
   namespace check that writes nothing), `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path),
   `address`, `loop` (outer-loop driver: re-launches `morpheus` directly each tick — not by
   nesting `/crew:feature` — on the native `/loop` dynamic mode until the plan's exit
-  conditions/iteration cap are met; wrapper owns scheduling). Namespaced `crew:*` when installed.
+  conditions/iteration cap are met; wrapper owns scheduling), `triage` (launches `sentinel` on a
+  production signal and relays its report; writes nothing — the write-back to the work item is
+  deliberately not built, see #175 phase 2). Namespaced `crew:*` when installed.
 - `skills/` — shared + synced across plugins (crew canonical): `engineering-principles`,
   `context-discipline`, `loop-engineering`. Frontend-mode, per-stack, and per-test-tool
   skills load dynamically once resolved. Skill = `<name>/SKILL.md`, frontmatter `name:` +
@@ -115,6 +119,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   hook, so a walk per marker is latency the agent pays before its edit lands), and
   `detect_regime` caches the verdict per `session_id`, publishing it by `mv` so parallel
   workers sharing a session can't read a half-written cache.
+- `sentinel`'s "calls no mutating MCP tool" rule is **prose, not a mechanism**: §13 rejects
+  tool-scoped `mcp__server__tool` grants, so a tracker/git-host grant is necessarily the whole
+  server, write tools included. What *is* mechanical is the rest of its posture — no Write, no
+  Edit, no Bash. Don't describe the MCP half as enforced.
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   this plugin's `CHANGELOG.md` (every plugin keeps its own changelog next to its manifest).
   On merge to main, auto-release tags `crew/vX.Y.Z` from that section.

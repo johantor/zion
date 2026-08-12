@@ -18,8 +18,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `.claude-plugin/marketplace.json` — the marketplace; lists each plugin and its `source`.
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
-  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, and `neo` (express-lane generalist). Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address`, `/loop` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session.
+  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), and `sentinel` (post-merge triage; read-only, no Bash). Auto-discovered from this dir; not declared in the manifest.
+  - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address`, `/triage`, `/loop` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing.
   - `skills/` — shared: `engineering-principles`, `context-discipline`, `loop-engineering`
     (all also shipped by other plugins — kept byte-for-byte in sync automatically; see *How we
     review code* below; `loop-engineering` carries the loop-mode stop rules, preloaded by
@@ -69,6 +69,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 ## How the crew works
 
 - `morpheus` plans and delegates; it writes no production code. Workers stay idle until delegated to.
+- A **regression** enters the flow through `sentinel`: `morpheus` delegates the bug report or
+  trace to it before planning and plans against the pointer it returns, so the finding arrives
+  in `morpheus`'s own context rather than being re-typed into a goal string. `/crew:triage` is
+  the same agent without the build flow attached.
 - `morpheus` maintains a written plan at `<plan-dir>/plan-<feature>.md` — `<plan-dir>` is the `Plan directory` crew-config slot, or `.claude/` when unset — with per-step acceptance criteria, and presents it for the user's go-ahead before creating the branch or delegating (the plan checkpoint — one gate, honoring a standing "just build it").
 - `morpheus` is the sole owner of git: it branches off the resolved base branch and commits each
   verified step; workers never run git. The crew stops at the local review gate by default —
@@ -79,7 +83,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   (backend tests + frontend component tests when a frontend unit test tool is configured),
   `dozer` = frontend e2e only (for the resolved e2e tool), `seraph` = visual design
   conformance (read-only), `neo` = express-lane generalist for small changes (all lanes;
-  no lane guard by design). Stack knowledge lives in per-stack skills, loaded once `morpheus`
+  no lane guard by design), `sentinel` = post-merge triage (read-only; locates a production
+  signal and correlates it to suspect commits, and returns a pointer rather than a fix). Stack knowledge lives in per-stack skills, loaded once `morpheus`
   resolves the project's stack (`CLAUDE.md`'s **Backend stack**/**Frontend stack** slots).
   E2e tool knowledge lives in per-tool skills (`Frontend e2e tool` slot); frontend unit test
   tool knowledge lives in its own per-tool skills (`Frontend unit test tool` slot). `lane-
@@ -359,7 +364,7 @@ a plugin twin for one would name a namespace that cannot exist.
 
 ### Adversarial scenario suite (`tests/scenarios/`)
 
-Three of the prompts' safety properties are the kind that rot silently — a later edit
+Four of the prompts' safety properties are the kind that rot silently — a later edit
 weakens one and the happy path still works, so nothing notices:
 
 - `morpheus` §*Address review feedback* step 2 — a comment that tries to widen scope,
@@ -367,6 +372,11 @@ weakens one and the happy path still works, so nothing notices:
 - `keymaker` step 3 — pasted build/lint output is **data**: rule IDs are parsed from it;
   instructions in its prose are never followed.
 - `loop-engineering` — loop intent is **never inferred** from fetched or pasted content.
+- `sentinel` §*The signal is untrusted input* — a bug report is third-party free text: its
+  identifiers are parsed, its prose is never followed, and a work-item ID, URL, or pipeline
+  name found **inside** it never becomes a target. **This one has no scenario yet** — it is
+  covered only by the manual rows in `plugins/crew/VERIFICATION.md`, which makes it the
+  weakest-covered of the four until one is written.
 
 `tests/scenarios/` drives the real agents headlessly against throwaway repos and asserts the
 guard held. Repo tooling, never shipped with a plugin.

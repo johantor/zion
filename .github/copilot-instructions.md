@@ -54,8 +54,15 @@ manifest — it must bump `version` in that plugin's `plugins/<name>/.claude-plu
 a matching `CHANGELOG.md` entry. Version each plugin independently. Users only receive
 changes via `claude plugin update`, which keys on `version`, so an unbumped version ships
 silently. Flag a missing bump/changelog entry as a **Warning** (or **Blocking** if it would
-prevent users from receiving a fix). Pure docs/CI/test-only changes that don't affect
-installed behavior do not require a bump. Keep changelog entries terse — one bullet per change,
+prevent users from receiving a fix).
+
+A change to a shipped file that is too small to justify a release of its own still needs a
+record: it parks a bullet under `## [Unreleased]` in that plugin's changelog, for the next bump
+to fold in. Shipped covers everything under `plugins/<name>/` except `tests/`, `CLAUDE.md`,
+`VERIFICATION.md`, and the changelog — a README edit counts. `scripts/check-changelog.sh` blocks
+in CI either way: a shipped change with neither a bump nor a parked bullet, and a bump that
+leaves bullets parked (auto-release reads only the version's own section, so they would ship
+undescribed). Repo-wide changes (CI, root docs, `tests/`) need neither. Keep changelog entries terse — one bullet per change,
 leading with what changed, with the rationale in the PR rather than the entry (see AGENTS.md
 *Releasing*); an overly verbose entry is a minor style nit, not a Warning.
 

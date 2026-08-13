@@ -36,10 +36,16 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
   - `VERIFICATION.md` — the plugin's behavioral scenario matrix, kept out of the README so the
     README stays a user-facing document. `keymaker` carries its own alongside its README.
-- `scripts/validate-plugin.sh` — repo tooling (not part of any plugin; it needs this
-  monorepo's layout and never runs in an installed plugin): validates every plugin's
-  manifest/structure, including skill-drift across plugins (§4 in the script), hook-script
-  drift (§5), and hooks.json wiring (§6; see *How we review code* below).
+- `scripts/` — repo tooling (not part of any plugin; it needs this monorepo's layout and never
+  runs in an installed plugin):
+  - `validate-plugin.sh` — validates every plugin's manifest/structure, including skill-drift
+    across plugins (§4 in the script), hook-script drift (§5), and hooks.json wiring (§6; see
+    *How we review code* below). Tree-only: no base ref, so it runs anywhere.
+  - `check-changelog.sh` — the release-notes gate: a change to shipped files must be described
+    by a version bump or a bullet parked under `## [Unreleased]` (see *Releasing*). Diff-based,
+    so it takes the base branch to compare against.
+  - `release-notes.sh` — builds a release's notes: the version's changelog section plus the
+    commits that shipped in the same tag without an entry. Called by `auto-release.yml`.
 - `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:
   - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
   - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
@@ -289,9 +295,15 @@ This repo has no app build. Before opening a PR, run what CI runs:
 ```bash
 shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
 bash scripts/validate-plugin.sh
+bash scripts/check-changelog.sh          # takes the base branch; defaults to main
 bash plugins/crew/tests/run.sh
 bash tests/scenarios/mocks/selftest.sh
 ```
+
+`check-changelog.sh` is the one diff-based check: it compares against the merge base with the
+base branch, which is why it takes a ref and why it lives outside `validate-plugin.sh` (that one
+is deliberately tree-only, so it runs anywhere with no base to resolve). See *Releasing* for
+what it enforces.
 
 `plugins/crew/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
 and `git` (the same tools the hooks and validator already require) — that exercises the crew
@@ -428,11 +440,55 @@ Versions are per-plugin. To cut a release:
    shipped by more than one plugin bumps *every* plugin that ships it** — the §4 sync check keeps
    the copies byte-identical, so a fix in one is a release in all of them (every plugin keeps
    its own changelog at `plugins/<name>/CHANGELOG.md`).
-2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
+2. Fold in anything parked under `## [Unreleased]` (below), moving those bullets into the new
+   version's section. `check-changelog.sh` fails a bump that leaves the slot non-empty.
+3. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
    version has no `<plugin>/v<version>` tag yet, and creates the tag and GitHub Release
-   automatically, with notes pulled from that version's `CHANGELOG.md` section. No
+   automatically, with notes built by `scripts/release-notes.sh`. No
    matching changelog entry → it skips with a warning. No manual tagging is needed
    (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
+
+### Small changes park under `## [Unreleased]`
+
+A tag carries **everything** merged since the previous tag, not just the bump — so a change that
+skips the bump/changelog step doesn't wait for a release of its own, it ships inside the next one,
+described nowhere. That is how a README rewrite and a pass over the shipped hooks' comments both
+went out in `crew/v3.15.0` without appearing in any notes.
+
+So every changelog keeps an `## [Unreleased]` heading at the top (§2i requires it), and a change
+too small to justify its own release parks a bullet there instead of skipping the step:
+
+```
+## [Unreleased]
+
+- README: lead with outcomes rather than the component list (#178)
+```
+
+The next PR that bumps folds those bullets into the version section it opens. Cite the PR as
+`(#N)` — that reference is also what keeps the commit from being listed twice in the notes.
+
+`check-changelog.sh` enforces both halves on every PR, and both are blocking:
+
+- **shipped files changed → bump or park.** Shipped means everything under `plugins/<name>/`
+  except `tests/` (repo tooling), `CLAUDE.md` and `VERIFICATION.md` (contributor material), and
+  `CHANGELOG.md` itself. `README.md` counts — users read it. A pre-existing parked bullet doesn't
+  count as your note; the section has to actually change.
+- **version bumped → the slot must be empty**, because auto-release reads only the version's own
+  section and would ship the rest still parked.
+
+Repo-wide changes (CI, root docs, `tests/scenarios/`) reach no user through
+`claude plugin update`, so they need neither.
+
+The `[Unreleased]` heading deliberately has no link reference at the bottom of the file, unlike
+the version headings: a compare link would have to be re-pointed at every release, which is one
+more step to forget.
+
+**The notes cover the whole tag range.** `scripts/release-notes.sh` prints the version's
+changelog section, then an *Also in this release* list of commits since the plugin's previous tag
+that touched it and aren't described — skipping the bump commit itself (the section above *is* its
+notes) and any commit whose `(#N)` the section already cites. It's the backstop for whatever slips
+past the two rules above, so the release record is complete even when the per-PR discipline isn't.
+Preview it before merging with `scripts/release-notes.sh plugins/<name> <version>`.
 
 **Changelog entries are terse.** One bullet per change under its Keep-a-Changelog heading
 (`Added`/`Changed`/`Fixed`/`Removed`); lead with *what changed* in plain terms, one line — two
@@ -571,8 +627,9 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
 - **A changed shipped file is a release for every plugin that ships it.** Editing a byte-synced
   shared skill (`loop-engineering`, `context-discipline`, `engineering-principles`) is
   user-visible in *each* plugin that ships it, so bump + changelog all of them, not just the one
-  you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, but
-  only *you* can notice the second plugin needs the bump too.
+  you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, and
+  `check-changelog.sh` now names each plugin whose shipped files moved without a record, so the
+  second plugin can't be the one you forgot.
 - **A command that delegates can only pass what the delegated command accepts.** A thin command
   built on another (say, one wrapping `/crew:feature`, which only forwards its goal to
   `crew:morpheus`) can't "tell" the inner agent anything that inner command doesn't forward. If

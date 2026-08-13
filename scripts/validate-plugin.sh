@@ -215,6 +215,26 @@ while IFS= read -r manifest; do
   else
     err "$plugin_dir version $plugin_version != newest $changelog entry (${newest_entry:-none}); bump the manifest and add its CHANGELOG entry together"
   fi
+
+  # 2i. Every changelog carries an `## [Unreleased]` heading above its newest
+  #     version entry: the slot where a shipped change too small to justify its
+  #     own release is parked until the next bump folds it in (AGENTS.md,
+  #     "Releasing"). Without the heading there is nowhere to write such a note,
+  #     and it goes unrecorded — the leak this section exists to prevent.
+  #     Position matters: below the newest version it would read as belonging to
+  #     an already-released version. §2h's `grep -m1` keys on the numeric heading
+  #     shape, so Unreleased is invisible to it and never mistaken for a version;
+  #     auto-release's extractor starts at the numeric heading for the same
+  #     reason, so parked notes can't leak into the wrong release's notes.
+  unreleased_ln="$(grep -n -m1 -E '^## \[Unreleased\]' "$changelog" | cut -d: -f1 || true)"
+  newest_ln="$(grep -n -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$changelog" | cut -d: -f1 || true)"
+  if [ -z "$unreleased_ln" ]; then
+    err "$changelog has no '## [Unreleased]' heading; add one above the newest version entry (it is where a shipped change without its own bump is parked)"
+  elif [ -n "$newest_ln" ] && [ "$unreleased_ln" -gt "$newest_ln" ]; then
+    err "$changelog has '## [Unreleased]' below the newest version entry (line $unreleased_ln > $newest_ln); it belongs at the top, above the newest release"
+  else
+    ok "$changelog has an '## [Unreleased]' slot at the top"
+  fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
 # 3. Hook scripts are syntactically valid and executable.

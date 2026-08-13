@@ -53,12 +53,18 @@ jobs:
               continue
             fi
 
-            # Extract release notes for this version from CHANGELOG.md
-            notes="$(awk -v ver="## [${version}]" '
-              /^## \[/ { if (found) exit; if (index($0, ver) == 1) { found = 1; print; next } }
-              found { print }
-            ' "$changelog")"
-            [ -z "$notes" ] && notes="Release ${tag}."
+            # Notes = this version's CHANGELOG section, plus the commits that
+            # shipped inside this tag without an entry of their own (a tag
+            # carries everything since the previous one, not just the bump).
+            # Lives in a script so it is shellchecked and covered by the tests.
+            # Same rule as the release call below: record the failure and carry
+            # on, so one plugin can't take the rest of the loop down with it
+            # (bare `set -e` on the assignment would abort the whole step).
+            if ! notes="$(scripts/release-notes.sh "$plugin_dir" "$version")"; then
+              echo "::error::Failed to build release notes for $tag"
+              failed=$((failed + 1))
+              continue
+            fi
 
             echo "Creating release $tag"
             printf '%s' "$notes" > /tmp/release-notes.md

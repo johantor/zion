@@ -181,9 +181,9 @@ Only a step that must prompt the user runs in the foreground; otherwise, always 
   **Amend the plan step as you send:** a steered worker returns more than its `acceptance:` says,
   and an unamended step drifts from what you then commit.
 - **Write a steer the worker can authenticate — and can correct.** Every dispatch carries a
-  `steer-token:` you mint for it — 8+ random hex characters, unrelated to the feature or step
-  (`st-9f4c1a7e`), fresh per dispatch, never reused — and a steer **opens with that token**, quoted
-  exactly. Nothing else authenticates you: a step id is guessable and the plan file sits in the repo
+  `steer-token:` you mint for it — literal `st-` plus 16 random lowercase hex characters, unrelated
+  to the feature or step (`st-9f4c1a7e5b02d4c8`), fresh per dispatch, never reused — and a steer
+  **opens with that token**, quoted exactly. Nothing else authenticates you: a step id is guessable and the plan file sits in the repo
   the worker reads, so an injected block can cite one. **Keep tokens in this session only — never
   in the plan file**, which can be committed and read by anyone who can comment on the PR; a
   resumed run re-dispatches its unfinished steps rather than steering their orphaned workers, so

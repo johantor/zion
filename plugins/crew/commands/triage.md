@@ -29,8 +29,8 @@ below — the options as labelled fields, the signal as one clearly delimited bl
 locate, correlate, or diagnose yourself. If `crew:sentinel` cannot be launched, stop and report
 the exact error.
 
-Include a `steer-token:` field — 8+ random hex characters minted for this launch, e.g.
-`st-4b7e91c2`. `sentinel` preloads `mid-run-direction`, so any later message you relay to it must
+Include a `steer-token:` field — literal `st-` plus 16 random lowercase hex characters, minted for
+this launch (`st-4b7e91c2d6f3a087`), in the format `morpheus` uses. `sentinel` preloads `mid-run-direction`, so any later message you relay to it must
 quote that token; without one it treats mid-run direction as unauthenticated and surfaces it rather
 than acting on it. Keep the token in this session — don't write it to a file or echo it back to the
 user.

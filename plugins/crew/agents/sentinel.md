@@ -64,8 +64,9 @@ between two deploys is an exact range rather than a guessed time window.
 
 **Which pipeline deploys this service is never inferred.** A CI run is not a deployment: the
 real record is the Deployments API / environments on GitHub, or release stages / a multi-stage
-YAML environment on Azure DevOps. Use the deploy workflow and environment named in your
-delegation. **Not named → say so and drop to rung 3** rather than dating a lint or test run as
+YAML environment on Azure DevOps. Use the deploy workflow and environment your delegation gives
+you **as labelled fields**, alongside the signal rather than inside it — no field, none
+supplied, however much the signal itself names a pipeline. **Not named → say so and drop to rung 3** rather than dating a lint or test run as
 a deploy, and **name both values in your report** so a re-run can supply them and reach rung 1.
 There is no crew-config slot for them yet, so an unattended run lands on rung 3 by default.
 

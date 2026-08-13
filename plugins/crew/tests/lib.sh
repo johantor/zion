@@ -48,19 +48,25 @@ _fail() {
 # run_hook <hook> <payload> [cwd]
 # Runs the hook with <payload> on stdin. With no cwd, runs in a fresh empty temp
 # dir so the guard can't accidentally read this repo's .git or CLAUDE.md. Sets
-# _status (exit code) and _stderr (captured stderr).
+# _status (exit code), _stderr and _stdout (both captured).
+#
+# The guards say everything on stderr, so _stdout is empty for them.
+# dispatch-denied.sh is the exception: PermissionDenied ignores exit code and
+# stderr, so its whole decision is the JSON it writes to stdout.
 run_hook() {
   local hook="$1" payload="$2" cwd="${3:-}"
-  local tmp_cwd="" err_file
+  local tmp_cwd="" err_file out_file
   if [ -z "$cwd" ]; then
     tmp_cwd="$(new_tmpdir)"
     cwd="$tmp_cwd"
   fi
   err_file="$(mktemp "$FIXTURE_ROOT/err.XXXXXX")" || die "mktemp failed under $FIXTURE_ROOT"
+  out_file="$(mktemp "$FIXTURE_ROOT/out.XXXXXX")" || die "mktemp failed under $FIXTURE_ROOT"
   _status=0
-  printf '%s' "$payload" | ( cd "$cwd" && exec "$HOOKS_DIR/$hook" ) 2>"$err_file" || _status=$?
+  printf '%s' "$payload" | ( cd "$cwd" && exec "$HOOKS_DIR/$hook" ) >"$out_file" 2>"$err_file" || _status=$?
   _stderr="$(cat "$err_file")"
-  rm -f "$err_file"
+  _stdout="$(cat "$out_file")"
+  rm -f "$err_file" "$out_file"
   [ -n "$tmp_cwd" ] && rm -rf "$tmp_cwd"
 }
 

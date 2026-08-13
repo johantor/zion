@@ -17,8 +17,21 @@ re-exploring:
 
 Keep them accurate: a PR that changes anything they state updates them in the same commit.
 
-The rest of this file is the crew runtime configuration that `morpheus` and the `crew:*`
-commands read (it must stay in the project-root CLAUDE.md — `/crew:init` reconciles it here).
+The rest of this file is what the crew reads at runtime — how the orchestration works, then the
+configuration `morpheus` and the `crew:*` commands read. Both must stay in the project-root
+CLAUDE.md; `/crew:init` reconciles them here.
+
+## Crew orchestration
+
+Development in this repo is orchestrated: `morpheus` plans the work and delegates each step to a
+worker subagent (`tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`, `sentinel`). Dispatching a
+worker is ordinary in-repo development — the worker reads and edits files in this working tree and
+returns a summary. It is not remote execution, and it sends nothing outside the repository.
+
+The crew's guard hooks bound what a worker can do: only `morpheus` touches git, no agent commits on
+the base branch, each worker's edits are confined to its own lane, and destructive shell commands
+are refused. Nothing is pushed and no pull request is opened on its own — `/crew:pr` is the only
+path out of the machine, and the user invokes it.
 
 ## Crew configuration
 

@@ -51,10 +51,13 @@ done < <(git tag --list "${plugin}/v*" --sort=-v:refname)
 # First release: there is no range to walk, so the section is just the changelog.
 [ -n "$prev_tag" ] || exit 0
 
-# Commits since that tag that touched this plugin. Excluded: `tests/` (repo
-# tooling, not shipped) and the changelog itself (its content is already these
-# notes). Merges are skipped — PRs land squashed here, so a merge would only
-# duplicate its own commits.
+# Commits since that tag that touched this plugin. The exclusions are the same
+# "shipped" definition check-changelog.sh gates on — `tests/` (repo tooling),
+# `CLAUDE.md`/`VERIFICATION.md` (contributor material), and the changelog itself
+# (its content is already these notes) — so a change the gate deliberately does
+# not ask anyone to describe cannot turn up in user-facing notes either. Keep the
+# two lists in step. Merges are skipped: PRs land squashed here, so a merge would
+# only duplicate its own commits.
 extra=""
 while IFS=$'\t' read -r sha subject; do
   [ -n "$sha" ] || continue
@@ -76,7 +79,8 @@ while IFS=$'\t' read -r sha subject; do
 
   extra="${extra}- ${subject}"$'\n'
 done < <(git log --no-merges --format='%H%x09%s' "${prev_tag}..HEAD" -- \
-  "$plugin_dir" ":(exclude)${plugin_dir}/tests" ":(exclude)${changelog}")
+  "$plugin_dir" ":(exclude)${plugin_dir}/tests" ":(exclude)${changelog}" \
+  ":(exclude)${plugin_dir}/CLAUDE.md" ":(exclude)${plugin_dir}/VERIFICATION.md")
 
 [ -n "$extra" ] || exit 0
 

@@ -160,6 +160,14 @@ assert_out "notes list an unbumped commit from the range" "docs: reword the READ
 assert_out "the extra commits get their own heading" "$ALSO"
 assert_no_out "the bump commit itself is not re-listed" "feat: thing (v1.1.0)"
 
+# Contributor material is out of the notes for the same reason it is out of the
+# gate: nobody was asked to describe it, so it can't show up as if it shipped.
+d="$(new_gate_repo)"; git -C "$d" tag "foo/v1.0.0"
+printf 'notes\n' > "$d/plugins/foo/CLAUDE.md"; gate_commit "$d" "docs: contributor notes (#8)"
+bump "$d" 1.1.0; gate_commit "$d" "feat: thing (v1.1.0)"
+run_notes "$d" foo 1.1.0
+assert_no_out "a CLAUDE.md-only commit stays out of the notes" "$ALSO"
+
 # A commit whose PR is cited in the section is already described.
 d="$(new_gate_repo)"; git -C "$d" tag "foo/v1.0.0"
 printf 'readme v2\n' > "$d/plugins/foo/README.md"; gate_commit "$d" "docs: reword the README (#7)"

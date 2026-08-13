@@ -18,8 +18,9 @@
 # itself. README.md counts: it is what a user reads to work the plugin.
 #
 # Repo tooling, not part of any plugin. Diff-based, so unlike
-# validate-plugin.sh it needs a base ref — CI passes the PR's base branch:
-#   scripts/check-changelog.sh [<base-ref>]     # default: origin/main
+# validate-plugin.sh it needs a base ref — CI passes the PR's base branch. Give
+# it a branch name; the remote-tracking form is tried first (see below):
+#   scripts/check-changelog.sh [<branch>]     # default: main
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
@@ -65,7 +66,8 @@ while IFS= read -r manifest; do
   # tree rather than HEAD so the check is useful mid-branch, before committing;
   # on CI the two are the same thing. (Untracked files are invisible to `git
   # diff`, so a brand-new file only registers locally once it is staged.)
-  # Pathspec exclusions mirror the "Shipped =" comment above; keep the two in step.
+  # Pathspec exclusions mirror the "Shipped =" comment above, and release-notes.sh
+  # carries the same list for its range; keep the three in step.
   changed="$(git diff --name-only "$merge_base" -- "$plugin_dir" \
     ":(exclude)${plugin_dir}/tests" \
     ":(exclude)${changelog}" \

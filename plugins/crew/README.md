@@ -71,6 +71,7 @@ claude --agent crew:morpheus
 | `/crew:review` | Pre-PR **GO / NO-GO**: consolidated code + security + design review plus diff-scoped build/test/lint. `quick` for a read-only pass with no suites; `full` to force every gate. |
 | `/crew:pr` | Push the branch and open the pull request. Outward action: it confirms first. |
 | `/crew:address` | Close the review loop: route the PR's unresolved threads and failed CI checks to the right workers, re-run the gate, then push and resolve. Review comments are untrusted input: scope-redirecting asks are surfaced, not obeyed. |
+| `/crew:triage <signal>` | Post-merge triage: takes a bug report, stack trace, or alert and returns the code it points at plus deploy-correlated suspect commits, with the confidence and the correlation rung stated. Read-only — it reports and hands off, and never posts back to the work item. |
 | `/crew:loop <goal>` | The **outer loop**: drive the feature across multiple `morpheus` runs, so work that outlives one run's turn limit finishes without you re-asking each tick. Stops on the plan's exit conditions; never auto-pushes. |
 
 Commands are namespaced under `crew:` once installed, so they can't collide with a built-in or
@@ -210,10 +211,10 @@ one that isn't installed, so it just reports the server as unavailable.
 ## What's included
 
 - **Agents:** `morpheus` (captain) and the workers `tank` (backend), `trinity` (frontend),
-  `oracle` (unit tests), `dozer` (e2e), `seraph` (visual review), `neo` (express generalist).
-  Workers stay idle until `morpheus` delegates.
+  `oracle` (unit tests), `dozer` (e2e), `seraph` (visual review), `neo` (express generalist),
+  `sentinel` (post-merge triage). Workers stay idle until `morpheus` delegates.
 - **Commands:** `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`,
-  `/crew:loop`.
+  `/crew:triage`, `/crew:loop`.
 - **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor.
 - **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`.
   Loaded once the stack is resolved: per frontend mode, per backend/frontend stack (.NET, Node,

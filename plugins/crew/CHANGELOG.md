@@ -5,6 +5,14 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.17.0] - 2026-08-12
+
+### Added
+- **`sentinel`, a post-merge triage worker, and `/crew:triage`.** Takes a bug report, stack
+  trace, or alert; returns the code it points at plus deploy-correlated suspect commits with an
+  explicit confidence. Read-only, and `morpheus` can delegate to it before planning a
+  regression fix (#175).
+
 ## [3.16.0] - 2026-08-11
 
 ### Fixed

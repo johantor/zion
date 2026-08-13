@@ -46,6 +46,7 @@ case "$agent_type" in
   dozer) budget=56 ;;
   seraph) budget=20 ;;
   neo) budget=48 ;;
+  sentinel) budget=40 ;;
   *) exit 0 ;;
 esac
 

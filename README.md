@@ -83,6 +83,7 @@ or, from a normal session:
 /crew:review               # pre-PR GO / NO-GO: code + security + design review, build/test/lint
 /crew:pr                   # push the branch and open the pull request
 /crew:address              # route PR comments and CI failures back to the crew
+/crew:triage <signal>      # a bug report, trace, or alert -> the code and the suspect commits
 ```
 
 `morpheus` presents its plan before building, commits each verified step to a
@@ -149,6 +150,7 @@ mapped loosely to what they do:
 - **trinity** — the hacker on point: the frontend.
 - **oracle** — sees what will and won't hold up: the unit tests (backend, plus frontend component tests).
 - **seraph** — the guardian who knows you by testing you ("you do not truly know someone until you fight them"): visual design conformance.
+- **sentinel** — the machines' search unit, hunting through the dark: post-merge triage, tracking a production signal back to the commit that caused it.
 - **keymaker** — "I make the keys": opens locked doors one at a time, with precision (tech debt and upgrades orchestrator).
 - **twin** — the keymaker's mechanical fixer/runner; works in pairs, in parallel.
 

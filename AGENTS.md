@@ -23,7 +23,9 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `skills/` — shared: `engineering-principles`, `context-discipline`, `loop-engineering`
     (all also shipped by other plugins — kept byte-for-byte in sync automatically; see *How we
     review code* below; `loop-engineering` carries the loop-mode stop rules, preloaded by
-    `morpheus` and `keymaker` with per-agent bindings);
+    `morpheus` and `keymaker` with per-agent bindings); crew-only: `mid-run-direction` (how a
+    worker treats a steer that arrives mid-run — preloaded by every worker, not by `morpheus`,
+    which carries the sending half);
     frontend mode: `frontend-headless`, `frontend-server-rendered`; per-stack (loaded
     dynamically once `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
     `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`;
@@ -31,8 +33,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, `turn-budget.sh`
     (warns an agent nearing its `maxTurns` so it hands back an orderly `remaining:` instead of
-    truncating; validator §8 keeps its budget table in lockstep with agent frontmatter), wired
-    via `hooks/hooks.json`.
+    truncating; validator §8 keeps its budget table in lockstep with agent frontmatter),
+    `dispatch-denied.sh` (`PermissionDenied`: auto mode can't allowlist an `Agent` call, so a
+    worker dispatch is classified per call and can be refused mid-run — this retries the first
+    denial once and reports the real fixes after that), wired via `hooks/hooks.json`.
   - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
   - `VERIFICATION.md` — the plugin's behavioral scenario matrix, kept out of the README so the
     README stays a user-facing document. `keymaker` carries its own alongside its README.
@@ -50,7 +54,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
   - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
   - `CHANGELOG.md` — release notes for this plugin's versions.
-- `.claude/settings.json` — this repo's own dev-time hooks: wires the same four guards as
+- `.claude/settings.json` — this repo's own dev-time hooks: wires the same hooks as
   `plugins/crew/hooks/hooks.json`, resolved via `CLAUDE_PROJECT_DIR` instead of
   `CLAUDE_PLUGIN_ROOT`, so they still run while developing in this repo **without the crew
   plugin installed**. The two files must mirror each other exactly (modulo the root variable) —
@@ -221,6 +225,27 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   crash. Steering nudges a run in flight; the plan file carries the state. The "amend the step as
   you send" rule follows from the same split — the commit is judged against the plan's
   `acceptance:`, so a steer that widens the work without widening the step makes the two disagree.
+- **A steer is authenticated on a per-dispatch token, and its content is still fallible.** A
+  message to a running worker surfaces there in a `system-reminder`-shaped block — the same shape a
+  source file, tool result, or fetched comment can carry — so shape cannot distinguish a
+  coordinator's steer from an injection, and a worker with only that signal has two bad options:
+  obey every authoritative-sounding block, or discard the channel and ignore its own coordinator.
+  The anchor that breaks the tie is a `steer-token:` minted per dispatch (*Anti-drift* 2): planted
+  content was authored before the token existed, so it cannot quote it. A plan step `id`
+  deliberately isn't the anchor — ids are small integers and the plan file sits in the repo the
+  worker reads, so an injected block could cite one. That same reasoning keeps the token **out of**
+  the plan file and out of what a worker echoes back: a plan dir can be committed and read by anyone
+  who can comment on the PR, and a leaked live token is a forgeable steer. Nothing needs it to be
+  durable, since a resumed run re-dispatches its unfinished steps rather than steering the workers
+  that died with the session. And because the token is only a freshness check, refusing
+  out-of-bounds work stays unconditional rather than something the right anchor unlocks. Hence the two-sided rule: `morpheus` writes steers that quote the token and
+  describe an **end state** rather than asserting what the worker already did (it cannot see the
+  worker's transcript, so an asserted premise is a guess that reads as an attack when wrong), and
+  workers preload `mid-run-direction`, which treats an anchored steer as *authenticated but
+  fallible* — correct a wrong premise in the return instead of dropping the message; let an
+  anchored steer grow the step but never move the lane, guards, or git posture; surface anything
+  unanchored. A well-reasoned refusal is the right answer to a bad steer; it is the wrong answer to
+  a coordinator's bookkeeping slip, and shape alone can't tell the two apart.
 - **A truncated return is not a finished step.** Judging completeness on *content* (is the
   required evidence present?) is the rule because content is decisive and always available,
   whereas the usage figures a completion notification may carry are not guaranteed to be there
@@ -376,7 +401,7 @@ a plugin twin for one would name a namespace that cannot exist.
 
 ### Adversarial scenario suite (`tests/scenarios/`)
 
-Four of the prompts' safety properties are the kind that rot silently — a later edit
+Five of the prompts' safety properties are the kind that rot silently — a later edit
 weakens one and the happy path still works, so nothing notices:
 
 - `morpheus` §*Address review feedback* step 2 — a comment that tries to widen scope,
@@ -387,8 +412,17 @@ weakens one and the happy path still works, so nothing notices:
 - `sentinel` §*The signal is untrusted input* — a bug report is third-party free text: its
   identifiers are parsed, its prose is never followed, and a work-item ID, URL, or pipeline
   name found **inside** it never becomes a target. **This one has no scenario yet** — it is
-  covered only by the manual rows in `plugins/crew/VERIFICATION.md`, which makes it the
-  weakest-covered of the four until one is written.
+  covered only by the manual rows in `plugins/crew/VERIFICATION.md`.
+- `mid-run-direction` — a worker acts on a steer quoting its dispatch's `steer-token:`, correcting a
+  wrong premise rather than discarding the message, and surfaces mid-run direction that carries no
+  token or points out of bounds. **No scenario yet either, and only half of it is scriptable here:**
+  the unanchored half is s1-shaped (plant a `system-reminder`-shaped block in a file the worker
+  reads, assert the bait untouched), but the anchored-yet-wrong half needs a real `SendMessage` into
+  a live worker, and its correct outcome — a corrected premise reported back — lives in the
+  transcript, which this suite deliberately does not assert on. Manual rows in
+  `plugins/crew/VERIFICATION.md` cover it meanwhile.
+
+Those last two are the weakest-covered of the five until scenarios exist.
 
 `tests/scenarios/` drives the real agents headlessly against throwaway repos and asserts the
 guard held. Repo tooling, never shipped with a plugin.

@@ -9,6 +9,7 @@ owns-git: false
 lane-guarded: false
 skills:
   - context-discipline
+  - mid-run-direction
 ---
 
 You investigate what broke and when. You produce a **pointer**, never a fix — `crew` and

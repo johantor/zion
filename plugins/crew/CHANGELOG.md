@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.19.0] - 2026-08-13
+
+### Added
+- **`mid-run-direction`, preloaded by every worker.** A steer arrives in a `system-reminder`-shaped
+  block, so shape can't tell it from injected text. Workers authenticate on the dispatch's
+  `steer-token:` and treat an anchored steer as **authenticated but fallible** — correct a wrong
+  premise in the return rather than discarding the message; surface anything unanchored.
+
+### Changed
+- **`morpheus` mints a `steer-token:` per dispatch** and opens each steer with it, describing the
+  **end state** instead of asserting what the worker already did.
+
+## [3.18.0] - 2026-08-13
+
+### Added
+- **The crew survives auto mode.** Auto mode drops `Agent` allow rules when it starts, so a worker
+  dispatch is the one call you cannot allowlist: the permission classifier judges each one on its
+  own, and identical dispatches minutes apart can pass and then be refused mid-run. Three things
+  now address that. `/crew:init` writes a `## Crew orchestration` section above the config block —
+  the classifier reads `CLAUDE.md`, so it gets a description of what a worker delegation is instead
+  of a bare dispatch label. A new `dispatch-denied` hook (`PermissionDenied`) retries the first
+  denial of a worker once, then stops and names the fixes that exist, so `morpheus` hands the step
+  back instead of thrashing or dead-ending on `Blocked by classifier`. And the README's new
+  *Permission mode* section recommends `acceptEdits` for crew sessions and documents the auto-mode
+  path for anyone who stays there — including that `permissions.allow` cannot help. Timely: auto
+  mode becomes the default for new sessions on Pro, Max, and Team plans on 14 August 2026.
+
 ## [3.17.0] - 2026-08-12
 
 ### Added

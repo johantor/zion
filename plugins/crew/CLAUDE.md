@@ -12,7 +12,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   so its read-only posture is the `tools:` grant itself and needs no guard hook — history comes
   from the git-host MCP, not local git). Auto-discovered; not in the manifest.
 - `commands/` — `init` (§1 slots are validator §11's source of truth; §5 is a report-only MCP
-  namespace check that writes nothing), `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path),
+  namespace check that writes nothing; §4 also writes the fixed, slot-free `## Crew orchestration`
+  prose **above** the config block — the classifier reads `CLAUDE.md`, and §11 reads from
+  `## Crew configuration` to EOF, so that section must stay above it or its bullets read as
+  slots), `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path),
   `address`, `loop` (outer-loop driver: re-launches `morpheus` directly each tick — not by
   nesting `/crew:feature` — on the native `/loop` dynamic mode until the plan's exit
   conditions/iteration cap are met; wrapper owns scheduling), `triage` (launches `sentinel` on a
@@ -40,6 +43,16 @@ anything stated here updates this file in the same commit.** Conventions live in
   `format.sh` runs every formatter under a wall-clock bound (`CREW_FORMAT_TIMEOUT`,
   default 20s) via `timeout`/`gtimeout`, degrading to an unbounded run where neither
   exists (stock macOS/BSD); a hang is reported distinctly from a formatter that failed.
+  `dispatch-denied.sh` (`PermissionDenied`, matcher `Agent|Task`) answers auto mode refusing a
+  worker dispatch: attempt 1 emits `hookSpecificOutput.retry: true`, later attempts emit only a
+  `systemMessage` naming the fixes that exist. **Advisory and stdout-based** — this event ignores
+  exit codes and stderr, so the decision *is* the JSON; `retry` reaches the model,
+  `systemMessage` the user. Counter per session+worker under `CREW_DISPATCH_DENIED_DIR`
+  (test override); any path that can't count takes the no-retry branch, since an unbounded retry
+  beats no retry only in theory. It gates on the `crew:` **namespace**, deliberately *not* a name
+  roster — §9 only checks `bash-safety.sh`/`lane-guard.sh` rosters, so a third one here would
+  drift unwatched. That also makes it inert under this repo's dev wiring, where nothing dispatches
+  namespaced agents.
 - No `scripts/` dir: the validator is repo tooling at the repo root
   (`scripts/validate-plugin.sh`) — it validates **all** plugins (manifests + marketplace
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
@@ -57,7 +70,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   via the `CREW_TURN_BUDGET_DIR` override — exit 2 there is a fed-back warning, not a block),
   and `format.sh` never blocks at all, so its cases assert on the stderr report and drive
   real formatter runs through fakes in `node_modules/.bin` (with `CREW_FORMAT_TIMEOUT`
-  shortened for the hang case). A change to a hook's logic **must add/adjust a case** here,
+  shortened for the hang case). `dispatch-denied.sh` is a third: its decision is JSON on
+  `_stdout` (the harness captures both streams), so its cases assert with `jq` on
+  `retry`/`systemMessage` — the load-bearing asymmetry being that only attempt 1 may ask for a
+  retry. A change to a hook's logic **must add/adjust a case** here,
   on both the allow and block sides. Also self-tests the
   validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11 · §12 · §13) has at least one
   negative fixture plus a silent control, and a new section lands with its fixture in the same

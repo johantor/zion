@@ -31,8 +31,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, `turn-budget.sh`
     (warns an agent nearing its `maxTurns` so it hands back an orderly `remaining:` instead of
-    truncating; validator §8 keeps its budget table in lockstep with agent frontmatter), wired
-    via `hooks/hooks.json`.
+    truncating; validator §8 keeps its budget table in lockstep with agent frontmatter),
+    `dispatch-denied.sh` (`PermissionDenied`: auto mode can't allowlist an `Agent` call, so a
+    worker dispatch is classified per call and can be refused mid-run — this retries the first
+    denial once and reports the real fixes after that), wired via `hooks/hooks.json`.
   - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
   - `VERIFICATION.md` — the plugin's behavioral scenario matrix, kept out of the README so the
     README stays a user-facing document. `keymaker` carries its own alongside its README.
@@ -44,7 +46,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
   - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
   - `CHANGELOG.md` — release notes for this plugin's versions.
-- `.claude/settings.json` — this repo's own dev-time hooks: wires the same four guards as
+- `.claude/settings.json` — this repo's own dev-time hooks: wires the same hooks as
   `plugins/crew/hooks/hooks.json`, resolved via `CLAUDE_PROJECT_DIR` instead of
   `CLAUDE_PLUGIN_ROOT`, so they still run while developing in this repo **without the crew
   plugin installed**. The two files must mirror each other exactly (modulo the root variable) —

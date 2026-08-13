@@ -62,6 +62,38 @@ claude --agent crew:morpheus
 /crew:feature <task>       # plan, delegate, build, then stop at the gate
 ```
 
+## Permission mode
+
+**Run the crew in `acceptEdits`** (Shift+Tab), not `auto`. Auto mode **drops `Agent` allow rules
+when it starts**, so a worker dispatch is the one thing you can't put on an allowlist: every
+delegation is judged individually by the permission classifier, and that classifier is a model.
+Two identical dispatches minutes apart can go through and then be refused, mid-run, with the fixed
+reason `Blocked by classifier`. Crew is subagent dispatch end to end, so it feels this more than
+most plugins. From **14 August 2026** auto mode is the default for new sessions on Pro, Max, and
+Team plans — a fresh install lands there unless you switch.
+
+What bounds a run is the crew's own guards — git ownership, write lanes, refused destructive
+commands, and `/crew:pr` as the only user-invoked way anything leaves your machine. Those apply in
+every permission mode.
+
+<details>
+<summary>Staying in auto mode anyway</summary>
+
+- **`/crew:init` writes a `## Crew orchestration` section** above the config block in `CLAUDE.md`.
+  The classifier reads `CLAUDE.md`, so this is the lever that ships with the plugin: it describes
+  what a worker dispatch is, instead of leaving the classifier a bare label to judge.
+- **Describe your project in `autoMode.environment`** in `~/.claude/settings.json`, keeping the
+  `"$defaults"` entry. It has to be user-level — the classifier deliberately ignores `autoMode` in
+  project `.claude/settings.json`.
+- **A denied dispatch retries once.** The `dispatch-denied` hook asks for one retry (the classifier
+  still decides), then stops and prints the options above rather than letting `morpheus` thrash.
+- **`/permissions` › Recently denied › `r`** reissues a denied call by hand.
+
+`permissions.allow` is the one thing that won't help — `Agent` entries there are dropped on
+entering auto mode.
+
+</details>
+
 ## Commands
 
 | Command | What it does |
@@ -95,8 +127,8 @@ another plugin's command of the same short name.
 
 ## Safety guarantees
 
-Three `PreToolUse` guards enforce the boundaries and **fail closed**; two advisory hooks
-(formatting, turn budget) fail open and never block work.
+Three `PreToolUse` guards enforce the boundaries and **fail closed**; three advisory hooks
+(formatting, turn budget, denied dispatches) fail open and never block work.
 
 - **Workers can't touch git.** Blocked outright for `tank`/`trinity`/`oracle`/`dozer`/`neo`.
   `morpheus` is the sole git owner, enforced in code. Every agent, `morpheus` included, is refused
@@ -141,6 +173,12 @@ intercepted**.
   path where it can't count (unknown agent, unwritable state, malformed payload) it stays
   silent rather than blocking. The per-agent budget table is kept in lockstep with the agents'
   frontmatter by the repo validator, so the two can't drift.
+- **dispatch-denied** runs on `PermissionDenied` for `Agent`/`Task` calls and reacts only to a
+  `crew:<worker>` dispatch. The first denial of a worker in a session asks for one retry — the
+  retried call goes back through the classifier, which still decides — and every later one
+  reports the fixes instead, so a repeatedly-blocked step is handed back rather than retried in a
+  loop. It matches on the `crew:` namespace rather than a name roster, so it can't drift as
+  agents are added. Advisory: it never retries on a path where it couldn't count the attempts.
 
 Hooks are registered in `.claude/settings.json` for local development and `hooks/hooks.json` when
 installed as a plugin.
@@ -215,7 +253,8 @@ one that isn't installed, so it just reports the server as unavailable.
   `sentinel` (post-merge triage). Workers stay idle until `morpheus` delegates.
 - **Commands:** `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`,
   `/crew:triage`, `/crew:loop`.
-- **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor.
+- **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor,
+  dispatch-denied advisor (see *Permission mode*).
 - **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`.
   Loaded once the stack is resolved: per frontend mode, per backend/frontend stack (.NET, Node,
   React, Next.js, Optimizely), and per test tool (xUnit, Vitest, Jest, Cypress, Playwright).

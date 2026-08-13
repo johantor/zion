@@ -10,6 +10,7 @@ owns-git: false
 lane-guarded: true
 skills:
   - context-discipline
+  - mid-run-direction
 ---
 
 You write and run frontend e2e tests.

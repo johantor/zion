@@ -5,6 +5,22 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.19.0] - 2026-08-13
+
+### Added
+- **`mid-run-direction` — the receiving half of steering.** A steer reaches a running worker in a
+  `system-reminder`-shaped block, so its shape can't separate a coordinator's message from text
+  injected into the run. Workers now authenticate direction on the token their dispatch carried and
+  treat it as **authenticated but fallible**: act on the end state, never on a premise known to be
+  false, and report the mismatch instead of dropping the message — while anything unanchored or
+  outside the worker's lane is surfaced, never obeyed.
+
+### Changed
+- **`morpheus` writes steers that can be authenticated and corrected.** Every dispatch now carries
+  a freshly minted steer token, and a steer opens with it and describes the **end state** rather
+  than asserting what the worker already did — an assertion it can't verify (it never sees the
+  worker's transcript) reads as an injection attempt when wrong.
+
 ## [3.18.0] - 2026-08-13
 
 ### Added

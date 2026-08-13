@@ -255,7 +255,8 @@ one that isn't installed, so it just reports the server as unavailable.
   `/crew:triage`, `/crew:loop`.
 - **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor,
   dispatch-denied advisor (see *Permission mode*).
-- **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`.
+- **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`, and
+  `mid-run-direction` on every worker (how to treat a steer that arrives mid-run).
   Loaded once the stack is resolved: per frontend mode, per backend/frontend stack (.NET, Node,
   React, Next.js, Optimizely), and per test tool (xUnit, Vitest, Jest, Cypress, Playwright).
 

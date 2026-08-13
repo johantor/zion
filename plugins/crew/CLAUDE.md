@@ -22,7 +22,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   production signal and relays its report; writes nothing — the write-back to the work item is
   deliberately not built, see #175 phase 2). Namespaced `crew:*` when installed.
 - `skills/` — shared + synced across plugins (crew canonical): `engineering-principles`,
-  `context-discipline`, `loop-engineering`. Frontend-mode, per-stack, and per-test-tool
+  `context-discipline`, `loop-engineering`. Crew-only: `mid-run-direction` (the receiving half of
+  steering — preloaded by all seven workers, deliberately **not** by `morpheus`, which owns the
+  sending half in its own prompt). Frontend-mode, per-stack, and per-test-tool
   skills load dynamically once resolved. Skill = `<name>/SKILL.md`, frontmatter `name:` +
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
@@ -87,7 +89,12 @@ anything stated here updates this file in the same commit.** Conventions live in
   §"The plan file is durable state" — header `feature:`/`base-branch:`/`feature-branch:` +
   inner-loop fields (`loop:`, `exit-conditions:`, `gate:`) + outer-loop bookkeeping
   (`iterations: n/max`, `in-flight:`, written by the `/crew:loop` wrapper, not morpheus);
-  steps carry `id:`/`status:`/`depends-on:`/`acceptance:`/`worker:`/`attempts:`/`evidence:`.
+  steps carry `id:`/`status:`/`depends-on:`/`acceptance:`/`worker:`/`attempts:`/`evidence:`, plus
+  `agent-id:` while in flight (the address for steering that worker; cleared when the step leaves
+  `in-progress`). The dispatch's `steer-token:` — what a steer must quote for the worker to tell
+  morpheus's message from an injected one — deliberately **never** lands in the plan file: a plan
+  dir can be committed, and a leaked live token is a forgeable steer. It lives in morpheus's
+  session, and a resumed run re-dispatches instead of steering orphans.
 - Loop mode: generic contract in `skills/loop-engineering/SKILL.md` (shared byte-for-byte
   with keymaker; inner loop + a note that the outer loop is a main-session wrapper); crew
   bindings (gate GO success, second-NO-GO cap, `/crew:pr`, neo no-op) in `agents/morpheus.md`
@@ -96,7 +103,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   (§2g's awk parser reads the `  - name` items; it stops at the next key, so the last-key rule
   is convention, not a parser constraint).
 - Always-loaded footprint: validator §12 reports every agent's agent-file + preloaded-skill line
-  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 480).
+  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 496 — raised
+  from 480 for the steer contract, keeping ~10 lines of slack, since the figure counts preloaded
+  shared skills and a keymaker-side edit to one would otherwise fail crew's cap).
   Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —
   agent prompts carry instruction, not justification; each trimmed prompt points there once.
 - Agent `tools:` MCP grants come in pairs: bare `mcp__<key>` (server keyed in `.mcp.json` /

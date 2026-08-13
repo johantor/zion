@@ -11,6 +11,7 @@ lane-guarded: false
 skills:
   - engineering-principles
   - context-discipline
+  - mid-run-direction
 ---
 
 You are a generalist engineer handling the crew's **express lane**: small, low-risk changes

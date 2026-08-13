@@ -9,6 +9,7 @@ owns-git: false
 lane-guarded: false
 skills:
   - context-discipline
+  - mid-run-direction
 ---
 
 You are a visual reviewer.

@@ -46,7 +46,9 @@ assert_silent() { # <label> <dir> <substr>
 }
 
 mk_manifest() { mkdir -p "$1/.claude-plugin"; printf '{"name":"%s","version":"%s"}\n' "$2" "$3" > "$1/.claude-plugin/plugin.json"; }
-mk_changelog() { printf '## [%s]\n- note\n' "$2" > "$1/CHANGELOG.md"; }
+# Carries the `## [Unreleased]` slot §2i requires, so the shared fixture stays
+# valid for every other section's cases; §2i's own bites write their own file.
+mk_changelog() { printf '## [Unreleased]\n\n## [%s]\n- note\n' "$2" > "$1/CHANGELOG.md"; }
 
 # Raw-JSON writers for the shapes the two above can't express: a manifest missing
 # a key, declaring component paths, or carrying a description; a marketplace.
@@ -86,6 +88,17 @@ d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 9.9.9; mk_changelog "$d/plugin
 assert_emits "§2h bites on version/changelog mismatch" "$d" "!= newest"
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 assert_silent "§2h silent when they match" "$d" "!= newest"
+
+# --- §2i: every changelog keeps an `## [Unreleased]` slot at the top ------------
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0
+printf '## [1.0.0]\n- note\n' > "$d/plugins/foo/CHANGELOG.md"
+assert_emits "§2i bites on a missing Unreleased heading" "$d" "has no '## [Unreleased]' heading"
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0
+printf '## [1.0.0]\n- note\n\n## [Unreleased]\n' > "$d/plugins/foo/CHANGELOG.md"
+assert_emits "§2i bites on Unreleased below the newest entry" "$d" "below the newest version entry"
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+assert_silent "§2i silent with the slot at the top (missing)" "$d" "has no '## [Unreleased]'"
+assert_silent "§2i silent with the slot at the top (misplaced)" "$d" "below the newest version entry"
 
 # --- §2g: an agent's skills: ref must resolve to a real skill -----------------
 mk_agent() {  # <plugin_dir> <skill_ref>

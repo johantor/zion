@@ -62,8 +62,12 @@ anything stated here updates this file in the same commit.** Conventions live in
   agent `maxTurns` lockstep §8, guard rosters ↔ agent `owns-git`/`lane-guarded` lockstep §9,
   namespaced prose refs resolving §10, `init.md` §1 slots ↔ the root CLAUDE.md crew-config
   block §11, per-agent always-loaded footprint report + opt-in `loaded-lines-cap` §12,
-  agent `tools:` MCP grants server-scoped and paired across both install paths §13) and is
-  not shipped with this plugin.
+  agent `tools:` MCP grants server-scoped and paired across both install paths §13,
+  an `## [Unreleased]` slot at the top of every changelog §2i) and is
+  not shipped with this plugin. Two more repo scripts sit beside it:
+  `scripts/check-changelog.sh` (the diff-based release-notes gate — its own `validate.yml` job,
+  since it needs a base ref) and `scripts/release-notes.sh` (builds a release's notes;
+  auto-release calls it).
 - `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
   hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
   **behavior**: each guard is a pure `stdin JSON → exit 0/2` function, fed crafted
@@ -77,10 +81,12 @@ anything stated here updates this file in the same commit.** Conventions live in
   `retry`/`systemMessage` — the load-bearing asymmetry being that only attempt 1 may ask for a
   retry. A change to a hook's logic **must add/adjust a case** here,
   on both the allow and block sides. Also self-tests the
-  validator: **every** section (§1 · §2a–§2h · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11 · §12 · §13) has at least one
+  validator: **every** section (§1 · §2a–§2i · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11 · §12 · §13) has at least one
   negative fixture plus a silent control, and a new section lands with its fixture in the same
   commit (AGENTS.md, *Validating changes*). Asserts key on the guard's FAIL message, not the
-  exit code. Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
+  exit code. `changelog-gate.test.sh` covers the two release-notes scripts the same way, but
+  builds repos with real commits and tags — history is their input, not a static tree.
+  Runs in CI (`validate.yml` `hook-tests` job) and is shellchecked.
   Not shipped with the plugin — repo tooling.
 
 ## Schemas & conventions
@@ -130,7 +136,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 
 - §2g/§4 index skills via `git ls-files` — **stage new/renamed skill files before running the
   validator** or they won't resolve.
-- Validate = what CI runs: `bash scripts/validate-plugin.sh` + `bash plugins/crew/tests/run.sh` +
+- Validate = what CI runs: `bash scripts/validate-plugin.sh` + `bash scripts/check-changelog.sh` +
+  `bash plugins/crew/tests/run.sh` +
   `shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh` (shellcheck may be missing
   locally; CI covers it).
 - `lane-guard.sh`'s `scan_markers` probe matches **hardcoded framework allowlists**
@@ -149,5 +156,11 @@ anything stated here updates this file in the same commit.** Conventions live in
   server, write tools included. What *is* mechanical is the rest of its posture — no Write, no
   Edit, no Bash. Don't describe the MCP half as enforced.
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
-  this plugin's `CHANGELOG.md` (every plugin keeps its own changelog next to its manifest).
-  On merge to main, auto-release tags `crew/vX.Y.Z` from that section.
+  this plugin's `CHANGELOG.md` (every plugin keeps its own changelog next to its manifest),
+  folding in anything parked under `## [Unreleased]`. On merge to main, auto-release tags
+  `crew/vX.Y.Z` and builds notes with `scripts/release-notes.sh` — that section plus the
+  commits since the previous tag that have no entry of their own.
+- A shipped change too small for its own release parks a bullet under `## [Unreleased]` rather
+  than skipping the changelog: `scripts/check-changelog.sh` blocks a shipped change with no
+  trace, and a bump that leaves bullets parked. Shipped = everything here except `tests/`,
+  `CLAUDE.md`, `VERIFICATION.md`, and the changelog. Root `AGENTS.md` §"Releasing" has the rest.

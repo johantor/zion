@@ -63,4 +63,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   Flipping to Stable is the `1.0.0` release.
 - Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
   `plugins/keymaker/CHANGELOG.md` (every plugin keeps its own changelog next to its
-  manifest). Auto-release tags `keymaker/vX.Y.Z` on merge.
+  manifest), folding in anything parked under `## [Unreleased]`. Auto-release tags
+  `keymaker/vX.Y.Z` on merge, with notes covering the whole range since the previous tag.
+- A shipped change too small for its own release parks a bullet under `## [Unreleased]` rather
+  than skipping the changelog: `scripts/check-changelog.sh` blocks a shipped change with no
+  trace, and a bump that leaves bullets parked. Shipped = everything here except `CLAUDE.md`,
+  `VERIFICATION.md`, and the changelog. Details in the root `AGENTS.md` §"Releasing".

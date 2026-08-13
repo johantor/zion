@@ -16,13 +16,17 @@ See AGENTS.md, "Conventions". -->
 
 ## Version / changelog
 
-<!-- Per AGENTS.md: a PR that changes plugin behavior must bump `version` in the affected
-plugin's `.claude-plugin/plugin.json` and add a matching `CHANGELOG.md` entry. Docs-only /
-no-behavior-change PRs can skip this — say so below. -->
+<!-- Per AGENTS.md "Releasing": a PR that changes plugin behavior bumps `version` in the
+affected plugin's `.claude-plugin/plugin.json` and adds a matching `CHANGELOG.md` entry. A
+change too small for its own release still gets recorded — park a bullet under
+`## [Unreleased]` for the next bump to fold in. CI (`scripts/check-changelog.sh`) blocks a
+shipped change with neither, and a bump that leaves bullets parked. Only changes that reach no
+user through `claude plugin update` are N/A. -->
 
-- [ ] Bumped `plugins/<name>/.claude-plugin/plugin.json` version
-- [ ] Added a `CHANGELOG.md` entry for the affected plugin(s)
-- [ ] N/A — no plugin behavior changed
+- [ ] Bumped `plugins/<name>/.claude-plugin/plugin.json` version + matching `CHANGELOG.md` entry
+- [ ] Parked a bullet under `## [Unreleased]` instead (too small for its own release)
+- [ ] Folded any previously parked `## [Unreleased]` bullets into this bump
+- [ ] N/A — nothing shipped changed (CI, root docs, tests)
 
 ## Test plan
 

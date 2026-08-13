@@ -13,9 +13,13 @@
 # second and later denials do NOT retry: they report the fixes that actually
 # exist, so `morpheus` stops thrashing and hands the step back cleanly.
 #
-# Advisory, not a guard: every can't-count path fails OPEN (exit 0, no output),
-# and a path that cannot bound the retry never asks for one. See AGENTS.md,
-# "How the crew works".
+# Advisory, not a guard — it never blocks anything, and it degrades in two
+# different directions depending on what it can't do. Silent (exit 0, no output)
+# when it can't tell what it is looking at: no jq, unparseable payload, or a
+# dispatch that isn't a crew worker's. Reports without retrying when it does
+# recognise a crew dispatch but can't count attempts (no session key, unwritable
+# state) — a retry it cannot bound is worse than none. So a retry is only ever
+# asked for on a counted first attempt. See AGENTS.md, "How the crew works".
 #
 # For this event Claude Code ignores the exit code and stderr — decisions travel
 # as JSON on stdout: `hookSpecificOutput.retry` reaches the model,
@@ -78,7 +82,14 @@ if [ "$attempt" -eq 1 ]; then
   exit 0
 fi
 
-msg="crew: auto mode's classifier denied the $subagent dispatch again — not retrying, so the step comes back to you."
+# Only claim "again" when a counted attempt says so: on the can't-count path
+# this may well be the first denial, and telling the user otherwise sends them
+# looking for a retry that never happened.
+if [ "$attempt" -eq 0 ]; then
+  msg="crew: auto mode's classifier denied the $subagent dispatch. crew cannot track attempts in this session, so it is not retrying — the step comes back to you."
+else
+  msg="crew: auto mode's classifier denied the $subagent dispatch again — not retrying, so the step comes back to you."
+fi
 # Single-quoted: "$defaults" is the literal settings token the user must keep,
 # not an expansion.
 # shellcheck disable=SC2016

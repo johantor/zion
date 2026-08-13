@@ -3,11 +3,15 @@
 # reacts to auto mode refusing a crew worker dispatch. Two shapes set it apart
 # from the guards: its decision is JSON on _stdout (the event ignores exit codes
 # and stderr), and it is stateful, counting attempts per session+worker through
-# the CREW_DISPATCH_DENIED_DIR override. Like turn-budget.sh it is advisory —
-# every can't-count path must fail OPEN and stay silent.
+# the CREW_DISPATCH_DENIED_DIR override. Like turn-budget.sh it is advisory, but
+# it degrades in two directions, and the cases below pin both: silent when it
+# can't tell what it is looking at (unparseable payload, a dispatch that isn't a
+# crew worker's), and reporting-without-retrying when it recognises a crew
+# dispatch but can't count attempts (no session key, unwritable state).
 #
-# The load-bearing asymmetry: attempt 1 asks for a retry, everything after it
-# must NOT, including every path where the counter can't be trusted.
+# The load-bearing asymmetry: only a counted first attempt may ask for a retry.
+# Everything after it, and every path where the counter can't be trusted, must
+# not — and a can't-count message must not claim to be a repeat.
 # shellcheck source=plugins/crew/tests/lib.sh
 # shellcheck disable=SC1090,SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
@@ -110,6 +114,13 @@ assert_retry "corrupt state restarts at the first attempt" "$(payload_denied cre
 # --- Can't count -> never retry --------------------------------------------------
 assert_no_retry "no session key -> report without retrying" \
   "$(payload_denied crew:neo "")" "acceptEdits"
+# ...and it must not pass itself off as a repeat: nothing was retried.
+run_hook dispatch-denied.sh "$(payload_denied crew:neo "")"
+if jq -e '.systemMessage | contains("again") | not' >/dev/null 2>&1 <<<"$_stdout"; then
+  _pass
+else
+  _fail "can't-count message must not claim the dispatch was denied 'again'"
+fi
 
 ro_dir="$(new_tmpdir)"
 chmod a-w "$ro_dir"

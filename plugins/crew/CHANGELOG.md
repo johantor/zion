@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.20.0] - 2026-08-14
+
+### Changed
+- **`seraph` measures instead of eyeballing.** It now reads computed styles and box geometry
+  through the browser MCP's script evaluation, so mismatches come back as actual/spec/delta
+  numbers rather than "spacing looks slightly off", and it checks console and network first so a
+  failed webfont is reported as a 404 rather than as a typography defect.
+- **`seraph`'s turn budget raised to 40** (from 20), with the matching `turn-budget.sh` entry.
+  Per-element measurement across the states a reference specifies does not fit in 20 turns, and
+  the old cap made the new method unusable rather than merely tight.
+
+### Added
+- **`design-tokens` skill**, preloaded by `seraph`. Where tokens live per system, which survive
+  to runtime, and how to map a measured value back to a token — including not snapping to the
+  nearest one, since an off-scale value is itself the finding.
+- **`seraph` treats the page under review as untrusted data.** Rendered text, DOM content,
+  console messages, and response bodies can carry seeded content, and its report is relayed
+  verbatim into the `/crew:review` design gate — anything reading as an instruction is now
+  quoted rather than obeyed.
+
 ## [3.19.0] - 2026-08-13
 
 ### Added

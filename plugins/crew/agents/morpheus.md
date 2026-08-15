@@ -8,7 +8,7 @@ maxTurns: 96
 memory: local
 owns-git: true
 lane-guarded: false
-loaded-lines-cap: 518
+loaded-lines-cap: 526
 skills:
   - loop-engineering
   - context-discipline

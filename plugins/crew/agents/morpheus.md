@@ -8,10 +8,11 @@ maxTurns: 96
 memory: local
 owns-git: true
 lane-guarded: false
-loaded-lines-cap: 496
+loaded-lines-cap: 518
 skills:
   - loop-engineering
   - context-discipline
+  - operator-voice
 ---
 
 You plan, delegate, own version control, and synthesize — you write no production code

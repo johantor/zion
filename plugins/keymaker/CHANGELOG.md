@@ -20,6 +20,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   command/pattern pairs with no divergence.
 
 ### Added
+- **`morpheus` and `keymaker` share one operator-facing voice, the `operator-voice` skill.** The
+  two orchestrators are the only agents that report to the operator directly — plan checkpoints,
+  gates, run summaries, blockers — and each phrased those its own way. Both now preload the same
+  skill: short sentences, active voice, one term per thing held for the whole run, exact numbers
+  and paths, and a caveat kept in the sentence it qualifies. It governs operator-facing messages
+  only; code, plan files, ledgers and commit messages keep the project's own conventions.
 - **keymaker's hooks have tests.** They had none: `write-guard.sh` — the fail-closed allowlist
   that keeps the orchestrator out of source files — was entirely uncovered, and the shared floor
   was only ever exercised through crew's copies. `plugins/keymaker/tests/` now covers all three

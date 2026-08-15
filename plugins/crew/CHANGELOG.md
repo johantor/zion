@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`.** Payload
+  plumbing, the command-shape patterns, the shared block helpers, the protected-branch list and
+  read-guard's limits now live in one vendored file that every entry point sources, instead of
+  being copy-pasted across hooks and policed region-by-region. `hooks/` now holds two kinds of
+  file, and the distinction is enforced rather than conventional: top-level `*.sh` are entry
+  points (executable, wired), `hooks/lib/*.sh` are libraries (not executable, not wired) —
+  validator §3 and §6 check both directions. No guard's allow/block behavior changes.
+- **The guards stopped forking to match.** `bash-safety.sh` piped its command into `grep -E` six
+  times plus `tr` and `cat`, before every Bash tool call; matching now goes through bash's own
+  `=~` and parameter expansion, leaving the single `jq` that parses the payload as the only
+  child process. One call costs ~4 process operations instead of ~32, about 3× faster wall-clock.
+  `lane-guard.sh` reads `CLAUDE.md` once in-process rather than running `sed | head | sed` per
+  configuration slot (up to eight processes per lane dispatch), and `read-guard.sh` and
+  `format.sh` each fold two `jq` calls into one. The patterns are unchanged — a differential
+  test compared old and new matching across 533 command/pattern pairs with no divergence.
+- **Per-session state files age out.** `turn-budget.sh`, `dispatch-denied.sh` and
+  `lane-guard.sh`'s detection cache route their `/tmp` state through one helper that sweeps
+  entries older than a day, so a long-lived machine no longer accumulates one tiny file per
+  agent instance forever. The sweep runs at most once per agent instance, not per tool call.
+
+### Added
+- **Hook tests are now repo-level and plugin-agnostic.** The harness moved to `tests/hooks/lib.sh`
+  and derives which plugin it is testing from the calling test file's own path, so a plugin gets
+  a working suite by dropping a file into its `tests/` directory. `tests/hooks/run.sh` discovers
+  every `plugins/*/tests/*.test.sh` and **fails when a plugin ships `hooks/` with no suite beside
+  it** — the gap that had left keymaker's guards untested since they were written.
+
 ## [3.20.0] - 2026-08-14
 
 ### Changed

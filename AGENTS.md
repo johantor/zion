@@ -39,6 +39,12 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     `dispatch-denied.sh` (`PermissionDenied`: auto mode can't allowlist an `Agent` call, so a
     worker dispatch is classified per call and can be refused mid-run — this retries the first
     denial once and reports the real fixes after that), wired via `hooks/hooks.json`.
+    A `hooks/` directory holds two kinds of file and the distinction is enforced, not
+    conventional: the top-level `*.sh` are **entry points** the harness executes (must be `+x`,
+    must be wired), while `hooks/lib/*.sh` are **sourced libraries** (must not be `+x`, must not
+    be wired — validator §3 and §6). Today that is `hooks/lib/guard-lib.sh`, which carries the
+    payload plumbing, the command-shape patterns, and the shared block helpers every plugin's
+    Bash guard enforces.
   - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
   - `VERIFICATION.md` — the plugin's behavioral scenario matrix, kept out of the README so the
     README stays a user-facing document. `keymaker` carries its own alongside its README.
@@ -147,9 +153,12 @@ canonical copies, also shipped by `keymaker`). `scripts/validate-plugin.sh` enfo
 is generic by skill *name*, not hardcoded to these two pairs, so it also catches a future
 duplicate between any other plugins — crew included or not (CI fails on mismatch). The same
 policy covers hook scripts shipped by more than one plugin (§5): copies with no markers must be
-byte-identical (`read-guard.sh`), and `bash-safety.sh`'s marker-delimited "shared guard" regions
-must match byte-for-byte while the git-policy sections around them stay per-plugin (crew's
-copies are canonical — edit there first). Reviewers
+byte-identical (`read-guard.sh`, `lib/guard-lib.sh`), and `bash-safety.sh`'s marker-delimited
+"shared guard" regions must match byte-for-byte while the git-policy sections around them stay
+per-plugin (crew's copies are canonical — edit there first). Prefer moving genuinely shared logic
+into `hooks/lib/guard-lib.sh` over widening a marked region: one vendored file compared whole is
+easier to keep honest than logic duplicated across several regions, and it leaves the markers
+covering only the short call sequence that defines the shared floor's order. Reviewers
 should still flag any drift that slips through as at least a **Warning**, and **Blocking** when
 it would change reviewer behavior.
 
@@ -320,10 +329,10 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
+shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
 bash scripts/validate-plugin.sh
 bash scripts/check-changelog.sh          # takes the base branch; defaults to main
-bash plugins/crew/tests/run.sh
+bash tests/hooks/run.sh
 bash tests/scenarios/mocks/selftest.sh
 ```
 
@@ -332,10 +341,14 @@ base branch, which is why it takes a ref and why it lives outside `validate-plug
 is deliberately tree-only, so it runs anywhere with no base to resolve). See *Releasing* for
 what it enforces.
 
-`plugins/crew/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
-and `git` (the same tools the hooks and validator already require) — that exercises the crew
+`plugins/<plugin>/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
+and `git` (the same tools the hooks and validator already require) — that exercises a plugin's
 hooks' *behavior*: each guard is a pure `stdin JSON → allow (exit 0) / block (exit 2)` function,
-so its allow/block decisions are unit-testable with no LLM. The two hooks that aren't guards are
+so its allow/block decisions are unit-testable with no LLM. The harness itself
+(`tests/hooks/lib.sh`) is repo infrastructure and lives once at the top level, while the cases
+stay beside the plugin they cover; `tests/hooks/run.sh` discovers every `plugins/*/tests/*.test.sh`
+and **fails when a plugin ships `hooks/` with no suite beside it**, so a new plugin's guards
+cannot land untested. The two hooks that aren't guards are
 covered on their own terms — `turn-budget.sh` through its counter file, and `format.sh` (which
 never blocks) on the formatters it decides to run, faked in `node_modules/.bin` so no real
 toolchain is needed. It complements the structural checks

@@ -44,8 +44,20 @@ anything stated here updates this file in the same commit.** Conventions live in
   `<agent>) budget=<n> ;;` table shape is load-bearing — validator §8 keeps it in lockstep
   with agent `maxTurns`, both directions). Wiring in
   `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
-  `read-guard.sh` and `bash-safety.sh`'s marked shared-guard regions are byte-synced with
-  keymaker's copies (validator §5; crew canonical — edit here first).
+  `hooks/lib/guard-lib.sh` is the **sourced library** every entry point above loads: payload
+  plumbing (`guard_read_payload`, `guard_jq2`), the command-shape patterns
+  (`GUARD_RE_*`), the shared block helpers (`guard_block_destructive` /
+  `_watch_commands` / `_raw_reads` / `_protected_branch_commit`), the protected-branch list,
+  read-guard's limits, and the TTL-swept state-file helper. It is the one file in `hooks/`
+  that must **not** be executable and must **not** be wired (validator §3/§6) — it has no
+  main. Matching goes through bash's `=~` and parameter expansion, never `echo | grep`: these
+  guards run before every tool call, so a fork per pattern is latency paid every time (one
+  `bash-safety` call costs ~4 process ops, not ~32). Patterns stay POSIX so they behave the
+  same under BSD/macOS regcomp.
+  `read-guard.sh` and `lib/guard-lib.sh` are byte-identical with keymaker's copies, and
+  `bash-safety.sh`'s marked shared-guard region (now just the call sequence that fixes the
+  floor's order) is region-synced with keymaker's (validator §5; crew canonical — edit here
+  first). Shared logic belongs in `guard-lib.sh`, not in a widened marker region.
   `format.sh` runs every formatter under a wall-clock bound (`CREW_FORMAT_TIMEOUT`,
   default 20s) via `timeout`/`gtimeout`, degrading to an unbounded run where neither
   exists (stock macOS/BSD); a hang is reported distinctly from a formatter that failed.
@@ -72,8 +84,12 @@ anything stated here updates this file in the same commit.** Conventions live in
   `scripts/check-changelog.sh` (the diff-based release-notes gate — its own `validate.yml` job,
   since it needs a base ref) and `scripts/release-notes.sh` (builds a release's notes;
   auto-release calls it).
-- `tests/` — bash suite (no build/LLM/network; needs only `jq`+`git`, already required by the
-  hooks/validator; `run.sh` drives `*.test.sh`, `lib.sh` is the harness) covering the hooks'
+- `tests/` — this plugin's hook test **cases**. The harness and runner are repo
+  infrastructure at `tests/hooks/` (`lib.sh` derives the hooks directory from the calling
+  test file's own path, so a suite needs no wiring; `run.sh` discovers every
+  `plugins/*/tests/*.test.sh` and fails when a plugin ships `hooks/` with no suite beside it).
+  Bash only — no build/LLM/network; needs only `jq`+`git`, already required by the
+  hooks/validator — covering the hooks'
   **behavior**: each guard is a pure `stdin JSON → exit 0/2` function, fed crafted
   payloads and asserted on allow/block (+ stderr substring). Two hooks are deliberate
   exceptions to that shape: `turn-budget.sh` is stateful (per-instance counter file, driven
@@ -141,9 +157,11 @@ anything stated here updates this file in the same commit.** Conventions live in
 - §2g/§4 index skills via `git ls-files` — **stage new/renamed skill files before running the
   validator** or they won't resolve.
 - Validate = what CI runs: `bash scripts/validate-plugin.sh` + `bash scripts/check-changelog.sh` +
-  `bash plugins/crew/tests/run.sh` +
-  `shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh` (shellcheck may be missing
-  locally; CI covers it).
+  `bash tests/hooks/run.sh` +
+  `shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh`
+  (shellcheck may be missing locally; CI covers it). The shell's `*` does not cross directory
+  separators, so `hooks/lib/*.sh` needs its own pattern; git's does, which is why the validator
+  sees both from one `git ls-files`.
 - `lane-guard.sh`'s `scan_markers` probe matches **hardcoded framework allowlists**
   (`node_backend_deps`/`frontend_deps`, used only when stacks are *unset* and no lane paths
   are set). They aren't exhaustive and drift as the ecosystem grows; a miss fails

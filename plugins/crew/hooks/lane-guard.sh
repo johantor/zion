@@ -11,27 +11,34 @@
 # backend-only Node repo has no such conflict, so enforcement is skipped.
 
 # Fail closed: a guard that can't read its input must block, not allow.
+_lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
+# shellcheck source=plugins/crew/hooks/lib/guard-lib.sh
+# shellcheck disable=SC1090,SC1091
+if ! . "$_lib" 2>/dev/null; then
+  echo "Blocked: lane-guard could not load its guard library ($_lib)." >&2
+  exit 2
+fi
 if ! command -v jq >/dev/null 2>&1; then
   echo "Blocked: lane-guard needs jq to enforce write lanes." >&2
   exit 2
 fi
-payload="$(cat)"
-# One jq call for both fields. jq's own exit status is the payload-validity
-# check (checked directly by `if !` below, not by inspecting $fields — a
-# failed jq still assigns $fields, typically to an empty string). jq only
-# computes the path for a lane agent (oracle/dozer/tank/trinity — neo has no
-# lane and everything else bails below anyway), so a non-lane session never
-# pays even for the field lookup. Fields are joined with a record-separator
-# byte and split on its first occurrence — safe here because agent_type (the
-# leading field) is a small, harness-controlled value that never contains it,
-# regardless of what path itself might contain.
-rs=$'\x1e'
-if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" '(.agent_type // "") as $at | $at + $rs + (if (["oracle","dozer","tank","trinity"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' 2>/dev/null)"; then
+
+guard_read_payload
+# One jq pass for both fields. The path is the untrusted one (arbitrary text
+# that may contain the separator byte) and agent_type the harness-controlled
+# one, so the split anchors on the right — see guard_jq2. jq only computes the
+# path for a lane agent (oracle/dozer/tank/trinity — neo has no lane and
+# everything else bails below anyway), so a non-lane session never pays even
+# for the field lookup.
+# shellcheck disable=SC2016  # $at is a jq variable, not a shell one
+if ! guard_jq2 \
+  '(.agent_type // "") as $at | (if (["oracle","dozer","tank","trinity"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
+  '.agent_type // ""'; then
   echo "Blocked: lane-guard could not parse the hook payload." >&2
   exit 2
 fi
-agent_type="${fields%%"$rs"*}"
-path="${fields#*"$rs"}"
+agent_type="$guard_trusted"
+path="$guard_untrusted"
 
 # Bail before any further parsing for the common case: the main session, or
 # any agent with no lane. `neo` is the express-lane generalist — small changes
@@ -50,9 +57,33 @@ esac
 # Read a Crew-configuration slot's value from CLAUDE.md (plain text after the bold
 # label, up to the em-dash). Missing file, missing slot, or the *unset*/none
 # placeholders all mean "not configured" -> empty string.
+#
+# CLAUDE.md is slurped once, here in the parent shell, and matched in-process
+# rather than shelling out per slot: this runs inside a PreToolUse hook and a
+# lane dispatch reads up to four slots, so the old `sed | head | sed` chain cost
+# eight processes before the agent's edit could land. The read deliberately does
+# NOT live inside config_slot: every caller invokes it as `$(config_slot ...)`,
+# so a lazy load would run in a command-substitution subshell and be discarded
+# before the next call — caching nothing while looking like it cached. The file
+# is a few KB, so holding it costs nothing.
+_cfg_text=""
+[ -f CLAUDE.md ] && { IFS= read -r -d '' _cfg_text < CLAUDE.md || :; }
 config_slot() {
-  [ -f CLAUDE.md ] || return 0
-  v="$(sed -n "s/^- \*\*$1:\*\* *\([^—]*\).*/\1/p" CLAUDE.md | head -1 | sed 's/[[:space:]]*$//')"
+  local line v=""
+  [ -n "$_cfg_text" ] || return 0
+  while IFS= read -r line; do
+    # Only the label is a literal here; the trailing * is the glob. Slot names
+    # are fixed strings from the Crew-configuration block, so this can't be
+    # turned into a pattern by the caller.
+    case "$line" in
+      "- **$1:**"*)
+        v="${line#"- **$1:**"}"
+        v="${v#"${v%%[![:space:]]*}"}"   # trim leading whitespace
+        v="${v%%—*}"                     # value ends at the em-dash comment
+        v="${v%"${v##*[![:space:]]}"}"   # trim trailing whitespace
+        break ;;
+    esac
+  done <<<"$_cfg_text"
   case "$v" in
     # Treat *unset*, empty, and any value starting with "none" (e.g.
     # "none (no e2e suite detected)") as not configured.
@@ -123,9 +154,9 @@ scan_markers() {
 # session_id, detection is simply recomputed every call, as before caching.
 detect_regime() {
   local cache="" session_id tmp
-  session_id="$(printf '%s' "$payload" | jq -r '.session_id // empty' 2>/dev/null)"
-  if [ -n "$session_id" ]; then
-    cache="${TMPDIR:-/tmp}/claude-lane-guard-detect-$(printf '%s' "$session_id" | tr -c 'A-Za-z0-9_' '_')"
+  session_id="$(jq -r '.session_id // empty' <<<"$guard_payload" 2>/dev/null)"
+  if [ -n "$session_id" ] && guard_state_path "${TMPDIR:-/tmp}" "crew-lane-detect" "$session_id" "markers"; then
+    cache="$guard_state_path"
     if [ -f "$cache" ]; then
       { IFS= read -r _det_dotnet; IFS= read -r _det_node; IFS= read -r _det_frontend; } < "$cache"
       if [ -n "$_det_dotnet" ] && [ -n "$_det_node" ] && [ -n "$_det_frontend" ]; then

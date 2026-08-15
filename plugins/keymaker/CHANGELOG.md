@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+- **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`,** vendored
+  byte-identically from crew. `bash-safety.sh`, `read-guard.sh` and `write-guard.sh` source it
+  instead of carrying their own copies of the payload plumbing and command-shape patterns, so a
+  standalone keymaker install enforces the same floor as crew from one shared file rather than
+  from regions kept in step by hand. It is the one file in `hooks/` that is neither executable
+  nor wired (validator §3/§6). No guard's allow/block behavior changes.
+- **The guards stopped forking to match** — bash's own `=~` and parameter expansion replace the
+  `echo | grep -E` chain that ran before every Bash tool call, leaving `jq` as the only child
+  process. Behavior is unchanged; the patterns were compared old-against-new across 533
+  command/pattern pairs with no divergence.
+
+### Added
+- **keymaker's hooks have tests.** They had none: `write-guard.sh` — the fail-closed allowlist
+  that keeps the orchestrator out of source files — was entirely uncovered, and the shared floor
+  was only ever exercised through crew's copies. `plugins/keymaker/tests/` now covers all three
+  guards against *this* plugin's own files (67 assertions), so a vendored library that stopped
+  loading here fails a test instead of silently disarming the guards in a standalone install.
+
 ## [0.8.1] - 2026-08-11
 
 ### Fixed

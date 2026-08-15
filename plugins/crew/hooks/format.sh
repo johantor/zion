@@ -6,21 +6,33 @@
 # produced it (a backend stack can be dotnet or node; lane != language).
 set -e
 
-# Fail open: formatting is best-effort, so a missing jq is a no-op, not an error.
+# Fail open: formatting is best-effort, so a missing library or jq is a no-op,
+# not an error.
+_lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
+# shellcheck source=plugins/crew/hooks/lib/guard-lib.sh
+# shellcheck disable=SC1090,SC1091
+. "$_lib" 2>/dev/null || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
-# Read the payload once; jq from the variable (stdin can only be consumed once).
-payload="$(cat)"
-agent_type="$(printf '%s' "$payload" | jq -r '.agent_type // empty' 2>/dev/null || true)"
+
+guard_read_payload
+# Both fields in one jq pass. The path is only computed for an agent this hook
+# actually formats for, so the far more common no-op call (any other agent, or
+# the main session) still doesn't pay to look it up — it just no longer costs a
+# second process when it does. neo is the cross-lane express-lane generalist, so
+# it gets the same extension-based routing as tank/trinity rather than a fixed
+# lane.
+guard_jq2 \
+  '(if ((.agent_type // "") | test("^(tank|trinity|neo)$")) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
+  '.agent_type // ""' || exit 0
+agent_type="$guard_trusted"
+path="$guard_untrusted"
+
 case "$agent_type" in
-  # neo is the cross-lane express-lane generalist, so it gets the same
-  # extension-based routing as tank/trinity (below) rather than a fixed lane.
   tank|trinity|neo) : ;;
   *)                exit 0 ;;
 esac
 # Extension-based routing needs a path to route on; without one there's nothing
-# to format. Looked up only after the agent gate, so the far more common
-# no-op call (any other agent, or the main session) doesn't pay for a second jq.
-path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+# to format.
 [ -n "$path" ] || exit 0
 
 ext="${path##*.}"

@@ -1,27 +1,42 @@
 #!/usr/bin/env bash
 # Context-hygiene guard (not a security guard): blocks raw reads of very large
-# files. It intentionally fails OPEN — if jq is missing or the path is absent /
-# not a regular file, skip the check rather than block.
-MAX_BYTES=65536
-MAX_BOUNDED_LINES=2000
-payload="$(cat)"
-path="$(printf '%s' "$payload" | jq -r '.tool_input.file_path // .tool_input.path // empty' 2>/dev/null || true)"
+# files. It intentionally fails OPEN — if the library or jq is missing, or the
+# path is absent / not a regular file, skip the check rather than block.
+#
+# Byte-identical across every plugin that ships it (validator §5); the limits
+# themselves live in hooks/lib/guard-lib.sh so both plugins cannot disagree
+# about what "too large" means.
+_lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
+# shellcheck disable=SC1090,SC1091  # resolved at runtime; every plugin ships its own copy
+. "$_lib" 2>/dev/null || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+guard_read_payload
+# One jq pass for both fields: the path is the untrusted one, the limit is a
+# number the harness passes through. See guard_jq2.
+guard_jq2 '(.tool_input.file_path // .tool_input.path) // ""' '(.tool_input.limit // "") | tostring' || exit 0
+# shellcheck disable=SC2154  # set by guard_jq2 in the library sourced above
+path="$guard_untrusted"
+# shellcheck disable=SC2154
+limit="$guard_trusted"
+
 if [ -z "$path" ] || [ ! -f "$path" ]; then
   exit 0
 fi
-# A Read with an explicit `limit` of at most MAX_BOUNDED_LINES lines is a
-# bounded, targeted read — exactly the access context-discipline asks for — so
-# it passes regardless of file size. A larger or non-numeric limit falls
+
+# A Read with an explicit `limit` of at most GUARD_READ_MAX_BOUNDED_LINES lines
+# is a bounded, targeted read — exactly the access context-discipline asks for —
+# so it passes regardless of file size. A larger or non-numeric limit falls
 # through to the size check: fail-open is for missing inputs, not for a bound
 # the guard can't trust.
-limit="$(printf '%s' "$payload" | jq -r '.tool_input.limit // empty' 2>/dev/null || true)"
 case "$limit" in
   ''|*[!0-9]*) ;;
-  *) if [ "$limit" -gt 0 ] && [ "$limit" -le "$MAX_BOUNDED_LINES" ]; then exit 0; fi ;;
+  *) if [ "$limit" -gt 0 ] && [ "$limit" -le "$GUARD_READ_MAX_BOUNDED_LINES" ]; then exit 0; fi ;;
 esac
+
 size=$(wc -c < "$path" 2>/dev/null || echo 0)
-if [ "$size" -gt "$MAX_BYTES" ]; then
-  echo "Blocked: $path is ${size} bytes. Don't read it raw — pass an explicit limit (<= ${MAX_BOUNDED_LINES} lines) for the slice you need, or grep/jq/script it and surface only the result (see context-discipline)." >&2
+if [ "$size" -gt "$GUARD_READ_MAX_BYTES" ]; then
+  echo "Blocked: $path is ${size} bytes. Don't read it raw — pass an explicit limit (<= ${GUARD_READ_MAX_BOUNDED_LINES} lines) for the slice you need, or grep/jq/script it and surface only the result (see context-discipline)." >&2
   exit 2
 fi
 exit 0

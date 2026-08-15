@@ -3,114 +3,57 @@
 # git misuse (twins never run git; no commits on a protected branch),
 # never-terminating watch/dev/serve commands, and raw/streaming reads.
 #
-# The marked "shared guard" regions mirror crew's bash-safety.sh, so a
-# standalone keymaker install keeps the same floor -- byte-synced by validator
-# §5, crew's copy canonical. Both installed means both fire: redundant, fine.
+# The command-shape patterns and the shared floor they enforce live in
+# hooks/lib/guard-lib.sh, vendored byte-identically from crew (validator §5), so
+# a standalone keymaker install keeps the same floor. What stays here is
+# keymaker's own policy: twins never run git, and keymaker owns branching. Both
+# plugins installed means both guards fire: redundant, fine.
 #
 # Fails closed: a guard that can't read its input must block, not pass the
 # command through uninspected. jq is a documented dependency.
+_lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
+# shellcheck source=plugins/keymaker/hooks/lib/guard-lib.sh
+# shellcheck disable=SC1090,SC1091
+if ! . "$_lib" 2>/dev/null; then
+  echo "Blocked: bash-safety could not load its guard library ($_lib)." >&2
+  exit 2
+fi
 if ! command -v jq >/dev/null 2>&1; then
   echo "Blocked: bash-safety needs jq to inspect commands." >&2
   exit 2
 fi
-payload="$(cat)"
-# One jq call for both fields; its exit status is the validity check (`if !`
-# below -- a failed jq still assigns $fields). Joined with a record-separator
-# byte via -j, not @tsv: @tsv would escape cmd's newlines/tabs to literal
-# "\n"/"\t" and break the flatten step below.
-rs=$'\x1e'
-if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" '(.tool_input.command // "") + $rs + (.agent_type // "")' 2>/dev/null)"; then
+
+guard_read_payload
+# The command is the untrusted field (arbitrary text, possibly containing the
+# separator byte); agent_type is the harness-controlled one. See guard_jq2.
+if ! guard_jq2 '.tool_input.command // ""' '.agent_type // ""'; then
   echo "Blocked: bash-safety could not parse the hook payload." >&2
   exit 2
 fi
-# Split on the LAST separator: cmd is arbitrary text and could contain the
-# separator byte, while agent_type (trailing, harness-controlled) never does.
-# Splitting on the first would let an embedded separator truncate what the
-# safety regexes below inspect.
-cmd="${fields%"$rs"*}"
-agent_type="${fields##*"$rs"}"
+agent_type="$guard_trusted"
+guard_normalize "$guard_untrusted"
 
-# Flatten newlines to spaces so a multi-line command can't slip a clause past
-# the single-line regexes. POSIX [[:space:]] is used throughout instead of the
-# GNU-only \s so the guard also holds on BSD/macOS grep.
-normalized="$(printf '%s' "$cmd" | tr '\n' ' ')"
+# --- BEGIN shared guard: floor ---
+# The floor every plugin's Bash guard enforces, in this order. Destructive ops
+# are refused for everyone; the watch/dev/serve block is scoped to agent
+# sessions, since the user's own session may legitimately run a dev server.
+guard_block_destructive
+[ -n "$agent_type" ] && guard_block_watch_commands
+guard_block_raw_reads
+# --- END shared guard: floor ---
 
-# --- BEGIN shared guard: destructive-ops ---
-# Destructive ops, in order: recursive+force rm of /, ~ or * — flags combined in
-# either order (-rf, -fr, -rfv) or separate/long (-r -f, --recursive --force),
-# with arbitrary other flag tokens between them and arbitrary arguments (incl.
-# the `--` separator) before the dangerous target; force-push via --force or
-# short -f (but not the safe --force-with-lease / --force-if-includes —
-# `-[A-Za-z]*f` can't cross their second dash); redirect (> or >>) into .env;
-# redirect or rm into .git/. \b is a backspace in ERE, so `rm` is anchored on a
-# separator/space rather than \brm\b.
-flag='-[^[:space:]]*'                          # any single flag token
-word='[^[:space:];|&<>]+'                      # any token within this command
-rec='(-[A-Za-z]*[rR][A-Za-z]*|--recursive)'    # token containing recursive
-frc='(-[A-Za-z]*f[A-Za-z]*|--force)'           # token containing force
-comb='-[A-Za-z]*([rR][A-Za-z]*f|f[A-Za-z]*[rR])[A-Za-z]*'  # both in one token
-rm_rf="rm[[:space:]]+(${flag}[[:space:]]+)*(${comb}|${rec}[[:space:]]+(${flag}[[:space:]]+)*${frc}|${frc}[[:space:]]+(${flag}[[:space:]]+)*${rec})([[:space:]]+${word})*[[:space:]]+(/|~|\\*)"
-if echo "$normalized" | grep -Eq "${rm_rf}|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|\$)|-[A-Za-z]*f)|>>?[[:space:]]*\\.env|>>?[^|;&]*\\.git/|(^|[[:space:];|&(])rm[[:space:]][^|;&]*\\.git/"; then
-  echo "Blocked: unsafe command." >&2
-  exit 2
-fi
-# --- END shared guard: destructive-ops ---
-
-# Twins never run git — keymaker owns branching and per-batch commits
+# Twins never run git -- keymaker owns branching and per-batch commits
 # (twin.md operating rules). Any git invocation at a command position is
-# blocked; the prefix consumes env assignments and env/command wrappers so
-# they can't smuggle git past the anchor.
-git_at_cmd='(^|[;&|][&|]?[[:space:]]*)([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*git([[:space:]]|$)'
-if [ "$agent_type" = "twin" ] && echo "$normalized" | grep -Eq "$git_at_cmd"; then
+# blocked.
+if [ "$agent_type" = "twin" ] && [[ $guard_cmd =~ $GUARD_RE_GIT_AT_CMD ]]; then
   echo "Blocked: twin never runs git — keymaker owns branching and commits. Return your batch result; keymaker commits verified batches." >&2
   exit 2
 fi
 
-# No agent commits onto a protected branch — keymaker works on a chore/debt-*
+# No agent commits onto a protected branch -- keymaker works on a chore/debt-*
 # branch it creates first. Scoped via agent_type so a normal main session (no
-# agent_type) is never intercepted. Catches plain `git commit` and git global
-# flags before the subcommand (`git -c k=v commit`, `git -C dir commit`).
-if [ -n "$agent_type" ] && echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*git[[:space:]]+(-[^[:space:]]+[[:space:]]+([^-[:space:]][^[:space:]]*[[:space:]]+)?)*commit([[:space:]]|$)'; then
-  branch="$(git branch --show-current 2>/dev/null || true)"
-  case "$branch" in
-    main|master|develop)
-      echo "Blocked: ${agent_type} may not commit on protected branch '$branch'. Create the work branch first (keymaker owns branching)." >&2
-      exit 2 ;;
-  esac
-fi
-
-# Watch/dev/serve commands never terminate, so an agent turn that launches one
-# hangs until its maxTurns/timeout — twins capture one-shot build/lint output
-# instead (context-discipline). Scoped to agent sessions: the user's own
-# session may legitimately run a dev server. `--watch` matches the bare flag
-# only, not `--watch=false` (the disable spelling). `vite build` stays allowed.
-# --- BEGIN shared guard: watch-commands ---
-if [ -n "$agent_type" ]; then
-  cmdpos='(^|[;&|][&|]?[[:space:]]*)'
-  pfx='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*((npx|bunx)[[:space:]]+)?'
-  watch='dotnet[[:space:]]+watch([[:space:]]|$)|(npm|pnpm|yarn|bun)[[:space:]]+(run[[:space:]]+)?(dev|start|serve|watch)([[:space:]]|$)|vite([[:space:]]+(dev|serve|preview)([[:space:]]|$)|[[:space:]]+-|[[:space:]]*($|[;&|]))|(next|nuxt)[[:space:]]+dev([[:space:]]|$)|ng[[:space:]]+serve([[:space:]]|$)|nodemon([[:space:]]|$)|webpack[[:space:]]+serve([[:space:]]|$)|webpack-dev-server([[:space:]]|$)'
-  if echo "$normalized" | grep -Eq "${cmdpos}${pfx}(${watch})|--watch([[:space:]]|$)"; then
-    echo "Blocked: watch/dev/serve commands never terminate. Use the project's one-shot build/test command instead." >&2
-    exit 2
-  fi
-fi
-# --- END shared guard: watch-commands ---
-
-# --- BEGIN shared guard: raw-reads ---
-if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)(less|more)[[:space:]]+'; then
-  echo "Blocked: interactive raw reads are disallowed. Use targeted grep/rg/jq/scripted summaries instead." >&2
-  exit 2
-fi
-
-if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)tail[[:space:]]+-f([[:space:]]|$)'; then
-  echo "Blocked: streaming raw output is disallowed. Capture/filter and surface only the needed result." >&2
-  exit 2
-fi
-
-if echo "$normalized" | grep -Eq '(^|[;&|][&|]?[[:space:]]*)cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&]|&&|\|\|))'; then
-  echo "Blocked: unbounded cat reads are disallowed. Pipe/filter with grep/rg/jq or script the analysis." >&2
-  exit 2
-fi
-# --- END shared guard: raw-reads ---
+# agent_type) is never intercepted.
+guard_block_protected_branch_commit "$agent_type" \
+  "Create the work branch first (keymaker owns branching)."
 
 exit 0

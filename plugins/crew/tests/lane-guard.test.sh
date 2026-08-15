@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Behavioral tests for hooks/lane-guard.sh.
-# shellcheck source=plugins/crew/tests/lib.sh
+# shellcheck source=tests/hooks/lib.sh
 # shellcheck disable=SC1090,SC1091
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 HOOK="lane-guard.sh"
 
 # --- Default extension regime (no CLAUDE.md, stacks unresolved) ----------------

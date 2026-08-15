@@ -17,10 +17,21 @@ anything stated here updates this file in the same commit.** Conventions live in
   `context-discipline` and `loop-engineering` (crew's copies are canonical — edit there and
   copy byte-for-byte, or CI's drift check fails).
 - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `write-guard.sh` (keymaker's Write/Edit are
-  confined to `.claude/` — ledger/outlines/notes only). `read-guard.sh` (byte-identical) and
-  `bash-safety.sh`'s marked shared-guard regions are synced with crew's copies (crew is
-  canonical — edit there and mirror here, or validator §5 fails CI). No `scripts/` dir: the
-  validator is repo tooling at `scripts/validate-plugin.sh` and covers this plugin too.
+  confined to `.claude/` — ledger/outlines/notes only), plus `hooks/lib/guard-lib.sh`, the
+  **sourced library** those three load: payload plumbing, the command-shape patterns, the
+  shared block helpers, and the protected-branch list. It is the one file in `hooks/` that must
+  not be executable and must not be wired (validator §3/§6) — it has no main. Vendoring it here
+  rather than reaching into crew is what lets a standalone keymaker install enforce the same
+  floor. `read-guard.sh` and `lib/guard-lib.sh` (byte-identical) and `bash-safety.sh`'s marked
+  shared-guard region are synced with crew's copies (crew is canonical — edit there and mirror
+  here, or validator §5 fails CI). Shared logic belongs in `guard-lib.sh`, not in a widened
+  marker region. No `scripts/` dir: the validator is repo tooling at
+  `scripts/validate-plugin.sh` and covers this plugin too.
+- `tests/` — this plugin's hook test cases (`bash-safety`, `read-guard`, `write-guard`), run by
+  the repo-level runner `tests/hooks/run.sh`, which fails if a plugin ships `hooks/` with no
+  suite beside it. They exercise keymaker's *own* copies, so a vendored library that stopped
+  loading here would fail a test rather than silently disarming the guards in a standalone
+  install. Not shipped with the plugin — repo tooling.
 
 ## Schemas & conventions
 

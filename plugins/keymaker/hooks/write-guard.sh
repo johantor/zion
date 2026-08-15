@@ -6,23 +6,30 @@
 # prose-enforced by its delegation contract. See agents/keymaker.md.
 #
 # Fails closed: a guard that can't read its input must block, not allow.
+_lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
+# shellcheck source=plugins/keymaker/hooks/lib/guard-lib.sh
+# shellcheck disable=SC1090,SC1091
+if ! . "$_lib" 2>/dev/null; then
+  echo "Blocked: write-guard could not load its guard library ($_lib)." >&2
+  exit 2
+fi
 if ! command -v jq >/dev/null 2>&1; then
   echo "Blocked: write-guard needs jq to enforce keymaker's write allowlist." >&2
   exit 2
 fi
-payload="$(cat)"
-# One jq call for both fields, joined with a record-separator byte and split
-# on its first occurrence — safe because agent_type (the leading field) is a
-# small, harness-controlled value that never contains it, regardless of what
-# the path itself might contain. jq only computes the path for the keymaker
-# agent, so no other session pays for the field lookup.
-rs=$'\x1e'
-if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" '(.agent_type // "") as $at | $at + $rs + (if $at == "keymaker" then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' 2>/dev/null)"; then
+
+guard_read_payload
+# The path is the untrusted field; agent_type is the harness-controlled one. The
+# path is only computed for keymaker itself, so no other session pays for the
+# field lookup. See guard_jq2.
+if ! guard_jq2 \
+  '(if (.agent_type // "") == "keymaker" then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
+  '.agent_type // ""'; then
   echo "Blocked: write-guard could not parse the hook payload." >&2
   exit 2
 fi
-agent_type="${fields%%"$rs"*}"
-path="${fields#*"$rs"}"
+agent_type="$guard_trusted"
+path="$guard_untrusted"
 
 [ "$agent_type" = "keymaker" ] || exit 0
 

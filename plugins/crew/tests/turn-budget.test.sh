@@ -5,9 +5,9 @@
 # the tests drive it through the CREW_TURN_BUDGET_DIR override so state lives
 # under the fixture root. It is also advisory: every can't-count path must fail
 # OPEN (exit 0), the opposite polarity of the fail-closed guards.
-# shellcheck source=plugins/crew/tests/lib.sh
+# shellcheck source=tests/hooks/lib.sh
 # shellcheck disable=SC1090,SC1091
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 
 # payload_post <agent_type> <transcript_path>  — minimal PostToolUse payload.
 # Pass "" to omit a field (jq drops empty strings via the alternative below).

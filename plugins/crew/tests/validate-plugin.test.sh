@@ -10,9 +10,9 @@
 # drift" prefix because "shared-guard regions in" also occurs in its ok: line.
 #
 # Every section carries a fixture; see AGENTS.md, "Validating changes".
-# shellcheck source=plugins/crew/tests/lib.sh
+# shellcheck source=tests/hooks/lib.sh
 # shellcheck disable=SC1090,SC1091
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 
 VALIDATOR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/scripts/validate-plugin.sh"
 [ -f "$VALIDATOR" ] || { echo "FATAL: $VALIDATOR not found" >&2; exit 1; }
@@ -62,6 +62,13 @@ mk_hook() {
   printf '#!/usr/bin/env bash\n%s\n' "$3" > "$1/hooks/$2"
   chmod +x "$1/hooks/$2"
 }
+# mk_lib <plugin_dir> <filename> <body> — a sourced library under hooks/lib/,
+# left non-executable, which is the mode §3 requires of one.
+mk_lib() {
+  mkdir -p "$1/hooks/lib"
+  printf '#!/usr/bin/env bash\n%s\n' "$3" > "$1/hooks/lib/$2"
+  chmod -x "$1/hooks/lib/$2"
+}
 # mk_hooks_json <plugin_dir> <command-string> — wiring in §6's expected shape.
 mk_hooks_json() {
   mkdir -p "$1/hooks"
@@ -80,6 +87,8 @@ mk_dev_settings() {
 wired_x='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/x.sh'
 # shellcheck disable=SC2016
 wired_missing='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/missing.sh'
+# shellcheck disable=SC2016
+wired_lib='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/lib/guard-lib.sh'
 # shellcheck disable=SC2016
 dev_x='\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/x.sh'
 
@@ -395,6 +404,19 @@ mk_hook "$d/plugins/foo" x.sh 'exit 0'
 assert_silent "§3 silent on valid syntax" "$d" "bash syntax error"
 assert_silent "§3 silent on an executable hook" "$d" "not executable"
 
+# hooks/lib/*.sh is the other kind of file in a hooks/ directory: sourced by the
+# entry points, never executed, so §3 inverts the mode rule for it.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_lib "$d/plugins/foo" guard-lib.sh 'echo lib'; chmod +x "$d/plugins/foo/hooks/lib/guard-lib.sh"
+assert_emits "§3 bites on an executable sourced library" "$d" "sourced library is executable (chmod -x): plugins/foo/hooks/lib/guard-lib.sh"
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_lib "$d/plugins/foo" guard-lib.sh 'echo lib'
+assert_silent "§3 silent on a non-executable library" "$d" "chmod"
+# A library still has to parse — §3's syntax guard covers both kinds.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_lib "$d/plugins/foo" guard-lib.sh 'if [ 1'
+assert_emits "§3 bites on a syntax error in a library" "$d" "bash syntax error: plugins/foo/hooks/lib/guard-lib.sh"
+
 # --- §5: a hook shipped by >1 plugin must stay in sync -------------------------
 # Two regimes: unmarked copies must be byte-identical; marked copies need only
 # their shared-guard regions to match. Plugin names are arbitrary (neither is
@@ -440,6 +462,16 @@ mkdir -p "$d/plugins/foo/hooks"; printf '{\n' > "$d/plugins/foo/hooks/hooks.json
 assert_emits "§6 bites on unparseable wiring" "$d" "cannot cross-check its hook wiring"
 d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_hooks_json "$d/plugins/foo" "$wired_x"
 assert_silent "§6 silent when wiring and scripts agree" "$d" "is not wired"
+
+# A sourced library is the one hooks/ file that must NOT be wired: wiring one
+# would run a library with no main as a hook, which exits 0 having inspected
+# nothing — a silent hole in a fail-closed guard rather than a visible error.
+d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_lib "$d/plugins/foo" guard-lib.sh 'echo lib'
+mk_hooks_json "$d/plugins/foo" "$wired_x"
+assert_silent "§6 does not demand a library be wired" "$d" "is not wired"
+d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_lib "$d/plugins/foo" guard-lib.sh 'echo lib'
+mk_hooks_json "$d/plugins/foo" "$wired_lib"
+assert_emits "§6 bites on wiring a sourced library as a hook" "$d" "but hooks/lib/*.sh are sourced libraries"
 
 # --- §7: .claude/settings.json mirrors plugins/crew/hooks/hooks.json ----------
 d="$(new_repo)"; mk_hook "$d/plugins/crew" x.sh 'exit 0'; mk_hooks_json "$d/plugins/crew" "$wired_x"

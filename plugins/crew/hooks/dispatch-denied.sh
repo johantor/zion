@@ -24,26 +24,25 @@
 # For this event Claude Code ignores the exit code and stderr — decisions travel
 # as JSON on stdout: `hookSpecificOutput.retry` reaches the model,
 # `systemMessage` reaches the user.
+_lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
+# shellcheck source=plugins/crew/hooks/lib/guard-lib.sh
+# shellcheck disable=SC1090,SC1091
+. "$_lib" 2>/dev/null || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 
-payload="$(cat)"
+guard_read_payload
 # Fast path, no subprocess. Only an Agent/Task dispatch carries subagent_type;
 # a payload without it can only reach the exit below anyway.
-case "$payload" in
+case "$guard_payload" in
   *'"subagent_type"'*) ;;
   *) exit 0 ;;
 esac
 
-rs=$'\x1e'
 # transcript_path (fallback session_id) keys the counter per session;
-# subagent_type is last so the harness-controlled small value anchors the split
-# (same trusted-field-last rule as bash-safety).
-if ! fields="$(printf '%s' "$payload" | jq -j --arg rs "$rs" \
-  '(.transcript_path // .session_id // "") + $rs + (.tool_input.subagent_type // "")' 2>/dev/null)"; then
-  exit 0
-fi
-key_src="${fields%"$rs"*}"
-subagent="${fields##*"$rs"}"
+# subagent_type is the trusted field that anchors the split (see guard_jq2).
+guard_jq2 '(.transcript_path // .session_id // "")' '.tool_input.subagent_type // ""' || exit 0
+key_src="$guard_untrusted"
+subagent="$guard_trusted"
 
 # Namespace match, deliberately not a hardcoded roster: an installed plugin's
 # workers are always `crew:<name>`, so this can't drift as agents are added or
@@ -58,21 +57,18 @@ esac
 # Attempt counter per session+worker. 0 means "couldn't count", which takes the
 # no-retry branch below: an unbounded retry is worse than no retry.
 attempt=0
-state_dir="${CREW_DISPATCH_DENIED_DIR:-${TMPDIR:-/tmp}}"
-if [ -n "$key_src" ] && [ -d "$state_dir" ] && [ -w "$state_dir" ]; then
-  # cksum (POSIX, also on BSD/macOS) keeps the filename short and safe. The
-  # readable suffix is dropped unless the worker name is plainly filename-safe.
-  case "$worker" in
-    *[!A-Za-z0-9_-]*) tag="worker" ;;
-    *) tag="$worker" ;;
-  esac
-  key="$(printf '%s' "$key_src$rs$subagent" | cksum | tr -s ' \t' '--')"
-  state_file="$state_dir/crew-dispatch-denied.$key.$tag"
-  if [ -f "$state_file" ]; then
-    read -r attempt < "$state_file" 2>/dev/null || attempt=0
-    case "$attempt" in *[!0-9]*|'') attempt=0 ;; esac
-  fi
-  attempt=$((attempt + 1))
+# guard_state_path names and sweeps the counter (stale entries age out instead
+# of accumulating), and returns non-zero when the dir is unusable or the key is
+# empty — the can't-count path. The worker name is the readable suffix; it is
+# dropped there unless it is plainly filename-safe.
+# The key_src test is separate on purpose: the hash input below is never empty
+# (it always carries the subagent), so only an explicit check can tell a missing
+# session key apart from a real one.
+if [ -n "$key_src" ] && guard_state_path "${CREW_DISPATCH_DENIED_DIR:-${TMPDIR:-/tmp}}" \
+  "crew-dispatch-denied" "$key_src$GUARD_RS$subagent" "$worker"; then
+  state_file="$guard_state_path"
+  guard_read_counter "$state_file"
+  attempt=$((guard_count + 1))
   printf '%s\n' "$attempt" > "$state_file" 2>/dev/null || attempt=0
 fi
 

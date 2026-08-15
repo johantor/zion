@@ -6,9 +6,9 @@
 # project configures. Those tools are faked as scripts in node_modules/.bin, so
 # the suite keeps its no-build/no-network/no-LLM contract while still exercising
 # the real detect -> run -> report path.
-# shellcheck source=plugins/crew/tests/lib.sh
+# shellcheck source=tests/hooks/lib.sh
 # shellcheck disable=SC1090,SC1091
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 HOOK="format.sh"
 
 # Short bound for the hang case below; the fake tools elsewhere are instant.

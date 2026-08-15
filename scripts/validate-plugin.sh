@@ -237,18 +237,35 @@ while IFS= read -r manifest; do
   fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
-# 3. Hook scripts are syntactically valid and executable.
+# 3. Hook shell files are syntactically valid and carry the file mode their role
+#    implies. A plugin's hooks/ directory holds two different kinds of file:
+#      - hooks/*.sh          entry points the harness executes -> must be +x;
+#      - hooks/lib/*.sh      libraries the entry points source -> must NOT be +x.
+#    The mode is the enforceable half of that distinction. An executable library
+#    reads as a hook, invites being wired as one, and would do nothing if it were
+#    (it has no main) — so the wrong mode is a real error, not a style nit. git's
+#    `*` crosses directory separators, so one listing covers both kinds and the
+#    path shape decides which rule applies; §6 enforces the wiring half.
 while IFS= read -r h; do
   if bash -n "$h" 2>/dev/null; then
     ok "syntax: $h"
   else
     err "bash syntax error: $h"
   fi
-  if [ -x "$h" ]; then
-    ok "executable: $h"
-  else
-    err "not executable (chmod +x): $h"
-  fi
+  case "$h" in
+    */hooks/lib/*)
+      if [ -x "$h" ]; then
+        err "sourced library is executable (chmod -x): $h — hooks/lib/*.sh are sourced, not run"
+      else
+        ok "not executable (sourced library): $h"
+      fi ;;
+    *)
+      if [ -x "$h" ]; then
+        ok "executable: $h"
+      else
+        err "not executable (chmod +x): $h"
+      fi ;;
+  esac
 done < <(git ls-files 'plugins/*/hooks/*.sh')
 
 # 4. Skill drift: a skill name shipped by more than one plugin must stay
@@ -428,6 +445,19 @@ while IFS= read -r hooks_json; do
   done < <(jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command // empty' "$hooks_json")
   while IFS= read -r sh_file; do
     rel="${sh_file#"$plugin_dir/"}"
+    # hooks/lib/*.sh is the other half of §3's split: sourced by the entry
+    # points, never wired. Wiring one would run a library with no main as a
+    # hook — it would exit 0 having inspected nothing, which for a fail-closed
+    # guard is a silent hole rather than a visible error.
+    case "$rel" in
+      hooks/lib/*)
+        if [ -n "${wired[$rel]:-}" ]; then
+          err "$hooks_json wires $rel, but hooks/lib/*.sh are sourced libraries — wire the entry point that sources it instead"
+        else
+          ok "$plugin_dir does not wire $rel (sourced library)"
+        fi
+        continue ;;
+    esac
     if [ -n "${wired[$rel]:-}" ]; then
       ok "$plugin_dir wires $rel"
     else

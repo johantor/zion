@@ -12,9 +12,9 @@
 # The load-bearing asymmetry: only a counted first attempt may ask for a retry.
 # Everything after it, and every path where the counter can't be trusted, must
 # not — and a can't-count message must not claim to be a repeat.
-# shellcheck source=plugins/crew/tests/lib.sh
+# shellcheck source=tests/hooks/lib.sh
 # shellcheck disable=SC1090,SC1091
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 
 # payload_denied <subagent_type> <transcript_path> — minimal PermissionDenied
 # payload. Pass "" to omit either field.

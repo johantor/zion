@@ -6,13 +6,29 @@
 # advisor (driven via CREW_TURN_BUDGET_DIR) where exit 2 means "warned", not
 # "blocked", though the same assertions apply.
 #
-# Sourced by *.test.sh; run.sh drives them. See plugins/crew/CLAUDE.md.
+# Sourced by plugins/<plugin>/tests/*.test.sh; tests/hooks/run.sh drives them.
+# See plugins/crew/CLAUDE.md.
+#
+# The harness is repo test infrastructure and lives here, once, while the test
+# *cases* stay next to the plugin whose hooks they cover. Which plugin a case
+# belongs to is not configured anywhere: HOOKS_DIR is derived from the calling
+# test file's own location (BASH_SOURCE[1] -> plugins/<plugin>/tests/x.test.sh
+# -> plugins/<plugin>/hooks), so a new plugin gets a working suite by dropping a
+# file into its tests/ directory and nothing else.
 
 # No `set -e`: an assertion failure records and continues so one run reports
 # every failure, not just the first.
 set -uo pipefail
 
-HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../hooks" && pwd)"
+if [ -z "${BASH_SOURCE[1]:-}" ]; then
+  echo "FATAL: tests/hooks/lib.sh is a harness — source it from a *.test.sh, don't run it" >&2
+  exit 1
+fi
+HOOKS_DIR="$(cd "$(dirname "${BASH_SOURCE[1]}")/../hooks" 2>/dev/null && pwd)"
+if [ -z "$HOOKS_DIR" ] || [ ! -d "$HOOKS_DIR" ]; then
+  echo "FATAL: no hooks/ directory beside $(dirname "${BASH_SOURCE[1]}")" >&2
+  exit 1
+fi
 
 for _tool in jq git; do
   command -v "$_tool" >/dev/null 2>&1 || { echo "FATAL: $_tool is required to run the hook tests" >&2; exit 1; }

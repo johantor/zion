@@ -19,8 +19,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # The shell's `*` does not cross directory separators (git's does), so the
+      # sourced libraries under hooks/lib/ need their own pattern here — without
+      # it they would go unlinted while still running inside every guard.
       - name: Lint hook & script shell files
-        run: shellcheck plugins/*/hooks/*.sh plugins/*/tests/*.sh scripts/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
+        run: shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
 
   plugin:
     runs-on: ubuntu-latest
@@ -49,8 +52,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Run crew hook behavior tests
-        run: bash plugins/crew/tests/run.sh
+      # Discovers every plugin's suite (plugins/*/tests/*.test.sh) and fails if a
+      # plugin ships hooks with no tests beside them, so a new plugin's guards
+      # cannot land untested without this job going red.
+      - name: Run hook behavior tests
+        run: bash tests/hooks/run.sh
 
       # LLM-free: proves the adversarial suite's mock git host still speaks MCP
       # and records calls. Cheap enough for every PR, and a silently broken mock

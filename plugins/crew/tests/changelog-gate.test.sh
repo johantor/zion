@@ -11,9 +11,9 @@
 # commits (and tags) rather than a static tree — that history *is* the input.
 # Assert on the message, not the exit code, so it is clear which guard fired.
 #
-# shellcheck source=plugins/crew/tests/lib.sh
+# shellcheck source=tests/hooks/lib.sh
 # shellcheck disable=SC1090,SC1091
-source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 for s in check-changelog.sh release-notes.sh; do

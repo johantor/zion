@@ -17,6 +17,13 @@ re-exploring:
 
 Keep them accurate: a PR that changes anything they state updates them in the same commit.
 
+## Communication style
+
+Use ASD-STE-100 (Simplified Technical English) when you speak to the operator: short sentences,
+the active voice, one instruction per sentence, and the same word for the same thing each time.
+This applies to what you say to the operator, not to what you write into the repository — files,
+docs, and commit messages keep the repo's own voice.
+
 The rest of this file is what the crew reads at runtime — how the orchestration works, then the
 configuration `morpheus` and the `crew:*` commands read. Both must stay in the project-root
 CLAUDE.md; `/crew:init` reconciles them here.

@@ -10,9 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [3.20.0] - 2026-08-14
 
 ### Changed
-- **`seraph` measures instead of eyeballing.** It now reads computed styles and box geometry
-  through the browser MCP's script evaluation, so mismatches come back as actual/spec/delta
-  numbers rather than "spacing looks slightly off", and it checks console and network first so a
+- **`seraph` looks to find and measures to report.** It still screenshots first — clipped text,
+  overlapping elements, and a wrong-but-loaded image are visible only in the render, and every
+  measured value matches spec while they happen — but a defect now comes back as
+  actual/spec/delta read from `getComputedStyle` and `getBoundingClientRect` rather than as
+  "spacing looks slightly off". It pairs each reference element with the DOM element implementing
+  it and reports a pairing it isn't sure of as **unmatched rather than measured**, since a wrong
+  pair yields an exact, confident, wrong delta. It also checks console and network first, so a
   failed webfont is reported as a 404 rather than as a typography defect.
 - **`seraph`'s turn budget raised to 40** (from 20), with the matching `turn-budget.sh` entry.
   Per-element measurement across the states a reference specifies does not fit in 20 turns, and

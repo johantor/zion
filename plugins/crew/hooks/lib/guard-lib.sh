@@ -47,7 +47,7 @@ GUARD_READ_MAX_BYTES=65536
 GUARD_READ_MAX_BOUNDED_LINES=2000
 
 # How long a per-session state file stays interesting. Swept opportunistically
-# (see guard_state_file), so a long-lived machine does not accumulate one tiny
+# (see guard_state_path), so a long-lived machine does not accumulate one tiny
 # file per agent instance forever.
 GUARD_STATE_TTL_MINUTES=1440
 
@@ -214,6 +214,14 @@ guard_state_path() {
   esac
   key="$(printf '%s' "$key_src" | cksum | tr -s ' \t' '--')"
   guard_state_path="$dir/$prefix.$key.$tag"
+  # `-mmin` and `-delete` are extensions rather than POSIX `find`, but both GNU
+  # and BSD/macOS find carry them, which covers everywhere these hooks run. The
+  # sweep is deliberately best-effort anyway: errors are swallowed and the `|| :`
+  # keeps a failure off the caller's exit status, so a find without them degrades
+  # to exactly the old behavior (state files simply accumulate) and never to a
+  # guard that stops guarding. That is why it is not worth a feature-detection
+  # probe -- the probe would cost a fork on a path whose whole point is to be
+  # cheap, to defend against a failure that is already harmless.
   if [ ! -e "$guard_state_path" ]; then
     find "$dir" -maxdepth 1 -name "$prefix.*" -type f \
       -mmin "+$GUARD_STATE_TTL_MINUTES" -delete 2>/dev/null || :

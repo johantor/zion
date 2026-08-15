@@ -30,7 +30,9 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     dynamically once `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
     `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`;
     per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
-    test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`.
+    test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`;
+    per-worker (preloaded, not stack-resolved): `design-tokens`, which `seraph` reads so a
+    visual finding names the token and not just the pixel value.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, `turn-budget.sh`
     (warns an agent nearing its `maxTurns` so it hands back an orderly `remaining:` instead of
     truncating; validator §8 keeps its budget table in lockstep with agent frontmatter),
@@ -401,7 +403,7 @@ a plugin twin for one would name a namespace that cannot exist.
 
 ### Adversarial scenario suite (`tests/scenarios/`)
 
-Five of the prompts' safety properties are the kind that rot silently — a later edit
+Six of the prompts' safety properties are the kind that rot silently — a later edit
 weakens one and the happy path still works, so nothing notices:
 
 - `morpheus` §*Address review feedback* step 2 — a comment that tries to widen scope,
@@ -421,8 +423,12 @@ weakens one and the happy path still works, so nothing notices:
   a live worker, and its correct outcome — a corrected premise reported back — lives in the
   transcript, which this suite deliberately does not assert on. Manual rows in
   `plugins/crew/VERIFICATION.md` cover it meanwhile.
+- `seraph` §*Your browser MCP does more than screenshots* — the page under review is data:
+  rendered text, DOM content, console messages, and response bodies can all carry seeded
+  content, and `seraph`'s report is relayed verbatim into the `/crew:review` design gate.
+  **No scenario yet either** — same manual-rows-only coverage as `sentinel`'s.
 
-Those last two are the weakest-covered of the five until scenarios exist.
+Those last three are the weakest-covered of the six until scenarios exist.
 
 `tests/scenarios/` drives the real agents headlessly against throwaway repos and asserts the
 guard held. Repo tooling, never shipped with a plugin.

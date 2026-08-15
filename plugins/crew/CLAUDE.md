@@ -7,8 +7,9 @@ anything stated here updates this file in the same commit.** Conventions live in
 ## Map
 
 - `agents/` — `morpheus` (orchestrator, `model: opus`, sole git owner) + workers `tank`
-  (backend), `trinity` (frontend), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual,
-  no Bash), `neo` (express generalist), `sentinel` (post-merge triage; no Write/Edit/**Bash**,
+  (backend), `trinity` (frontend), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual —
+  no Bash; measures computed styles/geometry through the browser MCP's script evaluation
+  rather than comparing screenshots by eye), `neo` (express generalist), `sentinel` (post-merge triage; no Write/Edit/**Bash**,
   so its read-only posture is the `tools:` grant itself and needs no guard hook — history comes
   from the git-host MCP, not local git). Auto-discovered; not in the manifest.
 - `commands/` — `init` (§1 slots are validator §11's source of truth; §5 is a report-only MCP
@@ -24,7 +25,10 @@ anything stated here updates this file in the same commit.** Conventions live in
 - `skills/` — shared + synced across plugins (crew canonical): `engineering-principles`,
   `context-discipline`, `loop-engineering`. Crew-only: `mid-run-direction` (the receiving half of
   steering — preloaded by all seven workers, deliberately **not** by `morpheus`, which owns the
-  sending half in its own prompt). Frontend-mode, per-stack, and per-test-tool
+  sending half in its own prompt) and `design-tokens` (**preloaded by `seraph`** rather than
+  resolved at runtime — one skill covers every token system: CSS custom properties, Tailwind,
+  SCSS, tokens JSON, Figma variables — so there is no choice to resolve and `seraph` needs no
+  `Skill` tool to reach it). Frontend-mode, per-stack, and per-test-tool
   skills load dynamically once resolved. Skill = `<name>/SKILL.md`, frontmatter `name:` +
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit

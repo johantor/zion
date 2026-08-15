@@ -197,7 +197,7 @@ frontmatter for security.
 
 | Purpose | MCP server | Used by | Without it |
 | --- | --- | --- | --- |
-| Browser automation & visual checks | [Playwright](https://github.com/microsoft/playwright-mcp) or [Chrome DevTools](https://github.com/ChromeDevTools/chrome-devtools-mcp) | `trinity`, `seraph` | `seraph` reports a browser MCP is needed; `trinity` skips its browser loop-checks |
+| Browser automation & visual checks | [Playwright](https://github.com/microsoft/playwright-mcp) or [Chrome DevTools](https://github.com/ChromeDevTools/chrome-devtools-mcp) | `trinity`, `seraph` | `seraph` reports a browser MCP is needed — it measures the rendered UI through this, so without one there is nothing to compare; `trinity` skips its browser loop-checks |
 | Design reference | [Figma MCP](https://developers.figma.com/docs/figma-mcp-server/) — Dev Mode (local) or the hosted `claude.ai Figma` connector | `trinity`, `seraph` | both fall back to the design reference passed in the delegation |
 | Library & framework docs | [Context7](https://github.com/upstash/context7) | `tank`, `trinity` | implementers code from memory instead of current, version-specific API docs |
 | Issue tracking (ticket-in) | [Atlassian (Jira/Confluence)](https://www.atlassian.com/platform/remote-mcp-server) or [Linear](https://linear.app/docs/mcp) | `morpheus` | `morpheus` plans from the prompt alone; paste ticket details in by hand |
@@ -205,8 +205,10 @@ frontmatter for security.
 | Database (schema & test data) | [SQL Server](https://learn.microsoft.com/en-us/sql/mcp/) or [Postgres](https://github.com/crystaldba/postgres-mcp) | `tank`, `oracle` | data-access code and integration tests work from assumed schema |
 | Error monitoring | [Sentry](https://mcp.sentry.dev/) | `morpheus` | bug context (stack, breadcrumbs) must be pasted in by hand |
 
-Playwright and Chrome DevTools are interchangeable for the crew's needs. Chrome DevTools is
-Chrome-only but adds performance/Lighthouse and console/network inspection.
+Playwright and Chrome DevTools are interchangeable for the crew's needs: both evaluate scripts
+in the page (how `seraph` measures computed styles and geometry) and both list console messages
+and network requests (how it finds the failed font or asset behind a visual defect). Chrome
+DevTools is Chrome-only but adds performance/Lighthouse tracing and CDP-level detail.
 
 **Server keys map to tool namespaces.** When you add a server you choose its *key*, e.g.
 `playwright` in `.mcp.json`. Claude Code exposes that server's tools under the matching
@@ -256,7 +258,8 @@ one that isn't installed, so it just reports the server as unavailable.
 - **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor,
   dispatch-denied advisor (see *Permission mode*).
 - **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`. Always
-  on for workers only: `mid-run-direction` (how to treat a steer that arrives mid-run).
+  on for workers only: `mid-run-direction` (how to treat a steer that arrives mid-run), and
+  `design-tokens` for the agent doing design conformance.
   Loaded once the stack is resolved: per frontend mode, per backend/frontend stack (.NET, Node,
   React, Next.js, Optimizely), and per test tool (xUnit, Vitest, Jest, Cypress, Playwright).
 

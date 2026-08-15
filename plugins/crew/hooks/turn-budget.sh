@@ -44,7 +44,7 @@ case "$agent_type" in
   trinity) budget=72 ;;
   oracle) budget=56 ;;
   dozer) budget=56 ;;
-  seraph) budget=20 ;;
+  seraph) budget=40 ;;
   neo) budget=48 ;;
   sentinel) budget=40 ;;
   *) exit 0 ;;

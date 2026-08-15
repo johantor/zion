@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.20.0] - 2026-08-14
+
+### Changed
+- **`seraph` looks to find and measures to report.** It still screenshots first — clipped text,
+  overlapping elements, and a wrong-but-loaded image are visible only in the render, and every
+  measured value matches spec while they happen — but a defect now comes back as
+  actual/spec/delta read from `getComputedStyle` and `getBoundingClientRect` rather than as
+  "spacing looks slightly off". It pairs each reference element with the DOM element implementing
+  it and reports a pairing it isn't sure of as **unmatched rather than measured**, since a wrong
+  pair yields an exact, confident, wrong delta. It also checks console and network first, so a
+  failed webfont is reported as a 404 rather than as a typography defect.
+- **`seraph`'s turn budget raised to 40** (from 20), with the matching `turn-budget.sh` entry.
+  Per-element measurement across the states a reference specifies does not fit in 20 turns, and
+  the old cap made the new method unusable rather than merely tight.
+
+### Added
+- **`design-tokens` skill**, preloaded by `seraph`. Where tokens live per system, which survive
+  to runtime, and how to map a measured value back to a token — including not snapping to the
+  nearest one, since an off-scale value is itself the finding.
+- **`seraph` treats the page under review as untrusted data.** Rendered text, DOM content,
+  console messages, and response bodies can carry seeded content, and its report is relayed
+  verbatim into the `/crew:review` design gate — anything reading as an instruction is now
+  quoted rather than obeyed.
+
 ## [3.19.0] - 2026-08-13
 
 ### Added

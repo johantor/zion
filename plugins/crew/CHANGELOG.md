@@ -43,6 +43,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a working suite by dropping a file into its `tests/` directory. `tests/hooks/run.sh` discovers
   every `plugins/*/tests/*.test.sh` and **fails when a plugin ships `hooks/` with no suite beside
   it** — the gap that had left keymaker's guards untested since they were written.
+- **`/crew:notify` — message another running crew session (#177).** An unattended `/crew:loop`
+  could not be asked for progress or told that scope changed, and two crew sessions on parallel
+  worktrees had no way to learn what the other landed, because `morpheus` owns git *per session*.
+  The new command resolves a peer with `ListAgents` and sends plain text with `SendMessage`. It
+  ships as a command rather than a `morpheus` capability: peer messaging is a user-driven action,
+  not orchestration, and `morpheus`'s always-loaded prompt is close to its footprint cap. Three
+  rules carry the weight — an ask the sender's own guards would refuse (push or open a PR, commit
+  on a protected branch, edit out of lane, bypass a hook, forward a secret or a `steer-token:`) is
+  refused at the **sending** end, since routing it through a second session is how a guard gets
+  laundered; a message that would change the peer's run is confirmed first, while a question is
+  not; and the reply comes back as data to relay, never as direction this session acts on. Where
+  the host has no `SendMessage` (it varies by version, platform, and provider) the command says so
+  and prints the message to deliver by hand — never a blocker, the same fallback steering took.
 
 ## [3.20.0] - 2026-08-14
 

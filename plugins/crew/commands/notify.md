@@ -5,31 +5,45 @@ description: Message another running crew session — ask a long-running loop fo
 Given `$ARGUMENTS`:
 
 ```
-/crew:notify [list] [to=<peer>] -- <message>
+/crew:notify [to=<peer>] -- <message>
+/crew:notify list
 ```
 
-**Split `$ARGUMENTS` on the FIRST ` -- `.** Everything before it is the user's own typed options;
-everything after it, to the end, is the **message** — sent verbatim. Split on the first occurrence
-and never a later one, so a ` -- ` inside the message text lands in the message where it belongs
-and cannot manufacture an option (`AGENTS.md`, *Recurring review findings*).
+Decide which form you have by checking these **in order**; the first that matches wins, and no
+later rule reopens the question.
 
-- **Before the delimiter**, recognize only `list` and `to=`. Anything else there: name it as
-  unrecognized and drop it.
-- **`list` with no ` -- `** → enumerate reachable peers and stop. Nothing is sent.
-- **No ` -- ` anywhere** → the whole of `$ARGUMENTS` is the message and no peer is named. Resolve
-  the target at step 2 rather than guessing one.
+1. **`$ARGUMENTS` is exactly `list`** — that word alone, nothing beside it — → enumerate reachable
+   peers and stop. Nothing is sent. `list` is a mode, not a token to strip out of a longer
+   argument: anything else falls to rule 2 or 3, so a message that merely begins with the word
+   "list" is still a message.
+2. **A ` -- ` is present** → **split on the FIRST one**. Everything before it is the user's own
+   typed options; everything after it, to the end, is the **message**, sent verbatim. Split on the
+   first occurrence and never a later one, so a ` -- ` inside the message text lands in the message
+   where it belongs and cannot manufacture an option (`AGENTS.md`, *Recurring review findings*).
+   **Before the delimiter, recognize only `to=`.** Anything else there — `list` included: name it
+   as unrecognized and drop it.
+3. **No ` -- ` anywhere** → the whole of `$ARGUMENTS` is the message and no peer is named. Resolve
+   the target at step 2 rather than guessing one.
 
 ## 1. Reach — and carry on without it
 
-`ListAgents` enumerates the sessions you can reach; `SendMessage` sends to one. Both depend on the
-host's version, platform, and provider, and crew runs on machines you know nothing about. **Neither
-in reach → this is not an error and not a blocker.** Say so in one line, print the message the user
-typed so they can deliver it by hand, and stop. Never report it as a failure of the peer.
+`ListAgents` enumerates the sessions you can reach; `SendMessage` sends to one. They are two tools
+with two independent absences, and collapsing them is how this command starts reporting a host
+limitation as a fact about the peers. Both depend on the host's version, platform, and provider,
+and crew runs on machines you know nothing about — so a missing tool is never a reason to stop and
+report.
 
-One case reads like "no peers" and isn't: in a session **hosted by `crew:morpheus`**
-(`claude --agent crew:morpheus`), `SendMessage` is granted but `ListAgents` is not, so enumeration
-comes back empty however many sessions are running. Require an explicit `to=` there, and say which
-of the two is missing.
+- **`SendMessage` out of reach** → nothing can be sent, whatever `ListAgents` says. Not an error
+  and not a blocker: say so in one line, print the message the user typed so they can deliver it by
+  hand, and stop. Never report it as a failure of the peer.
+- **`ListAgents` out of reach, `SendMessage` in reach** → sending works; discovery does not.
+  Require an explicit `to=`, address it exactly as typed, and say that the name could not be
+  checked against a live row. This is the shape of a session **hosted by `crew:morpheus`**
+  (`claude --agent crew:morpheus`), whose grant carries `SendMessage` and no `ListAgents`. Say
+  which tool is missing — never that there are no peers, which is a different answer you are not
+  in a position to give.
+- **Both in reach** → enumeration is a real, checked answer, so an empty result means what it says.
+  Step 2 handles it.
 
 ## 2. Resolve the peer
 

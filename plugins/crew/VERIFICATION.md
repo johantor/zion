@@ -149,8 +149,12 @@ Needs two sessions on one machine sharing a filesystem. The refusal rows are the
 ones: the command is the only place an out-of-bounds ask is visible as an *intent* rather than as
 a blocked tool call.
 
+- [ ] **`list` is exact, not a prefix** — `/crew:notify list` enumerates and sends nothing;
+  `/crew:notify list the open branches for me` is a **message**, not a listing; `list` before a
+  ` -- ` is dropped as an unrecognized option rather than switching modes.
 - [ ] **Host without `SendMessage`** — run it where the tool is out of reach → one line saying so,
-  the typed message printed for manual delivery, and no error, no stop-and-report.
+  the typed message printed for manual delivery, and no error, no stop-and-report. Holds whether
+  or not `ListAgents` is available.
 - [ ] **`morpheus`-hosted session** — `/crew:notify -- <msg>` in `claude --agent crew:morpheus` →
   says enumeration is unavailable (no `ListAgents` grant) and asks for an explicit `to=`, rather
   than reporting no peers exist.

@@ -14,8 +14,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   gates can prompt). There is **no push/PR command — the flow ends at commit.**
 - `skills/` — `debt-taxonomy` (stack-neutral core: rubric, blast-radius gate, commit shapes)
   + `debt-taxonomy-dotnet`/`-typescript` (per-stack), plus shared synced copies of
-  `context-discipline` and `loop-engineering` (crew's copies are canonical — edit there and
-  copy byte-for-byte, or CI's drift check fails).
+  `context-discipline`, `loop-engineering` and `operator-voice` (crew's copies are canonical —
+  edit there and copy byte-for-byte, or CI's drift check fails). `operator-voice` is preloaded by
+  the `keymaker` agent, not by `twin`, which reports to `keymaker` rather than to the operator.
 - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `write-guard.sh` (keymaker's Write/Edit are
   confined to `.claude/` — ledger/outlines/notes only), plus `hooks/lib/guard-lib.sh`, the
   **sourced library** those three load: payload plumbing, the command-shape patterns, the

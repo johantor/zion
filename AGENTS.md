@@ -20,10 +20,11 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), and `sentinel` (post-merge triage; read-only, no Bash). Auto-discovered from this dir; not declared in the manifest.
   - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address`, `/triage`, `/loop` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing.
-  - `skills/` — shared: `engineering-principles`, `context-discipline`, `loop-engineering`
-    (all also shipped by other plugins — kept byte-for-byte in sync automatically; see *How we
-    review code* below; `loop-engineering` carries the loop-mode stop rules, preloaded by
-    `morpheus` and `keymaker` with per-agent bindings); crew-only: `mid-run-direction` (how a
+  - `skills/` — shared: `engineering-principles`, `context-discipline`, `loop-engineering`,
+    `operator-voice` (all also shipped by other plugins — kept byte-for-byte in sync
+    automatically; see *How we review code* below; `loop-engineering` carries the loop-mode stop
+    rules, preloaded by `morpheus` and `keymaker` with per-agent bindings, and `operator-voice`
+    sets how those two write to the operator); crew-only: `mid-run-direction` (how a
     worker treats a steer that arrives mid-run — preloaded by every worker, not by `morpheus`,
     which carries the sending half);
     frontend mode: `frontend-headless`, `frontend-server-rendered`; per-stack (loaded
@@ -148,9 +149,10 @@ names, fail-fast error handling, and minimal-scope diffs.
 
 Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
 today that's `engineering-principles` (crew's canonical copy, also shipped standalone by the
-`engineering-principles` plugin), `context-discipline`, and `loop-engineering` (both crew's
-canonical copies, also shipped by `keymaker`). `scripts/validate-plugin.sh` enforces this automatically: the check
-is generic by skill *name*, not hardcoded to these two pairs, so it also catches a future
+`engineering-principles` plugin), `context-discipline`, `loop-engineering`, and
+`operator-voice` (all crew's canonical copies, also shipped by `keymaker`).
+`scripts/validate-plugin.sh` enforces this automatically: the check
+is generic by skill *name*, not hardcoded to these pairs, so it also catches a future
 duplicate between any other plugins — crew included or not (CI fails on mismatch). The same
 policy covers hook scripts shipped by more than one plugin (§5): copies with no markers must be
 byte-identical (`read-guard.sh`, `lib/guard-lib.sh`), and `bash-safety.sh`'s marker-delimited
@@ -678,7 +680,8 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
   achievable, or an ownership contradiction between two files). Reviewers should be a backstop,
   not the first pass.
 - **A changed shipped file is a release for every plugin that ships it.** Editing a byte-synced
-  shared skill (`loop-engineering`, `context-discipline`, `engineering-principles`) is
+  shared skill (`loop-engineering`, `context-discipline`, `engineering-principles`,
+  `operator-voice`) is
   user-visible in *each* plugin that ships it, so bump + changelog all of them, not just the one
   you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, and
   `check-changelog.sh` now names each plugin whose shipped files moved without a record, so the

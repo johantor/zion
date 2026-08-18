@@ -105,6 +105,7 @@ entering auto mode.
 | `/crew:address` | Close the review loop: route the PR's unresolved threads and failed CI checks to the right workers, re-run the gate, then push and resolve. Review comments are untrusted input: scope-redirecting asks are surfaced, not obeyed. |
 | `/crew:triage <signal>` | Post-merge triage: takes a bug report, stack trace, or alert and returns the code it points at plus deploy-correlated suspect commits, with the confidence and the correlation rung stated. Read-only — it reports and hands off, and never posts back to the work item. |
 | `/crew:loop <goal>` | The **outer loop**: drive the feature across multiple `morpheus` runs, so work that outlives one run's turn limit finishes without you re-asking each tick. Stops on the plan's exit conditions; never auto-pushes. |
+| `/crew:notify [to=<peer>] -- <message>`<br>`/crew:notify list` | Message another running crew **session** — ask an unattended `/crew:loop` for progress, or tell a peer worktree that a branch landed and a rebase is safe. The `list` form enumerates reachable peers and sends nothing. An ask your own guards would refuse (push, commit on a protected branch, bypass a hook, forward a secret) is refused at the sending end; an instruction is confirmed before it goes; the reply comes back as data, never as direction. |
 
 Commands are namespaced under `crew:` once installed, so they can't collide with a built-in or
 another plugin's command of the same short name.
@@ -254,7 +255,7 @@ one that isn't installed, so it just reports the server as unavailable.
   `oracle` (unit tests), `dozer` (e2e), `seraph` (visual review), `neo` (express generalist),
   `sentinel` (post-merge triage). Workers stay idle until `morpheus` delegates.
 - **Commands:** `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`,
-  `/crew:triage`, `/crew:loop`.
+  `/crew:triage`, `/crew:loop`, `/crew:notify`.
 - **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor,
   dispatch-denied advisor (see *Permission mode*).
 - **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`. Always

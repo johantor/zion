@@ -21,7 +21,12 @@ anything stated here updates this file in the same commit.** Conventions live in
   nesting `/crew:feature` — on the native `/loop` dynamic mode until the plan's exit
   conditions/iteration cap are met; wrapper owns scheduling), `triage` (launches `sentinel` on a
   production signal and relays its report; writes nothing — the write-back to the work item is
-  deliberately not built, see #175 phase 2). Namespaced `crew:*` when installed.
+  deliberately not built, see #175 phase 2), `notify` (peer-session messaging over
+  `ListAgents`/`SendMessage`: resolve a peer, refuse an ask the sender's own guards would block,
+  confirm before an instruction, relay the reply as data — see #177). Namespaced `crew:*` when
+  installed. `notify` is a **command, not a `morpheus` capability**: peer messaging is user-driven,
+  and `morpheus` carries no `ListAgents` grant, so a `--agent crew:morpheus` session can send but
+  not enumerate and needs an explicit `to=`.
 - `skills/` — shared + synced across plugins (crew canonical): `engineering-principles`,
   `context-discipline`, `loop-engineering`, `operator-voice` (ASD-STE-100; **preloaded by `morpheus`** and by
   keymaker's orchestrator — the two agents that report to the operator directly; it governs

@@ -517,52 +517,70 @@ d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugin
 mk_prose_agent "$d/plugins/foo" bar 'See `other:thing` for details.'
 assert_silent "§10 ignores a namespace no plugin here declares" "$d" "other:thing"
 
-# --- §11: init.md §1 slots <-> the CLAUDE.md crew-configuration block ---------
+# --- §11: init.md §1 slot keys <-> .claude/crew.md frontmatter keys -----------
 mk_init_slots() {  # <repo> <slot-lines>
   mkdir -p "$1/plugins/crew/commands"
   printf '## 1. Canonical configuration slots\n\n%s\n\n## 2. Detect\n' "$2" \
     > "$1/plugins/crew/commands/init.md"
 }
-mk_config_block() { printf '# Notes\n\n## Crew configuration\n\n%s\n' "$2" > "$1/CLAUDE.md"; }
+mk_crew_config() {  # <repo> <frontmatter-lines> [body]
+  mkdir -p "$1/.claude"
+  printf -- '---\n%s\n---\n\n%s\n' "$2" "${3:-Notes.}" > "$1/.claude/crew.md"
+}
 
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** — the branch to cut from.
-- **Plan directory** — where plans go.'
-mk_config_block "$d" '- **Base branch:** main'
-assert_emits "§11 bites on a slot missing from the CLAUDE.md block" "$d" \
-  "declares slot 'Plan directory' but CLAUDE.md"
+mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.
+- **Plan directory** (`planDirectory`) — where plans go.'
+mk_crew_config "$d" 'baseBranch: main'
+assert_emits "§11 bites on a slot key missing from .claude/crew.md" "$d" \
+  "declares slot key 'planDirectory' but .claude/crew.md"
 
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** — the branch to cut from.'
-mk_config_block "$d" '- **Base branch:** main
-- **Deploy target:** prod'
-assert_emits "§11 bites on a block entry that is not a declared slot" "$d" \
-  "lists 'Deploy target', which is not a slot"
+mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.'
+mk_crew_config "$d" 'baseBranch: main
+deployTarget: prod'
+assert_emits "§11 bites on a config key that is not a declared slot" "$d" \
+  "carries 'deployTarget:', which is not a slot"
 
-# Only the documented line shapes count as slots: `- **Slot** —` under §1, and
-# `- **Slot:**` in the block. Bold used for emphasis is not a slot declaration.
+# Only the documented shapes count: a `- **Slot** (`key`) —` bullet under §1, and
+# a top-level key inside the frontmatter. Bold used for emphasis is not a slot
+# declaration, and a key named in the file's prose body is not configuration.
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** — the branch to cut from.
+mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.
 - **Note** this bullet is emphasis, not a slot.'
-mk_config_block "$d" '- **Base branch:** main
-- **Heads up** this is prose, not a slot.'
+mk_crew_config "$d" 'baseBranch: main' 'A body line naming deployTarget: prod is prose.'
 assert_silent "§11 ignores a non-slot bold bullet under §1" "$d" "'Note'"
-assert_silent "§11 ignores a bold bullet without a colon in the block" "$d" "'Heads up'"
+assert_silent "§11 ignores a key named in the config file's body" "$d" "deployTarget"
+
+# A slot bullet without its key is not parseable as a slot -- the key is the half
+# that has to agree, so a label-only bullet must not read as a declaration.
+d="$(new_repo)"
+mk_init_slots "$d" '- **Base branch** — the branch to cut from, no key declared.'
+mk_crew_config "$d" 'baseBranch: main'
+assert_emits "§11 bites when a slot bullet declares no key" "$d" \
+  "has no parseable slot list"
 
 # An unparseable slot list must report, not silently verify nothing.
 d="$(new_repo)"
 mk_init_slots "$d" 'No slots here, just prose.'
-mk_config_block "$d" '- **Base branch:** main'
+mk_crew_config "$d" 'baseBranch: main'
 assert_emits "§11 bites when the slot list is unparseable" "$d" \
   "has no parseable slot list"
 
+# Frontmatter with no keys at all is reported, not passed over.
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** — the branch to cut from.
-- **Plan directory** — where plans go.'
-mk_config_block "$d" '- **Base branch:** main
-- **Plan directory:** docs/plans/'
-assert_silent "§11 silent when the slot lists agree" "$d" "not a slot in"
-assert_silent "§11 silent: no missing-slot complaint when they agree" "$d" "but CLAUDE.md's"
+mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.'
+mk_crew_config "$d" '# just a comment'
+assert_emits "§11 bites when the config file has no frontmatter keys" "$d" \
+  "has no frontmatter keys"
+
+d="$(new_repo)"
+mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.
+- **Plan directory** (`planDirectory`) — where plans go.'
+mk_crew_config "$d" 'baseBranch: main
+planDirectory: docs/plans/'
+assert_silent "§11 silent when the slot keys agree" "$d" "not a slot in"
+assert_silent "§11 silent: no missing-key complaint when they agree" "$d" "but .claude/crew.md"
 
 # --- §12: always-loaded footprint is reported, and an opt-in cap is enforced ----
 # mk_capped_agent <plugin_dir> <name> <cap-or-empty> <body-line-count> [skill-ref]

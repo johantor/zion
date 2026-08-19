@@ -12,11 +12,14 @@ anything stated here updates this file in the same commit.** Conventions live in
   rather than comparing screenshots by eye), `neo` (express generalist), `sentinel` (post-merge triage; no Write/Edit/**Bash**,
   so its read-only posture is the `tools:` grant itself and needs no guard hook — history comes
   from the git-host MCP, not local git). Auto-discovered; not in the manifest.
-- `commands/` — `init` (§1 slots are validator §11's source of truth; §5 is a report-only MCP
-  namespace check that writes nothing; §4 also writes the fixed, slot-free `## Crew orchestration`
-  prose **above** the config block — the classifier reads `CLAUDE.md`, and §11 reads from
-  `## Crew configuration` to EOF, so that section must stay above it or its bullets read as
-  slots), `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path),
+- `commands/` — `init` (writes slot values to **`.claude/crew.md`**, one frontmatter key per slot;
+  §1 slot bullets carry their key in backticked parentheses and are validator §11's source of
+  truth, paired against that file's frontmatter keys — the prose body is notes, not config. §3
+  owns what may go in `CLAUDE.md`: the fixed, slot-free `## Crew orchestration` prose, which stays
+  there because auto mode's permission classifier reads only `CLAUDE.md`, plus conventions that
+  clear its plausible-wrong bar. §5 migrates a legacy `## Crew configuration` block out of
+  `CLAUDE.md`; §6 is a report-only MCP namespace check that writes nothing),
+  `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path),
   `address`, `loop` (outer-loop driver: re-launches `morpheus` directly each tick — not by
   nesting `/crew:feature` — on the native `/loop` dynamic mode until the plan's exit
   conditions/iteration cap are met; wrapper owns scheduling), `triage` (launches `sentinel` on a
@@ -83,8 +86,8 @@ anything stated here updates this file in the same commit.** Conventions live in
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
   cross-plugin hook sync §5, hooks.json wiring §6, hook mirror §7, turn-budget table ↔
   agent `maxTurns` lockstep §8, guard rosters ↔ agent `owns-git`/`lane-guarded` lockstep §9,
-  namespaced prose refs resolving §10, `init.md` §1 slots ↔ the root CLAUDE.md crew-config
-  block §11, per-agent always-loaded footprint report + opt-in `loaded-lines-cap` §12,
+  namespaced prose refs resolving §10, `init.md` §1 slot keys ↔ this repo's `.claude/crew.md`
+  frontmatter keys §11, per-agent always-loaded footprint report + opt-in `loaded-lines-cap` §12,
   agent `tools:` MCP grants server-scoped and paired across both install paths §13,
   an `## [Unreleased]` slot at the top of every changelog §2i) and is
   not shipped with this plugin. Two more repo scripts sit beside it:

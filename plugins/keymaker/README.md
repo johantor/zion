@@ -221,9 +221,11 @@ taxonomy data, loaded on demand, not hard-coded stack knowledge.
 
 ## Configuration
 
-keymaker reads the same `CLAUDE.md` **Crew configuration** slots the `crew` plugin uses: build,
-test, and lint commands, and the base branch. If they're unset, it asks once and remembers. No
-separate configuration needed.
+keymaker reads the same crew-configuration slots the `crew` plugin uses: build, test, and lint
+commands, and the base branch. They live in `.claude/crew.md` (one frontmatter key per slot,
+written by `/crew:init`), or in a legacy **Crew configuration** block in `CLAUDE.md` when that
+file is absent. If a slot is unset, keymaker asks once and remembers. No separate configuration
+needed — and none at all is required: without the file it just asks.
 
 **Optional MCP:** [Context7](https://github.com/upstash/context7), for version-specific migration
 notes on upgrades. Without it, keymaker falls back to the package's release page. Key the server

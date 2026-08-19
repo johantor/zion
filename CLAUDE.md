@@ -24,9 +24,12 @@ the active voice, one instruction per sentence, and the same word for the same t
 This applies to what you say to the operator, not to what you write into the repository — files,
 docs, and commit messages keep the repo's own voice.
 
-The rest of this file is what the crew reads at runtime — how the orchestration works, then the
-configuration `morpheus` and the `crew:*` commands read. Both must stay in the project-root
-CLAUDE.md; `/crew:init` reconciles them here.
+The rest of this file describes how the orchestration works. It stays in the project-root
+CLAUDE.md because its reader is anything that reads `CLAUDE.md` to understand this repo —
+including auto mode's permission classifier, which otherwise has only a dispatch label to judge a
+worker delegation by. The crew's **configuration** is not here: it lives in
+[.claude/crew.md](.claude/crew.md), one frontmatter key per slot, written and reconciled by
+`/crew:init`.
 
 ## Crew orchestration
 
@@ -39,40 +42,3 @@ The crew's guard hooks bound what a worker can do: only `morpheus` touches git, 
 the base branch, each worker's edits are confined to its own lane, and destructive shell commands
 are refused. Nothing is pushed and no pull request is opened on its own — `/crew:pr` is the only
 path out of the machine, and the user invokes it.
-
-## Crew configuration
-
-These values are read by the `morpheus` orchestrator and the backend/frontend stack skills.
-Keep them accurate; update them if this repo ever gains app code.
-
-- **Frontend mode:** *unset* — optional here. Pin it (`headless` or `server-rendered`)
-  only to force a choice; otherwise `morpheus` resolves it per project (its memory, or by
-  asking you and then remembering). This repo is the plugin itself and has no frontend.
-- **Backend stack:** *unset* — optional here. Pin it (`dotnet` or `node`) only to force a
-  choice; otherwise `morpheus` resolves it per project. This repo has no backend.
-- **Frontend stack:** *unset* — optional here. Pin it (`react` or `nextjs`) only to force a
-  choice; otherwise `morpheus` resolves it per project. This repo has no frontend.
-- **Frontend e2e tool:** *unset* — optional here. Pin it (`cypress` or `playwright`) only to
-  force a choice; otherwise `morpheus` resolves it per project. This repo has no frontend.
-- **Frontend unit test tool:** *unset* — optional here. Pin it (`vitest`, `jest`, or
-  `cypress`) only to force a choice; otherwise `morpheus` resolves it per project. This repo
-  has no frontend.
-- **Backend lane path(s):** *unset* — only meaningful when backend/frontend stacks are the
-  same language. This repo has no backend.
-- **Frontend lane path(s):** *unset* — same same-language caveat. This repo has no frontend.
-- **Backend test command:** none (no backend test project detected)
-- **Frontend test command:** none (no frontend e2e suite detected)
-- **Backend build command:** none (no build manifest detected) — e.g. `dotnet build`.
-- **Frontend build command:** none (no build manifest detected) — e.g. the project's
-  `build` / `typecheck` script (`tsc --noEmit`, `vite build`, etc.).
-- **Backend lint command:** none (no backend project detected) — e.g. `dotnet format --verify-no-changes`,
-  plus `dotnet csharpier check` when a `.csharpierrc` is present.
-- **Frontend lint command:** none (no frontend project detected) — e.g. the project's
-  `lint` script (`eslint`, `biome check`, `stylelint`, etc.) in report/verify mode.
-- **Base branch:** *unset* — the branch `morpheus` branches off (e.g. `main` / `develop` /
-  trunk). If unset, `morpheus` resolves it per project (its memory, or by asking you).
-- **Branch naming:** *unset* — convention for crew feature branches (e.g. `feature/<ticket>-<slug>`).
-- **Run/dev URL:** none configured
-- **Plan directory:** *unset* — where `morpheus` writes `plan-<feature>.md`. Falls back to
-  `.claude/` when unset; set it (e.g. `docs/plans/`) to keep plans in a committed location.
-- **Notable conventions:** Repository currently contains Claude crew/plugin configuration only.

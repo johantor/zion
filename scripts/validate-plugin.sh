@@ -762,34 +762,41 @@ while IFS= read -r doc; do
 done < <(git ls-files 'plugins/*/agents/*.md' 'plugins/*/commands/*.md' 'plugins/*/skills/*/SKILL.md')
 
 # 11. init.md §1 (the declared source of truth for crew config slots) <-> the
-#     `## Crew configuration` block in the root CLAUDE.md, both directions.
-#     Reads only the two exact line shapes below -- bold elsewhere is emphasis,
-#     not a slot. See AGENTS.md, "Validating changes".
+#     frontmatter keys of this repo's own `.claude/crew.md`, both directions.
+#     Reads only the two exact shapes below -- a `- **Slot** (`key`) —` bullet
+#     under §1, and a top-level `key:` inside the config file's frontmatter --
+#     so bold used for emphasis isn't read as a slot, and a key named in the
+#     file's prose body isn't read as configuration. See AGENTS.md, "Validating
+#     changes".
 init_cmd="plugins/crew/commands/init.md"
-if [ -f "$init_cmd" ] && [ -f CLAUDE.md ]; then
-  # Both patterns require the delimiter the docs describe -- `- **Slot** —` here
-  # and `- **Slot:**` in the block -- so a non-slot bold bullet isn't read as one.
-  init_slots="$(sed -n '/^## 1\./,/^## 2\./p' "$init_cmd" | sed -n 's/^- \*\*\([^*]*\)\*\* —.*/\1/p')"
-  cfg_block="$(sed -n '/^## Crew configuration/,$p' CLAUDE.md)"
+crew_cfg=".claude/crew.md"
+if [ -f "$init_cmd" ] && [ -f "$crew_cfg" ]; then
+  # A slot declares its key in backticked parentheses; that is what the config
+  # file carries, so the key -- not the prose label -- is what must agree.
+  init_slots="$(sed -n '/^## 1\./,/^## 2\./p' "$init_cmd" \
+    | sed -n 's/^- \*\*[^*]*\*\* (`\([A-Za-z][A-Za-z0-9]*\)`) —.*/\1/p')"
+  # Frontmatter only: from the opening `---` to the closing one. The body is
+  # free-text notes, and a key mentioned there is prose, not configuration.
+  cfg_keys="$(awk 'NR==1 && $0=="---"{inside=1; next} inside && $0=="---"{exit} inside' "$crew_cfg" \
+    | sed -n 's/^\([A-Za-z][A-Za-z0-9]*\):.*/\1/p')"
   if [ -z "$init_slots" ]; then
-    err "$init_cmd has no parseable slot list under '## 1.' (expected '- **<Slot>** -- ...' lines); cannot verify the CLAUDE.md config block"
-  elif [ -z "$cfg_block" ]; then
-    err "CLAUDE.md has no '## Crew configuration' section; $init_cmd §1 declares slots that reconcile must write there"
+    err "$init_cmd has no parseable slot list under '## 1.' (expected '- **<Slot>** (\`key\`) -- ...' lines); cannot verify $crew_cfg"
+  elif [ -z "$cfg_keys" ]; then
+    err "$crew_cfg has no frontmatter keys; $init_cmd §1 declares slots that reconcile must write there"
   else
-    cfg_slots="$(grep -oE '^- \*\*[^*]+:\*\*' <<<"$cfg_block" | sed 's/^- \*\*//; s/:\*\*$//' || true)"
     while IFS= read -r s; do
       [ -z "$s" ] && continue
-      if grep -qxF "$s" <<<"$cfg_slots"; then
-        ok "crew config slot '$s' present in CLAUDE.md"
+      if grep -qxF "$s" <<<"$cfg_keys"; then
+        ok "crew config slot '$s' present in $crew_cfg"
       else
-        err "$init_cmd §1 declares slot '$s' but CLAUDE.md's '## Crew configuration' block has no '- **$s:**' entry; /crew:init would write a slot the block never carries"
+        err "$init_cmd §1 declares slot key '$s' but $crew_cfg has no '$s:' key; /crew:init would write a slot this repo's own config never carries"
       fi
     done <<<"$init_slots"
     while IFS= read -r u; do
       [ -z "$u" ] && continue
       grep -qxF "$u" <<<"$init_slots" || \
-        err "CLAUDE.md's '## Crew configuration' block lists '$u', which is not a slot in $init_cmd §1 (the declared source of truth); add it there or drop it here"
-    done <<<"$cfg_slots"
+        err "$crew_cfg carries '$u:', which is not a slot in $init_cmd §1 (the declared source of truth); add it there or drop it here"
+    done <<<"$cfg_keys"
   fi
 fi
 

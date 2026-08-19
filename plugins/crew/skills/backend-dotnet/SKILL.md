@@ -18,7 +18,7 @@ rather than reworking the markup yourself. In headless mode, Razor is entirely y
 
 ## Build
 
-Use the one-shot backend build command from `CLAUDE.md` (e.g. `dotnet build`), never a
+Use the one-shot backend build command from crew config (e.g. `dotnet build`), never a
 watch/run command (`dotnet watch`, `dotnet run`) — those never terminate. A file-lock/in-use
 error (`MSB3027`/`MSB3026`, "being used by another process") is **environmental** (a running
 app/dev process is locking outputs), not a code error — report it as such.

@@ -34,7 +34,7 @@ claude plugin install crew@zion
 | **[keymaker](plugins/keymaker/README.md)** | [Beta](plugins/keymaker/README.md#graduation-to-stable-v10) | Pointer-driven tech debt remediation and dependency upgrades: fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:*` commands, agents, safety hooks, skills |
 | **[engineering-principles](plugins/engineering-principles/README.md)** | Stable | The code-review rubric used across the suite, packaged standalone for teams who only want the standards. | One skill: no commands, agents, or hooks |
 
-The plugins are designed to compose: they share the same `CLAUDE.md`
+The plugins are designed to compose: they share the same `.claude/crew.md`
 configuration slots and the same review rubric, so installing more than one adds
 capability without conflicts. `crew` already bundles the `engineering-principles`
 rubric; install the standalone plugin only if you *don't* use `crew`.

@@ -5,7 +5,7 @@ description: Playwright e2e test conventions — spec writing, fixture/mock patt
 
 # Frontend e2e tests: Playwright
 
-Write and run frontend e2e specs using Playwright conventions and the repository's frontend test command from `CLAUDE.md`.
+Write and run frontend e2e specs using Playwright conventions and the repository's frontend test command from crew config.
 
 - Spec files typically live in `tests/` or `e2e/` (configured via `playwright.config.*`). In
   crew, keep them in a structured e2e location — `e2e/` or `tests/e2e/` — so they stay in

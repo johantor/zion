@@ -51,13 +51,15 @@ steered mid-run and can tell your message from one injected by the output it's r
 
 1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
 2. **Build** — delegate each changed lane's build to its owner, both isolated from any running app/dev process and in the session's dedicated build location, surfacing errors with file:line (not the raw log):
-   - *backend lane changed* → `crew:tank` runs the **backend build command** from `CLAUDE.md`.
-   - *frontend lane changed* → `crew:trinity` runs the **frontend build command** from `CLAUDE.md` (e.g. `tsc --noEmit` / `vite build`).
-3. **Backend lint** — *only if the backend lane changed*: run the backend lint command from `CLAUDE.md` (verify mode — e.g. `dotnet format --verify-no-changes`, plus `dotnet csharpier check` when a `.csharpierrc` is present); surface lint/format violations.
+   - *backend lane changed* → `crew:tank` runs the **backend build command** from crew config.
+   - *frontend lane changed* → `crew:trinity` runs the **frontend build command** from crew config (e.g. `tsc --noEmit` / `vite build`).
+3. **Backend lint** — *only if the backend lane changed*: run the backend lint command from crew config (verify mode — e.g. `dotnet format --verify-no-changes`, plus `dotnet csharpier check` when a `.csharpierrc` is present); surface lint/format violations.
 4. **Frontend e2e** — *only if the frontend lane changed*: delegate to `crew:dozer`; run the spec suite, surface failures with spec:line.
-5. **Frontend lint** — *only if the frontend lane changed*: run the frontend lint command from `CLAUDE.md`; surface lint errors.
+5. **Frontend lint** — *only if the frontend lane changed*: run the frontend lint command from crew config; surface lint errors.
 
-If a gate's command is unset / `none` in `CLAUDE.md`, skip it with that note (not a failure).
+Crew config is `.claude/crew.md` (or a legacy **Crew configuration** block in `CLAUDE.md`, when
+that file is absent). If a gate's command is `unset` / `none` there, skip it with that note (not a
+failure).
 
 ## 3. Run the review
 

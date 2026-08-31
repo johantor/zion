@@ -579,14 +579,15 @@ over a multi-sentence paragraph restating each principle's contents.
 - Agent/command/skill definitions are Markdown with YAML frontmatter — match the field
   shape of existing files in the same directory.
 - Local agent memory lives in `.claude/agent-memory-local/` and is gitignored. Don't commit it.
-  It resolves relative to the project directory, and so does the plan directory (`<plan-dir>`,
-  `.claude/` when the slot is unset), so in a **git worktree** both live inside that worktree and
-  `git worktree remove` destroys them with it. The next worktree then starts cold and re-asks what
-  the last one already answered, while the same session in the main checkout keeps everything.
-  Nothing in this repo computes either path — `memory: local` is agent frontmatter the harness
-  resolves — so this is a property to work around rather than a setting to change: crew
-  configuration in `.claude/crew.md` is committed and survives, and `planDirectory` can name a
-  committed path (e.g. `docs/plans/`) when a plan must outlive the worktree.
+  It resolves relative to the project directory, as the plan directory does (`<plan-dir>`,
+  `.claude/` when the slot is unset), so in a **git worktree** both sit inside that worktree and
+  `git worktree remove` deletes those working copies. Only committed content outlives it. Memory is
+  gitignored, so it is lost outright and the next worktree starts cold, re-asking what the last one
+  already answered; a plan survives only if it was committed, which is what pointing
+  `planDirectory` at a tracked path (e.g. `docs/plans/`) is for, rather than the untracked
+  `.claude/` fallback. Crew configuration is unaffected — `.claude/crew.md` is committed. Nothing
+  in this repo computes either path (`memory: local` is agent frontmatter the harness resolves), so
+  this is a property to work around, not a setting to change.
 - Keep diffs minimal-scope; list unrelated improvements rather than bundling them.
 - PR titles follow Conventional Commits: `type(scope): summary`, with a `(vX.Y.Z)` suffix
   when the PR bumps a plugin version. Use `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope

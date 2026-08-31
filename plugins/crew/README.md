@@ -137,8 +137,9 @@ Three `PreToolUse` guards enforce the boundaries and **fail closed**; three advi
   `git commit` while HEAD is `main`/`master`/`develop`.
 - **Each worker's edits stay in its lane.** `tank` and `trinity` are denied the other side's
   files; `oracle`/`dozer` are restricted to their test paths; `seraph` is read-only (`neo` is
-  unrestricted by design; that's the express lane). This guards `Edit`/`Write`; writes shelled
-  out through Bash are governed by the agent prompts, not the hook.
+  unrestricted by design; that's the express lane). This guards `Edit`/`Write` — and file-mutating
+  Bash (`sed -i`, `tee`, a `>` redirect, `cp`/`mv`) is refused outright, so a write cannot route
+  around the lane or skip formatting.
 - **Destructive and hanging commands are refused.** Recursive force-`rm` of `/`/`~`/`*`,
   force-push, redirects into `.env` or `.git/`, and never-terminating watch/dev/serve commands.
 - **Context stays bounded.** Raw reads over 64 KiB are blocked in favour of grep/jq, and agents
@@ -151,7 +152,8 @@ intercepted**.
 <summary>Hook mechanics in detail</summary>
 
 - **lane-guard** routes on the payload's `agent_type` and guards `Edit`/`Write` only. File
-  writes via Bash (`sed -i`, `tee`, redirects) are governed by the agent prompts, not this hook.
+  writes via Bash (`sed -i`, `tee`, redirects) are refused by **bash-safety** instead, so there is
+  one enforcement point rather than two lane implementations that can drift.
   Two regimes: extension-based globs by default (correct when backend and frontend are different
   languages, e.g. dotnet+react), or directory-based paths (the `backendLanePaths` /
   `frontendLanePaths` slots) when both resolved stacks are the same language (e.g. node+nextjs) and an
@@ -161,8 +163,13 @@ intercepted**.
   ≤ 2000 lines passes. See the `context-discipline` skill.
 - **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*` in any flag
   spelling, force-push via `--force` or `-f`, redirects into `.env`, redirects or `rm` into
-  `.git/`) and raw/streaming reads (`cat`, `less`, `tail -f`). `seraph` has no Bash tool, so it
-  needs no entry. Whatever your *resolved* base branch is (`develop`, `trunk`, …), `morpheus` and
+  `.git/`) and raw/streaming reads (`cat`, `less`, `tail -f`). For agent sessions it also refuses
+  file-mutating Bash — an in-place `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, and any
+  redirect whose target is not an exempt sink (`/dev/null`, an fd dup, the temp directories) — and
+  names `Edit`/`Write` instead. That half is a floor, not a sandbox: a build's own code generator
+  still writes files, and a write hidden inside a quoted `bash -c` string is not read as one. What
+  it closes is the routine path, the one auto mode's own notice recommends. `seraph` has no Bash
+  tool, so it needs no entry. Whatever your *resolved* base branch is (`develop`, `trunk`, …), `morpheus` and
   `/crew:pr` keep the crew off it too.
 - **format** runs the project's formatters after an edit, scoped to the changed file and routed
   by **extension** (not by agent, since `tank`, `trinity`, or `neo` can each touch either lane):

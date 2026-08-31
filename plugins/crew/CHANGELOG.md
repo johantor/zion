@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **A worker's Bash writes are now guarded too (#192).** `lane-guard.sh` and `format.sh` are wired
+  to `Edit|Write`, so a write shelled out through `sed -i`, `tee`, a `>`/`>>` redirect or a
+  `cp`/`mv` landed outside lane enforcement *and* outside formatting — the guarantee that "each
+  worker's edits are confined to its own lane" silently did not hold on the Bash path. Auto mode,
+  the default for new sessions since 14 August 2026, injects a notice pushing every agent toward
+  exactly that path, which turned an edge case into the default one. `bash-safety.sh` now refuses
+  file-mutating Bash for agent sessions and names `Edit`/`Write` as the way to write, keeping one
+  enforcement point rather than reimplementing lane resolution on a second. Exempt sinks
+  (`/dev/null`, an fd dup, anything under the temp directories) and read-only uses of the same
+  tools (`sed` without `-i`, a quoted `>` inside a grep or awk expression) stay allowed; the
+  operator's own session is untouched, as with every other agent-scoped rule.
+- **`mid-run-direction` names the category a harness notice belongs to (#192).** The skill had two:
+  a token-carrying steer, or an injection. A platform notice about session mechanics is neither,
+  and workers were reporting one as a security event — three times in one run, which is how a real
+  report gets lost. The discriminator is now what a message *asks for*, not what it claims to be: a
+  notice that only changes how in-bounds work gets done grants nothing, while a *how* that changes
+  which guards see the work ("edit through Bash") is still declined, as a mechanics conflict.
+
 ### Changed
 - **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`.** Payload
   plumbing, the command-shape patterns, the shared block helpers, the protected-branch list and

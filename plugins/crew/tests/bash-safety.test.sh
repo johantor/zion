@@ -55,6 +55,34 @@ assert_block "less a file"    "$HOOK" "$(payload_bash 'less foo.txt' tank)"     
 assert_block "tail -f a log"  "$HOOK" "$(payload_bash 'tail -f app.log' tank)"  "streaming raw output"
 assert_allow "cat piped into grep" "$HOOK" "$(payload_bash 'cat foo.txt | grep x' tank)"
 
+# --- File writes through Bash (agent sessions only) ---------------------------
+# lane-guard and format.sh are wired to Edit|Write, so a Bash write would land
+# outside both. Blocking it here keeps one enforcement point instead of
+# reimplementing lane resolution on the Bash path (#192).
+gap="reaches no Edit|Write hook"
+assert_block "sed -i"             "$HOOK" "$(payload_bash "sed -i 's/a/b/' src/Foo.cs" tank)"   "$gap"
+assert_block "sed -i.bak"         "$HOOK" "$(payload_bash 'sed -i.bak s/a/b/ src/Foo.cs' tank)" "$gap"
+assert_block "perl -pi -e"        "$HOOK" "$(payload_bash "perl -pi -e 's/a/b/' src/Foo.cs" tank)" "$gap"
+assert_block "sed -i under -exec" "$HOOK" "$(payload_bash "find . -name '*.cs' -exec sed -i s/a/b/ {} +" tank)" "$gap"
+assert_block "redirect into a file"   "$HOOK" "$(payload_bash 'echo x > src/Foo.cs' tank)"  "$gap"
+assert_block "glued redirect"         "$HOOK" "$(payload_bash 'echo x>src/Foo.cs' tank)"    "$gap"
+assert_block "append redirect"        "$HOOK" "$(payload_bash 'printf x >> README.md' tank)" "$gap"
+assert_block "quoted redirect target" "$HOOK" "$(payload_bash 'echo x > "src/Foo.cs"' tank)" "quoted path"
+assert_block "tee into a file"        "$HOOK" "$(payload_bash 'cat t | tee src/Foo.cs' tank)" "$gap"
+assert_block "cp into the tree"       "$HOOK" "$(payload_bash 'cp /tmp/x src/Foo.cs' tank)"  "$gap"
+assert_block "mv inside the tree"     "$HOOK" "$(payload_bash 'mv src/a.cs src/b.cs' tank)"  "$gap"
+assert_block "patch"                  "$HOOK" "$(payload_bash 'patch -p1 < fix.diff' tank)"  "$gap"
+# Exempt sinks and read-only uses of the same tools stay allowed: a guard that
+# blocked `> /dev/null` would just be routed around.
+assert_allow "redirect to /dev/null"  "$HOOK" "$(payload_bash 'dotnet build > /dev/null' tank)"
+assert_allow "fd dup (2>&1)"          "$HOOK" "$(payload_bash 'dotnet build 2>&1 | grep -c warning' tank)"
+assert_allow "redirect under /tmp"    "$HOOK" "$(payload_bash 'dotnet build > /tmp/build.log 2>&1' tank)"
+assert_allow "sed without -i"         "$HOOK" "$(payload_bash "sed 's/a/b/' src/Foo.cs | head -5" tank)"
+assert_allow "sed -n (bounded read)"  "$HOOK" "$(payload_bash "sed -n '1,20p' src/Foo.cs" tank)"
+assert_allow "quoted > in a pattern"  "$HOOK" "$(payload_bash 'grep -rn "a>b" src' tank)"
+assert_allow "awk expression with >"  "$HOOK" "$(payload_bash "awk '\$3 > 5 {print}' report.txt" tank)"
+assert_allow "Bash write in a no-agent session" "$HOOK" "$(payload_bash 'echo x > src/Foo.cs')"
+
 # --- Fail closed on unparseable input -----------------------------------------
 assert_block "non-JSON payload fails closed" "$HOOK" 'this is not json' "could not parse"
 

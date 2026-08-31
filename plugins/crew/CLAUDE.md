@@ -42,7 +42,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   skills load dynamically once resolved. Skill = `<name>/SKILL.md`, frontmatter `name:` +
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
-  backstop; watch/dev commands refused), `read-guard.sh` (>64 KiB raw reads; an explicit
+  backstop; watch/dev commands refused; **file-mutating Bash refused for agent sessions** — an
+  in-place `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, and a redirect to anything but an
+  exempt sink — so a Bash write can't route around `lane-guard`/`format.sh`, which are
+  `Edit|Write`-only; #192), `read-guard.sh` (>64 KiB raw reads; an explicit
   `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes). Both guards gate on a
   hardcoded agent-name roster, each preceded by a `# crew-roster: <name>` marker whose
   following `a|b|c)` arm shape is load-bearing — validator §9 keeps those rosters in lockstep
@@ -57,7 +60,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   `hooks/lib/guard-lib.sh` is the **sourced library** every entry point above loads: payload
   plumbing (`guard_read_payload`, `guard_jq2`), the command-shape patterns
   (`GUARD_RE_*`), the shared block helpers (`guard_block_destructive` /
-  `_watch_commands` / `_raw_reads` / `_protected_branch_commit`), the protected-branch list,
+  `_watch_commands` / `_raw_reads` / `_file_writes` / `_protected_branch_commit`), the
+  quote masking `_file_writes` needs (a `>` inside a string is not a redirect, a quoted
+  target still is a write), the protected-branch list,
   read-guard's limits, and the TTL-swept state-file helper. It is the one file in `hooks/`
   that must **not** be executable and must **not** be wired (validator §3/§6) — it has no
   main. Matching goes through bash's `=~` and parameter expansion, never `echo | grep`: these

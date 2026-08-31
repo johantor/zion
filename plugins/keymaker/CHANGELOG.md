@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **A twin's Bash writes are now guarded too (crew #192).** `write-guard.sh` is wired to
+  `Edit|Write`, so a write shelled out through `sed -i`, `tee`, a redirect or a `cp`/`mv` reached no
+  guard at all. The shared floor in `bash-safety.sh` now refuses file-mutating Bash for agent
+  sessions and names `Edit`/`Write` instead; exempt sinks (`/dev/null`, an fd dup, the temp
+  directories) and read-only uses of the same tools stay allowed, and the operator's own session is
+  untouched.
+
 ### Changed
 - **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`,** vendored
   byte-identically from crew. `bash-safety.sh`, `read-guard.sh` and `write-guard.sh` source it

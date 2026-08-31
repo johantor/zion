@@ -33,6 +33,11 @@ assert_allow "vite build (not a dev server)"     "$HOOK" "$(payload_bash 'vite b
 assert_allow "--watch=false (disable spelling)"  "$HOOK" "$(payload_bash 'jest --watch=false' twin)"
 assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm run dev')"
 
+assert_block "sed -i"                "$HOOK" "$(payload_bash "sed -i 's/a/b/' src/Foo.cs" twin)" "reaches no Edit|Write hook"
+assert_block "redirect into a file"  "$HOOK" "$(payload_bash 'echo x > src/Foo.cs' twin)"        "reaches no Edit|Write hook"
+assert_allow "redirect to /dev/null" "$HOOK" "$(payload_bash 'npm run build > /dev/null' twin)"
+assert_allow "Bash write in a no-agent session" "$HOOK" "$(payload_bash 'echo x > src/Foo.cs')"
+
 assert_block "cat a file"    "$HOOK" "$(payload_bash 'cat foo.txt' twin)"     "unbounded cat"
 assert_block "less a file"   "$HOOK" "$(payload_bash 'less foo.txt' twin)"    "interactive raw reads"
 assert_block "tail -f a log" "$HOOK" "$(payload_bash 'tail -f app.log' twin)" "streaming raw output"

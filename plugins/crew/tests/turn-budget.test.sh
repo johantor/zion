@@ -42,23 +42,23 @@ assert_quiet() {
 CREW_TURN_BUDGET_DIR="$(new_tmpdir)"
 export CREW_TURN_BUDGET_DIR
 
-# --- Thresholds (seraph: budget 40 -> wind-down at 30, stop at 36) -------------
+# --- Thresholds (seraph: budget 60 -> wind-down at 45, stop at 54) -------------
 # Keyed to seraph's `maxTurns`, which validator §8 keeps in lockstep with the
 # hook's table — a budget change lands here too, or these thresholds go stale.
-# Calls 1-29: silent.
-call_n 29 seraph /tmp/t/seraph-a.jsonl
+# Calls 1-44: silent.
+call_n 44 seraph /tmp/t/seraph-a.jsonl
 if [ "$_status" -eq 0 ] && [ -z "$_stderr" ]; then _pass; else _fail "silent below 75%: expected exit 0 with no stderr, got exit $_status — $_stderr"; fi
-# Call 30 (75%): wind-down warning, once.
-assert_block "wind-down warning at 75%" turn-budget.sh "$(payload_post seraph /tmp/t/seraph-a.jsonl)" "Turn budget: ~30/40"
-# Calls 31-35: silent again — the 75% warning fires exactly once. Asserted per
+# Call 45 (75%): wind-down warning, once.
+assert_block "wind-down warning at 75%" turn-budget.sh "$(payload_post seraph /tmp/t/seraph-a.jsonl)" "Turn budget: ~45/60"
+# Calls 46-53: silent again — the 75% warning fires exactly once. Asserted per
 # call, not in bulk: a regression that re-fires the warning mid-window has to
 # fail here, and call_n keeps only the last call's status.
-for _n in 31 32 33 34 35; do
+for _n in 46 47 48 49 50 51 52 53; do
   assert_quiet "call $_n silent between the 75% and 90% thresholds" "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
 done
-# Call 36 (90%): stop-now warning, once; 37+: silent.
+# Call 54 (90%): stop-now warning, once; 55+: silent.
 assert_block "stop-now warning at 90%" turn-budget.sh "$(payload_post seraph /tmp/t/seraph-a.jsonl)" "Stop now"
-assert_quiet "call 37 silent after the 90% warning fired once" "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
+assert_quiet "call 55 silent after the 90% warning fired once" "$(payload_post seraph /tmp/t/seraph-a.jsonl)"
 
 # --- Instance isolation: a different transcript keeps its own counter ----------
 assert_quiet "fresh transcript starts a fresh counter" "$(payload_post seraph /tmp/t/seraph-b.jsonl)"

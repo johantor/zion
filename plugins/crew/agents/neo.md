@@ -3,7 +3,7 @@ name: neo
 description: Express-lane generalist for small, low-risk changes (a typo, a rename, a constant, an obvious one-liner, a small localized bug) — possibly cross-lane. Invoked by the morpheus orchestrator on its size-triage express path. Not for standalone or automatic use.
 tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, mcp__context7, mcp__plugin_context7_context7
 model: sonnet
-maxTurns: 48
+maxTurns: 72
 color: blue
 memory: local
 owns-git: false

@@ -76,6 +76,13 @@ assert_block "noclobber override"     "$HOOK" "$(payload_bash 'echo x >| src/Foo
 assert_block "glued >| redirect"      "$HOOK" "$(payload_bash 'echo x >|src/Foo.cs' tank)"  "$gap"
 # `-` means stdout to some commands, but `> -` writes a file named `-`.
 assert_block "redirect into a file named -" "$HOOK" "$(payload_bash 'echo x > -' tank)"     "$gap"
+# A glob metacharacter in an earlier, exempt target must not derail the scan of
+# the later ones. The trim that advances past a match interpolates it *quoted*,
+# which keeps it literal inside `${var#pattern}`; unquoted it would match
+# nothing, leave `rest` unchanged and loop forever.
+assert_block "redirect after a bracketed exempt target" "$HOOK" "$(payload_bash 'cmd > /tmp/out[1] > src/Foo.cs' tank)" "$gap"
+assert_block "redirect after a starred exempt target"   "$HOOK" "$(payload_bash 'cmd > /tmp/a*b > src/Foo.cs' tank)"    "$gap"
+assert_allow "bracketed exempt target alone"            "$HOOK" "$(payload_bash 'cmd > /tmp/out[1] > /dev/null' tank)"
 assert_block "tee into a file"        "$HOOK" "$(payload_bash 'cat t | tee src/Foo.cs' tank)" "$gap"
 assert_block "cp into the tree"       "$HOOK" "$(payload_bash 'cp /tmp/x src/Foo.cs' tank)"  "$gap"
 assert_block "mv inside the tree"     "$HOOK" "$(payload_bash 'mv src/a.cs src/b.cs' tank)"  "$gap"

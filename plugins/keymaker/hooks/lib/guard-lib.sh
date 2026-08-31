@@ -288,7 +288,12 @@ guard_block_file_writes() {
       [ "$target" = "$GUARD_QUOTED" ] && target='a quoted path'
       guard_write_refuse "a redirect into $target"
     fi
-    rest="${rest#*"${BASH_REMATCH[0]}"}"          # every match is >= 1 char, so this terminates
+    # Advance past this match. The interpolation stays QUOTED: that keeps a glob
+    # metacharacter in the matched text (`> /tmp/out[1]`) literal, so the trim
+    # lands where the match ended and the next redirect is still scanned.
+    # Unquoted it would be a pattern, match nothing, and loop forever. Every
+    # match is at least one character, so this terminates.
+    rest="${rest#*"${BASH_REMATCH[0]}"}"
   done
 }
 

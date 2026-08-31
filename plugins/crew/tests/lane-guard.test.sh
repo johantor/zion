@@ -56,10 +56,30 @@ fm_quoted="$(make_crew_md 'backendStack: node
 frontendStack: nextjs
 backendLanePaths: "src/api"
 frontendLanePaths: '"'"'src/web'"'"'')"
-# A .cs path is the discriminator: the extension regime tank falls back to when a
-# lane path is unreadable leaves .cs alone, so only a real lane blocks this.
+# A .cs path is the discriminator here and in the two cases below: the extension
+# regime tank falls back to when a lane path is unreadable leaves .cs alone, so
+# only a real lane blocks this. An unreadable lane path fails *open* — the glob
+# matches nothing, which reads as no lane at all.
 assert_block "frontmatter: quoted lane paths still confine tank" \
   "$HOOK" "$(payload_file tank src/web/page.cs)" "out of" "$fm_quoted"
+
+# A YAML inline comment is not part of the value. /crew:init writes none, but the
+# file is hand-editable and the legacy block had its own comment convention.
+fm_comment="$(make_crew_md 'backendStack: node
+frontendStack: nextjs
+backendLanePaths: src/api # the service
+frontendLanePaths: "src/web" # the app')"
+assert_block "frontmatter: an inline comment is not part of the lane path" \
+  "$HOOK" "$(payload_file tank src/web/page.cs)" "out of" "$fm_comment"
+
+# ...but a `#` with no whitespace before it is an ordinary scalar character, so
+# the comment scan must anchor on the space rather than on the first `#`.
+fm_hash="$(make_crew_md 'backendStack: node
+frontendStack: nextjs
+backendLanePaths: src/api#2
+frontendLanePaths: src/web#2')"
+assert_block "frontmatter: a bare # stays part of the lane path" \
+  "$HOOK" "$(payload_file tank 'src/web#2/page.cs')" "out of" "$fm_hash"
 
 # Every slot at its `unset` placeholder is not configuration: the guard must fall
 # through to marker detection, not treat "unset" as a stack or a lane path.

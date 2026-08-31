@@ -106,12 +106,19 @@ config_slot() {
       esac
     fi
     v="${v#"${v%%[![:space:]]*}"}"       # trim leading whitespace
+    # A YAML scalar may be quoted, and an unquoted one ends at a `#` that follows
+    # whitespace (a `#` with no space before it is part of the scalar). Unwrap
+    # before scanning for the comment, so a `#` inside quotes stays in the value.
+    # Left in place, either would build a lane glob matching nothing -- which
+    # reads as "no lane" and widens the agent silently, rather than failing closed.
+    if [ "$_cfg_kind" = frontmatter ]; then
+      case "$v" in
+        '"'*) v="${v#\"}"; v="${v%%\"*}" ;;
+        "'"*) v="${v#\'}"; v="${v%%\'*}" ;;
+        *[[:space:]]'#'*) v="${v%%[[:space:]]#*}" ;;
+      esac
+    fi
     v="${v%"${v##*[![:space:]]}"}"       # trim trailing whitespace
-    # A YAML scalar may be quoted; the slots are plain strings either way, and an
-    # unstripped quote would silently build a lane glob that matches nothing.
-    case "$v" in
-      '"'*'"'|"'"*"'") v="${v:1:${#v}-2}" ;;
-    esac
     break
   done <<<"$_cfg_text"
   case "$v" in

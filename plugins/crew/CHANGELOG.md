@@ -20,8 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   extension lanes and dropped a pinned `Backend stack`. The guard now reads the frontmatter by
   key and falls back to a legacy **Crew configuration** block only when `.claude/crew.md` is
   absent, so migrated and unmigrated projects both work. Only the frontmatter is parsed — a slot
-  quoted in the file's prose body is not configuration — and the five block messages name
-  `.claude/crew.md` as the file to edit.
+  quoted in the file's prose body is not configuration — and a value is read as YAML: a quoted
+  scalar is unwrapped and an inline `#` comment dropped, since either left in place builds a lane
+  glob that matches nothing, which reads as no lane at all and widens the agent instead of failing
+  closed. The five block messages name `.claude/crew.md` as the file to edit.
 
 ### Changed
 - The hooks' inline comments were cut back to what the code cannot say itself. `guard-lib.sh` and

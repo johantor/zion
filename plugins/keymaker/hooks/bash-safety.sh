@@ -35,11 +35,13 @@ guard_normalize "$guard_untrusted"
 
 # --- BEGIN shared guard: floor ---
 # The floor every plugin's Bash guard enforces, in this order. Destructive ops
-# are refused for everyone; the watch/dev/serve block is scoped to agent
-# sessions, since the user's own session may legitimately run a dev server.
+# are refused for everyone; the watch/dev/serve and file-write blocks are scoped
+# to agent sessions, since the user's own session may legitimately run a dev
+# server, and is not write-guarded on the Edit|Write path either.
 guard_block_destructive
 [ -n "$agent_type" ] && guard_block_watch_commands
 guard_block_raw_reads
+[ -n "$agent_type" ] && guard_block_file_writes
 # --- END shared guard: floor ---
 
 # Twins never run git -- keymaker owns branching and per-batch commits

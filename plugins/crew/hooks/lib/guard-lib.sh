@@ -112,8 +112,12 @@ _g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]
 # the safe --force-with-lease / --force-if-includes -- `-[A-Za-z]*f` cannot
 # cross their second dash); a redirect into .env; a redirect or removal aimed
 # inside the repository's own git directory.
+#
+# `\|?` after every redirect operator covers `>|`, the noclobber override: it is
+# a redirect like any other, and without it `echo s >| .env` reads as a `>` with
+# the target hidden behind the `|`.
 _g_dotgit='\.git/'
-GUARD_RE_DESTRUCTIVE="${_g_rm_rf}"'|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|$)|-[A-Za-z]*f)|>>?[[:space:]]*\.env|>>?[^|;&]*'"${_g_dotgit}"'|(^|[[:space:];|&(])rm[[:space:]][^|;&]*'"${_g_dotgit}"
+GUARD_RE_DESTRUCTIVE="${_g_rm_rf}"'|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|$)|-[A-Za-z]*f)|>>?\|?[[:space:]]*\.env|>>?\|?[^|;&]*'"${_g_dotgit}"'|(^|[[:space:];|&(])rm[[:space:]][^|;&]*'"${_g_dotgit}"
 
 # A command position: start of line, or just after a separator.
 _g_cmdpos='(^|[;&|][&|]?[[:space:]]*)'
@@ -137,6 +141,31 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx)[[:space:]]+)?'"(${_g_watch})"
 GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'
 GUARD_RE_STREAM="${_g_cmdpos}"'tail[[:space:]]+-f([[:space:]]|$)'
 GUARD_RE_CAT="${_g_cmdpos}"'cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&]|&&|\|\|))'
+
+# Bash can mutate a file without any Edit|Write hook seeing it: a redirect,
+# `tee`, an in-place `sed`, a `cp` into the tree. Such a write skips every
+# PreToolUse(Edit|Write) guard (write lanes, write allowlists) and every
+# PostToolUse(Edit|Write) one (formatting), so for an agent session it is a way
+# around a guard rather than a matter of style -- the same reasoning that makes
+# GUARD_RE_CAT block raw reads on the Bash path instead of leaving read-guard to
+# cover only the Read tool.
+#
+# Two patterns, enforced by guard_block_file_writes. A file-mutating command is
+# matched at any word boundary rather than only at a command position, so
+# `find ... -exec sed -i` is caught too. The stream editors need their in-place
+# flag: short spellings bundle it (`perl -pi`, `sed -i.bak`), the long one spells
+# it out, and `--expression` cannot match the short form because [A-Za-z] does
+# not match the second dash. Destinations are deliberately not analysed --
+# `cp`/`mv` are refused outright, which is one rule instead of an operand table
+# per command.
+_g_anypos='(^|[[:space:];|&(])'
+GUARD_RE_WRITE_CMD="${_g_anypos}"'(tee|patch|cp|mv)([[:space:]]|$)'"|${_g_anypos}"'(sed|perl|ruby|awk|gawk)[[:space:]]+([^;|&]*[[:space:]])?(-[A-Za-z]*i([[:space:]]|[.=]|$)|--in-place)'
+# A redirect and its target, glued or spaced (`>file`, `>> file`, `2>`, `&>`,
+# and `>|`, the noclobber override -- without that `\|?` the target hides behind
+# the `|` and the redirect reads as targetless). The target excludes `&`, so an
+# fd dup (`2>&1`) captures nothing and reads as the exempt sink it is. `<` is
+# absent by design: an input redirect writes nothing.
+GUARD_RE_REDIRECT='([0-9]*|&)>>?\|?[[:space:]]*([^[:space:];|&<>]*)'
 
 # --------------------------------------------------------- blocking helpers
 #
@@ -171,6 +200,114 @@ guard_block_raw_reads() {
     echo "Blocked: unbounded cat reads are disallowed. Pipe/filter with grep/rg/jq or script the analysis." >&2
     exit 2
   fi
+}
+
+# ------------------------------------------------- file writes through Bash
+#
+# The two patterns above, enforced. A floor, not a sandbox: any interpreter or
+# code generator a build runs can still write files, and a write hidden inside a
+# quoted `bash -c` string is not read as one. What this closes is the routine
+# path -- editing through Bash instead of Edit/Write -- which is exactly the one
+# the harness's own auto-mode notice pushes every agent toward.
+
+# Placeholder that replaces a quoted span. Deliberately not an exempt sink: a
+# quoted target (`> "src/x.cs"`) must still read as a write.
+GUARD_QUOTED='@quoted@'
+
+# guard_write_sink_exempt <target> -- true for a target a write may reach without
+# escaping the Edit|Write guards: the null/std streams, an fd dup (which captures
+# as the empty string), and the temp locations agents use for scratch output.
+# Anything else counts as a path in the checkout, relative paths included:
+# resolving one costs a fork, and a guard that guesses in the permissive
+# direction is the hole it exists to close. `-` is NOT exempt -- it means stdout
+# to some commands, but `> -` writes a file literally named `-`.
+#
+# The /dev list is enumerated rather than globbed: `/dev/*` would also exempt
+# `/dev/tcp/<host>/<port>`, which bash turns into a socket write, and every
+# device node. Neither is a repo write, and neither is something a guard called
+# "exempt sink" should wave through.
+guard_write_sink_exempt() {
+  case "$1" in
+    '') return 0 ;;
+    /dev/null|/dev/stdout|/dev/stderr|/dev/tty) return 0 ;;
+    /dev/fd/*|/proc/self/fd/*) return 0 ;;
+    /tmp/*|/private/tmp/*|/var/folders/*|/private/var/folders/*) return 0 ;;
+    "${TMPDIR:-/tmp}"/*) return 0 ;;
+  esac
+  return 1
+}
+
+# guard_mask_quotes <cmd> -- sets $guard_masked to <cmd> with every single- or
+# double-quoted span replaced by GUARD_QUOTED. One substitution, two jobs: a `>`
+# inside a string (`grep "a>b" f`, `awk '$3 > 5'`) stops looking like a redirect,
+# and a quoted path still leaves a non-exempt target behind, so quoting cannot
+# hide a write. Quote types are tracked properly -- an apostrophe inside "..."
+# opens nothing -- and an unterminated quote drops the remainder, which can only
+# make the scan see less. That is fine: the shell would reject that command too.
+#
+# A `\"` inside a double-quoted span ends it here, where bash would keep going.
+# Every such mis-parse closes a span EARLY, so it masks less than it should and
+# over-detects: the failure direction is a refused command, never a write that
+# slips through. Left as is deliberately -- backslash-parity scanning is real
+# complexity to buy a rarer false positive on an already fail-closed path.
+guard_mask_quotes() {
+  local s="$1" out='' pre rest q sq dq
+  while :; do
+    case "$s" in
+      *\'*|*\"*) ;;
+      *) guard_masked="$out$s"; return 0 ;;
+    esac
+    # The shorter prefix marks the quote that comes first; a quote type that is
+    # absent yields the whole string, so it always loses the comparison.
+    sq="${s%%\'*}"; dq="${s%%\"*}"
+    if [ "${#sq}" -lt "${#dq}" ]; then q=\'; pre="$sq"; else q='"'; pre="$dq"; fi
+    out+="$pre$GUARD_QUOTED"
+    rest="${s#"$pre$q"}"
+    case "$rest" in
+      *"$q"*) s="${rest#*"$q"}" ;;
+      *) s='' ;;
+    esac
+  done
+}
+
+# guard_write_refuse <what> -- the one message both halves below report with.
+guard_write_refuse() {
+  echo "Blocked: $1 writes a file from Bash, which reaches no Edit|Write hook — write lanes and formatting are wired to Edit/Write, so the write would land unguarded. Use Edit/Write for files in the checkout; send scratch output under /tmp." >&2
+  exit 2
+}
+
+# guard_block_file_writes -- refuse a Bash command that edits a file in the
+# checkout. Callers scope it to agent sessions: the operator's own session is not
+# lane-guarded in the first place, so it has no guard to route around, and its
+# Bash editing is the harness's own suggestion.
+#
+# The command check reads the raw command, so a quoted argument cannot hide a
+# `sed -i`; the redirect scan reads the masked copy, where a quoted `>` is no
+# longer an operator. Each half gets the input it needs.
+guard_block_file_writes() {
+  local rest target what
+  if [[ $guard_cmd =~ $GUARD_RE_WRITE_CMD ]]; then
+    what="${BASH_REMATCH[0]#[[:space:];|\&(]}"   # drop the separator it matched
+    guard_write_refuse "${what%%[[:space:]]*}"
+  fi
+  case "$guard_cmd" in *'>'*) ;; *) return 0 ;; esac
+  guard_mask_quotes "$guard_cmd"
+  rest="$guard_masked"
+  while [[ $rest =~ $GUARD_RE_REDIRECT ]]; do
+    target="${BASH_REMATCH[2]}"
+    if ! guard_write_sink_exempt "$target"; then
+      # Never report the mask back as if it were the path itself -- a target can
+      # also merely contain it (`b"` in `echo "a \" > b" > f`).
+      case "$target" in *"$GUARD_QUOTED"*) target='a quoted path' ;; esac
+      guard_write_refuse "a redirect into $target"
+    fi
+    # Advance past this match. The interpolation stays QUOTED: that keeps a glob
+    # metacharacter in the matched text (`> /tmp/out[1]`) literal, so the trim
+    # lands where the match ended and the next redirect is still scanned.
+    # Unquoted it would be a pattern, match nothing, and loop forever. Every
+    # match is at least one character, so this terminates.
+    rest="${rest#*"${BASH_REMATCH[0]}"}"
+  done
 }
 
 # guard_block_protected_branch_commit <agent_type> <advice>

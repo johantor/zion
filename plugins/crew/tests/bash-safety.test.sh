@@ -90,6 +90,12 @@ assert_block "patch"                  "$HOOK" "$(payload_bash 'patch -p1 < fix.d
 # Exempt sinks and read-only uses of the same tools stay allowed: a guard that
 # blocked `> /dev/null` would just be routed around.
 assert_allow "redirect to /dev/null"  "$HOOK" "$(payload_bash 'dotnet build > /dev/null' tank)"
+assert_allow "redirect to /dev/stderr" "$HOOK" "$(payload_bash 'echo x > /dev/stderr' tank)"
+assert_allow "redirect to /dev/fd/2"   "$HOOK" "$(payload_bash 'echo x > /dev/fd/2' tank)"
+# The /dev exemption is a list, not a glob: `/dev/*` would wave through a socket
+# write and every device node.
+assert_block "redirect to /dev/tcp"   "$HOOK" "$(payload_bash 'echo x > /dev/tcp/example.com/443' tank)" "$gap"
+assert_block "redirect to a device node" "$HOOK" "$(payload_bash 'echo x > /dev/sda' tank)" "$gap"
 assert_allow "fd dup (2>&1)"          "$HOOK" "$(payload_bash 'dotnet build 2>&1 | grep -c warning' tank)"
 assert_allow "redirect under /tmp"    "$HOOK" "$(payload_bash 'dotnet build > /tmp/build.log 2>&1' tank)"
 assert_allow "sed without -i"         "$HOOK" "$(payload_bash "sed 's/a/b/' src/Foo.cs | head -5" tank)"

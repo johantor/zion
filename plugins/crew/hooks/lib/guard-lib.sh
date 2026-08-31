@@ -221,10 +221,16 @@ GUARD_QUOTED='@quoted@'
 # resolving one costs a fork, and a guard that guesses in the permissive
 # direction is the hole it exists to close. `-` is NOT exempt -- it means stdout
 # to some commands, but `> -` writes a file literally named `-`.
+#
+# The /dev list is enumerated rather than globbed: `/dev/*` would also exempt
+# `/dev/tcp/<host>/<port>`, which bash turns into a socket write, and every
+# device node. Neither is a repo write, and neither is something a guard called
+# "exempt sink" should wave through.
 guard_write_sink_exempt() {
   case "$1" in
     '') return 0 ;;
-    /dev/*|/proc/self/fd/*) return 0 ;;
+    /dev/null|/dev/stdout|/dev/stderr|/dev/tty) return 0 ;;
+    /dev/fd/*|/proc/self/fd/*) return 0 ;;
     /tmp/*|/private/tmp/*|/var/folders/*|/private/var/folders/*) return 0 ;;
     "${TMPDIR:-/tmp}"/*) return 0 ;;
   esac
@@ -238,6 +244,12 @@ guard_write_sink_exempt() {
 # hide a write. Quote types are tracked properly -- an apostrophe inside "..."
 # opens nothing -- and an unterminated quote drops the remainder, which can only
 # make the scan see less. That is fine: the shell would reject that command too.
+#
+# A `\"` inside a double-quoted span ends it here, where bash would keep going.
+# Every such mis-parse closes a span EARLY, so it masks less than it should and
+# over-detects: the failure direction is a refused command, never a write that
+# slips through. Left as is deliberately -- backslash-parity scanning is real
+# complexity to buy a rarer false positive on an already fail-closed path.
 guard_mask_quotes() {
   local s="$1" out='' pre rest q sq dq
   while :; do
@@ -284,8 +296,9 @@ guard_block_file_writes() {
   while [[ $rest =~ $GUARD_RE_REDIRECT ]]; do
     target="${BASH_REMATCH[2]}"
     if ! guard_write_sink_exempt "$target"; then
-      # Never report the mask back as if it were the path itself.
-      [ "$target" = "$GUARD_QUOTED" ] && target='a quoted path'
+      # Never report the mask back as if it were the path itself -- a target can
+      # also merely contain it (`b"` in `echo "a \" > b" > f`).
+      case "$target" in *"$GUARD_QUOTED"*) target='a quoted path' ;; esac
       guard_write_refuse "a redirect into $target"
     fi
     # Advance past this match. The interpolation stays QUOTED: that keeps a glob

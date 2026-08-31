@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Changed
+- **Every agent's turn budget went up by half.** `morpheus` 96 → 144, `tank`/`trinity` 72 → 108,
+  `oracle`/`dozer` 56 → 84, `neo` 48 → 72, `seraph`/`sentinel` 40 → 60. The old ceilings cut
+  workers off mid-step on ordinary work, and a truncated return costs the orchestrator a re-dispatch
+  — more expensive than the turns it saved. The ratios between agents are unchanged, so the
+  relative sizing of a step stays what it was; `maxTurns` and `turn-budget.sh`'s table moved
+  together, as validator §8 requires.
 - **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`.** Payload
   plumbing, the command-shape patterns, the shared block helpers, the protected-branch list and
   read-guard's limits now live in one vendored file that every entry point sources, instead of

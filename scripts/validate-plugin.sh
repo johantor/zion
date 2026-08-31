@@ -773,6 +773,9 @@ crew_cfg=".claude/crew.md"
 if [ -f "$init_cmd" ] && [ -f "$crew_cfg" ]; then
   # A slot declares its key in backticked parentheses; that is what the config
   # file carries, so the key -- not the prose label -- is what must agree.
+  # The backticks in the sed script are literal markdown to match, not command
+  # substitution, so single quotes are exactly right here.
+  # shellcheck disable=SC2016
   init_slots="$(sed -n '/^## 1\./,/^## 2\./p' "$init_cmd" \
     | sed -n 's/^- \*\*[^*]*\*\* (`\([A-Za-z][A-Za-z0-9]*\)`) —.*/\1/p')"
   # Frontmatter only: from the opening `---` to the closing one. The body is
@@ -780,7 +783,7 @@ if [ -f "$init_cmd" ] && [ -f "$crew_cfg" ]; then
   cfg_keys="$(awk 'NR==1 && $0=="---"{inside=1; next} inside && $0=="---"{exit} inside' "$crew_cfg" \
     | sed -n 's/^\([A-Za-z][A-Za-z0-9]*\):.*/\1/p')"
   if [ -z "$init_slots" ]; then
-    err "$init_cmd has no parseable slot list under '## 1.' (expected '- **<Slot>** (\`key\`) -- ...' lines); cannot verify $crew_cfg"
+    err "$init_cmd has no parseable slot list under '## 1.' (expected '- **<Slot>** (\`key\`) — ...' lines, with an em dash); cannot verify $crew_cfg"
   elif [ -z "$cfg_keys" ]; then
     err "$crew_cfg has no frontmatter keys; $init_cmd §1 declares slots that reconcile must write there"
   else

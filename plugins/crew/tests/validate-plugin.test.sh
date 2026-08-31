@@ -528,15 +528,21 @@ mk_crew_config() {  # <repo> <frontmatter-lines> [body]
   printf -- '---\n%s\n---\n\n%s\n' "$2" "${3:-Notes.}" > "$1/.claude/crew.md"
 }
 
+# Slot bullets in §1's shape. The backticks around the key are literal markdown
+# -- the shape §11 parses -- so these stay single-quoted.
+# shellcheck disable=SC2016
+slot_base='- **Base branch** (`baseBranch`) — the branch to cut from.'
+# shellcheck disable=SC2016
+slot_plan='- **Plan directory** (`planDirectory`) — where plans go.'
+
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.
-- **Plan directory** (`planDirectory`) — where plans go.'
+mk_init_slots "$d" "$slot_base"$'\n'"$slot_plan"
 mk_crew_config "$d" 'baseBranch: main'
 assert_emits "§11 bites on a slot key missing from .claude/crew.md" "$d" \
   "declares slot key 'planDirectory' but .claude/crew.md"
 
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.'
+mk_init_slots "$d" "$slot_base"
 mk_crew_config "$d" 'baseBranch: main
 deployTarget: prod'
 assert_emits "§11 bites on a config key that is not a declared slot" "$d" \
@@ -546,8 +552,7 @@ assert_emits "§11 bites on a config key that is not a declared slot" "$d" \
 # a top-level key inside the frontmatter. Bold used for emphasis is not a slot
 # declaration, and a key named in the file's prose body is not configuration.
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.
-- **Note** this bullet is emphasis, not a slot.'
+mk_init_slots "$d" "$slot_base"$'\n''- **Note** this bullet is emphasis, not a slot.'
 mk_crew_config "$d" 'baseBranch: main' 'A body line naming deployTarget: prod is prose.'
 assert_silent "§11 ignores a non-slot bold bullet under §1" "$d" "'Note'"
 assert_silent "§11 ignores a key named in the config file's body" "$d" "deployTarget"
@@ -569,14 +574,13 @@ assert_emits "§11 bites when the slot list is unparseable" "$d" \
 
 # Frontmatter with no keys at all is reported, not passed over.
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.'
+mk_init_slots "$d" "$slot_base"
 mk_crew_config "$d" '# just a comment'
 assert_emits "§11 bites when the config file has no frontmatter keys" "$d" \
   "has no frontmatter keys"
 
 d="$(new_repo)"
-mk_init_slots "$d" '- **Base branch** (`baseBranch`) — the branch to cut from.
-- **Plan directory** (`planDirectory`) — where plans go.'
+mk_init_slots "$d" "$slot_base"$'\n'"$slot_plan"
 mk_crew_config "$d" 'baseBranch: main
 planDirectory: docs/plans/'
 assert_silent "§11 silent when the slot keys agree" "$d" "not a slot in"

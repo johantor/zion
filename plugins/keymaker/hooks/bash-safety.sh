@@ -44,9 +44,8 @@ guard_block_raw_reads
 [ -n "$agent_type" ] && guard_block_file_writes
 # --- END shared guard: floor ---
 
-# Twins never run git -- keymaker owns branching and per-batch commits
-# (twin.md operating rules). Any git invocation at a command position is
-# blocked.
+# Twins never run git -- keymaker owns branching and per-batch commits (twin.md
+# operating rules). Any git invocation at a command position is blocked.
 if [ "$agent_type" = "twin" ] && [[ $guard_cmd =~ $GUARD_RE_GIT_AT_CMD ]]; then
   echo "Blocked: twin never runs git — keymaker owns branching and commits. Return your batch result; keymaker commits verified batches." >&2
   exit 2

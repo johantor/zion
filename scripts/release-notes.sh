@@ -2,11 +2,10 @@
 # Builds one plugin release's notes: its CHANGELOG section, plus every commit
 # that shipped inside the same tag without an entry of its own.
 #
-# The second half is the point. A tag carries everything merged since the
-# previous tag, but the notes used to be a single CHANGELOG section — so a PR
-# that touched shipped files without bumping (a README rewrite, a hook comment
-# pass) went out inside a release that never mentioned it. Listing the range
-# means the record is complete even when the per-PR discipline slips.
+# The second half is the point. A tag carries everything merged since the previous
+# tag, so a PR that touched shipped files without bumping (a README rewrite, a
+# hook comment pass) used to go out inside a release that never mentioned it.
+# Listing the range keeps the record complete when the per-PR discipline slips.
 #
 # Repo tooling, not part of any plugin: it needs this monorepo's layout and the
 # `<plugin>/vX.Y.Z` tag scheme. Used by .github/workflows/auto-release.yml, and
@@ -39,9 +38,8 @@ printf '%s\n' "$notes"
 # Previous release of *this* plugin: the newest of its tags that HEAD actually
 # descends from. `-v:refname` compares the embedded version numerically, so
 # crew/v3.17.0 sorts above crew/v3.9.0. The ancestry test matters because a tag
-# can exist without being in this history — a newer release cut from another
-# branch, or a replay of an older version — and naming it as the range's start
-# would describe a range HEAD never travelled.
+# can exist outside this history (a release cut from another branch), and naming
+# it as the range's start would describe a range HEAD never travelled.
 prev_tag=""
 while IFS= read -r tag; do
   [ -n "$tag" ] || continue
@@ -52,12 +50,10 @@ done < <(git tag --list "${plugin}/v*" --sort=-v:refname)
 [ -n "$prev_tag" ] || exit 0
 
 # Commits since that tag that touched this plugin. The exclusions are the same
-# "shipped" definition check-changelog.sh gates on — `tests/` (repo tooling),
-# `CLAUDE.md`/`VERIFICATION.md` (contributor material), and the changelog itself
-# (its content is already these notes) — so a change the gate deliberately does
-# not ask anyone to describe cannot turn up in user-facing notes either. Keep the
-# two lists in step. Merges are skipped: PRs land squashed here, so a merge would
-# only duplicate its own commits.
+# "shipped" definition check-changelog.sh gates on, so a change the gate does not
+# ask anyone to describe cannot turn up in user-facing notes either; keep the two
+# lists in step. Merges are skipped: PRs land squashed here, so a merge would only
+# duplicate its own commits.
 extra=""
 while IFS=$'\t' read -r sha subject; do
   [ -n "$sha" ] || continue

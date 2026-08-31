@@ -9,12 +9,11 @@
 # Sourced by plugins/<plugin>/tests/*.test.sh; tests/hooks/run.sh drives them.
 # See plugins/crew/CLAUDE.md.
 #
-# The harness is repo test infrastructure and lives here, once, while the test
-# *cases* stay next to the plugin whose hooks they cover. Which plugin a case
-# belongs to is not configured anywhere: HOOKS_DIR is derived from the calling
-# test file's own location (BASH_SOURCE[1] -> plugins/<plugin>/tests/x.test.sh
-# -> plugins/<plugin>/hooks), so a new plugin gets a working suite by dropping a
-# file into its tests/ directory and nothing else.
+# The harness lives here once; the test *cases* stay next to the plugin whose
+# hooks they cover. Which plugin a case belongs to is configured nowhere: HOOKS_DIR
+# is derived from the calling test file's own location (BASH_SOURCE[1] ->
+# plugins/<plugin>/tests/x.test.sh -> plugins/<plugin>/hooks), so a new plugin
+# gets a working suite by dropping a file into its tests/ directory.
 
 # No `set -e`: an assertion failure records and continues so one run reports
 # every failure, not just the first.
@@ -45,9 +44,8 @@ tests_failed=0
 
 # All fixtures live under one root so cleanup works even though the helpers below
 # are called in command substitutions (a subshell can't mutate a parent array).
-# mktemp is given an explicit XXXXXX template throughout (never bare `mktemp` or
-# the GNU-only `-p`) so the suite also runs on BSD/macOS, where contributors run
-# it locally — same portability discipline the hooks keep (POSIX classes, no \s).
+# mktemp is given an explicit XXXXXX template throughout, never bare `mktemp` or
+# the GNU-only `-p`, so the suite also runs on BSD/macOS (AGENTS.md, Conventions).
 FIXTURE_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/crew-hook-tests.XXXXXX")" || die "mktemp -d failed"
 
 # new_tmpdir -> echoes a throwaway dir under FIXTURE_ROOT (so the EXIT trap alone
@@ -67,8 +65,7 @@ _fail() {
 # _status (exit code), _stderr and _stdout (both captured).
 #
 # The guards say everything on stderr, so _stdout is empty for them.
-# dispatch-denied.sh is the exception: PermissionDenied ignores exit code and
-# stderr, so its whole decision is the JSON it writes to stdout.
+# dispatch-denied.sh is the exception: its whole decision is the JSON on stdout.
 run_hook() {
   local hook="$1" payload="$2" cwd="${3:-}"
   local tmp_cwd="" err_file out_file
@@ -160,15 +157,13 @@ make_claude_md() {
 # make_tree <relpath>:<content> ... -> echoes a throwaway dir containing each
 # file, parent directories created. Splits each argument on its first colon, so
 # the content may contain colons (JSON) but the path may not. For fixtures whose
-# shape is what the hook reads — the marker files lane-guard probes for, a
-# project's config files.
+# shape is what the hook reads: lane-guard's marker files, a project's configs.
 make_tree() {
   local dir spec rel
   dir="$(new_tmpdir)"
   for spec in "$@"; do
-    # Reject a malformed spec loudly, the same way the mktemp guards above do: a
-    # fixture helper that quietly builds the wrong tree makes every assertion
-    # downstream of it meaningless.
+    # Reject a malformed spec loudly: a fixture helper that quietly builds the
+    # wrong tree makes every assertion downstream of it meaningless.
     case "$spec" in
       *:*) ;;
       *) die "make_tree: expected <relpath>:<content>, got '$spec'" ;;

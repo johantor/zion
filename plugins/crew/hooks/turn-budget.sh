@@ -5,9 +5,8 @@
 # agent without blocking (the tool already ran). Tool calls >= turns, so the
 # count errs early on purpose.
 #
-# Advisory, not a guard: every can't-count path (missing jq, bad payload,
-# unknown agent, unwritable state) must fail OPEN. See AGENTS.md, "How the
-# crew works".
+# Advisory, not a guard: every can't-count path (missing jq, bad payload, unknown
+# agent, unwritable state) fails OPEN. See AGENTS.md, "How the crew works".
 _lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
 # shellcheck source=plugins/crew/hooks/lib/guard-lib.sh
 # shellcheck disable=SC1090,SC1091
@@ -15,12 +14,10 @@ _lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
 command -v jq >/dev/null 2>&1 || exit 0
 
 guard_read_payload
-# Fast path, no subprocess. This hook is wired to PostToolUse `*`, so it runs
-# after every tool call in every session — overwhelmingly the user's own, where
-# it always exits 0 at the agent_type case below. A payload without an
-# `agent_type` key can only reach that same exit, so bail here rather than
-# forking jq for it. A payload that merely mentions the key in its tool input
-# falls through to the normal parse, so this only ever saves work.
+# Fast path, no subprocess. Wired to PostToolUse `*`, so this runs after every
+# tool call in every session — overwhelmingly the user's own, which exits 0 at
+# the agent_type case below anyway. A payload that merely mentions the key in its
+# tool input falls through to the normal parse, so this only ever saves work.
 case "$guard_payload" in
   *'"agent_type"'*) ;;
   *) exit 0 ;;
@@ -50,10 +47,9 @@ case "$agent_type" in
 esac
 
 # Counter state: "<count> <stage>" per agent instance, named and swept by
-# guard_state_path (stale counters age out rather than accumulating one tiny
-# file per agent instance forever). Concurrent tool calls may lose an update and
-# undercount by one — fine for a heuristic. CREW_TURN_BUDGET_DIR is a test
-# override. An unusable state dir means "can't count", which fails OPEN.
+# guard_state_path. Concurrent tool calls may lose an update and undercount by
+# one — fine for a heuristic. CREW_TURN_BUDGET_DIR is a test override; an
+# unusable state dir means "can't count", which fails OPEN.
 guard_state_path "${CREW_TURN_BUDGET_DIR:-${TMPDIR:-/tmp}}" \
   "crew-turn-budget" "$key_src" "$agent_type" || exit 0
 state_file="$guard_state_path"

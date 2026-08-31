@@ -25,10 +25,85 @@ assert_allow "seraph has no write lane restriction" "$HOOK" "$(payload_file sera
 assert_allow "neo (express) is unrestricted"        "$HOOK" "$(payload_file neo Foo.tsx)"
 assert_allow "no agent_type is unrestricted"        "$HOOK" "$(jq -nc --arg f Foo.tsx '{tool_input: {file_path: $f}}')"
 
-# --- Same-language (Node) ambiguity: fail closed ------------------------------
+# --- Same-language (Node) ambiguity, configured in .claude/crew.md ------------
+# The current source of configuration: YAML frontmatter, one key per slot.
+fm_node_fe="$(make_crew_md 'backendStack: node
+frontendStack: nextjs
+backendLanePaths: unset
+frontendLanePaths: unset')"
+assert_block "frontmatter: node backend + frontend, no lane paths → fail closed" \
+  "$HOOK" "$(payload_file tank src/app.ts)" "can't tell them apart" "$fm_node_fe"
+
+fm_both="$(make_crew_md 'backendStack: node
+frontendStack: nextjs
+backendLanePaths: src/api
+frontendLanePaths: src/web')"
+assert_allow "frontmatter: tank allowed in its backend lane" \
+  "$HOOK" "$(payload_file tank src/api/handler.ts)" "$fm_both"
+assert_block "frontmatter: tank denied in the frontend lane" \
+  "$HOOK" "$(payload_file tank src/web/page.ts)" "out of" "$fm_both"
+
+fm_one="$(make_crew_md 'backendStack: node
+frontendStack: nextjs
+backendLanePaths: src/api
+frontendLanePaths: unset')"
+assert_block "frontmatter: only one lane path configured → fail closed" \
+  "$HOOK" "$(payload_file tank src/api/handler.ts)" "only one of" "$fm_one"
+
+# A quoted YAML scalar is the same value. Left unstripped it would build the glob
+# `"src/api"/**`, which matches nothing, so tank would be silently unconfined.
+fm_quoted="$(make_crew_md 'backendStack: node
+frontendStack: nextjs
+backendLanePaths: "src/api"
+frontendLanePaths: '"'"'src/web'"'"'')"
+# A .cs path is the discriminator: the extension regime tank falls back to when a
+# lane path is unreadable leaves .cs alone, so only a real lane blocks this.
+assert_block "frontmatter: quoted lane paths still confine tank" \
+  "$HOOK" "$(payload_file tank src/web/page.cs)" "out of" "$fm_quoted"
+
+# Every slot at its `unset` placeholder is not configuration: the guard must fall
+# through to marker detection, not treat "unset" as a stack or a lane path.
+fm_unset="$(make_crew_md 'backendStack: unset
+frontendStack: unset
+backendLanePaths: unset
+frontendLanePaths: unset')"
+assert_block "frontmatter: unset placeholders fall through to extensions" \
+  "$HOOK" "$(payload_file tank Foo.tsx)" "out of" "$fm_unset"
+assert_allow "frontmatter: unset placeholders leave tank its own extensions" \
+  "$HOOK" "$(payload_file tank Foo.cs)" "$fm_unset"
+
+# The body below the frontmatter is free prose and may quote an example block —
+# /crew:init's own §1 does. A key matched there is not configuration.
+fm_body="$(make_crew_md 'backendStack: unset
+frontendStack: unset
+backendLanePaths: unset
+frontendLanePaths: unset' 'An example of what this file can hold:
+
+```markdown
+backendStack: node
+frontendStack: nextjs
+backendLanePaths: src/api
+frontendLanePaths: src/web
+```')"
+# Again .cs: a leaked frontendLanePaths would put src/web out of tank's reach,
+# while the extension regime the unset slots really mean leaves .cs to tank.
+assert_allow "frontmatter: a slot quoted in the body is not read" \
+  "$HOOK" "$(payload_file tank src/web/handler.cs)" "$fm_body"
+
+# dozer: playwright widens to tests/**, and the frontend lane confines it there.
+fm_dozer="$(make_crew_md 'frontendE2eTool: playwright
+frontendLanePaths: apps/web')"
+assert_allow "frontmatter: dozer allowed an e2e spec inside its frontend lane" \
+  "$HOOK" "$(payload_file dozer apps/web/tests/checkout.spec.ts)" "$fm_dozer"
+assert_block "frontmatter: dozer denied an e2e spec outside its frontend lane" \
+  "$HOOK" "$(payload_file dozer apps/api/tests/checkout.spec.ts)" "outside" "$fm_dozer"
+
+# --- Same-language (Node) ambiguity, legacy CLAUDE.md block -------------------
+# Configuration written by an earlier /crew:init, before #198 moved the slots.
+# Still read when .claude/crew.md is absent, so an unmigrated project is unaffected.
 node_fe="$(make_claude_md '- **Backend stack:** node
 - **Frontend stack:** nextjs')"
-assert_block "node backend + frontend, no lane paths → fail closed" \
+assert_block "legacy: node backend + frontend, no lane paths → fail closed" \
   "$HOOK" "$(payload_file tank src/app.ts)" "can't tell them apart" "$node_fe"
 
 # Both lane paths configured → route by directory, not extension.
@@ -36,15 +111,32 @@ both_lanes="$(make_claude_md '- **Backend stack:** node
 - **Frontend stack:** nextjs
 - **Backend lane path(s):** src/api
 - **Frontend lane path(s):** src/web')"
-assert_allow "tank allowed in its backend lane"  "$HOOK" "$(payload_file tank src/api/handler.ts)" "$both_lanes"
-assert_block "tank denied in the frontend lane"  "$HOOK" "$(payload_file tank src/web/page.ts)" "out of" "$both_lanes"
+assert_allow "legacy: tank allowed in its backend lane" "$HOOK" "$(payload_file tank src/api/handler.ts)" "$both_lanes"
+assert_block "legacy: tank denied in the frontend lane" "$HOOK" "$(payload_file tank src/web/page.ts)" "out of" "$both_lanes"
 
 # Only one lane path set → ambiguous → fail closed.
 one_lane="$(make_claude_md '- **Backend stack:** node
 - **Frontend stack:** nextjs
 - **Backend lane path(s):** src/api')"
-assert_block "only one lane path configured → fail closed" \
+assert_block "legacy: only one lane path configured → fail closed" \
   "$HOOK" "$(payload_file tank src/api/handler.ts)" "only one of" "$one_lane"
+
+# --- Precedence: .claude/crew.md wins over a stale legacy block ----------------
+# Migration removes the CLAUDE.md block, but a project can carry both — a partial
+# migration, or a branch that restored the old file. The lanes must come from the
+# file /crew:init writes, so the two fixtures below swap src/api and src/web.
+both_files="$(make_crew_md 'backendStack: node
+frontendStack: nextjs
+backendLanePaths: src/api
+frontendLanePaths: src/web')"
+printf '%s\n' '- **Backend stack:** node
+- **Frontend stack:** nextjs
+- **Backend lane path(s):** src/web
+- **Frontend lane path(s):** src/api' > "$both_files/CLAUDE.md"
+assert_allow "frontmatter wins over a stale legacy block" \
+  "$HOOK" "$(payload_file tank src/api/handler.ts)" "$both_files"
+assert_block "the stale legacy block does not widen tank's lane" \
+  "$HOOK" "$(payload_file tank src/web/page.ts)" "out of" "$both_files"
 
 # --- Marker detection when the stacks are unset --------------------------------
 # With no CLAUDE.md, the guard walks the repo for markers to decide whether the

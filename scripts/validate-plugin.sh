@@ -50,10 +50,8 @@ while IFS= read -r manifest; do
   done
 
   # 2b. Component paths the manifest points at actually exist. A field may be a
-  #     single path string or an array of paths; validate every path.
-  #     Note: `hooks` is intentionally NOT validated here — the standard
-  #     hooks/hooks.json is auto-loaded, so it must NOT be declared in the
-  #     manifest (doing so triggers a "Duplicate hooks file" load error).
+  #     single path string or an array of paths; validate every path. `hooks` is
+  #     handled by 2c, which has its own rule.
   for key in commands skills; do
     while IFS= read -r path; do
       path="${path%$'\r'}"  # tolerate CRLF checkouts on Windows
@@ -238,14 +236,13 @@ while IFS= read -r manifest; do
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
 # 3. Hook shell files are syntactically valid and carry the file mode their role
-#    implies. A plugin's hooks/ directory holds two different kinds of file:
+#    implies:
 #      - hooks/*.sh          entry points the harness executes -> must be +x;
 #      - hooks/lib/*.sh      libraries the entry points source -> must NOT be +x.
-#    The mode is the enforceable half of that distinction. An executable library
-#    reads as a hook, invites being wired as one, and would do nothing if it were
-#    (it has no main) — so the wrong mode is a real error, not a style nit. git's
-#    `*` crosses directory separators, so one listing covers both kinds and the
-#    path shape decides which rule applies; §6 enforces the wiring half.
+#    An executable library reads as a hook and invites being wired as one, where
+#    it would do nothing (it has no main) — so the wrong mode is a real error.
+#    git's `*` crosses directory separators, so one listing covers both kinds and
+#    the path shape decides which rule applies; §6 enforces the wiring half.
 while IFS= read -r h; do
   if bash -n "$h" 2>/dev/null; then
     ok "syntax: $h"
@@ -270,10 +267,9 @@ done < <(git ls-files 'plugins/*/hooks/*.sh')
 
 # 4. Skill drift: a skill name shipped by more than one plugin must stay
 #    byte-identical across every copy. Grouped by directory basename, so it
-#    catches any two plugins sharing a skill, not just ones crew is party to.
-#    Crew's copy is the reference when crew ships it (see AGENTS.md), else the
-#    first found. Compares whole directories (diff -rq), so a missing or extra
-#    reference file counts as drift too.
+#    catches any two plugins sharing a skill. Crew's copy is the reference when
+#    crew ships it (see AGENTS.md), else the first found. Whole directories are
+#    compared (diff -rq), so a missing or extra file counts as drift too.
 declare -A skill_dirs=()
 while IFS= read -r skill_md; do
   dir="$(dirname "$skill_md")"
@@ -301,18 +297,16 @@ for name in "${!skill_dirs[@]}"; do
 done
 
 # 5. Hook-script drift: a hook script filename shipped by more than one plugin
-#    must stay in sync across every copy — same policy as §4 for skills, and
-#    crew's copy is likewise the reference when crew ships the file (else the
-#    first copy found). Two regimes:
+#    must stay in sync across every copy — same policy and same reference rule as
+#    §4. Two regimes:
 #      - no shared-guard markers in the reference -> the whole file must be
 #        byte-identical (today: read-guard.sh);
 #      - regions delimited by "# --- BEGIN shared guard: <label> ---" ...
 #        "# --- END shared guard: <label> ---" -> only the marked regions must
 #        match (labels, contents, and order), since the rest is per-plugin
 #        policy (today: bash-safety.sh).
-#    Malformed markers (stray END, nested BEGIN, unpaired label, unclosed
-#    block, missing trailing " ---") are a failure: a sync check that can't
-#    parse its regions would silently compare the wrong content.
+#    Malformed markers are a failure: a sync check that can't parse its regions
+#    would silently compare the wrong content.
 declare -A hook_groups=()
 while IFS= read -r h; do
   b="$(basename "$h")"
@@ -336,11 +330,10 @@ shared_regions() {
   ' "$1"
 }
 
-# Structural marker validation for one file: BEGIN/END must strictly alternate
-# (no nesting, no stray END), the END label must match the open BEGIN's, every
-# block must close by EOF, and a marker-prefixed line must carry the full
-# "... ---" shape. Prints one line per problem; silence means the markers are
-# sound and shared_regions can be trusted.
+# Structural marker validation for one file: BEGIN/END must strictly alternate,
+# labels must pair, every block must close by EOF, and a marker-prefixed line
+# must carry the full "... ---" shape. Prints one line per problem; silence means
+# shared_regions can be trusted.
 marker_errors() {
   awk '
     /^# --- (BEGIN|END) shared guard: / {
@@ -445,10 +438,9 @@ while IFS= read -r hooks_json; do
   done < <(jq -r '.hooks | to_entries[] | .value[] | .hooks[] | .command // empty' "$hooks_json")
   while IFS= read -r sh_file; do
     rel="${sh_file#"$plugin_dir/"}"
-    # hooks/lib/*.sh is the other half of §3's split: sourced by the entry
-    # points, never wired. Wiring one would run a library with no main as a
-    # hook — it would exit 0 having inspected nothing, which for a fail-closed
-    # guard is a silent hole rather than a visible error.
+    # hooks/lib/*.sh is the other half of §3's split: sourced by the entry points,
+    # never wired. A wired library would exit 0 having inspected nothing — for a
+    # fail-closed guard, a silent hole rather than a visible error.
     case "$rel" in
       hooks/lib/*)
         if [ -n "${wired[$rel]:-}" ]; then
@@ -597,10 +589,9 @@ fm_has_key() {
 # Read the `a|b|c)` case arm introduced by a `# crew-roster: <name>` marker, as
 # space-separated names.
 #
-# The scan is deliberately pinned rather than "first arm-looking line after the
-# marker": these hooks contain other case statements (bash-safety's protected-
-# branch `main|master|develop)` a few lines below), so an unbounded scan silently
-# reads the wrong roster when the arm's formatting changes. Pinned means: the
+# The scan is pinned rather than "first arm-looking line after the marker":
+# these hooks contain other case statements, so an unbounded scan would silently
+# read the wrong roster when the arm's formatting changes. Pinned means the
 # marker's comment block, then `case ... in`, then the arm on the very next line.
 # Anything else yields nothing, which the caller reports as unparseable.
 roster_arm() {
@@ -804,15 +795,14 @@ if [ -f "$init_cmd" ] && [ -f "$crew_cfg" ]; then
 fi
 
 # 12. Always-loaded context footprint per agent: the agent file plus every skill
-#     its frontmatter preloads is in the window on every single run, so the repo
-#     measures what it preaches to workers (`context-discipline`). The number is
-#     always reported; an agent may additionally declare `loaded-lines-cap: <n>`
-#     to fail CI when it grows past a chosen budget, so raising the budget is a
-#     visible frontmatter edit rather than silent creep. See AGENTS.md,
-#     "Prompt design rationale".
+#     its frontmatter preloads is in the window on every run, so the repo measures
+#     what it preaches to workers (`context-discipline`). The number is always
+#     reported; an agent may also declare `loaded-lines-cap: <n>` to fail CI past
+#     a chosen budget, so raising it is a visible frontmatter edit rather than
+#     silent creep. See AGENTS.md, "Prompt design rationale".
 #
-#     Unresolvable skill refs are §2g's failure, not this section's: they are
-#     skipped here (not counted, not re-reported) so one typo yields one error.
+#     Unresolvable skill refs are §2g's failure: skipped here, so one typo yields
+#     one error.
 
 # Line count of a file, or empty if missing/unreadable. Always exits 0: a
 # non-zero status inside the callers' `$(...)` assignments would trip `set -e`
@@ -900,30 +890,22 @@ while IFS= read -r agent; do
 done < <(git ls-files 'plugins/*/agents/*.md')
 
 # 13. MCP entries in an agent's frontmatter `tools:` must be server-scoped, and
-#     every bare server key must be paired with its plugin-scoped twin. Tools
-#     from a plugin-bundled MCP server are named
-#     `mcp__plugin_<plugin>_<server>__<tool>`, so a bare `mcp__<key>` grant never
-#     matches them: the same server, installed as a plugin instead of keyed in
-#     `.mcp.json`, reads to the agent as "not configured" rather than as denied.
-#     Both forms are cheap to carry (an entry that resolves to nothing is inert
-#     as long as the list resolves to some tool), and the pairing is what keeps
-#     an agent working under either install path. See the crew README,
-#     "Server keys map to tool namespaces".
+#     every bare server key must be paired with its plugin-scoped twin. Tools from
+#     a plugin-bundled MCP server are named `mcp__plugin_<plugin>_<server>__<tool>`,
+#     so a bare `mcp__<key>` grant never matches them: the same server installed
+#     as a plugin reads to the agent as "not configured" rather than as denied.
+#     Carrying both forms is what keeps an agent working under either install
+#     path. See the crew README, "Server keys map to tool namespaces".
 #
-#     Hosted connectors can't be plugin-installed, so they're exempt from the
-#     pairing rule -- listing a plugin twin for one would assert a namespace
-#     that cannot exist. A connector surfaces under two namespaces depending on
-#     the surface: `claude_ai_<Display Name>` in the Claude Code CLI (the same
-#     display name `disabledMcpServers` records, e.g. "claude.ai Slack", with
-#     invalid characters replaced by `_`), and the bare display name on
-#     claude.ai's own surfaces. The agents allowlist both, so both are listed
-#     here.
+#     Hosted connectors can't be plugin-installed, so they are exempt from the
+#     pairing rule -- a plugin twin would assert a namespace that cannot exist.
+#     Each surfaces under two namespaces: `claude_ai_<Display Name>` in the CLI
+#     and the bare display name on claude.ai, so the agents allowlist both.
 mcp_connector_only=" claude_ai_Figma Figma claude_ai_GitHub GitHub claude_ai_Linear Linear claude_ai_Atlassian Atlassian claude_ai_Sentry Sentry "
 
 # Every `tools:` entry, one per line, from either YAML shape: the inline comma
 # list the agents here use, or a `  - name` block list. Reading only the inline
-# form would let a list-form `tools:` skip this section silently -- the kind of
-# miss the repo treats as a bug, not a pass.
+# form would let a list-form `tools:` skip this section silently.
 #
 # `Agent(crew:tank, crew:trinity)` splits across commas too; those fragments
 # aren't MCP entries, and the `mcp__` filter below drops them.
@@ -982,9 +964,9 @@ while IFS= read -r agent; do
 
   # The two grant forms, each space-delimited for membership tests. A plugin and
   # the server it bundles are keyed independently -- `chrome-devtools-mcp` ships
-  # `chrome-devtools` -- so the halves are matched by suffix, not by assuming the
-  # two names are equal: `plugin_<anything>_<key>` is the plugin form of `<key>`.
-  # The trailing space in the pattern anchors that suffix to the end of an entry.
+  # `chrome-devtools` -- so the halves are matched by suffix rather than by
+  # assuming the names are equal: `plugin_<anything>_<key>` is the plugin form of
+  # `<key>`, and the trailing space anchors that suffix to the end of an entry.
   bare_keys="" plugin_keys=""
   while IFS= read -r s; do
     [ -z "$s" ] && continue

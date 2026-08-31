@@ -19,9 +19,8 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 guard_read_payload
-# The path is the untrusted field; agent_type is the harness-controlled one. The
-# path is only computed for keymaker itself, so no other session pays for the
-# field lookup. See guard_jq2.
+# The path is the untrusted field, and it is only computed for keymaker itself,
+# so no other session pays for the field lookup. See guard_jq2.
 if ! guard_jq2 \
   '(if (.agent_type // "") == "keymaker" then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
   '.agent_type // ""'; then
@@ -33,18 +32,18 @@ path="$guard_untrusted"
 
 [ "$agent_type" = "keymaker" ] || exit 0
 
-# Fail closed on a pathless payload: Edit/Write always carry a file path, so
-# for the one agent this guard restricts, "no path" means the claim can't be
-# verified — block rather than allow the allowlist to be bypassed.
+# Fail closed on a pathless payload: Edit/Write always carry a file path, so for
+# the one agent this guard restricts, "no path" means the allowlist can't be
+# checked at all.
 if [ -z "$path" ]; then
   echo "Blocked: write-guard found no file path in the payload, so keymaker's write allowlist can't be checked." >&2
   exit 2
 fi
 
-# Allowed: .claude/ (ledger, outlines, notes, agent memory) whether the path
-# is repo-relative or absolute, plus temp/scratch locations. Everything else
-# is a source edit that belongs to a twin. Variable expansions inside case
-# patterns are quoted, so a TMPDIR value can't inject glob metacharacters.
+# Allowed: .claude/ (ledger, outlines, notes, agent memory) whether the path is
+# repo-relative or absolute, plus temp/scratch locations. Everything else is a
+# source edit that belongs to a twin. The expansion inside the case patterns is
+# quoted, so a TMPDIR value can't inject glob metacharacters.
 case "$path" in
   .claude/*|*/.claude/*|/tmp/*|/private/tmp/*|/var/folders/*|/private/var/folders/*|"${TMPDIR:-/tmp}"/*)
     exit 0 ;;

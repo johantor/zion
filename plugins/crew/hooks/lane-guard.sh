@@ -4,10 +4,9 @@
 # own hooks, so the lanes are centralized here.
 #
 # Directory lanes (CLAUDE.md path config) win when set, else extension globs. A
-# same-language pair (node backend + JS frontend) with no lane paths fails
-# CLOSED -- extensions can't separate tank's files from trinity's. Caught
-# whether the stacks are pinned or unset; when unset the guard probes repo
-# markers (server framework in package.json, .NET project files). A
+# same-language pair (node backend + JS frontend) with no lane paths fails CLOSED
+# -- extensions can't separate tank's files from trinity's. Caught whether the
+# stacks are pinned or unset; when unset the guard probes repo markers. A
 # backend-only Node repo has no such conflict, so enforcement is skipped.
 
 # Fail closed: a guard that can't read its input must block, not allow.
@@ -24,12 +23,9 @@ if ! command -v jq >/dev/null 2>&1; then
 fi
 
 guard_read_payload
-# One jq pass for both fields. The path is the untrusted one (arbitrary text
-# that may contain the separator byte) and agent_type the harness-controlled
-# one, so the split anchors on the right — see guard_jq2. jq only computes the
-# path for a lane agent (oracle/dozer/tank/trinity — neo has no lane and
-# everything else bails below anyway), so a non-lane session never pays even
-# for the field lookup.
+# One jq pass for both fields; the path is the untrusted one, so the split anchors
+# on agent_type (see guard_jq2). jq only computes the path for a lane agent, so a
+# non-lane session never pays even for the field lookup.
 # shellcheck disable=SC2016  # $at is a jq variable, not a shell one
 if ! guard_jq2 \
   '(.agent_type // "") as $at | (if (["oracle","dozer","tank","trinity"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
@@ -40,11 +36,9 @@ fi
 agent_type="$guard_trusted"
 path="$guard_untrusted"
 
-# Bail before any further parsing for the common case: the main session, or
-# any agent with no lane. `neo` is the express-lane generalist — small changes
-# across any lane — so it has no lane restriction by design and bails here
-# rather than reaching the lane dispatch below. Kept in sync with that
-# dispatch's arms.
+# Bail before any further parsing for the common case: the main session, or any
+# agent with no lane. `neo` is the express-lane generalist, so it has no lane
+# restriction by design and bails here. Kept in sync with the lane dispatch below.
 # crew-roster: lane-guarded -- validator §9 keeps the arm below in lockstep with
 # the agents' frontmatter `lane-guarded`. Load-bearing shape: this marker, then
 # the `case` header, then the `a|b|c)` arm on the very next line.
@@ -58,23 +52,19 @@ esac
 # label, up to the em-dash). Missing file, missing slot, or the *unset*/none
 # placeholders all mean "not configured" -> empty string.
 #
-# CLAUDE.md is slurped once, here in the parent shell, and matched in-process
-# rather than shelling out per slot: this runs inside a PreToolUse hook and a
-# lane dispatch reads up to four slots, so the old `sed | head | sed` chain cost
-# eight processes before the agent's edit could land. The read deliberately does
-# NOT live inside config_slot: every caller invokes it as `$(config_slot ...)`,
-# so a lazy load would run in a command-substitution subshell and be discarded
-# before the next call — caching nothing while looking like it cached. The file
-# is a few KB, so holding it costs nothing.
+# CLAUDE.md is slurped once here in the parent shell and matched in-process: a
+# lane dispatch reads up to four slots, and shelling out per slot cost eight
+# processes before the agent's edit could land. The read must NOT move inside
+# config_slot: callers invoke it as `$(config_slot ...)`, so a lazy load would
+# happen in a subshell and be discarded before the next call.
 _cfg_text=""
 [ -f CLAUDE.md ] && { IFS= read -r -d '' _cfg_text < CLAUDE.md || :; }
 config_slot() {
   local line v=""
   [ -n "$_cfg_text" ] || return 0
   while IFS= read -r line; do
-    # Only the label is a literal here; the trailing * is the glob. Slot names
-    # are fixed strings from the Crew-configuration block, so this can't be
-    # turned into a pattern by the caller.
+    # Only the label is a literal here; the trailing * is the glob. Slot names are
+    # fixed strings, so a caller cannot turn this into a pattern.
     case "$line" in
       "- **$1:**"*)
         v="${line#"- **$1:**"}"
@@ -93,9 +83,8 @@ config_slot() {
 }
 
 # Comma-separated path config -> space-separated "<path>/**" globs. Split on
-# commas via IFS (not command substitution, which would word-split and, worse,
-# glob-expand a value containing * ? [ against the filesystem), with glob
-# expansion disabled and surrounding whitespace trimmed off each entry.
+# commas via IFS rather than command substitution, which would word-split and
+# glob-expand a value containing * ? [ against the filesystem.
 lane_globs() {
   local IFS=','
   set -f
@@ -108,23 +97,21 @@ lane_globs() {
   set +f
 }
 
-# Marker detection — used only when the stack slots are *unset* and no lane
-# paths are configured. Extensions alone can't separate tank's `.ts`/`.js` from
-# trinity's when the backend is also Node, so this probe reads the repo's
-# markers instead. Common non-source directories are pruned, and every marker is
-# collected in a **single** traversal: this runs inside a PreToolUse hook, so a
-# separate full-tree walk per marker is latency the agent pays before its edit
-# lands. The framework allowlists below are not exhaustive and need periodic
-# review as the ecosystem grows — a miss fails silently (the same-language guard
-# just doesn't fire); see plugins/crew/CLAUDE.md.
+# Marker detection — used only when the stack slots are *unset* and no lane paths
+# are configured, since extensions alone can't separate tank's `.ts`/`.js` from
+# trinity's when the backend is also Node. Non-source directories are pruned and
+# every marker is collected in a single traversal: a walk per marker is latency
+# the agent pays before its edit lands. The framework allowlists are not
+# exhaustive and need periodic review; a miss fails silently (the same-language
+# guard just doesn't fire). See plugins/crew/CLAUDE.md.
 node_backend_deps='"(@nestjs/core|@nestjs/common|express|fastify|koa|@hapi/hapi|hapi|@feathersjs/feathers|restify|@adonisjs/core|hono|elysia|@trpc/server)"[[:space:]]*:'
 frontend_deps='"(react|react-dom|next|nuxt|vue|svelte|@sveltejs/kit|@angular/core|solid-js|preact|astro|gatsby|@remix-run/react|react-router|@builder\.io/qwik)"[[:space:]]*:'
 prune_args=(-type d \( -name node_modules -o -name .git -o -name dist -o -name bin -o -name obj -o -name coverage -o -name .next \) -prune -o)
 
-# Sets _det_dotnet / _det_node / _det_frontend to 0 or 1 from one walk of the
-# tree. package.json is scanned wherever it lives (not just the repo root) so a
-# workspace/monorepo backend under e.g. apps/api/package.json is still detected;
-# a frontend is a framework dep in any package.json, or any JSX/TSX file.
+# Sets _det_dotnet / _det_node / _det_frontend from one walk of the tree.
+# package.json is scanned wherever it lives, so a monorepo backend under
+# apps/api/ is still detected; a frontend is a framework dep in any package.json,
+# or any JSX/TSX file.
 scan_markers() {
   _det_dotnet=0 _det_node=0 _det_frontend=0
   local f
@@ -134,8 +121,7 @@ scan_markers() {
       *.tsx|*.jsx)    _det_frontend=1 ;;
       *package.json)
         # grep's stderr is dropped so an unreadable package.json can't prepend a
-        # stray error to a block message. Detection is unaffected either way:
-        # grep already reports an unreadable file as "no match" via its status.
+        # stray error to a block message; grep already reports it as "no match".
         if [ "$_det_node" = 0 ] && grep -Eq "$node_backend_deps" "$f" 2>/dev/null; then _det_node=1; fi
         if [ "$_det_frontend" = 0 ] && grep -Eq "$frontend_deps" "$f" 2>/dev/null; then _det_frontend=1; fi
         ;;
@@ -146,12 +132,10 @@ scan_markers() {
 }
 
 # Cache detection for the session so the walk above runs at most once, not on
-# every Edit/Write — its markers don't change mid-feature. Keyed by
-# session_id, and only persisted when one is present: a cache keyed on cwd
-# alone would outlive the session it was written for (nothing ever expires a
-# /tmp file), and could be reused by an unrelated later session in the same
-# directory with stale results — unsafe for a fail-closed guard. Without a
-# session_id, detection is simply recomputed every call, as before caching.
+# every Edit/Write — its markers don't change mid-feature. Keyed by session_id and
+# only persisted when one is present: a cache keyed on cwd alone would outlive
+# its session and be reused with stale results by an unrelated later session in
+# the same directory. Without a session_id, detection is recomputed every call.
 detect_regime() {
   local cache="" session_id tmp
   session_id="$(jq -r '.session_id // empty' <<<"$guard_payload" 2>/dev/null)"
@@ -165,10 +149,9 @@ detect_regime() {
     fi
   fi
   scan_markers
-  # Publish the cache by rename, not by writing in place: crew dispatches
-  # workers in parallel, so several Edit/Write hooks can share one session_id
-  # and race here. A reader then sees either the previous file or the complete
-  # new one — never a half-written one it would have to fall back from.
+  # Publish the cache by rename, not by writing in place: crew dispatches workers
+  # in parallel, so several Edit/Write hooks can share one session_id and race
+  # here. A reader sees either the previous file or the complete new one.
   if [ -n "$cache" ] && tmp="$(mktemp "$cache.XXXXXX" 2>/dev/null)"; then
     if printf '%s\n' "$_det_dotnet" "$_det_node" "$_det_frontend" > "$tmp" 2>/dev/null; then
       mv -f "$tmp" "$cache" 2>/dev/null || rm -f "$tmp"
@@ -185,7 +168,6 @@ exempt=""
 confine=""
 exclude=""
 case "$agent_type" in
-  # Backend patterns (.NET style) first, then shared/frontend test file patterns.
   # `.spec.*` is kept (Vitest/Jest/Angular unit tests use it), but oracle is
   # excluded from the e2e-tool directories, which are dozer's — otherwise a
   # Playwright `e2e/foo.spec.ts` would fall in oracle's lane too.
@@ -194,12 +176,11 @@ case "$agent_type" in
           exclude='e2e/** cypress/** playwright/** tests/e2e/**' ;;
   dozer)
     # Scope to the resolved e2e tool's conventional locations rather than a blanket
-    # tests/** that would grant write access to backend/unit tests. Cypress keeps to
-    # cypress/ + *.cy.* files. Playwright's default testDir is tests/ or e2e/, but a
-    # bare tests/** also matches nested backend test dirs and overlaps oracle — so it
-    # is only widened to tests/** when a Frontend lane path is configured (the confine
-    # below then keeps it in-lane); otherwise it is restricted to structured e2e
-    # locations. The broad fallback applies only when the tool is unset/unknown.
+    # tests/** that would reach backend/unit tests. Playwright's default testDir is
+    # tests/ or e2e/, but a bare tests/** also matches nested backend test dirs and
+    # overlaps oracle, so it is only widened to tests/** when a Frontend lane path
+    # is configured (the confine below then keeps it in-lane). The broad fallback
+    # applies only when the tool is unset/unknown.
     mode="--allow"
     frontend_lane="$(config_slot 'Frontend lane path(s)')"
     case "$(config_slot 'Frontend e2e tool')" in
@@ -213,10 +194,9 @@ case "$agent_type" in
         ;;
       *)          patterns='cypress/** e2e/** tests/** playwright/** **/*.cy.*' ;;
     esac
-    # In a same-language monorepo a bare tests/** can match backend tests
-    # (e.g. apps/api/tests/**). When a Frontend lane path is configured,
-    # additionally confine dozer to it, so an e2e-shaped path that lives
-    # outside the frontend lane is still denied.
+    # In a same-language monorepo a bare tests/** can match backend tests (e.g.
+    # apps/api/tests/**), so a configured Frontend lane path also confines dozer:
+    # an e2e-shaped path outside that lane is still denied.
     [ -n "$frontend_lane" ] && confine="$(lane_globs "$frontend_lane")"
     ;;
   tank|trinity)
@@ -236,9 +216,9 @@ case "$agent_type" in
         patterns="$(lane_globs "$backend_lane") $route_handlers"
       fi
     elif [ -n "$backend_lane" ] || [ -n "$frontend_lane" ]; then
-      # Partial config: one lane path is set but not both. Fail closed rather
-      # than silently falling back to the extension regime, which can't reliably
-      # separate tank from trinity in same-language stacks.
+      # One lane path set but not both. Fail closed rather than falling back to
+      # the extension regime, which can't separate tank from trinity in
+      # same-language stacks.
       echo "Blocked: only one of Backend lane path(s) / Frontend lane path(s) is configured. Set both in CLAUDE.md (see /crew:init) before delegating." >&2
       exit 2
     elif [ "$backend_stack" = "node" ] && [ -n "$frontend_stack" ]; then
@@ -246,17 +226,15 @@ case "$agent_type" in
       exit 2
     elif [ "$backend_stack" = "node" ]; then
       # Backend-only Node repo (no Frontend stack configured). tank owns the whole
-      # Node codebase, so it writes freely; trinity is the frontend implementer with
-      # no frontend lane to scope to here, so it fails closed rather than getting
-      # unrestricted access.
+      # Node codebase, so it writes freely; trinity has no frontend lane to scope
+      # to here, so it fails closed rather than getting unrestricted access.
       [ "$agent_type" = "tank" ] && exit 0
       echo "Blocked: backend stack is node with no frontend configured — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating frontend work." >&2
       exit 2
     elif [ -z "$backend_stack" ] && { detect_regime; [ "$_det_node" = 1 ] && [ "$_det_dotnet" = 0 ]; }; then
-      # Stacks unset (resolved via morpheus's memory/detection, not pinned) but the
-      # repo's markers show a Node backend and no .NET project. The extension regime
-      # can't separate tank's `.ts`/`.js` from trinity's, so mirror the pinned
-      # `Backend stack: node` behavior.
+      # Stacks unset, but the repo's markers show a Node backend and no .NET
+      # project. The extension regime can't separate tank's `.ts`/`.js` from
+      # trinity's, so mirror the pinned `Backend stack: node` behavior.
       if [ "$_det_frontend" = 1 ]; then
         # Node backend + a frontend, no lane paths: genuinely ambiguous — fail closed.
         echo "Blocked: detected a Node backend (server framework in package.json) alongside a frontend, with no lane paths configured — extension-based lanes can't tell tank's and trinity's .ts/.js apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init), or pin Backend stack / Frontend stack, before delegating." >&2
@@ -267,12 +245,10 @@ case "$agent_type" in
       echo "Blocked: detected a backend-only Node repo — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating frontend work." >&2
       exit 2
     else
-      # Extension-based regime (default) — unchanged from before same-language
-      # stacks existed. Note: .cshtml is intentionally NOT denied to either tank
-      # or trinity. Razor is shared by concern (trinity = markup/DOM in
-      # server-rendered mode, tank = C#/server logic), and the mode/concern split
-      # is enforced by the agent prompts, not here — file globs can't see inside
-      # a file.
+      # Extension-based regime (default). .cshtml is intentionally NOT denied to
+      # either agent: Razor is shared by concern (trinity = markup/DOM, tank =
+      # C#/server logic), and that split is enforced by the agent prompts, since
+      # file globs can't see inside a file.
       mode="--deny"
       if [ "$agent_type" = "tank" ]; then
         patterns='*.ts *.tsx *.jsx *.js *.mjs *.scss *.css *.html'
@@ -288,10 +264,9 @@ esac
 
 # True if $path matches any glob in $1 (space-separated). set -f keeps patterns
 # literal for [[ ]] instead of expanding them against the filesystem. The */
-# prefix lets repo-relative patterns (tests/**) match an absolute file_path; the
-# ./ prefix lets **/-anchored patterns (**/*Tests/**) match a repo-relative
-# file_path (** needs a leading component to consume); in [[ ]] a single *
-# already spans '/'.
+# prefix lets repo-relative patterns match an absolute file_path, and the ./
+# prefix lets **/-anchored patterns match a repo-relative one (** needs a leading
+# component to consume); in [[ ]] a single * already spans '/'.
 matches() {
   set -f
   for g in $1; do
@@ -312,16 +287,16 @@ fi
 if matches "$patterns"; then match=1; else match=0; fi
 
 # An --allow agent with an exclude set is denied a path that matches it even when
-# it also matches the allow patterns — used to keep oracle's test globs out of the
+# it also matches the allow patterns: it keeps oracle's test globs out of the
 # e2e-tool directories, which are dozer's lane.
 if [ "$mode" = "--allow" ] && [ -n "$exclude" ] && matches "$exclude"; then
   echo "Blocked: $path is in an e2e lane (dozer's), not ${agent_type}'s." >&2
   exit 2
 fi
 
-# An --allow agent with a confine set must ALSO be inside the confine globs —
-# used to keep dozer's e2e patterns within the configured frontend lane so a
-# tests/** match in a backend lane (same-language monorepo) is still denied.
+# An --allow agent with a confine set must ALSO be inside the confine globs, which
+# keeps dozer's e2e patterns within the configured frontend lane: a tests/** match
+# in a backend lane is still denied.
 if [ "$mode" = "--allow" ] && [ -n "$confine" ] && ! matches "$confine"; then
   echo "Blocked: $path is outside ${agent_type}'s frontend lane." >&2
   exit 2

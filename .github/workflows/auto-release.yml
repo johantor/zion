@@ -17,11 +17,10 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          # Full history: the "already released?" check below needs every tag,
-          # and a shallow checkout doesn't deliver them — `fetch-tags: true`
-          # with the default depth only follows tags that point into the
-          # fetched history, which silently broke the check (see #130's
-          # follow-up fix).
+          # Full history: the "already released?" check below needs every tag, and
+          # a shallow checkout doesn't deliver them — `fetch-tags: true` at the
+          # default depth only follows tags pointing into the fetched history,
+          # which silently broke the check (#130).
           fetch-depth: 0
 
       - name: Create releases for updated plugin versions
@@ -38,7 +37,6 @@ jobs:
             version="$(jq -r '.version' "$manifest")"
             tag="${plugin}/v${version}"
 
-            # Skip if the tag already exists (release already created)
             if git rev-parse --verify "refs/tags/${tag}" >/dev/null 2>&1; then
               echo "Tag $tag already exists – skipping."
               continue
@@ -54,12 +52,10 @@ jobs:
             fi
 
             # Notes = this version's CHANGELOG section, plus the commits that
-            # shipped inside this tag without an entry of their own (a tag
-            # carries everything since the previous one, not just the bump).
-            # Lives in a script so it is shellchecked and covered by the tests.
-            # Same rule as the release call below: record the failure and carry
-            # on, so one plugin can't take the rest of the loop down with it
-            # (bare `set -e` on the assignment would abort the whole step).
+            # shipped inside this tag without an entry of their own. It lives in a
+            # script so it is shellchecked and covered by the tests. Same rule as
+            # the release call below: record the failure and carry on, so one
+            # plugin can't take the rest of the loop down with it.
             if ! notes="$(scripts/release-notes.sh "$plugin_dir" "$version")"; then
               echo "::error::Failed to build release notes for $tag"
               failed=$((failed + 1))

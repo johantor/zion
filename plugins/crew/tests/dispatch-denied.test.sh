@@ -1,17 +1,13 @@
 #!/usr/bin/env bash
-# Behavior tests for dispatch-denied.sh — the PermissionDenied advisor that
-# reacts to auto mode refusing a crew worker dispatch. Two shapes set it apart
-# from the guards: its decision is JSON on _stdout (the event ignores exit codes
-# and stderr), and it is stateful, counting attempts per session+worker through
-# the CREW_DISPATCH_DENIED_DIR override. Like turn-budget.sh it is advisory, but
-# it degrades in two directions, and the cases below pin both: silent when it
-# can't tell what it is looking at (unparseable payload, a dispatch that isn't a
-# crew worker's), and reporting-without-retrying when it recognises a crew
-# dispatch but can't count attempts (no session key, unwritable state).
+# Behavior tests for dispatch-denied.sh — the PermissionDenied advisor that reacts
+# to auto mode refusing a crew worker dispatch. Two shapes set it apart from the
+# guards: its decision is JSON on _stdout, and it is stateful, counting attempts
+# per session+worker through the CREW_DISPATCH_DENIED_DIR override.
 #
-# The load-bearing asymmetry: only a counted first attempt may ask for a retry.
-# Everything after it, and every path where the counter can't be trusted, must
-# not — and a can't-count message must not claim to be a repeat.
+# The cases below pin both ways it degrades — silent when it can't tell what it is
+# looking at, reporting-without-retrying when it can't count attempts — and the
+# load-bearing asymmetry: only a counted first attempt may ask for a retry, and a
+# can't-count message must not claim to be a repeat.
 # shellcheck source=tests/hooks/lib.sh
 # shellcheck disable=SC1090,SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"

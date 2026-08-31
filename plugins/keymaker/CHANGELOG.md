@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which is fixed with the same change.
 
 ### Changed
+- **The hooks' inline comments were cut back to what the code cannot say itself,** the same pass
+  crew's copies got. `hooks/lib/guard-lib.sh` and `read-guard.sh` stay byte-identical with crew's
+  (validator §5); rationale that belongs in `AGENTS.md` is pointed to rather than restated at each
+  call site. Comments only; no guard's allow/block behavior changes.
 - **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`,** vendored
   byte-identically from crew. `bash-safety.sh`, `read-guard.sh` and `write-guard.sh` source it
   instead of carrying their own copies of the payload plumbing and command-shape patterns, so a

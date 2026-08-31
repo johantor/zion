@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# PostToolUse(Edit|Write) formatter, gated to tank/trinity/neo (other agents and the
-# main session are no-ops). The formatter set is chosen by the **edited file's extension**,
-# not a fixed agent->lane table — so a Node-backend file tank edits still gets web
-# tooling, and a .cs/.csproj file gets dotnet/CSharpier regardless of which agent
-# produced it (a backend stack can be dotnet or node; lane != language).
+# PostToolUse(Edit|Write) formatter, gated to tank/trinity/neo (other agents and
+# the main session are no-ops). The formatter set is chosen by the edited file's
+# extension, not a fixed agent->lane table: a backend stack can be dotnet or node,
+# so lane != language. A Node-backend file tank edits still gets web tooling, and
+# a .cs/.csproj file gets dotnet/CSharpier whichever agent produced it.
 set -e
 
 # Fail open: formatting is best-effort, so a missing library or jq is a no-op,
@@ -15,12 +15,10 @@ _lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
 command -v jq >/dev/null 2>&1 || exit 0
 
 guard_read_payload
-# Both fields in one jq pass. The path is only computed for an agent this hook
-# actually formats for, so the far more common no-op call (any other agent, or
-# the main session) still doesn't pay to look it up — it just no longer costs a
-# second process when it does. neo is the cross-lane express-lane generalist, so
-# it gets the same extension-based routing as tank/trinity rather than a fixed
-# lane.
+# Both fields in one jq pass, and the path is only computed for an agent this
+# hook formats for, so the far more common no-op call doesn't pay to look it up.
+# neo is the cross-lane express-lane generalist, so it gets the same
+# extension-based routing as tank/trinity rather than a fixed lane.
 guard_jq2 \
   '(if ((.agent_type // "") | test("^(tank|trinity|neo)$")) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
   '.agent_type // ""' || exit 0
@@ -31,8 +29,7 @@ case "$agent_type" in
   tank|trinity|neo) : ;;
   *)                exit 0 ;;
 esac
-# Extension-based routing needs a path to route on; without one there's nothing
-# to format.
+# Extension-based routing needs a path to route on.
 [ -n "$path" ] || exit 0
 
 ext="${path##*.}"
@@ -46,11 +43,10 @@ esac
 # through literally and simply fail the -e test).
 cfg() { for _p in "$@"; do [ -e "$_p" ] && return 0; done; return 1; }
 
-# Every formatter runs under a wall-clock bound. This fires after *every* edit,
-# so a hang (stalled tool server, network-bound restore, a tool reading stdin)
-# would stall the agent each time, and the harness's kill can land mid `--write`
-# and truncate a source file. `timeout`/`gtimeout` is used when present and
-# skipped when not (absent on stock macOS/BSD) -- same degrade-don't-fail
+# Every formatter runs under a wall-clock bound. This fires after *every* edit, so
+# a hang would stall the agent each time, and the harness's kill can land mid
+# `--write` and truncate a source file. `timeout`/`gtimeout` is used when present
+# and skipped when not (absent on stock macOS/BSD) -- the same degrade-don't-fail
 # posture as the missing-jq path above. Plain SIGTERM, no `-k`: not every
 # `timeout` build accepts it, and every formatter routed here dies on a signal.
 FORMAT_TIMEOUT="${CREW_FORMAT_TIMEOUT:-20}"
@@ -71,23 +67,22 @@ run_bounded() {
   return "$_st"
 }
 
-# hung <status> — true when the bound killed the tool, so a hang is reported
-# distinctly from a tool that ran and rejected the file. 124 is `timeout`'s
-# convention; no formatter used here exits 124 of its own accord, and without a
-# timeout binary nothing can have been killed.
+# hung <status> — true when the bound killed the tool, so a hang reads
+# differently from a tool that ran and rejected the file. 124 is `timeout`'s
+# convention, no formatter here exits it of its own accord, and without a timeout
+# binary nothing can have been killed.
 hung() { [ -n "$timeout_bin" ] && [ "$1" = 124 ]; }
 
 case "$lane" in
   dotnet)
     command -v dotnet >/dev/null 2>&1 || exit 0  # fail open if dotnet isn't available
     # Per-edit formatting favors speed over full coverage: full `dotnet format`
-    # (whitespace + style + analyzer fixes from .editorconfig) evaluates analyzers
-    # against the containing project and can take 10-60s on real solutions — too
-    # slow to pay on every edit. It's already the review gate's backend lint check
-    # (`dotnet format --verify-no-changes`), run once at the gate. When the
-    # solution configures CSharpier (.csharpierrc), use it here instead — it
-    # formats a single file directly, without evaluating the project. Otherwise
-    # fall back to `dotnet format whitespace`, which skips analyzer evaluation.
+    # evaluates analyzers against the containing project and can take 10-60s on
+    # real solutions, so it stays at the review gate
+    # (`dotnet format --verify-no-changes`). When the solution configures
+    # CSharpier (.csharpierrc) use it here instead — it formats a single file
+    # without evaluating the project — else `dotnet format whitespace`, which
+    # skips analyzer evaluation.
     if cfg .csharpierrc .csharpierrc.* ; then
       st=0; run_bounded dotnet csharpier format "$path" || st=$?
       if [ "$st" = 0 ]; then
@@ -108,10 +103,10 @@ case "$lane" in
     ;;
   web)
     [ -f package.json ] || exit 0
-    # Apply every formatter/linter the solution configures (not just the first
-    # match): Biome, Prettier, ESLint, Stylelint. Detect each by its config,
-    # run it in fix mode scoped to the changed file, and only invoke the tool if
-    # it's installed locally — so a missing tool is a no-op, never an npx download.
+    # Apply every formatter/linter the solution configures, not just the first
+    # match. Each is detected by its config, run in fix mode scoped to the changed
+    # file, and only invoked when installed locally — so a missing tool is a
+    # no-op, never an npx download.
     bin="node_modules/.bin"
     ran=""
     # Run a locally-installed tool in fix mode; record it, report failures.

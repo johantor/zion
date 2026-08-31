@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- The hooks' inline comments were cut back to what the code cannot say itself. `guard-lib.sh` and
+  the six entry points carried paragraph-length rationale, some of it a second copy of what
+  `AGENTS.md` already states. What stays is the load-bearing why: the argument order in
+  `guard_jq2`, the quoted interpolation that keeps the redirect scan from looping, the marker
+  shapes validator §5/§9 parse. Comments only; no guard's allow/block behavior changes.
+
 ## [3.21.0] - 2026-08-31
 
 ### Fixed

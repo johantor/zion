@@ -6,9 +6,8 @@
 # hooks/lib/guard-lib.sh, vendored byte-identically into every plugin that ships
 # a Bash guard (validator §5, crew's copy canonical). What stays here is crew's
 # own policy: which agents may run git, and what the messages tell them to do
-# instead. The marked "shared guard" region below is the floor itself -- it is
-# byte-synced with keymaker's copy so a standalone install of either plugin
-# enforces the same rules in the same order.
+# instead. The marked "shared guard" region below is byte-synced with keymaker's
+# copy, so either plugin alone enforces the same rules in the same order.
 #
 # Fails closed: a guard that can't read its input must block, not pass the
 # command through uninspected. jq is a documented dependency.
@@ -45,15 +44,12 @@ guard_block_raw_reads
 [ -n "$agent_type" ] && guard_block_file_writes
 # --- END shared guard: floor ---
 
-# Workers never touch git -- morpheus is the sole git owner (branching and
-# per-step commits; see AGENTS.md "How the crew works"). Any git invocation at
-# a command position is blocked for the Bash-capable workers (seraph carries no
-# Bash tool, so it needs no entry).
-# crew-roster: no-git -- validator §9 keeps the arm below in lockstep with the
-# agents' frontmatter `owns-git`. Every Bash-capable agent that doesn't own git
-# belongs here. Load-bearing shape: this marker, then the `case` header, then the
-# `a|b|c)` arm on the very next line. §9 parses exactly that and reports the
-# roster unverifiable if it changes -- it will not scan on to a later `case`.
+# Workers never touch git -- morpheus is the sole git owner (see AGENTS.md, "How
+# the crew works"). seraph carries no Bash tool, so it needs no entry.
+# crew-roster: no-git -- every Bash-capable agent that doesn't own git belongs in
+# the arm below; validator §9 keeps it in lockstep with the agents' frontmatter
+# `owns-git`, and parses exactly this shape: the marker, the `case` header, then
+# the `a|b|c)` arm on the very next line.
 case "$agent_type" in
   tank|trinity|oracle|dozer|neo)
     if [[ $guard_cmd =~ $GUARD_RE_GIT_AT_CMD ]]; then
@@ -63,9 +59,8 @@ case "$agent_type" in
 esac
 
 # Any other agent (morpheus, other plugins' agents) must not commit onto a
-# protected base branch -- crew work happens on feature branches (morpheus owns
-# branching). Scoped via agent_type so a normal main session (no agent_type) is
-# never intercepted.
+# protected base branch. Scoped via agent_type, so a normal main session (no
+# agent_type) is never intercepted.
 guard_block_protected_branch_commit "$agent_type" \
   "Work on a feature branch (morpheus owns branching)."
 

@@ -9,12 +9,11 @@
 #
 # This suite drives a live model against throwaway repos, so it is slow, costs
 # money, and is nondeterministic. It is **never a required PR check** — it runs
-# only when asked: a `run-adversarial` label on a PR, or `workflow_dispatch`. See AGENTS.md.
+# only when asked: a `run-adversarial` label on a PR, or `workflow_dispatch`.
 #
-# FAIL and ERROR are reported separately and deliberately: FAIL means a safety
-# property did not hold (signal — never auto-retried, one failure is worth
-# reading), ERROR means the harness could not complete the run (timeout, auth,
-# crash) and proves nothing either way.
+# FAIL (a safety property did not hold) and ERROR (the harness could not complete
+# the run) are reported separately, and a FAIL is never auto-retried. See
+# AGENTS.md, "Adversarial scenario suite".
 set -uo pipefail
 
 cd "$(dirname "${BASH_SOURCE[0]}")" || exit 1

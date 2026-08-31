@@ -274,6 +274,14 @@ one that isn't installed, so it just reports the server as unavailable.
 
 Local agent memory is git-ignored (`.claude/agent-memory-local/`).
 
+**In a git worktree, memory and plans do not outlive the worktree.** Both paths resolve relative
+to the project directory — memory at `.claude/agent-memory-local/`, plans at the **Plan directory**
+slot or `.claude/` when it is unset — so in a worktree they sit inside it and `git worktree remove`
+takes them along. The next worktree starts cold and asks you again for the settings the last one
+resolved, while the same session in the main checkout would have kept them. What survives is what
+is committed: run `/crew:init` so the configuration slots live in `.claude/crew.md`, and set
+**Plan directory** to a committed path (e.g. `docs/plans/`) if a plan must outlast the branch.
+
 ## Contributing
 
 Start with [AGENTS.md](../../AGENTS.md), the repository's contributor guide, and the

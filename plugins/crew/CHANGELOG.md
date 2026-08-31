@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **The README now states that agent memory and plans do not survive a git worktree (#197).** Both
+  paths resolve relative to the project directory — memory at `.claude/agent-memory-local/`, plans
+  at the **Plan directory** slot or its `.claude/` fallback — so in a worktree they sit inside it
+  and `git worktree remove` takes them along, leaving the next worktree to re-ask settings the last
+  one had already resolved. The crew treats a worktree and the main checkout as interchangeable, so
+  the difference was silent. Nothing computes those paths here (`memory: local` is agent
+  frontmatter the harness resolves), so this is documentation, not a behavior change: it names what
+  survives instead — `.claude/crew.md`, and a **Plan directory** pointed at a committed path.
+
 ## [3.22.0] - 2026-08-31
 
 ### Fixed

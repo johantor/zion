@@ -13,5 +13,5 @@ Detect the test framework from its config file before writing or running tests â
   (`describe`/`it`/`expect`, `jest.fn()` mocks).
 - Neither present â†’ ask rather than guessing which the project uses.
 
-Run tests using the repository's backend test command from `CLAUDE.md`, whichever framework
+Run tests using the repository's backend test command from crew config, whichever framework
 it resolves to.

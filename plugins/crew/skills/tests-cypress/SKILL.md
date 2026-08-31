@@ -9,7 +9,7 @@ Cypress can be used for two distinct test types; apply only the sections relevan
 
 ## E2e tests
 
-Write and run frontend e2e specs using Cypress conventions and the repository's frontend test command from `CLAUDE.md`.
+Write and run frontend e2e specs using Cypress conventions and the repository's frontend test command from crew config.
 
 - Spec files live in `cypress/e2e/` (Cypress ≥ 10) or `cypress/integration/` (Cypress < 10).
 - Use `cy.intercept()` for network stubbing and `cy.fixture()` for test data.

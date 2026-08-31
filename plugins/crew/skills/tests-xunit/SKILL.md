@@ -6,5 +6,5 @@ description: .NET backend test conventions — xUnit test authoring and running,
 # Backend tests: xUnit (.NET)
 
 Write and run backend tests using xUnit conventions and the repository's backend test command
-from `CLAUDE.md` (e.g. `dotnet test`). Integration tests exercise the .NET layer end to end
+from crew config (e.g. `dotnet test`). Integration tests exercise the .NET layer end to end
 where the project has them.

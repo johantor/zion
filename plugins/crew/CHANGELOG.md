@@ -27,6 +27,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `lane-guard.sh`'s detection cache route their `/tmp` state through one helper that sweeps
   entries older than a day, so a long-lived machine no longer accumulates one tiny file per
   agent instance forever. The sweep runs at most once per agent instance, not per tool call.
+- **Crew configuration moved out of a project's `CLAUDE.md` into `.claude/crew.md`.** The slot
+  block put machine configuration for a dispatcher into the one file every session auto-loads for
+  every teammate — including teammates who have never installed the plugin, and who read
+  `Backend lane path(s): unset` as noise. Configuration is now YAML frontmatter, one key per slot,
+  in `.claude/crew.md`: committed so teammates inherit it, reviewable in a PR, and read on demand
+  instead of on every turn. `unset` and `none` are now plain YAML values rather than italic
+  markdown that reconcile had to string-match, and `none` keeps its meaning — the project has no
+  such tooling, so the gate skips and nobody is asked. Nothing breaks on upgrade: `morpheus`,
+  `keymaker`, `/crew:review`, the worker agents, and the stack/test skills all fall back to a
+  legacy **Crew configuration** block when the new file is absent, and nudge once to migrate.
+  `## Crew orchestration` deliberately **stays** in `CLAUDE.md` — auto mode's permission
+  classifier reads that file and nothing else, so moving it would cost worker dispatches their
+  only description.
+- **`/crew:init` now judges what may go into `CLAUDE.md` instead of filling it.** Slots go to
+  `.claude/crew.md`; a `CLAUDE.md` line is proposed only when it clears an explicit bar — *would a
+  quick glance give the right answer, or a plausible wrong one?* A `format` script that **writes**
+  when asked to check earns a line. The stack, a bare `npm run build`, and the dev URL do not:
+  they are one glance from `package.json`, and a written copy rots while `package.json` maintains
+  itself. Whatever survives is written tool-neutral, with no crew vocabulary, because its audience
+  is anyone working in the repo. A re-run also **migrates** a legacy block: it carries every slot
+  value across (values it has no key for become body notes), judges the rest against the bar,
+  and removes the section — after showing the diff, since the move is one-way.
+- **Validator §11 now pairs `init.md` §1 against `.claude/crew.md`.** Each §1 slot bullet declares
+  its key in backticked parentheses, and §11 keeps those keys in lockstep with this repo's own
+  config file's frontmatter, both directions. The pairing is on the key rather than the prose
+  label, the file's prose body is excluded (a key named in notes is not configuration), and a slot
+  bullet that declares no key is reported as unparseable rather than passed over.
 
 ### Added
 - **`morpheus` and `keymaker` share one operator-facing voice, the `operator-voice` skill.** The

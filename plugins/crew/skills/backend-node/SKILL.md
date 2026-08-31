@@ -24,7 +24,7 @@ these paths from your directory-based deny for this reason.
 
 ## Build
 
-Use the one-shot backend build command from `CLAUDE.md`, never a watch/dev command
+Use the one-shot backend build command from crew config, never a watch/dev command
 (`nodemon`, a framework's dev server) — those never terminate. A file-lock/in-use error
 (`EBUSY`/`EPERM`/`EACCES`, a locked `dist`/build output) is **environmental** (a running dev
 process is locking outputs), not a code error — report it as such.

@@ -18,6 +18,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `echo | grep -E` chain that ran before every Bash tool call, leaving `jq` as the only child
   process. Behavior is unchanged; the patterns were compared old-against-new across 533
   command/pattern pairs with no divergence.
+- **Reads crew configuration from `.claude/crew.md`.** keymaker borrows crew's build/test/lint and
+  base-branch slots, which moved out of a project's `CLAUDE.md` in the same release. It now reads
+  the new file — YAML frontmatter, one key per slot — and falls back to a legacy **Crew
+  configuration** block in `CLAUDE.md` when that file is absent, so projects that have not migrated
+  are unaffected. A slot set to `none` means the project has no such tooling: skip what needs it,
+  don't ask.
 
 ### Added
 - **`morpheus` and `keymaker` share one operator-facing voice, the `operator-voice` skill.** The

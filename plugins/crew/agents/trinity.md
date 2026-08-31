@@ -42,7 +42,7 @@ Rules:
   queue is drained), in the session's dedicated build location and isolated from any running
   app/dev process, and return **concise findings** — build/bundler errors with `file:line`,
   not the raw build log (`context-discipline`). Use the **one-shot build command `morpheus`
-  delegates** (the frontend build command from `CLAUDE.md`), never a watch/dev/serve command
+  delegates** (the frontend build command from crew config), never a watch/dev/serve command
   — those never terminate. If the build fails with a file-lock/in-use error, report it as
   **environmental** (a running dev server/watcher is locking outputs), not a code error — the
   exact error signature for your stack is in your stack skill. If you think a build is

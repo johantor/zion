@@ -79,9 +79,10 @@ every permission mode.
 <details>
 <summary>Staying in auto mode anyway</summary>
 
-- **`/crew:init` writes a `## Crew orchestration` section** above the config block in `CLAUDE.md`.
-  The classifier reads `CLAUDE.md`, so this is the lever that ships with the plugin: it describes
-  what a worker dispatch is, instead of leaving the classifier a bare label to judge.
+- **`/crew:init` writes a `## Crew orchestration` section** into `CLAUDE.md`. The classifier reads
+  `CLAUDE.md`, so this is the lever that ships with the plugin: it describes what a worker dispatch
+  is, instead of leaving the classifier a bare label to judge. It is the one thing the command puts
+  there by default — the configuration slots live in `.claude/crew.md`.
 - **Describe your project in `autoMode.environment`** in `~/.claude/settings.json`, keeping the
   `"$defaults"` entry. It has to be user-level — the classifier deliberately ignores `autoMode` in
   project `.claude/settings.json`.
@@ -98,7 +99,7 @@ entering auto mode.
 
 | Command | What it does |
 |---|---|
-| `/crew:init` | Detect this project's build/test/lint commands, base branch, frontend mode, and stacks, and record them in `CLAUDE.md`. Idempotent: re-run to pick up slots a newer version added. |
+| `/crew:init` | Detect this project's build/test/lint commands, base branch, frontend mode, and stacks, and record them in `.claude/crew.md` (committed, so teammates inherit them). It proposes for `CLAUDE.md` only what a glance at `package.json` would get wrong. Idempotent: re-run to pick up slots a newer version added, and to migrate a legacy `CLAUDE.md` block. |
 | `/crew:feature <task>` | Plan, delegate, and build the feature, stopping at the review gate. |
 | `/crew:review` | Pre-PR **GO / NO-GO**: consolidated code + security + design review plus diff-scoped build/test/lint. `quick` for a read-only pass with no suites; `full` to force every gate. |
 | `/crew:pr` | Push the branch and open the pull request. Outward action: it confirms first. |
@@ -152,8 +153,8 @@ intercepted**.
 - **lane-guard** routes on the payload's `agent_type` and guards `Edit`/`Write` only. File
   writes via Bash (`sed -i`, `tee`, redirects) are governed by the agent prompts, not this hook.
   Two regimes: extension-based globs by default (correct when backend and frontend are different
-  languages, e.g. dotnet+react), or directory-based paths (**Backend/Frontend lane path(s)** in
-  `CLAUDE.md`) when both resolved stacks are the same language (e.g. node+nextjs) and an
+  languages, e.g. dotnet+react), or directory-based paths (the `backendLanePaths` /
+  `frontendLanePaths` slots) when both resolved stacks are the same language (e.g. node+nextjs) and an
   extension alone can't tell the lanes apart. A Node backend with no lane paths configured fails
   closed rather than guessing.
 - **read-guard** blocks raw reads of files over 64 KiB (65536 bytes); an explicit `limit` of

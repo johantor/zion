@@ -19,7 +19,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), and `sentinel` (post-merge triage; read-only, no Bash). Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration block in `CLAUDE.md` (idempotent reconcile). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
+  - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
   - `skills/` — shared: `engineering-principles`, `context-discipline`, `loop-engineering`,
     `operator-voice` (all also shipped by other plugins — kept byte-for-byte in sync
     automatically; see *How we review code* below; `loop-engineering` carries the loop-mode stop
@@ -104,7 +104,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   conformance (read-only), `neo` = express-lane generalist for small changes (all lanes;
   no lane guard by design), `sentinel` = post-merge triage (read-only; locates a production
   signal and correlates it to suspect commits, and returns a pointer rather than a fix). Stack knowledge lives in per-stack skills, loaded once `morpheus`
-  resolves the project's stack (`CLAUDE.md`'s **Backend stack**/**Frontend stack** slots).
+  resolves the project's stack (crew config's `backendStack`/`frontendStack` slots).
   E2e tool knowledge lives in per-tool skills (`Frontend e2e tool` slot); frontend unit test
   tool knowledge lives in its own per-tool skills (`Frontend unit test tool` slot). `lane-
   guard.sh` enforces the write lane by file extension for disjoint-language stacks (e.g.
@@ -130,10 +130,18 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   iteration cap (`iterations: n/max`); the orchestrator itself never self-schedules.
 - All workers apply `context-discipline`: process bulk output with code, return only concise findings.
 
-The crew's runtime configuration (test/build/lint commands, base branch, frontend mode) lives
-in `CLAUDE.md` under **Crew configuration** — that is what `morpheus` and the `crew:*` commands
-read. For this repo those slots are mostly `unset`/`none`, because the repo is the plugin itself
-and has no app code to build or test.
+The crew's runtime configuration (test/build/lint commands, base branch, frontend mode) lives in
+`.claude/crew.md` — YAML frontmatter, one key per slot, plus a prose body of notes. That is what
+`morpheus` and the `crew:*` commands read, and what `/crew:init` writes; a slot reads `unset` when
+it is unresolved (the orchestrator asks once) and `none` when the project has no such tooling (the
+gate skips). For this repo the slots are mostly `unset`/`none`, because the repo is the plugins
+themselves and has no app code to build or test.
+
+Configuration does **not** live in a project's `CLAUDE.md`. What stays there is the
+`## Crew orchestration` prose, whose reader — auto mode's permission classifier — sees only
+`CLAUDE.md`, plus any convention a quick glance would get wrong (`/crew:init` §3 sets that bar).
+Earlier versions wrote the slots into `CLAUDE.md` as a **Crew configuration** block; every reader
+still falls back to that block when `.claude/crew.md` is absent, and `/crew:init` migrates it.
 
 ## How we review code (the crew reviewer)
 
@@ -384,10 +392,12 @@ Two more checks cover prose that names something the harness has to resolve. §1
 `crew:`/`keymaker:` reference in an agent, command, or skill body to resolve to a real agent or
 command file — a typo there fails silently and late, since the delegation simply doesn't launch.
 §11 keeps `commands/init.md` §1 — which declares itself the source of truth for the crew
-configuration slots — in lockstep with the `## Crew configuration` block in the root `CLAUDE.md`,
-both directions, so a slot can't exist in one and not the other. Both read one exact line shape
-(`- **<Slot>** —` and `- **<Slot>:**`) and never infer a slot from bold text elsewhere; an
-unparseable list is reported rather than passed over.
+configuration slots — in lockstep with this repo's own `.claude/crew.md`, both directions, so a
+slot can't exist in one and not the other. The two read one exact shape each: a
+`- **<Slot>** (`key`) —` bullet under §1, and a top-level `key:` inside the config file's
+frontmatter. Bold text elsewhere is not a slot, a key named in the file's prose body is not
+configuration, and an unparseable list is reported rather than passed over. The pairing is on the
+**key**, not the prose label: the key is the half both files have to agree on.
 
 §12 measures what the repo preaches. Every agent's **always-loaded footprint** — its own file
 plus every skill its frontmatter preloads — is reported on each run, because that cost is paid on

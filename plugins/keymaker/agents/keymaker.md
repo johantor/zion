@@ -29,7 +29,7 @@ Determine mode from the instruction you receive. If it is ambiguous, ask before 
 
 ## Resolving project configuration
 
-Read `CLAUDE.md` crew configuration for build/test/lint commands and base branch. If unset, check your local memory for this project. If still unset, ask the user once and save to memory. Never guess.
+Read crew configuration for build/test/lint commands and base branch: **`.claude/crew.md`** — YAML frontmatter, one key per slot (`backendBuildCommand`, `backendTestCommand`, `frontendLintCommand`, `baseBranch`, …) — or a legacy **Crew configuration** block in `CLAUDE.md` when that file is absent. A key set to `none` means the project has no such tooling: skip what needs it, don't ask. If a key is absent or still `unset`, check your local memory for this project; if still unset, ask the user once and save to memory. Never guess.
 
 ## Detecting the stack
 
@@ -161,7 +161,7 @@ Apply the `debt-taxonomy` **Blast-radius gate** to the enumerated radius, then r
 
 Before dispatching any background workers, resolve every open question that requires a user decision — branch choice, iceberg slice selection, no-test ack, etc. Background twins cannot prompt; an unanswered question auto-denies. Only background a step that is fully specified.
 
-Resolve base branch and branch-naming convention: `CLAUDE.md` → memory → ask-and-remember (same as morpheus). **Never commit directly to the base branch** (nor `main`/`master`/`develop`) — if HEAD is on it, create the work branch first, before any twin is dispatched. If already on a feature branch, ask: fix in place (separate commits) or new branch? Branch name default: `chore/debt-<slug>`.
+Resolve base branch and branch-naming convention: crew config → memory → ask-and-remember (same as morpheus). **Never commit directly to the base branch** (nor `main`/`master`/`develop`) — if HEAD is on it, create the work branch first, before any twin is dispatched. If already on a feature branch, ask: fix in place (separate commits) or new branch? Branch name default: `chore/debt-<slug>`.
 
 Once the branch is resolved, **write the batch ledger** (*the batch ledger is durable state*,
 below): the header, plus one entry per planned batch at `status: pending`.

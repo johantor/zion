@@ -46,7 +46,13 @@ anything stated here updates this file in the same commit.** Conventions live in
   in-place `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, and a redirect to anything but an
   exempt sink — so a Bash write can't route around `lane-guard`/`format.sh`, which are
   `Edit|Write`-only; #192), `read-guard.sh` (>64 KiB raw reads; an explicit
-  `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes). Both guards gate on a
+  `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes; the **only** hook that reads
+  crew configuration — `.claude/crew.md` frontmatter by key, falling back to a legacy
+  **Crew configuration** block in `CLAUDE.md` when that file is absent, so `config_slot` takes
+  both a frontmatter key and a legacy label. The source is slurped once in the parent shell and
+  narrowed to the frontmatter there: `config_slot` is called as `$(config_slot …)`, so a lazy
+  load would be discarded in the subshell, and a key matched below the frontmatter would read
+  a project's prose as configuration). Both guards gate on a
   hardcoded agent-name roster, each preceded by a `# crew-roster: <name>` marker whose
   following `a|b|c)` arm shape is load-bearing — validator §9 keeps those rosters in lockstep
   with the agents' `owns-git`/`lane-guarded` frontmatter, both directions. Also `format.sh`,

@@ -154,6 +154,18 @@ make_claude_md() {
   printf '%s' "$dir"
 }
 
+# make_crew_md <frontmatter> [body] -> echoes a throwaway dir containing a
+# .claude/crew.md with <frontmatter> between the `---` delimiters. The body is
+# prose the readers must ignore, so it is separate rather than something a caller
+# has to remember to place below the closing delimiter.
+make_crew_md() {
+  local dir
+  dir="$(new_tmpdir)"
+  mkdir -p "$dir/.claude"
+  printf -- '---\n%s\n---\n\n%s\n' "$1" "${2:-Notes.}" > "$dir/.claude/crew.md"
+  printf '%s' "$dir"
+}
+
 # make_tree <relpath>:<content> ... -> echoes a throwaway dir containing each
 # file, parent directories created. Splits each argument on its first colon, so
 # the content may contain colons (JSON) but the path may not. For fixtures whose

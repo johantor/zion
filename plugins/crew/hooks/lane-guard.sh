@@ -3,7 +3,7 @@
 # `agent_type` the harness adds to the payload; plugin agents can't carry their
 # own hooks, so the lanes are centralized here.
 #
-# Directory lanes (CLAUDE.md path config) win when set, else extension globs. A
+# Directory lanes (the crew-configuration path slots) win when set, else extension globs. A
 # same-language pair (node backend + JS frontend) with no lane paths fails CLOSED
 # -- extensions can't separate tank's files from trinity's. Caught whether the
 # stacks are pinned or unset; when unset the guard probes repo markers. A
@@ -48,36 +48,84 @@ case "$agent_type" in
 esac
 [ -z "$path" ] && exit 0
 
-# Read a Crew-configuration slot's value from CLAUDE.md (plain text after the bold
-# label, up to the em-dash). Missing file, missing slot, or the *unset*/none
-# placeholders all mean "not configured" -> empty string.
+# Crew configuration lives in `.claude/crew.md` as YAML frontmatter, one key per
+# slot. Earlier versions wrote the same slots into CLAUDE.md as
+# `- **Label:** value` bullets; /crew:init migrates those, so the legacy block is
+# still read when the new file is absent. `.claude/crew.md` wins when both exist.
 #
-# CLAUDE.md is slurped once here in the parent shell and matched in-process: a
+# The source is slurped once here in the parent shell and matched in-process: a
 # lane dispatch reads up to four slots, and shelling out per slot cost eight
 # processes before the agent's edit could land. The read must NOT move inside
 # config_slot: callers invoke it as `$(config_slot ...)`, so a lazy load would
 # happen in a subshell and be discarded before the next call.
 _cfg_text=""
-[ -f CLAUDE.md ] && { IFS= read -r -d '' _cfg_text < CLAUDE.md || :; }
+_cfg_kind=""
+if [ -f .claude/crew.md ]; then
+  _cfg_kind=frontmatter
+  _cfg_raw=""
+  IFS= read -r -d '' _cfg_raw < .claude/crew.md || :
+  # Narrow to the frontmatter here, once, rather than per slot: the body below it
+  # is free prose and may quote an example block (as /crew:init's own §1 does), and
+  # a key read from there is not a value anyone configured.
+  _cfg_first=1
+  while IFS= read -r _cfg_line; do
+    if [ "$_cfg_first" = 1 ]; then
+      _cfg_first=0
+      # No opening delimiter on line 1 means no frontmatter, so nothing is configured.
+      [ "$_cfg_line" = "---" ] || break
+      continue
+    fi
+    [ "$_cfg_line" = "---" ] && break
+    _cfg_text+="$_cfg_line"$'\n'
+  done <<<"$_cfg_raw"
+elif [ -f CLAUDE.md ]; then
+  _cfg_kind=legacy
+  IFS= read -r -d '' _cfg_text < CLAUDE.md || :
+fi
+
+# config_slot <frontmatter-key> <legacy-label> -- a slot's configured value.
+# Missing file, missing slot, or the unset/none placeholders all mean "not
+# configured" -> empty string.
 config_slot() {
   local line v=""
   [ -n "$_cfg_text" ] || return 0
   while IFS= read -r line; do
-    # Only the label is a literal here; the trailing * is the glob. Slot names are
-    # fixed strings, so a caller cannot turn this into a pattern.
-    case "$line" in
-      "- **$1:**"*)
-        v="${line#"- **$1:**"}"
-        v="${v#"${v%%[![:space:]]*}"}"   # trim leading whitespace
-        v="${v%%—*}"                     # value ends at the em-dash comment
-        v="${v%"${v##*[![:space:]]}"}"   # trim trailing whitespace
-        break ;;
-    esac
+    # Only the key or label is a literal here; the trailing * is the glob. Slot
+    # names are fixed strings, so a caller cannot turn this into a pattern.
+    if [ "$_cfg_kind" = frontmatter ]; then
+      case "$line" in
+        "$1:"*) v="${line#"$1:"}" ;;
+        *) continue ;;
+      esac
+    else
+      case "$line" in
+        "- **$2:**"*)
+          v="${line#"- **$2:**"}"
+          v="${v%%—*}" ;;                # a legacy value ends at the em-dash comment
+        *) continue ;;
+      esac
+    fi
+    v="${v#"${v%%[![:space:]]*}"}"       # trim leading whitespace
+    # A YAML scalar may be quoted, and an unquoted one ends at a `#` that follows
+    # whitespace (a `#` with no space before it is part of the scalar). Unwrap
+    # before scanning for the comment, so a `#` inside quotes stays in the value.
+    # Left in place, either would build a lane glob matching nothing -- which
+    # reads as "no lane" and widens the agent silently, rather than failing closed.
+    if [ "$_cfg_kind" = frontmatter ]; then
+      case "$v" in
+        '"'*) v="${v#\"}"; v="${v%%\"*}" ;;
+        "'"*) v="${v#\'}"; v="${v%%\'*}" ;;
+        *[[:space:]]'#'*) v="${v%%[[:space:]]#*}" ;;
+      esac
+    fi
+    v="${v%"${v##*[![:space:]]}"}"       # trim trailing whitespace
+    break
   done <<<"$_cfg_text"
   case "$v" in
-    # Treat *unset*, empty, and any value starting with "none" (e.g.
+    # Treat the placeholders -- `unset` in frontmatter, italic *unset* in a legacy
+    # block -- along with empty and any value starting with "none" (e.g.
     # "none (no e2e suite detected)") as not configured.
-    '*unset*'|none|none[!A-Za-z0-9]*|'') return 0 ;;
+    unset|'*unset*'|none|none[!A-Za-z0-9]*|'') return 0 ;;
     *) printf '%s' "$v" ;;
   esac
 }
@@ -182,8 +230,8 @@ case "$agent_type" in
     # is configured (the confine below then keeps it in-lane). The broad fallback
     # applies only when the tool is unset/unknown.
     mode="--allow"
-    frontend_lane="$(config_slot 'Frontend lane path(s)')"
-    case "$(config_slot 'Frontend e2e tool')" in
+    frontend_lane="$(config_slot frontendLanePaths 'Frontend lane path(s)')"
+    case "$(config_slot frontendE2eTool 'Frontend e2e tool')" in
       cypress)    patterns='cypress/** **/*.cy.*' ;;
       playwright)
         if [ -n "$frontend_lane" ]; then
@@ -200,10 +248,10 @@ case "$agent_type" in
     [ -n "$frontend_lane" ] && confine="$(lane_globs "$frontend_lane")"
     ;;
   tank|trinity)
-    backend_lane="$(config_slot 'Backend lane path(s)')"
-    frontend_lane="$(config_slot 'Frontend lane path(s)')"
-    backend_stack="$(config_slot 'Backend stack')"
-    frontend_stack="$(config_slot 'Frontend stack')"
+    backend_lane="$(config_slot backendLanePaths 'Backend lane path(s)')"
+    frontend_lane="$(config_slot frontendLanePaths 'Frontend lane path(s)')"
+    backend_stack="$(config_slot backendStack 'Backend stack')"
+    frontend_stack="$(config_slot frontendStack 'Frontend stack')"
     if [ -n "$backend_lane" ] && [ -n "$frontend_lane" ]; then
       # Route handlers live in the frontend tree but are tank's by concern
       # (single-owner, unlike Razor's markup/logic split) — exempt tank, deny trinity.
@@ -219,17 +267,17 @@ case "$agent_type" in
       # One lane path set but not both. Fail closed rather than falling back to
       # the extension regime, which can't separate tank from trinity in
       # same-language stacks.
-      echo "Blocked: only one of Backend lane path(s) / Frontend lane path(s) is configured. Set both in CLAUDE.md (see /crew:init) before delegating." >&2
+      echo "Blocked: only one of Backend lane path(s) / Frontend lane path(s) is configured. Set both in .claude/crew.md (see /crew:init) before delegating." >&2
       exit 2
     elif [ "$backend_stack" = "node" ] && [ -n "$frontend_stack" ]; then
-      echo "Blocked: backend stack is node — tank and trinity can both touch .ts/.js files, so extension-based lanes can't tell them apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating." >&2
+      echo "Blocked: backend stack is node — tank and trinity can both touch .ts/.js files, so extension-based lanes can't tell them apart. Set Backend lane path(s) / Frontend lane path(s) in .claude/crew.md (see /crew:init) before delegating." >&2
       exit 2
     elif [ "$backend_stack" = "node" ]; then
       # Backend-only Node repo (no Frontend stack configured). tank owns the whole
       # Node codebase, so it writes freely; trinity has no frontend lane to scope
       # to here, so it fails closed rather than getting unrestricted access.
       [ "$agent_type" = "tank" ] && exit 0
-      echo "Blocked: backend stack is node with no frontend configured — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating frontend work." >&2
+      echo "Blocked: backend stack is node with no frontend configured — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in .claude/crew.md (see /crew:init) before delegating frontend work." >&2
       exit 2
     elif [ -z "$backend_stack" ] && { detect_regime; [ "$_det_node" = 1 ] && [ "$_det_dotnet" = 0 ]; }; then
       # Stacks unset, but the repo's markers show a Node backend and no .NET
@@ -237,12 +285,12 @@ case "$agent_type" in
       # trinity's, so mirror the pinned `Backend stack: node` behavior.
       if [ "$_det_frontend" = 1 ]; then
         # Node backend + a frontend, no lane paths: genuinely ambiguous — fail closed.
-        echo "Blocked: detected a Node backend (server framework in package.json) alongside a frontend, with no lane paths configured — extension-based lanes can't tell tank's and trinity's .ts/.js apart. Set Backend lane path(s) / Frontend lane path(s) in CLAUDE.md (see /crew:init), or pin Backend stack / Frontend stack, before delegating." >&2
+        echo "Blocked: detected a Node backend (server framework in package.json) alongside a frontend, with no lane paths configured — extension-based lanes can't tell tank's and trinity's .ts/.js apart. Set Backend lane path(s) / Frontend lane path(s) in .claude/crew.md (see /crew:init), or pin Backend stack / Frontend stack, before delegating." >&2
         exit 2
       fi
       # Backend-only Node repo: tank owns it, trinity has no frontend lane here.
       [ "$agent_type" = "tank" ] && exit 0
-      echo "Blocked: detected a backend-only Node repo — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in CLAUDE.md (see /crew:init) before delegating frontend work." >&2
+      echo "Blocked: detected a backend-only Node repo — trinity has no frontend lane here. Set a Frontend stack / Frontend lane path(s) in .claude/crew.md (see /crew:init) before delegating frontend work." >&2
       exit 2
     else
       # Extension-based regime (default). .cshtml is intentionally NOT denied to

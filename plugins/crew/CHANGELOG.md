@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.22.0] - 2026-08-31
+
+### Fixed
+- **`lane-guard.sh` reads crew configuration from `.claude/crew.md` again (#201).** The slots moved
+  there in 3.21.0, and `/crew:init` migrates the legacy block out of `CLAUDE.md`, but the guard
+  still looked for `- **Backend lane path(s):** …` bullets in the old file. Every slot it reads —
+  both lane paths, both stack pins, and the frontend e2e tool — came back empty in any project
+  configured by the current `/crew:init`. In a same-language repo with lane paths set, that turned
+  every `tank`/`trinity` edit into a block telling the user to configure the file the values had
+  just been moved out of; in a mixed-language repo it silently degraded directory lanes to
+  extension lanes and dropped a pinned `Backend stack`. The guard now reads the frontmatter by
+  key and falls back to a legacy **Crew configuration** block only when `.claude/crew.md` is
+  absent, so migrated and unmigrated projects both work. Only the frontmatter is parsed — a slot
+  quoted in the file's prose body is not configuration — and a value is read as YAML: a quoted
+  scalar is unwrapped and an inline `#` comment dropped, since either left in place builds a lane
+  glob that matches nothing, which reads as no lane at all and widens the agent instead of failing
+  closed. The five block messages name `.claude/crew.md` as the file to edit.
+
+### Changed
 - The hooks' inline comments were cut back to what the code cannot say itself. `guard-lib.sh` and
   the six entry points carried paragraph-length rationale, some of it a second copy of what
   `AGENTS.md` already states. What stays is the load-bearing why: the argument order in

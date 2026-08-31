@@ -4,7 +4,7 @@
 #
 # Sourced, never executed, and wired in no hooks.json -- validator §6 wires only
 # the top-level hooks/*.sh entry points, and §5 pins every plugin's copy of this
-# file byte-identical (crew's copy is canonical: edit here, then mirror), so a
+# file byte-identical (crew's copy is canonical: edit crew's, then mirror), so a
 # standalone keymaker install enforces the same floor as crew.
 #
 # Two rules shape everything below.

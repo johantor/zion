@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.21.0] - 2026-08-31
+
 ### Fixed
 - **A worker's Bash writes are now guarded too (#192).** `lane-guard.sh` and `format.sh` are wired
   to `Edit|Write`, so a write shelled out through `sed -i`, `tee`, a `>`/`>>` redirect or a
@@ -30,6 +32,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   which guards see the work ("edit through Bash") is still declined, as a mechanics conflict.
 
 ### Changed
+- **Every agent's turn budget went up by half (#200).** `morpheus` 96 → 144, `tank`/`trinity`
+  72 → 108, `oracle`/`dozer` 56 → 84, `neo` 48 → 72, `seraph`/`sentinel` 40 → 60. The old
+  ceilings cut workers off mid-step on ordinary work, and a truncated return costs the
+  orchestrator a re-dispatch — more expensive than the turns it saved. The ratios between agents
+  are unchanged, so the relative sizing of a step stays what it was; `maxTurns` and
+  `turn-budget.sh`'s table moved together, as validator §8 requires.
 - **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`.** Payload
   plumbing, the command-shape patterns, the shared block helpers, the protected-branch list and
   read-guard's limits now live in one vendored file that every entry point sources, instead of

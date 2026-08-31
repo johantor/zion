@@ -4,7 +4,7 @@ description: Orchestrator for multi-agent feature work — invoke via `/crew:fea
 tools: Agent(crew:tank, crew:trinity, crew:oracle, crew:dozer, crew:seraph, crew:neo, crew:sentinel), SendMessage, Read, Write, Edit, Bash, Grep, Glob, ToolSearch, mcp__ado, mcp__github, mcp__linear, mcp__atlassian, mcp__sentry, mcp__plugin_ado_ado, mcp__plugin_github_github, mcp__plugin_linear_linear, mcp__plugin_atlassian_atlassian, mcp__plugin_sentry_sentry, mcp__claude_ai_GitHub, mcp__GitHub, mcp__claude_ai_Linear, mcp__Linear, mcp__claude_ai_Atlassian, mcp__Atlassian, mcp__claude_ai_Sentry, mcp__Sentry
 model: opus
 color: green
-maxTurns: 96
+maxTurns: 144
 memory: local
 owns-git: true
 lane-guarded: false

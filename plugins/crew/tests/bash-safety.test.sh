@@ -37,6 +37,7 @@ assert_allow "git push --force-with-lease" "$HOOK" "$(payload_bash 'git push --f
 # --- Redirects / .git writes ---------------------------------------------------
 assert_block "redirect into .env"        "$HOOK" "$(payload_bash 'echo secret > .env' tank)"       "unsafe command"
 assert_block "redirect into .git/config" "$HOOK" "$(payload_bash 'echo x > .git/config' tank)"     "unsafe command"
+assert_block "noclobber redirect into .env" "$HOOK" "$(payload_bash 'echo secret >| .env' tank)"   "unsafe command"
 assert_block "rm inside .git/"           "$HOOK" "$(payload_bash 'rm .git/index' tank)"             "unsafe command"
 
 # --- Watch/dev/serve commands (agent sessions only) ---------------------------
@@ -68,6 +69,13 @@ assert_block "redirect into a file"   "$HOOK" "$(payload_bash 'echo x > src/Foo.
 assert_block "glued redirect"         "$HOOK" "$(payload_bash 'echo x>src/Foo.cs' tank)"    "$gap"
 assert_block "append redirect"        "$HOOK" "$(payload_bash 'printf x >> README.md' tank)" "$gap"
 assert_block "quoted redirect target" "$HOOK" "$(payload_bash 'echo x > "src/Foo.cs"' tank)" "quoted path"
+# `>|` is the noclobber override, a redirect like any other. Without the `\|?` in
+# the pattern its target hides behind the `|` and the redirect reads as
+# targetless, i.e. as an exempt sink.
+assert_block "noclobber override"     "$HOOK" "$(payload_bash 'echo x >| src/Foo.cs' tank)" "$gap"
+assert_block "glued >| redirect"      "$HOOK" "$(payload_bash 'echo x >|src/Foo.cs' tank)"  "$gap"
+# `-` means stdout to some commands, but `> -` writes a file named `-`.
+assert_block "redirect into a file named -" "$HOOK" "$(payload_bash 'echo x > -' tank)"     "$gap"
 assert_block "tee into a file"        "$HOOK" "$(payload_bash 'cat t | tee src/Foo.cs' tank)" "$gap"
 assert_block "cp into the tree"       "$HOOK" "$(payload_bash 'cp /tmp/x src/Foo.cs' tank)"  "$gap"
 assert_block "mv inside the tree"     "$HOOK" "$(payload_bash 'mv src/a.cs src/b.cs' tank)"  "$gap"

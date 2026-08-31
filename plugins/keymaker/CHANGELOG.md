@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   sessions and names `Edit`/`Write` instead; exempt sinks (`/dev/null`, an fd dup, the temp
   directories) and read-only uses of the same tools stay allowed, and the operator's own session is
   untouched.
+- **`>|` counts as a redirect.** The noclobber override was not in the redirect pattern, so its
+  target hid behind the `|`. That also let `echo s >| .env` past the existing destructive rule,
+  which is fixed with the same change.
 
 ### Changed
 - **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`,** vendored

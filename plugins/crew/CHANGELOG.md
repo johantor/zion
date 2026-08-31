@@ -19,6 +19,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`/dev/null`, an fd dup, anything under the temp directories) and read-only uses of the same
   tools (`sed` without `-i`, a quoted `>` inside a grep or awk expression) stay allowed; the
   operator's own session is untouched, as with every other agent-scoped rule.
+- **`>|` counts as a redirect.** The noclobber override was not in the redirect pattern, so its
+  target hid behind the `|` and the redirect read as targetless. That also let `echo s >| .env`
+  past the existing destructive rule, which is fixed with the same change.
 - **`mid-run-direction` names the category a harness notice belongs to (#192).** The skill had two:
   a token-carrying steer, or an injection. A platform notice about session mechanics is neither,
   and workers were reporting one as a security event — three times in one run, which is how a real

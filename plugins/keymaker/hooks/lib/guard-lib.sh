@@ -112,8 +112,12 @@ _g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]
 # the safe --force-with-lease / --force-if-includes -- `-[A-Za-z]*f` cannot
 # cross their second dash); a redirect into .env; a redirect or removal aimed
 # inside the repository's own git directory.
+#
+# `\|?` after every redirect operator covers `>|`, the noclobber override: it is
+# a redirect like any other, and without it `echo s >| .env` reads as a `>` with
+# the target hidden behind the `|`.
 _g_dotgit='\.git/'
-GUARD_RE_DESTRUCTIVE="${_g_rm_rf}"'|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|$)|-[A-Za-z]*f)|>>?[[:space:]]*\.env|>>?[^|;&]*'"${_g_dotgit}"'|(^|[[:space:];|&(])rm[[:space:]][^|;&]*'"${_g_dotgit}"
+GUARD_RE_DESTRUCTIVE="${_g_rm_rf}"'|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|$)|-[A-Za-z]*f)|>>?\|?[[:space:]]*\.env|>>?\|?[^|;&]*'"${_g_dotgit}"'|(^|[[:space:];|&(])rm[[:space:]][^|;&]*'"${_g_dotgit}"
 
 # A command position: start of line, or just after a separator.
 _g_cmdpos='(^|[;&|][&|]?[[:space:]]*)'
@@ -156,11 +160,12 @@ GUARD_RE_CAT="${_g_cmdpos}"'cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&]|&&|\|\|
 # per command.
 _g_anypos='(^|[[:space:];|&(])'
 GUARD_RE_WRITE_CMD="${_g_anypos}"'(tee|patch|cp|mv)([[:space:]]|$)'"|${_g_anypos}"'(sed|perl|ruby|awk|gawk)[[:space:]]+([^;|&]*[[:space:]])?(-[A-Za-z]*i([[:space:]]|[.=]|$)|--in-place)'
-# A redirect and its target, glued or spaced (`>file`, `>> file`, `2>`, `&>`).
-# The target excludes `&`, so an fd dup (`2>&1`) captures nothing and reads as
-# the exempt sink it is. `<` is absent by design: an input redirect writes
-# nothing.
-GUARD_RE_REDIRECT='([0-9]*|&)>>?[[:space:]]*([^[:space:];|&<>]*)'
+# A redirect and its target, glued or spaced (`>file`, `>> file`, `2>`, `&>`,
+# and `>|`, the noclobber override -- without that `\|?` the target hides behind
+# the `|` and the redirect reads as targetless). The target excludes `&`, so an
+# fd dup (`2>&1`) captures nothing and reads as the exempt sink it is. `<` is
+# absent by design: an input redirect writes nothing.
+GUARD_RE_REDIRECT='([0-9]*|&)>>?\|?[[:space:]]*([^[:space:];|&<>]*)'
 
 # --------------------------------------------------------- blocking helpers
 #
@@ -214,10 +219,11 @@ GUARD_QUOTED='@quoted@'
 # as the empty string), and the temp locations agents use for scratch output.
 # Anything else counts as a path in the checkout, relative paths included:
 # resolving one costs a fork, and a guard that guesses in the permissive
-# direction is the hole it exists to close.
+# direction is the hole it exists to close. `-` is NOT exempt -- it means stdout
+# to some commands, but `> -` writes a file literally named `-`.
 guard_write_sink_exempt() {
   case "$1" in
-    ''|-) return 0 ;;
+    '') return 0 ;;
     /dev/*|/proc/self/fd/*) return 0 ;;
     /tmp/*|/private/tmp/*|/var/folders/*|/private/var/folders/*) return 0 ;;
     "${TMPDIR:-/tmp}"/*) return 0 ;;

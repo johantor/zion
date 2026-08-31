@@ -38,14 +38,14 @@ agent_type="$guard_trusted"
 # exact `<name>) budget=<n> ;;` line shape — keep it when editing. Any other
 # agent_type (the user's own session, other plugins) is none of our business.
 case "$agent_type" in
-  morpheus) budget=144 ;;
-  tank) budget=108 ;;
-  trinity) budget=108 ;;
-  oracle) budget=84 ;;
-  dozer) budget=84 ;;
-  seraph) budget=60 ;;
-  neo) budget=72 ;;
-  sentinel) budget=60 ;;
+  morpheus) budget=96 ;;
+  tank) budget=72 ;;
+  trinity) budget=72 ;;
+  oracle) budget=56 ;;
+  dozer) budget=56 ;;
+  seraph) budget=40 ;;
+  neo) budget=48 ;;
+  sentinel) budget=40 ;;
   *) exit 0 ;;
 esac
 

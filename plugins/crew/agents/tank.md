@@ -3,7 +3,7 @@ name: tank
 description: Backend implementer for the project's resolved backend stack — server-side logic, controllers/handlers, and data access. Invoked by the morpheus orchestrator with the resolved backend stack; loads the matching stack skill (e.g. `backend-dotnet`, `backend-node`). Not for standalone or automatic use.
 tools: Read, Edit, Write, Grep, Glob, Bash, ToolSearch, Skill, mcp__context7, mcp__mssql, mcp__postgres, mcp__plugin_context7_context7, mcp__plugin_mssql_mssql, mcp__plugin_postgres_postgres
 model: sonnet
-maxTurns: 108
+maxTurns: 72
 color: red
 memory: local
 owns-git: false

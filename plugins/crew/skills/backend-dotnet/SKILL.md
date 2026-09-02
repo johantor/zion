@@ -44,6 +44,10 @@ narrow or soften it to finish faster:
   to date, so rebuilding an unchanged tree can print 0 warnings a real compile would print. If
   the output shows nothing compiled, report that — not a clean build.
 
+If the command **you were given** already carries one of these, don't rewrite it and don't report
+the build clean: name the weakening as your first finding. `morpheus` needs to know the gate was
+weaker than the developer's build more than it needs the build's result.
+
 **A zero exit code is not "clean".** `dotnet build` exits 0 with warnings present, so read the
 warning summary rather than the exit code. Report every warning — compiler (`CSxxxx`), analyzer,
 and code-style (`IDExxxx`) — in your findings: the id, `file:line`, and a count per id, not the

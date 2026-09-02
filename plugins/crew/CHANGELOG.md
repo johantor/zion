@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - README: document that a git worktree keeps only committed files, so local agent memory and an
   uncommitted plan are deleted with it (#197).
+- **Concurrent builds no longer point at one shared `obj/` (#194).** `morpheus`'s gate rules told
+  every build delegation to reuse one build location, which — read against its always-background
+  parallel dispatch — mandated concurrent writers over one intermediate directory. In .NET that
+  corrupts `project.assets.json`, the `*.nuget.g.*` files and the per-configuration intermediates
+  rather than failing with a lock error that names itself. The location stays shared for the sake
+  of warm caches, but it is now a **shared artifact** under the existing "one owner per shared
+  artifact" rule: a lane's build/test/lint gates run one at a time, or each writer gets its own
+  intermediate/output path. `/crew:review` says the same for its lane-scoped gates, which are
+  independent of each other but not of the build outputs. `backend-dotnet` names the mechanics:
+  the NuGet package cache (`NUGET_PACKAGES`) is read-mostly and shareable — that is where the warm
+  cache actually lives — while `BaseIntermediateOutputPath`/`BaseOutputPath` are per-build-writer,
+  and `dotnet test`/`publish`/`format` are writers too. Both places also stop classifying every
+  lock/in-use error as the operator's environment: a crew-caused collision is ruled out first, so
+  the remedy offered is serializing the crew's own dispatch rather than asking the user to stop a
+  dev server that was never the cause.
 
 ## [3.22.0] - 2026-08-31
 

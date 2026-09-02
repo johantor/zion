@@ -8,7 +8,7 @@ maxTurns: 144
 memory: local
 owns-git: true
 lane-guarded: false
-loaded-lines-cap: 526
+loaded-lines-cap: 541
 skills:
   - loop-engineering
   - context-discipline
@@ -304,14 +304,20 @@ Before triggering that gate:
 4. **One-shot build, bounded.** Use the project's **build** command, never a watch/dev/serve
    command (`dotnet watch`, `npm run dev`, `vite`, `tsc --watch`) — those never terminate and
    hang the worker. Give the build a wall-clock timeout so a hang fails fast.
-5. **Tell a contention failure from a code failure — and rule out your own dispatch first.** A
+5. **Full strictness; warnings are findings.** Require the configured command run **as
+   configured** — no narrowed target, no property or flag that relaxes analyzers/type checks, no
+   verbosity below the default. A zero exit code is not a pass: require the build's **warnings**
+   in the worker's findings — blocking in a file this branch changed, reported elsewhere. If the
+   **configured command itself** carries such a weakening, that's a NO-GO naming it — never
+   rewrite crew config to strengthen it yourself.
+6. **Tell a contention failure from a code failure — and rule out your own dispatch first.** A
    lock/in-use error (`MSB3027`/`MSB3026`, "being used by another process", `EBUSY`/`EPERM`/
    `EACCES`, a locked or corrupted `bin`/`obj`/`dist`) or a build timeout is **contention, not a
    code defect** — don't route it to the implementer. If two of your delegations shared the build
    location, the collision is yours: say so, clear the corrupted intermediates, serialize or split
    the paths, and re-run. Only when none overlapped is it the user's environment — report the
    likely lock (or hang), ask them to stop the dev server/app or confirm the location, then retry.
-6. Collect the workers' concise findings, synthesize the go/no-go, and route **genuine
+7. Collect the workers' concise findings, synthesize the go/no-go, and route **genuine
    compile/test failures** back to the implementer.
 
 If a step genuinely needs a build to be verifiable before the end, decide that deliberately

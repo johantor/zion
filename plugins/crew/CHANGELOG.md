@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- `backend-dotnet`, `morpheus`, `/crew:review`: the build gate now runs as strict as the project
+  configures — no narrowed target or relaxed analyzers, and warnings reported, not dropped (#193).
 - README: document that a git worktree keeps only committed files, so local agent memory and an
   uncommitted plan are deleted with it (#197).
 - `morpheus`, `/crew:review`, `backend-dotnet`: never race a lane's build/test/lint gates over one

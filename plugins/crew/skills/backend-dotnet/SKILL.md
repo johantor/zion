@@ -46,6 +46,36 @@ truncated `obj/` state, has two possible causes: a running app/dev process holdi
 the intermediate path to yourself — and don't assert the user's dev server is at fault when you
 were building against a location you were not given exclusively.
 
+### Run it as strict as the project configures
+
+A gate weaker than the build a developer runs locally is worse than no gate: it reports clean,
+and their next build comes back dirty. Run the configured command **as configured** — never
+narrow or soften it to finish faster:
+
+- **No narrowed target.** `-t:CoreCompile` — or any `-t:`/`/t:` (`--target:` under `dotnet
+  msbuild`) other than the default — skips the analyzer-bearing part of the build, so it
+  reports 0 warnings while analyzers fire.
+- **No relaxed analysis.** Don't pass `-p:EnforceCodeStyleInBuild=false`, `-p:RunAnalyzers=false`,
+  `-p:TreatWarningsAsErrors=false`, or any other property that loosens what the project sets.
+  Analyzer and code-style settings belong to the project, not to the build invocation.
+- **No `--no-restore`.** It reuses whatever restore assets are already on disk (and fails
+  outright when there are none), so a stale `project.assets.json` builds against a different
+  analyzer set than the developer's own build resolves. Let the gate restore.
+- **Verbosity at the default or above.** `dotnet build`'s default (`minimal`) prints warnings;
+  `-v q`/`--verbosity quiet` hides them. Never go below the default.
+- **A no-op build proves nothing.** MSBuild does not re-emit warnings for projects it finds up
+  to date, so rebuilding an unchanged tree can print 0 warnings a real compile would print. If
+  the output shows nothing compiled, report that — not a clean build.
+
+If the command **you were given** already carries one of these, don't rewrite it and don't report
+the build clean: name the weakening as your first finding. `morpheus` needs to know the gate was
+weaker than the developer's build more than it needs the build's result.
+
+**A zero exit code is not "clean".** `dotnet build` exits 0 with warnings present, so read the
+warning summary rather than the exit code. Report every warning — compiler (`CSxxxx`), analyzer,
+and code-style (`IDExxxx`) — in your findings: the id, `file:line`, and a count per id, not the
+raw log (`context-discipline`). Report zero warnings only when the build printed none.
+
 ## Docs
 
 When a docs MCP (e.g. Context7) is available, consult it for current, version-specific .NET

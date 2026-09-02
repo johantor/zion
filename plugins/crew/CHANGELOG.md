@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- README: document that a git worktree keeps only committed files, so local agent memory and an
+  uncommitted plan are deleted with it (#197).
+
 ## [3.22.0] - 2026-08-31
 
 ### Fixed

@@ -304,7 +304,7 @@ Before triggering that gate:
 5. **Full strictness; warnings are findings.** Require the configured command run **as
    configured** — no narrowed target, no property or flag that relaxes analyzers/type checks, no
    verbosity below the default. A zero exit code is not a pass: require the build's **warnings**
-   in the worker's findings, and treat one in a file this branch changed as blocking.
+   in the worker's findings — blocking in a file this branch changed, reported elsewhere.
 6. **Tell a contention failure from a code failure.** A lock/in-use error (`MSB3027`/`MSB3026`,
    "being used by another process", `EBUSY`/`EPERM`/`EACCES`, a locked `bin`/`obj`/`dist`) or a
    build timeout is **environmental, not a code defect** — don't route it to the implementer.

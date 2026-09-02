@@ -34,7 +34,9 @@ narrow or soften it to finish faster:
 - **No relaxed analysis.** Don't pass `-p:EnforceCodeStyleInBuild=false`, `-p:RunAnalyzers=false`,
   `-p:TreatWarningsAsErrors=false`, or any other property that loosens what the project sets.
   Analyzer and code-style settings belong to the project, not to the build invocation.
-- **No `--no-restore`** — it can skip analyzer package resolution, so the analyzers never load.
+- **No `--no-restore`.** It reuses whatever restore assets are already on disk (and fails
+  outright when there are none), so a stale `project.assets.json` builds against a different
+  analyzer set than the developer's own build resolves. Let the gate restore.
 - **Verbosity at the default or above.** `dotnet build`'s default (`minimal`) prints warnings;
   `-v q`/`--verbosity quiet` hides them. Never go below the default.
 - **A no-op build proves nothing.** MSBuild does not re-emit warnings for projects it finds up

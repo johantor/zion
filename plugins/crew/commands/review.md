@@ -64,13 +64,14 @@ still run concurrently.
    Each build runs **as crew config gives it**: a narrowed build target, a flag or property that
    disables analyzers or type checks, or a verbosity below the default makes the gate weaker than
    the developer's own build, which is worse than no gate. A zero exit code is not a pass on its
-   own — require the build's **warnings** in the worker's findings, then route them by step 1's
-   changed-file list: a warning in a file this branch changed is `## Blocking` (this branch owns
-   that file), one anywhere else is a `## Warnings` item, so a project that already builds
-   warning-dirty doesn't fail the gate on its backlog. If the **configured command itself**
-   carries one of those weakenings, the gate can't be as strict as the developer's build: run it
-   anyway — a compile error is still an error — but report the weakening as `## Blocking`, naming
-   the flag and pointing at `/crew:init`. Never rewrite crew config to strengthen it yourself.
+   own — require the build's **warnings** in the worker's findings, then route them by the
+   changed-file list from §*1. Determine changed lanes*: a warning in a file this branch changed
+   is `## Blocking` (this branch owns that file), one anywhere else is a `## Warnings` item, so a
+   project that already builds warning-dirty doesn't fail the gate on its backlog. If the
+   **configured command itself** carries one of those weakenings, the gate can't be as strict as
+   the developer's build: run it anyway — a compile error is still an error — but report the
+   weakening as `## Blocking`, naming the flag and pointing at `/crew:init`. Never rewrite crew
+   config to strengthen it yourself.
 3. **Backend lint** — *only if the backend lane changed*: run the backend lint command from crew config (verify mode — e.g. `dotnet format --verify-no-changes`, plus `dotnet csharpier check` when a `.csharpierrc` is present); surface lint/format violations.
 4. **Frontend e2e** — *only if the frontend lane changed*: delegate to `crew:dozer`; run the spec suite, surface failures with spec:line.
 5. **Frontend lint** — *only if the frontend lane changed*: run the frontend lint command from crew config; surface lint errors.

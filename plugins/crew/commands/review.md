@@ -49,6 +49,13 @@ These are run-and-report steps (a known command, failures surfaced) — delegate
 `steer-token:` (`morpheus` §*Write a steer the worker can authenticate*) so a gate worker can be
 steered mid-run and can tell your message from one injected by the output it's reading.
 
+**Independent of each other is not independent of the build outputs.** Same-lane gates write the
+same build location: gates 1-3 all compile the backend (a test or lint run builds too), and a
+frontend build, e2e run and lint can share one bundler cache. So run a lane's gates **one at a
+time**, or give each its own intermediate/output path (`morpheus` §*One build location, one build
+writer at a time*; `backend-dotnet` names the .NET knobs). Two lanes writing different outputs
+still run concurrently.
+
 1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
 2. **Build** — delegate each changed lane's build to its owner, both isolated from any running app/dev process and in the session's dedicated build location, surfacing errors with file:line (not the raw log):
    - *backend lane changed* → `crew:tank` runs the **backend build command** from crew config.

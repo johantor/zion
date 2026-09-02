@@ -150,9 +150,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   (§2g's awk parser reads the `  - name` items; it stops at the next key, so the last-key rule
   is convention, not a parser constraint).
 - Always-loaded footprint: validator §12 reports every agent's agent-file + preloaded-skill line
-  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 534 —
-  raised from 526 for the gate build-strictness rule, itself raised from 496 for `operator-voice`
-  and from 480 for the steer contract, keeping ~10 lines of slack, since the figure counts preloaded
+  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 541 —
+  raised from 526 for the gate build-strictness rule and the build-contention rules that landed
+  beside it, itself raised from 496 for `operator-voice` and from 480 for the steer contract,
+  keeping ~10 lines of slack, since the figure counts preloaded
   shared skills and a keymaker-side edit to one would otherwise fail crew's cap).
   Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —
   agent prompts carry instruction, not justification; each trimmed prompt points there once.

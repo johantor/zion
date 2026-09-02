@@ -11,6 +11,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   configures — no narrowed target or relaxed analyzers, and warnings reported, not dropped (#193).
 - README: document that a git worktree keeps only committed files, so local agent memory and an
   uncommitted plan are deleted with it (#197).
+- `morpheus`, `/crew:review`, `backend-dotnet`: never race a lane's build/test/lint gates over one
+  shared `obj/` — serialize them, or split the intermediate path per writer (#194).
+- `morpheus`, `backend-dotnet`: rule out a crew-caused build collision before reporting a lock
+  error as the operator's environment (#194).
 
 ## [3.22.0] - 2026-08-31
 

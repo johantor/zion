@@ -30,6 +30,12 @@ small task.
   **NO-GO** naming the blocking finding, and `/crew:pr` refuses to push until it's GO.
 - [ ] **Lane-scoped** — a backend-only diff skips the design-conformance (`seraph`) gate, reported
   as *lane untouched*; `/crew:review full` forces every gate.
+- [ ] **One build writer at a time** — a .NET diff that triggers backend tests, build, and lint →
+  the three run one after another (or each with its own intermediate path), never concurrently
+  over one `obj/`.
+- [ ] **A collision is not the operator's environment** — a lock/corrupt-`obj/` failure while two
+  crew runs shared the build location → `morpheus` names its own overlapping dispatch and
+  re-runs serialized, instead of asking the user to stop their dev server.
 
 ### Loop mode (inner — `loop-engineering`)
 

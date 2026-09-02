@@ -25,9 +25,9 @@ watch/run command (`dotnet watch`, `dotnet run`) — those never terminate.
 
 MSBuild writes `project.assets.json`, `*.nuget.g.props`/`*.nuget.g.targets`,
 `*.csproj.nuget.dgspec.json` and the per-configuration intermediates into `obj/`. Two processes
-racing over those corrupt or truncate them — you get a restore that contradicts the project file
-or a nonsense compile error, not a clean lock error that names itself. And `dotnet test`,
-`dotnet publish` and `dotnet format` all build, so each of them is a writer too.
+racing over those files can corrupt or truncate them — you get a restore that contradicts the
+project file, or a nonsense compile error, rather than a clean lock error that names itself. And
+`dotnet test`, `dotnet publish` and `dotnet format` all build, so each of them is a writer too.
 
 - **Shareable across concurrent builds:** the NuGet package cache (`NUGET_PACKAGES`). It is
   read-mostly, and it is where the warm-cache benefit actually lives — point every build at one.
@@ -40,11 +40,11 @@ you did in your findings — morpheus knows the dispatch and you do not.
 
 ### A lock error is not automatically the user's environment
 
-A file-lock/in-use error (`MSB3027`/`MSB3026`, "being used by another process"), or corrupt/
-truncated `obj/` state, has two causes: a running app/dev process holding the outputs, **or** two
-crew builds sharing `obj/`. Report the failure, the path it names, and whether you had the
-intermediate path to yourself — and don't assert the user's dev server is at fault when you were
-building against a location you were not given exclusively.
+A file-lock/in-use error (`MSB3027`/`MSB3026`, "being used by another process"), or corrupted or
+truncated `obj/` state, has two possible causes: a running app/dev process holding the outputs,
+**or** two crew builds sharing `obj/`. Report the failure, the path it names, and whether you had
+the intermediate path to yourself — and don't assert the user's dev server is at fault when you
+were building against a location you were not given exclusively.
 
 ## Docs
 

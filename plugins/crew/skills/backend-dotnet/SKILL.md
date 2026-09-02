@@ -29,8 +29,9 @@ A gate weaker than the build a developer runs locally is worse than no gate: it 
 and their next build comes back dirty. Run the configured command **as configured** — never
 narrow or soften it to finish faster:
 
-- **No narrowed target.** `-t:CoreCompile` (or any `-t:`/`--target` other than the default)
-  skips the analyzer-bearing part of the build, so it reports 0 warnings while analyzers fire.
+- **No narrowed target.** `-t:CoreCompile` — or any `-t:`/`/t:` (`--target:` under `dotnet
+  msbuild`) other than the default — skips the analyzer-bearing part of the build, so it
+  reports 0 warnings while analyzers fire.
 - **No relaxed analysis.** Don't pass `-p:EnforceCodeStyleInBuild=false`, `-p:RunAnalyzers=false`,
   `-p:TreatWarningsAsErrors=false`, or any other property that loosens what the project sets.
   Analyzer and code-style settings belong to the project, not to the build invocation.

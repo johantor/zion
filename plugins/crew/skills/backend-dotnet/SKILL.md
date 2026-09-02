@@ -23,6 +23,29 @@ watch/run command (`dotnet watch`, `dotnet run`) — those never terminate. A fi
 error (`MSB3027`/`MSB3026`, "being used by another process") is **environmental** (a running
 app/dev process is locking outputs), not a code error — report it as such.
 
+### Run it as strict as the project configures
+
+A gate weaker than the build a developer runs locally is worse than no gate: it reports clean,
+and their next build comes back dirty. Run the configured command **as configured** — never
+narrow or soften it to finish faster:
+
+- **No narrowed target.** `-t:CoreCompile` (or any `-t:`/`--target` other than the default)
+  skips the analyzer-bearing part of the build, so it reports 0 warnings while analyzers fire.
+- **No relaxed analysis.** Don't pass `-p:EnforceCodeStyleInBuild=false`, `-p:RunAnalyzers=false`,
+  `-p:TreatWarningsAsErrors=false`, or any other property that loosens what the project sets.
+  Analyzer and code-style settings belong to the project, not to the build invocation.
+- **No `--no-restore`** — it can skip analyzer package resolution, so the analyzers never load.
+- **Verbosity at the default or above.** `dotnet build`'s default (`minimal`) prints warnings;
+  `-v q`/`--verbosity quiet` hides them. Never go below the default.
+- **A no-op build proves nothing.** MSBuild does not re-emit warnings for projects it finds up
+  to date, so rebuilding an unchanged tree can print 0 warnings a real compile would print. If
+  the output shows nothing compiled, report that — not a clean build.
+
+**A zero exit code is not "clean".** `dotnet build` exits 0 with warnings present, so read the
+warning summary rather than the exit code. Report every warning — compiler (`CSxxxx`), analyzer,
+and code-style (`IDExxxx`) — in your findings: the id, `file:line`, and a count per id, not the
+raw log (`context-discipline`). Report zero warnings only when the build printed none.
+
 ## Docs
 
 When a docs MCP (e.g. Context7) is available, consult it for current, version-specific .NET

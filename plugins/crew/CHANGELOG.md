@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- **The build gate must be as strict as the developer's own build (#193).** The `## Build` guidance
+  constrained only the build command's *termination* (one-shot, not a watcher), never its
+  *strictness*, so a narrowed MSBuild target (`-t:CoreCompile`), `-p:EnforceCodeStyleInBuild=false`,
+  `--no-restore`, or a verbosity below the default all satisfied it while silently disabling the
+  gate — the crew reported GO on 0 warnings the developer's own build printed by the dozen.
+  `backend-dotnet` now requires the configured command run as configured, names each of those
+  weakenings, notes that an up-to-date incremental build re-emits no warnings, and states that a
+  zero exit code is not "clean": warnings are reported with id and `file:line`. `morpheus`'s gate
+  rules and `/crew:review`'s build step carry the stack-neutral half, plus how warnings are
+  routed — one in a file the branch changed is `## Blocking`, one anywhere else is a `## Warnings`
+  item, so a project that already builds warning-dirty doesn't fail the gate on its backlog.
 - README: document that a git worktree keeps only committed files, so local agent memory and an
   uncommitted plan are deleted with it (#197).
 

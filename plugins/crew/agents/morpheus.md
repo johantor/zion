@@ -8,7 +8,7 @@ maxTurns: 144
 memory: local
 owns-git: true
 lane-guarded: false
-loaded-lines-cap: 526
+loaded-lines-cap: 534
 skills:
   - loop-engineering
   - context-discipline
@@ -301,12 +301,16 @@ Before triggering that gate:
 4. **One-shot build, bounded.** Use the project's **build** command, never a watch/dev/serve
    command (`dotnet watch`, `npm run dev`, `vite`, `tsc --watch`) — those never terminate and
    hang the worker. Give the build a wall-clock timeout so a hang fails fast.
-5. **Tell a contention failure from a code failure.** A lock/in-use error (`MSB3027`/`MSB3026`,
+5. **Full strictness; warnings are findings.** Require the configured command run **as
+   configured** — no narrowed target, no property or flag that relaxes analyzers/type checks, no
+   verbosity below the default. A zero exit code is not a pass: require the build's **warnings**
+   in the worker's findings, and treat one in a file this branch changed as blocking.
+6. **Tell a contention failure from a code failure.** A lock/in-use error (`MSB3027`/`MSB3026`,
    "being used by another process", `EBUSY`/`EPERM`/`EACCES`, a locked `bin`/`obj`/`dist`) or a
    build timeout is **environmental, not a code defect** — don't route it to the implementer.
    Report the likely lock (or hang), ask the user to stop the dev server/app or confirm the
    build location, then retry.
-6. Collect the workers' concise findings, synthesize the go/no-go, and route **genuine
+7. Collect the workers' concise findings, synthesize the go/no-go, and route **genuine
    compile/test failures** back to the implementer.
 
 If a step genuinely needs a build to be verifiable before the end, decide that deliberately

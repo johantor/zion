@@ -1,0 +1,65 @@
+<!doctype html><meta charset="utf-8"><title>● plan-order-export</title><link rel="stylesheet" href="_shared.css">
+<style>
+.wrap{display:grid;grid-template-columns:1fr 300px;gap:0;min-height:calc(100vh - 61px)}
+.ladder{padding:26px 40px 30px 40px;position:relative;align-self:start}
+.side{border-left:1px solid var(--line);padding:22px 24px}
+.side h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:18px 0 8px}
+.side h3:first-child{margin-top:0}
+.side li{margin:4px 0;color:var(--text)}.side ul{padding-left:18px;margin:0}
+.rail{position:absolute;left:66px;top:26px;bottom:30px;width:2px;background:linear-gradient(180deg,var(--dim) 0,var(--dim) 40%,var(--run) 46%,var(--ok) 52%,var(--ok) 100%);opacity:.7}
+.rung{display:grid;grid-template-columns:52px 1fr;gap:26px;align-items:center;padding:9px 0;position:relative}
+.rung .n{justify-self:end;position:relative;width:26px;display:flex;justify-content:center}
+.rung .n .dot{position:relative;z-index:1}
+.rung .body{display:flex;align-items:center;gap:12px}
+.rung .t{font-weight:500}.rung.future .t,.rung.future .meta{color:var(--dim)}.rung.next .t{color:var(--muted)}
+.rung .meta{margin-left:auto;color:var(--muted);font-size:12px;display:flex;gap:14px;align-items:center}
+.finish{border:1px dashed var(--line);border-radius:10px;padding:8px 14px;margin:0 0 6px 92px;color:var(--dim);display:flex;gap:10px;align-items:center}
+.finish .flag{font-size:16px}
+.now{margin:14px 0 14px 92px;position:relative}
+.now:before{content:"";position:absolute;left:-92px;right:0;top:50%;height:1px;background:var(--run);opacity:.55}
+.now .lab{position:absolute;left:-92px;top:-9px;font-size:11px;color:var(--run);background:var(--bg);padding:0 6px 0 0;font-family:var(--mono)}
+.now .cards{display:grid;grid-template-columns:1fr 1fr;gap:12px;position:relative}
+.now .card{border-color:#2b3f66;background:var(--panel2)}
+.now .card .h{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.now .card .w{font-family:var(--mono);font-size:12px;color:var(--run)}
+.now .card .acc{color:var(--muted);font-size:12.5px}
+.now .card .ft{display:flex;justify-content:space-between;margin-top:8px;font-size:12px;color:var(--muted)}
+.ev{display:grid;grid-template-columns:52px 1fr;gap:26px;padding:5px 0;font-size:12.5px;color:var(--muted);align-items:center}
+.ev .n{justify-self:end;width:26px;display:flex;justify-content:center}.ev .n i{width:6px;height:6px;border-radius:50%;background:var(--dim);display:block}
+.ev .time{font-family:var(--mono);margin-left:auto;color:var(--dim)}
+.stale{border-color:#6a4f12!important;background:linear-gradient(180deg,#2a2213,var(--panel2))!important}
+.stale .w{color:var(--warn)!important}
+</style>
+<div class="top"><h1>plan-order-export <span>feature/order-export → main</span></h1>
+<div style="display:flex;gap:10px;align-items:center"><span class="pill run" id="state">running · 47m</span><span class="pill">loop 2/6</span><span class="pill warn">gate NO-GO 1/2</span><span class="muted" style="font-size:12px">updated 40s ago</span></div></div>
+<div class="wrap"><div class="ladder"><div class="rail"></div>
+<div class="finish"><span class="flag">⚑</span><span class="mono">/crew:pr</span><span class="dim">· yours to run</span></div>
+<div class="rung future"><div class="n"><span class="dot"></span></div><div class="body"><span class="t">review gate</span><span class="meta">build · test · lint · GO/NO-GO</span></div></div>
+<div class="rung future"><div class="n"><span class="dot"></span></div><div class="body"><span class="t">7 · e2e: export flow end to end</span><span class="meta">dozer · after 5, 6</span></div></div>
+<div class="rung future"><div class="n"><span class="dot"></span></div><div class="body"><span class="t">6 · frontend: export button + progress toast</span><span class="meta">trinity · after 3</span></div></div>
+<div class="rung next"><div class="n"><span class="dot"></span></div><div class="body"><span class="t">5 · wire export job into scheduler</span><span class="meta">tank · after 3, 4 · <span style="color:var(--run)">next</span></span></div></div>
+<div class="now"><span class="lab">now</span><div class="cards">
+<div class="card"><div class="h"><span><span class="dot run"></span>&nbsp; 3 · export service + CSV writer</span><span class="w">tank</span></div><div class="acc">acceptance: streams 100k rows under 2s, no full materialisation</div><div class="ft"><span>attempt 2</span><span>in flight 14m</span></div></div>
+<div class="card" id="c4"><div class="h"><span><span class="dot run" id="d4"></span>&nbsp; 4 · unit tests: CSV writer edge cases</span><span class="w" id="w4">oracle</span></div><div class="acc">acceptance: quoting, BOM, empty set, 1M rows</div><div class="ft"><span>attempt 1</span><span id="t4">in flight 3m</span></div></div>
+</div></div>
+<div class="rung"><div class="n"><span class="dot ok"></span></div><div class="body"><span class="t">2 · order export DTO + mapping</span><span class="meta"><span class="sha">a41f9c2</span><span>tank</span><span>11m</span></span></div></div>
+<div class="ev"><div class="n"><i></i></div><div class="body" style="display:flex;width:100%"><span>gate NO-GO 1 of 2 · warnings in files this branch changed · step 3 reopened</span><span class="time">09:38</span></div></div>
+<div class="rung"><div class="n"><span class="dot ok"></span></div><div class="body"><span class="t">1 · export permission + endpoint contract</span><span class="meta"><span class="sha">7c0d3e1</span><span>tank</span><span>9m</span></span></div></div>
+<div class="ev"><div class="n"><i></i></div><div class="body" style="display:flex;width:100%"><span>run started · morpheus planned 7 steps</span><span class="time">09:12</span></div></div>
+</div>
+<div class="side"><h3>exit conditions</h3><ul class="muted"><li>gate GO</li><li>all 7 steps done</li><li>or 6 iterations</li></ul>
+<h3>in flight</h3><ul class="muted"><li>tank · step 3 · 14m</li><li>oracle · step 4 · 3m</li></ul>
+<h3>legend</h3><ul class="muted" style="list-style:none;padding:0"><li><span class="dot ok"></span>&nbsp; done, committed</li><li><span class="dot run"></span>&nbsp; in flight</li><li><span class="dot warn"></span>&nbsp; stale or needs you</li><li><span class="dot"></span>&nbsp; not started</li></ul>
+<p class="dim" style="font-size:12px;margin-top:26px">Rungs never move down. A failed check appends an event and bumps <span class="mono">attempts</span>.</p></div></div>
+<script>
+if(location.search.includes('needs')){
+ document.title='● Needs you · plan-order-export';
+ document.getElementById('state').textContent='needs you · 1';document.getElementById('state').className='pill bad';
+ const c=document.getElementById('c4');c.className='card stale';c.style.borderColor='#6b2a2a';c.style.background='linear-gradient(180deg,#3d1b1b,var(--panel2))';
+ document.getElementById('d4').className='dot bad';document.getElementById('w4').textContent='blocked';document.getElementById('w4').style.color='var(--bad)';
+ document.getElementById('t4').innerHTML='<span style="color:var(--bad)">needs a decision · 6m</span>';
+ c.querySelector('.acc').innerHTML='oracle: fixture uses a real S3 bucket. Mock it, or add a local emulator to the stack? <b style="color:var(--text)">Answer in terminal.</b>';
+ const b=document.createElement('div');b.className='banner bad';b.style.margin='0 0 14px 0';b.innerHTML='<span class="dot bad"></span><div><b>Needs you</b> — step 4 is blocked on a decision.</div><span class="act">→ terminal</span>';
+ document.querySelector('.ladder').prepend(b);
+}
+</script>

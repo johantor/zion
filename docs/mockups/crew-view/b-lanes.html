@@ -1,0 +1,37 @@
+<!doctype html><meta charset="utf-8"><title>plan-order-export</title><link rel="stylesheet" href="_shared.css">
+<style>
+.grid{display:grid;grid-template-columns:70px repeat(5,1fr);padding:22px 40px 30px;position:relative;min-height:calc(100vh - 61px)}
+.lane-h{font-family:var(--mono);font-size:12px;color:var(--muted);text-align:center;padding-bottom:10px;border-bottom:1px solid var(--line)}
+.lane-h.busy{color:var(--run)}
+.time{font-family:var(--mono);font-size:11px;color:var(--dim);padding-top:4px;text-align:right;padding-right:12px}
+.cell{position:relative;min-height:88px;border-left:1px dashed var(--line)}
+.cell:before{content:"";position:absolute;left:50%;top:0;bottom:0;width:2px;background:var(--line);opacity:.5}
+.lane-h,.cell,.time{grid-row:auto}
+.node{position:absolute;left:50%;top:14px;transform:translateX(-50%);min-width:160px;max-width:200px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12.5px;z-index:1}
+.node .k{display:flex;gap:8px;align-items:center;font-weight:500}.node .s{color:var(--muted);font-size:11.5px;margin-top:2px}
+.node.ok{border-color:#1f5a44}.node.run{border-color:#2b3f66;background:var(--panel2)}.node.plan{border-style:dashed;color:var(--dim)}.node.plan .s{color:var(--dim)}.node.gate{border-color:#6a4f12}
+.nowrow{grid-column:1/-1;position:relative;height:26px}
+.nowrow:before{content:"";position:absolute;left:70px;right:0;top:50%;height:1px;background:var(--run);opacity:.6}
+.nowrow span{position:absolute;left:0;top:3px;font-family:var(--mono);font-size:11px;color:var(--run)}
+.future{opacity:.55}
+.link{position:absolute;height:1px;background:var(--dim);top:26px;z-index:0}
+</style>
+<div class="top"><h1>plan-order-export <span>lanes · time flows up</span></h1>
+<div style="display:flex;gap:10px;align-items:center"><span class="pill run">running · 47m</span><span class="pill">loop 2/6</span><span class="pill warn">gate NO-GO 1/2</span><span class="muted" style="font-size:12px">updated 40s ago</span></div></div>
+<div class="grid">
+<div></div><div class="lane-h">morpheus</div><div class="lane-h busy">tank</div><div class="lane-h">trinity</div><div class="lane-h busy">oracle</div><div class="lane-h">dozer</div>
+<!-- future -->
+<div class="time future">later</div><div class="cell future"><div class="node plan"><div class="k">⚑ /crew:pr</div><div class="s">yours to run</div></div></div><div class="cell future"></div><div class="cell future"></div><div class="cell future"></div><div class="cell future"></div>
+<div class="time future"></div><div class="cell future"><div class="node plan gate"><div class="k">review gate</div><div class="s">build · test · lint</div></div></div><div class="cell future"></div><div class="cell future"></div><div class="cell future"></div><div class="cell future"><div class="node plan"><div class="k">7 · e2e export flow</div><div class="s">after 5, 6</div></div></div>
+<div class="time future">next</div><div class="cell future"></div><div class="cell future"><div class="node plan"><div class="k">5 · scheduler wiring</div><div class="s">after 3, 4 · next</div></div></div><div class="cell future"><div class="node plan"><div class="k">6 · export button + toast</div><div class="s">after 3</div></div></div><div class="cell future"></div><div class="cell future"></div>
+<div class="nowrow"><span>now 09:59</span></div>
+<!-- in flight -->
+<div class="time">09:56</div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"><div class="node run"><div class="k"><span class="dot run"></span>4 · CSV writer edge cases</div><div class="s">in flight 3m · attempt 1</div></div></div><div class="cell"></div>
+<div class="time">09:45</div><div class="cell"></div><div class="cell"><div class="node run"><div class="k"><span class="dot run"></span>3 · export service + CSV</div><div class="s">in flight 14m · attempt 2</div></div></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+<!-- past -->
+<div class="time">09:38</div><div class="cell"><div class="node gate"><div class="k"><span class="dot warn"></span>gate NO-GO 1/2</div><div class="s">warnings in changed files → step 3 reopened</div></div></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+<div class="time">09:34</div><div class="cell"></div><div class="cell"><div class="node ok"><div class="k"><span class="dot ok"></span>3 · export service + CSV</div><div class="s">returned · attempt 1 · <span class="sha">b90e11d</span></div></div></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+<div class="time">09:25</div><div class="cell"></div><div class="cell"><div class="node ok"><div class="k"><span class="dot ok"></span>2 · DTO + mapping</div><div class="s">done 11m · <span class="sha">a41f9c2</span></div></div></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+<div class="time">09:14</div><div class="cell"></div><div class="cell"><div class="node ok"><div class="k"><span class="dot ok"></span>1 · permission + contract</div><div class="s">done 9m · <span class="sha">7c0d3e1</span></div></div></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+<div class="time">09:12</div><div class="cell"><div class="node"><div class="k">run started</div><div class="s">planned 7 steps · loop on</div></div></div><div class="cell"></div><div class="cell"></div><div class="cell"></div><div class="cell"></div>
+</div>

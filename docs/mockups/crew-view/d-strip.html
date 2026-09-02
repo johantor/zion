@@ -1,0 +1,16 @@
+<!doctype html><meta charset="utf-8"><title>plan-order-export</title><link rel="stylesheet" href="_shared.css">
+<style>
+body{padding:0}.strip{display:flex;align-items:center;gap:18px;padding:0 18px;height:64px;border-bottom:1px solid var(--line)}
+.strip .name{font-weight:600}.strip .name span{color:var(--muted);font-weight:400;margin-left:8px;font-size:12px}
+.segs{display:flex;gap:4px;flex:1}.segs i{flex:1;height:10px;border-radius:3px;background:var(--panel2);position:relative}
+.segs i.ok{background:var(--ok)}.segs i.run{background:var(--run);animation:p 2.4s infinite}.segs i.bad{background:var(--bad)}.segs i.gate{background:repeating-linear-gradient(45deg,var(--panel2) 0 4px,var(--line) 4px 8px)}
+.segs i span{position:absolute;top:14px;left:0;font-size:10px;color:var(--dim);font-family:var(--mono);white-space:nowrap}
+@keyframes p{50%{opacity:.45}}
+.who{font-family:var(--mono);font-size:12px;color:var(--muted)}.who b{color:var(--run);font-weight:500}
+</style>
+<div class="strip"><div class="name">order-export<span>loop 2/6 · 47m</span></div>
+<div class="segs"><i class="ok"><span>1</span></i><i class="ok"><span>2</span></i><i class="run"><span>3 tank</span></i><i class="run"><span>4 oracle</span></i><i><span>5</span></i><i><span>6</span></i><i><span>7</span></i><i class="gate"><span>gate</span></i><i class="gate"><span>pr</span></i></div>
+<div class="who"><b>tank</b> 14m · <b>oracle</b> 3m</div><span class="pill run">running</span></div>
+<div class="strip" style="border-top:0"><div class="name">order-export<span>loop 2/6 · 53m</span></div>
+<div class="segs"><i class="ok"><span>1</span></i><i class="ok"><span>2</span></i><i class="run"><span>3 tank</span></i><i class="bad"><span>4 blocked</span></i><i><span>5</span></i><i><span>6</span></i><i><span>7</span></i><i class="gate"><span>gate</span></i><i class="gate"><span>pr</span></i></div>
+<div class="who"><b style="color:var(--bad)">oracle</b> needs a decision</div><span class="pill bad">needs you</span></div>

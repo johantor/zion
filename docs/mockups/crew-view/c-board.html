@@ -1,0 +1,41 @@
+<!doctype html><meta charset="utf-8"><title>● Needs you · plan-order-export</title><link rel="stylesheet" href="_shared.css">
+<style>
+.wrap{padding:22px 32px;display:grid;grid-template-columns:1fr 320px;gap:22px}
+.cols{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:16px}
+.col h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px;display:flex;justify-content:space-between}
+.col .card{margin-bottom:10px}.card .h{display:flex;justify-content:space-between;gap:8px;align-items:center}.card .h b{font-weight:500}
+.card .m{color:var(--muted);font-size:12px;margin-top:6px;display:flex;gap:12px}
+.card.blocked{border-color:#6b2a2a;background:linear-gradient(180deg,#3d1b1b,var(--panel))}
+.card.run{border-color:#2b3f66;background:var(--panel2)}.card.queued{opacity:.6}
+.feed h3{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 10px}
+.feed .e{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px}.feed .e .t{font-family:var(--mono);color:var(--dim);min-width:44px}
+.prog{height:6px;background:var(--panel2);border-radius:3px;overflow:hidden;margin-top:14px}.prog i{display:block;height:100%;width:29%;background:var(--ok)}
+</style>
+<div class="top"><h1>plan-order-export <span>board</span></h1>
+<div style="display:flex;gap:10px;align-items:center"><span class="pill bad">needs you · 1</span><span class="pill">loop 2/6</span><span class="pill warn">gate NO-GO 1/2</span><span class="muted" style="font-size:12px">updated 6m ago</span></div></div>
+<div class="wrap"><div>
+<div class="banner bad"><span class="dot bad"></span><div><b>Needs you</b> — step 4 <span class="mono">oracle</span> is blocked on a decision: mock S3, or add a local emulator?</div><span class="act">Answer in terminal</span></div>
+<div class="prog"><i></i></div><div class="muted" style="font-size:12px;margin-top:6px">2 of 7 steps done · 47m elapsed</div>
+<div class="cols">
+<div class="col"><h3>queued <span>3</span></h3>
+<div class="card queued"><div class="h"><b>5 · scheduler wiring</b><span class="pill">tank</span></div><div class="m"><span>after 3, 4</span><span style="color:var(--run)">next</span></div></div>
+<div class="card queued"><div class="h"><b>6 · export button + toast</b><span class="pill">trinity</span></div><div class="m"><span>after 3</span></div></div>
+<div class="card queued"><div class="h"><b>7 · e2e export flow</b><span class="pill">dozer</span></div><div class="m"><span>after 5, 6</span></div></div>
+<div class="card queued" style="border-style:dashed"><div class="h"><b class="muted">review gate → /crew:pr</b></div></div></div>
+<div class="col"><h3>in flight <span>2</span></h3>
+<div class="card run"><div class="h"><b><span class="dot run"></span>&nbsp; 3 · export service + CSV</b><span class="pill run">tank</span></div><div class="m"><span>14m</span><span>attempt 2</span></div></div>
+<div class="card blocked"><div class="h"><b><span class="dot bad"></span>&nbsp; 4 · CSV writer edge cases</b><span class="pill bad">blocked</span></div><div class="m"><span>oracle</span><span>waiting 6m</span></div></div></div>
+<div class="col"><h3>done <span>2</span></h3>
+<div class="card"><div class="h"><b><span class="dot ok"></span>&nbsp; 2 · DTO + mapping</b><span class="sha">a41f9c2</span></div><div class="m"><span>tank</span><span>11m</span></div></div>
+<div class="card"><div class="h"><b><span class="dot ok"></span>&nbsp; 1 · permission + contract</b><span class="sha">7c0d3e1</span></div><div class="m"><span>tank</span><span>9m</span></div></div></div>
+</div></div>
+<div class="feed"><h3>events</h3>
+<div class="e"><span class="t">09:59</span><span>oracle · step 4 <span style="color:var(--bad)">blocked</span> · needs a decision</span></div>
+<div class="e"><span class="t">09:56</span><span>oracle dispatched · step 4</span></div>
+<div class="e"><span class="t">09:45</span><span>tank dispatched · step 3 · attempt 2</span></div>
+<div class="e"><span class="t">09:38</span><span>gate <span style="color:var(--warn)">NO-GO 1/2</span> · step 3 reopened</span></div>
+<div class="e"><span class="t">09:34</span><span>tank returned · step 3</span></div>
+<div class="e"><span class="t">09:25</span><span>step 2 done · <span class="sha">a41f9c2</span></span></div>
+<div class="e"><span class="t">09:14</span><span>step 1 done · <span class="sha">7c0d3e1</span></span></div>
+<div class="e"><span class="t">09:12</span><span>run started · 7 steps · loop on</span></div>
+</div></div>

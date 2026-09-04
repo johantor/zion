@@ -323,7 +323,13 @@ case "$agent_type" in
         patterns+=' *.go go.mod go.sum go.work go.work.sum'                      # go
         patterns+=' *.rs Cargo.toml Cargo.lock'                                  # rust
         patterns+=' *.java pom.xml build.gradle build.gradle.kts'
-        patterns+=' settings.gradle settings.gradle.kts gradle.properties'       # java
+        patterns+=' settings.gradle settings.gradle.kts gradle.properties'
+        # Backend config under src/main/resources. NOT the whole tree: templates/
+        # and static/ under it are the view layer, so they stay trinity's the way
+        # .cshtml does.
+        patterns+=' **/src/main/resources/application*.properties'
+        patterns+=' **/src/main/resources/application*.yml **/src/main/resources/application*.yaml'
+        patterns+=' **/src/main/resources/bootstrap*.yml **/src/main/resources/bootstrap*.yaml'  # java
         patterns+=' *.sh *.bash *.bats .shellcheckrc'                             # shell
       fi
     fi

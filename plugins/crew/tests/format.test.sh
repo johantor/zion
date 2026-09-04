@@ -149,6 +149,13 @@ black_proj="$(make_tree 'pyproject.toml:[tool.black]
 line-length = 100')"
 assert_reports "a Black-only project does not get ruff" \
   "$(payload_file tank pkg/svc.py)" "$black_proj" "applied black"
+# Config belongs to the project that owns the file, which in a monorepo is not
+# the repo root -- checking only the root reports "no formatter" and lets the
+# edit reach the lint gate unformatted.
+mono="$(make_tree 'apps/api/pyproject.toml:[tool.ruff]
+line-length = 100')"
+assert_reports "config is found in the owning project, not just the root" \
+  "$(payload_file tank apps/api/pkg/svc.py)" "$mono" "applied ruff-format"
 # A non-timeout failure is reported, not swallowed behind an "applied" line.
 fake_bin ruff 'exit 1'
 assert_reports "a ruff that rejects the file is reported as failed" \

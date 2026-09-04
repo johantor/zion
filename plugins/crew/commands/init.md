@@ -147,7 +147,10 @@ trust or correct it; never invent a command you can't see configured.
 - **Backend stack:** a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
   dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`; a `pyproject.toml`
   (or `requirements*.txt`/`setup.py`) → `python`; a `go.mod` → `go`; a `Cargo.toml` → `rust`; a
-  `pom.xml` or `build.gradle`/`build.gradle.kts` → `java`; `*.sh`/`*.bats` with no other
+  `pom.xml` or `build.gradle`/`build.gradle.kts` **together with Java sources**
+  (`src/main/java`, or a `java`/`java-library` plugin in the build script) → `java`. A Gradle or
+  Maven file on its own is not enough: Kotlin, Scala and Android builds carry the same marker and
+  none of them is a supported stack — ask rather than resolving `java` from the build tool alone; `*.sh`/`*.bats` with no other
   backend marker → `shell` (a repo whose deliverable is the scripts themselves — not any repo
   that merely has a build script). If ambiguous or absent, leave `unset`
   for `morpheus` to resolve. A repo with markers for two backends is ambiguous, not a tie to

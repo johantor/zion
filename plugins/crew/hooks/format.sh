@@ -50,6 +50,24 @@ esac
 # through literally and simply fail the -e test).
 cfg() { for _p in "$@"; do [ -e "$_p" ] && return 0; done; return 1; }
 
+# find_up <name...> — echo the nearest ancestor of the edited file holding any of
+# them. Configuration belongs to the project that owns the file, and in a
+# monorepo that is not the repo root; checking only the root reports "no
+# formatter" and leaves the edit to fail the lint gate.
+find_up() {
+  _fu_d="${path%/*}"; [ "$_fu_d" = "$path" ] && _fu_d="."
+  _fu_n=0
+  while [ "$_fu_n" -lt 32 ]; do
+    for _fu_f in "$@"; do
+      [ -e "$_fu_d/$_fu_f" ] && { printf '%s' "$_fu_d"; return 0; }
+    done
+    case "$_fu_d" in .|/|"") return 1 ;; esac
+    _fu_p="${_fu_d%/*}"; [ "$_fu_p" = "$_fu_d" ] && _fu_p="."
+    _fu_d="$_fu_p"; _fu_n=$((_fu_n + 1))
+  done
+  return 1
+}
+
 # Every formatter runs under a wall-clock bound. This fires after *every* edit, so
 # a hang would stall the agent each time, and the harness's kill can land mid
 # `--write` and truncate a source file. `timeout`/`gtimeout` is used when present
@@ -167,11 +185,12 @@ case "$lane" in
       elif hung "$st"; then echo "format hook: $_label timed out after ${FORMAT_TIMEOUT}s on $path" >&2
       else echo "format hook: $_label failed on $path" >&2; fi
     }
-    # `tool_cfg <tool>` — true when the project configures that tool.
+    # `tool_cfg <tool>` — true when the owning project configures that tool.
+    pyroot="$(find_up pyproject.toml setup.cfg tox.ini ruff.toml .ruff.toml)" || pyroot="."
     tool_cfg() {
-      cfg "$1.toml" ".$1.toml" && return 0
-      [ -f pyproject.toml ] && grep -q "^\[tool\.$1" pyproject.toml && return 0
-      grep -q "^\[$1\]" setup.cfg tox.ini 2>/dev/null && return 0
+      cfg "$pyroot/$1.toml" "$pyroot/.$1.toml" && return 0
+      [ -f "$pyroot/pyproject.toml" ] && grep -q "^\[tool\.$1" "$pyroot/pyproject.toml" && return 0
+      grep -q "^\[$1\]" "$pyroot/setup.cfg" "$pyroot/tox.ini" 2>/dev/null && return 0
       return 1
     }
     if tool_cfg ruff && command -v ruff >/dev/null 2>&1; then
@@ -191,7 +210,8 @@ case "$lane" in
     # otherwise the same edit produces different source on different machines.
     tool=""
     command -v gofmt >/dev/null 2>&1 && tool="gofmt"
-    if grep -qr -- gofumpt .golangci.yml .golangci.yaml Makefile .github/workflows 2>/dev/null \
+    goroot="$(find_up go.mod .golangci.yml .golangci.yaml)" || goroot="."
+    if grep -qr -- gofumpt "$goroot/.golangci.yml" "$goroot/.golangci.yaml" Makefile .github/workflows 2>/dev/null \
        && command -v gofumpt >/dev/null 2>&1; then
       tool="gofumpt"
     fi
@@ -252,9 +272,9 @@ case "$lane" in
     fi
     st=0
     if [ -n "$edition" ]; then
-      run_bounded rustfmt --edition "$edition" "$path" || st=$?
+      run_bounded rustfmt --skip-children --edition "$edition" "$path" || st=$?
     else
-      run_bounded rustfmt "$path" || st=$?
+      run_bounded rustfmt --skip-children "$path" || st=$?
     fi
     if [ "$st" = 0 ]; then echo "format hook: applied rustfmt on $path" >&2
     elif hung "$st"; then echo "format hook: rustfmt timed out after ${FORMAT_TIMEOUT}s on $path" >&2
@@ -263,7 +283,7 @@ case "$lane" in
   sh)
     # shfmt only: shellcheck is a linter with no fix mode, so it belongs to the gate.
     # Config-gated like every other lane -- shfmt's defaults are not every project's.
-    cfg .shfmt .editorconfig || { echo "format hook: no shfmt configuration for $path; skipped" >&2; exit 0; }
+    find_up .shfmt .editorconfig >/dev/null || { echo "format hook: no shfmt configuration for $path; skipped" >&2; exit 0; }
     command -v shfmt >/dev/null 2>&1 || { echo "format hook: shfmt not on PATH for $path; skipped" >&2; exit 0; }
     st=0; run_bounded shfmt -w "$path" || st=$?
     if [ "$st" = 0 ]; then echo "format hook: applied shfmt on $path" >&2
@@ -276,9 +296,11 @@ case "$lane" in
     # Which formatter is the project's choice is stated in its build file, not by
     # what happens to be installed: running the other one reformats the whole file
     # to a different style.
+    jvmroot="$(find_up pom.xml build.gradle build.gradle.kts)" || jvmroot="."
     tool=""
     for _t in google-java-format palantir-java-format; do
-      grep -qr -- "$_t" pom.xml build.gradle build.gradle.kts 2>/dev/null || continue
+      grep -qr -- "$_t" "$jvmroot/pom.xml" "$jvmroot/build.gradle" "$jvmroot/build.gradle.kts" \
+        pom.xml build.gradle build.gradle.kts 2>/dev/null || continue
       command -v "$_t" >/dev/null 2>&1 && { tool="$_t"; break; }
     done
     [ -n "$tool" ] || { echo "format hook: no configured standalone Java formatter for $path; skipped" >&2; exit 0; }

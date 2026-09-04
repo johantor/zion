@@ -21,7 +21,8 @@ for _f in svc.py svc.pyi pyproject.toml requirements.txt setup.py setup.cfg \
           svc.go go.mod go.sum go.work go.work.sum \
           svc.rs Cargo.toml Cargo.lock \
           Svc.java pom.xml build.gradle build.gradle.kts settings.gradle gradle.properties \
-          run.sh lib.bash .shellcheckrc; do
+          run.sh lib.bash .shellcheckrc \
+          src/main/resources/application.yml svc/src/main/resources/application-prod.properties; do
   assert_block "trinity denied a backend file ($_f)" "$HOOK" "$(payload_file trinity "$_f")" "out of"
   assert_allow "tank allowed a backend file ($_f)"   "$HOOK" "$(payload_file tank "$_f")"
 done
@@ -32,6 +33,11 @@ frontendStack: react')"
 assert_block "trinity denied .rs under a pinned python backend" \
   "$HOOK" "$(payload_file trinity svc.rs)" "out of" "$fm_python"
 assert_allow "trinity keeps repo-wide .editorconfig" "$HOOK" "$(payload_file trinity .editorconfig)"
+# The view half of src/main/resources stays trinity's, like .cshtml.
+assert_allow "trinity keeps a Thymeleaf template" \
+  "$HOOK" "$(payload_file trinity src/main/resources/templates/index.html)"
+assert_allow "trinity keeps Spring's static assets" \
+  "$HOOK" "$(payload_file trinity src/main/resources/static/app.css)"
 assert_allow "trinity still allowed a .tsx under a pinned python backend" \
   "$HOOK" "$(payload_file trinity Foo.tsx)" "$fm_python"
 

@@ -55,6 +55,7 @@ for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gun
            'fastapi dev app.py' 'fastapi run' \
            'django-admin runserver' 'python -m django runserver' \
            'uv run python -m uvicorn app:app' 'poetry run python -m flask run' \
+           '.venv/bin/python -m uvicorn app:app' 'python3.12 -m uvicorn app:app' \
            'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'trunk serve' \
            './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous'; do
   assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)" "never terminate"
@@ -64,6 +65,7 @@ done
 for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
            'uv run pytest' 'poetry run python -m pytest tests/' 'python -m build' 'pipenv run pytest' \
            'django-admin startproject x' 'python -m django --version' \
+           '.venv/bin/python -m pytest' 'python3.12 -m build' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
            'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \
            './mvnw -B verify' './gradlew test' './gradlew check -x test'; do

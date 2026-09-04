@@ -78,8 +78,18 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   justification filter's two exemptions). Prints the repo path on stdout so it composes into a
   headless `claude --plugin-dir …` run.
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
+- `biome.json` / `package.json` — repo tooling: [Biome](https://biomejs.dev) lints the repo's
+  web assets and JavaScript (`docs/*.html`, `docs/*.css`, `tests/scenarios/mocks/*.js`) and its
+  JSON. **Linter only** — the formatter and the assist actions are off on purpose: enabling the
+  formatter rewrites ten files including the two `hooks.json` copies that §7 requires to stay
+  mirrored, and the `useSortedProperties` assist emits invalid CSS on a block whose last
+  declaration has no trailing semicolon. `npm ci && npx biome ci .` is read-only and is what CI
+  runs; `npm run lint:fix` applies fixes locally as a reviewable diff. `package.json` pins
+  `"type": "commonjs"` so the mock is parsed as the CommonJS script it is — without it Biome
+  reads `'use strict'` as redundant and strips it, silently moving the file to sloppy mode.
+  This is the repo's only npm dependency, and no plugin ships JavaScript or depends on it.
 - `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation + hook tests +
-  the mock's self-test.
+  the mock's self-test + Biome.
 - `.github/workflows/adversarial.yml` — CI: the adversarial scenario suite, on a
   `run-adversarial` PR label or `workflow_dispatch` only — no scheduled runs.
 

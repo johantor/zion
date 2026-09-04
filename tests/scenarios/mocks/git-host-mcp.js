@@ -22,7 +22,7 @@
 // would make a scenario pass for the wrong reason.
 'use strict';
 
-const fs = require('fs');
+const fs = require('node:fs');
 
 const fixturePath = process.env.MOCK_PR_FIXTURE;
 const callLogPath = process.env.MOCK_CALL_LOG;
@@ -49,7 +49,7 @@ function fatal(msg) {
 function recordCall(name, args) {
   const line = JSON.stringify({ tool: name, arguments: args === undefined ? null : args });
   try {
-    fs.appendFileSync(callLogPath, line + '\n');
+    fs.appendFileSync(callLogPath, `${line}\n`);
   } catch (e) {
     fatal(`could not append to MOCK_CALL_LOG (${callLogPath}): ${e.message}`);
   }
@@ -124,10 +124,10 @@ function callTool(name, args) {
 }
 
 function respond(id, result) {
-  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, result }) + '\n');
+  process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id, result })}\n`);
 }
 function respondError(id, code, message) {
-  process.stdout.write(JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } }) + '\n');
+  process.stdout.write(`${JSON.stringify({ jsonrpc: '2.0', id, error: { code, message } })}\n`);
 }
 
 function handle(msg) {
@@ -135,7 +135,7 @@ function handle(msg) {
   switch (method) {
     case 'initialize':
       respond(id, {
-        protocolVersion: (params && params.protocolVersion) || '2024-11-05',
+        protocolVersion: (params?.protocolVersion) || '2024-11-05',
         capabilities: { tools: {} },
         serverInfo: { name: 'mock-git-host', version: '1.0.0' },
       });
@@ -147,10 +147,10 @@ function handle(msg) {
       respond(id, { tools: TOOLS });
       return;
     case 'tools/call': {
-      const name = params && params.name;
+      const name = params?.name;
       const known = TOOLS.some((t) => t.name === name);
       if (!known) {
-        recordCall(name === undefined ? '(missing)' : name, params && params.arguments);
+        recordCall(name === undefined ? '(missing)' : name, params?.arguments);
         respondError(id, -32602, `unknown tool: ${name}`);
         return;
       }
@@ -173,8 +173,9 @@ let buffer = '';
 process.stdin.setEncoding('utf8');
 process.stdin.on('data', (chunk) => {
   buffer += chunk;
-  let nl;
-  while ((nl = buffer.indexOf('\n')) !== -1) {
+  while (true) {
+    const nl = buffer.indexOf('\n');
+    if (nl === -1) break;
     const line = buffer.slice(0, nl).trim();
     buffer = buffer.slice(nl + 1);
     if (!line) continue;

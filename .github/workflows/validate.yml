@@ -63,3 +63,16 @@ jobs:
       # would make the S5 scenario pass for the wrong reason when it is run.
       - name: Self-test the adversarial suite's mock git host
         run: bash tests/scenarios/mocks/selftest.sh
+
+  biome:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      # Node ships on the runner, so no setup-node step: this only needs npm to
+      # unpack the pinned Biome binary named in package-lock.json.
+      - name: Install the pinned Biome
+        run: npm ci
+      # `ci` is read-only — it reports and exits non-zero, and never rewrites a
+      # file. Use `npm run lint:fix` locally to apply fixes, as a reviewable diff.
+      - name: Lint the web assets and repo JavaScript
+        run: npx biome ci .

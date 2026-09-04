@@ -9,3 +9,12 @@ updates:
       interval: weekly
     commit-message:
       prefix: ci
+
+  # Biome is the repo's only npm dependency, and it is repo tooling: no plugin
+  # ships JavaScript or depends on it.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci

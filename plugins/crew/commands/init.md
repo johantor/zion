@@ -28,8 +28,8 @@ missing, and CI keeps it in lockstep with this repo's own `.claude/crew.md`:
 
 - **Frontend mode** (`frontendMode`) — `headless` or `server-rendered`. Optional/pin-only; leave
   `unset` to let `morpheus` resolve it per project.
-- **Backend stack** (`backendStack`) — `dotnet` or `node`. Optional/pin-only; leave `unset` to let
-  `morpheus` resolve it per project.
+- **Backend stack** (`backendStack`) — `dotnet`, `node`, `python`, `go`, `rust`, or `java`.
+  Optional/pin-only; leave `unset` to let `morpheus` resolve it per project.
 - **Frontend stack** (`frontendStack`) — `react` or `nextjs`. Optional/pin-only; leave `unset` to
   let `morpheus` resolve it per project.
 - **Frontend e2e tool** (`frontendE2eTool`) — `cypress` or `playwright`. Optional/pin-only; leave
@@ -101,6 +101,25 @@ trust or correct it; never invent a command you can't see configured.
 - **Backend (.NET):** a `*.sln`/`*.csproj` implies build `dotnet build`, test `dotnet test`,
   lint `dotnet format --verify-no-changes` (add `dotnet csharpier check` if a `.csharpierrc`
   exists).
+- **Backend (Python):** there is no compile step, so the build slot is the project's static gate —
+  a `[tool.mypy]`/`mypy.ini` implies `mypy .`, a `[tool.pyright]`/`pyrightconfig.json` implies
+  `pyright`. Test `pytest` (or the configured `[tool.pytest.ini_options]` invocation); lint
+  `ruff check .` / `flake8` plus `black --check .` where configured. Prefix every command with
+  the project's runner when it has one (`poetry run`, `uv run`, `pdm run`) — a bare `pytest`
+  resolves against whatever interpreter is active. If no type checker is configured, say so and
+  leave the build slot `unset` rather than inventing one.
+- **Backend (Go):** build `go build ./...` (add `go vet ./...` when the repo runs it), test
+  `go test ./...` (keep `-race` if a CI workflow uses it), lint `golangci-lint run` when a
+  `.golangci.yml` exists, else `gofmt -l .`.
+- **Backend (Rust):** build `cargo check --all-targets` or `cargo build` — read which the repo's
+  CI runs rather than picking; add `cargo clippy --all-targets -- -D warnings` where clippy is
+  configured. Test `cargo test` (`cargo nextest run` when `nextest.toml`/the tool is configured);
+  lint `cargo fmt --check`.
+- **Backend (JVM):** prefer the committed wrapper. Maven (`pom.xml`) implies build `./mvnw -B
+  verify -DskipTests`, test `./mvnw -B test`, lint `./mvnw -B checkstyle:check` where the plugin is
+  configured. Gradle (`build.gradle*`) implies build `./gradlew build -x test`, test
+  `./gradlew test`, lint `./gradlew check -x test`. Read the actual plugin/task set rather than
+  assuming these exist.
 - **Frontend (Node):** read `package.json` `scripts` — map `build`/`typecheck` → frontend
   build, `test`/`e2e`/a Playwright config → frontend test, `lint` → frontend lint. Use the
   scripts that exist; don't assume an `npx` download.
@@ -115,8 +134,11 @@ trust or correct it; never invent a command you can't see configured.
   unclear, leave `unset` and note that `morpheus` will resolve it, or ask. A genuinely mixed repo
   stays `unset` with the split described in the body notes, so `morpheus` resolves per feature.
 - **Backend stack:** a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
-  dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`. If ambiguous or
-  absent, leave `unset` for `morpheus` to resolve.
+  dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`; a `pyproject.toml`
+  (or `requirements*.txt`/`setup.py`) → `python`; a `go.mod` → `go`; a `Cargo.toml` → `rust`; a
+  `pom.xml` or `build.gradle`/`build.gradle.kts` → `java`. If ambiguous or absent, leave `unset`
+  for `morpheus` to resolve. A repo with markers for two backends is ambiguous, not a tie to
+  break — ask which one the crew should treat as the backend.
 - **Frontend stack:** a `next.config.*` → `nextjs`; a React/Vite SPA build with no
   `next.config.*` → `react`. If ambiguous or absent, leave `unset` for `morpheus` to resolve.
 - **Frontend e2e tool:** a `cypress.config.*` (or a `cypress/` directory) → `cypress`; a

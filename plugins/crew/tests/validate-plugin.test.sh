@@ -157,13 +157,16 @@ mk_roster_agent() {  # <plugin_dir> <name> <tools> <owns-git> <lane-guarded>
   printf -- '---\nname: %s\ndescription: d\ntools: %s\nowns-git: %s\nlane-guarded: %s\n---\nbody\n' \
     "$2" "$3" "$4" "$5" > "$1/agents/$2.md"
 }
-mk_roster_hook() {  # <plugin_dir> <hook-basename> <roster-name> <arm-alternation>
+mk_roster_hook() {  # <plugin_dir> <hook-basename> <roster-name> <arm-alternation> [git-owner]
   mkdir -p "$1/hooks"
   # The `$agent_type` below is fixture text in the shape §9 parses, not a value
   # to expand here.
   # shellcheck disable=SC2016
   printf '#!/usr/bin/env bash\n# crew-roster: %s -- fixture\ncase "$agent_type" in\n  %s) ;;\n  *) exit 0 ;;\nesac\n' \
     "$3" "$4" > "$1/hooks/$2"
+  # bash-safety also names the git owner by value; §9 checks that line too.
+  [ -n "${5:-}" ] && printf 'git_owner=%s\n' "$5" >> "$1/hooks/$2"
+  return 0
 }
 # A Bash-capable non-owner missing from the no-git roster would run git unguarded.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
@@ -284,17 +287,31 @@ mk_roster_hook "$d/plugins/foo" lane-guard.sh lane-guarded 'free'
 assert_emits "§9 bites when the roster lists a lane-guarded: false agent" "$d" \
   "declares 'lane-guarded: false'"
 
+# The floor's `git mv` allowance keys on `git_owner=<name>` in bash-safety.sh. A
+# missing or stale name there fails closed for the one agent that may rename, so
+# §9 pins it to the agent declaring `owns-git: true`.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
+mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'none'
+assert_emits "§9 bites when bash-safety names no git_owner" "$d" "add git_owner=boss"
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
+mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'none' oldboss
+assert_emits "§9 bites on a stale git_owner name" "$d" \
+  "sets 'git_owner=oldboss' but the agent with 'owns-git: true' is 'boss'"
+
 # A Bash-less agent needs no no-git entry, and the control must stay silent.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" laned "Read, Bash" false true
 mk_roster_agent "$d/plugins/foo" looker "Read, Grep" false false
-mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'laned'
+mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'laned' boss
 mk_roster_hook "$d/plugins/foo" lane-guard.sh lane-guarded 'laned'
 # Assert on FAIL-only phrasing: the `ok:` lines also contain the word "roster".
 assert_silent "§9 silent when both rosters are in lockstep" "$d" "add it to the arm"
 assert_silent "§9 silent: no stale-name complaint in lockstep" "$d" "remove the stale name"
 assert_silent "§9 silent: no owner complaint in lockstep" "$d" "exactly one agent"
+assert_silent "§9 silent: git_owner agrees with owns-git" "$d" "git_owner="
 
 # A plugin whose agents declare neither field is skipped entirely (keymaker).
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0

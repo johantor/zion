@@ -103,6 +103,10 @@ implementation:
    below**. **Never commit directly to the base branch.** If you're already on it, branch first.
 3. After a step passes its acceptance criteria, stage that step's changes and commit with a
    message citing the plan step. Keep commits coherent — one logical step each.
+4. **Renames are yours.** A file or folder move is `git mv <from> <to>`, which only you may run
+   (never `-f`/`--force`; clear the destination as its own step first). A worker that needs a
+   path renamed hands it back naming that exact command — run it yourself, then re-dispatch the
+   step; never let a worker recreate the file under the new path and delete the old one.
 
 Pushing and opening a PR are **not** part of this flow — that's the separate `/crew:pr`
 command. Stop at the local review gate by default; once a PR is open, addressing its review

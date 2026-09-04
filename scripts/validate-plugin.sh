@@ -556,6 +556,10 @@ done < <(git ls-files 'plugins/*/hooks/turn-budget.sh')
 #    differently (keymaker's twin check) are skipped. lane-guard's per-agent
 #    dispatch arms are deliberately NOT checked -- nested `case`, and a parser
 #    that misread them would report false lockstep.
+#
+#    bash-safety.sh also names the git owner by value (`git_owner=<name>`, the
+#    agent the shared floor lets run `git mv`); that line must name the one
+#    agent with `owns-git: true`.
 
 # Read one `key: value` from a Markdown file's YAML frontmatter.
 #
@@ -676,6 +680,17 @@ while IFS= read -r plugin_manifest; do
       done
       if [ "${#owners[@]}" -ne 1 ]; then
         err "$plugin_dir/agents must declare exactly one agent with 'owns-git: true' (found ${#owners[@]}: ${owners[*]:-none})"
+      else
+        # The hook also names the owner by value: `git_owner=<name>` is what the
+        # shared floor's `git mv` allowance keys on. A stale name there fails
+        # closed (nobody may rename), which is why it is checked here rather than
+        # left to be discovered by the one agent that needs it.
+        owner_line="$(grep -m1 -E '^git_owner=' "$hook" || true)"
+        case "$owner_line" in
+          "git_owner=${owners[0]}") ok "$hook git_owner names the git owner '${owners[0]}'" ;;
+          "") err "$hook has no 'git_owner=' line; the floor's git-mv allowance keys on it -- add git_owner=${owners[0]}" ;;
+          *) err "$hook sets '$owner_line' but the agent with 'owns-git: true' is '${owners[0]}'; make them agree" ;;
+        esac
       fi
       for n in "${arm_names[@]}"; do
         if [ -z "${git_seen[$n]:-}" ]; then

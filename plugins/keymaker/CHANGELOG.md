@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- **`keymaker` may run `git mv`.** The shared floor's file-write block refused every `mv`,
+  `git mv` included, so a rename was impossible for the one agent that owns git. `bash-safety.sh`
+  now names its git owner (`git_owner=keymaker`) and the floor allows a plain `git mv` for that
+  agent alone: a rename changes no bytes and lands in its commit. `git mv -f`/`--force` and bare
+  `mv`/`cp` stay refused, and a twin's `git mv` is told to hand the rename back to `keymaker`.
 - **A twin's Bash writes are now guarded too (crew #192).** `write-guard.sh` is wired to
   `Edit|Write`, so a write shelled out through `sed -i`, `tee`, a redirect or a `cp`/`mv` reached no
   guard at all. The shared floor in `bash-safety.sh` now refuses file-mutating Bash for agent

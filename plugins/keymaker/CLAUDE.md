@@ -26,8 +26,11 @@ anything stated here updates this file in the same commit.** Conventions live in
   floor. `read-guard.sh` and `lib/guard-lib.sh` (byte-identical) and `bash-safety.sh`'s marked
   shared-guard region are synced with crew's copies (crew is canonical — edit there and mirror
   here, or validator §5 fails CI). Shared logic belongs in `guard-lib.sh`, not in a widened
-  marker region. No `scripts/` dir: the validator is repo tooling at
-  `scripts/validate-plugin.sh` and covers this plugin too.
+  marker region. The floor refuses file-mutating Bash for agent sessions, with one carve-out:
+  `git mv` for the agent `bash-safety.sh` names in its `git_owner=keymaker` line above the region
+  (a rename changes no bytes and lands in the git owner's commit; `-f`/`--force` and bare
+  `mv`/`cp` stay refused, and a twin's `git mv` is told to hand the rename back). No `scripts/`
+  dir: the validator is repo tooling at `scripts/validate-plugin.sh` and covers this plugin too.
 - `tests/` — this plugin's hook test cases (`bash-safety`, `read-guard`, `write-guard`), run by
   the repo-level runner `tests/hooks/run.sh`, which fails if a plugin ships `hooks/` with no
   suite beside it. They exercise keymaker's *own* copies, so a vendored library that stopped

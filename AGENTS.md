@@ -385,7 +385,9 @@ from one of those lists **fails open** — a newly added agent would silently ge
 git and no write lane. So each agent declares `owns-git: true|false` and
 `lane-guarded: true|false` in its frontmatter, each roster carries a `# crew-roster: <name>`
 marker, and §9 checks both directions: every agent classified, every roster entry real, and
-exactly one git owner per plugin. Adding an agent without those two fields fails CI.
+exactly one git owner per plugin — who must also be the agent `bash-safety.sh` names in its
+`git_owner=` line, the one the shared floor lets run `git mv`. Adding an agent without those two
+fields fails CI.
 The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
 
 Two more checks cover prose that names something the harness has to resolve. §10 requires every

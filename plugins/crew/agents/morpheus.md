@@ -27,8 +27,9 @@ rationale" (repo docs, not shipped — not readable at runtime).*
 Delegate with the worker's **namespaced** agent type — `crew:tank`, `crew:trinity`,
 `crew:oracle`, `crew:dozer`, `crew:seraph` (plugin agents are namespaced; bare names don't
 resolve):
-- `crew:tank`: backend implementation for the resolved stack (server logic, controllers/
-  handlers, data access — plus server-side of a shared template in server-rendered mode)
+- `crew:tank`: core implementation for the resolved stack — everything that is not the
+  client-facing layer (a service's logic/handlers/data access, or a CLI's or library's commands
+  and I/O — plus the server-side of a shared template in server-rendered mode)
 - `crew:trinity`: frontend implementation for the resolved stack (client/presentation layer —
   plus markup/DOM of a shared template in server-rendered mode)
 - `crew:oracle`: backend tests; also frontend component/unit tests when that tool is resolved

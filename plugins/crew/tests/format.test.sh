@@ -253,6 +253,14 @@ edition = "2021"' 'crates/api/Cargo.toml:[package]
 name = "api"')"
 assert_reports "a member that omits edition does not inherit it" \
   "$(payload_file tank crates/api/src/lib.rs)" "$ws3" "applied rustfmt"
+# TOML accepts single-quoted strings, and a section header may carry a comment;
+# missing either falls through to rustfmt's 2015 default.
+fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
+alt_toml="$(make_tree "Cargo.toml:[package] # the root crate
+edition = '2021'")"
+assert_reports "a single-quoted edition and a commented section header parse" \
+  "$(payload_file tank src/lib.rs)" "$alt_toml" "applied rustfmt"
+
 # A mixed root carries both sections; [package] is the one that applies here.
 fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
 mixed="$(make_tree 'Cargo.toml:[package]

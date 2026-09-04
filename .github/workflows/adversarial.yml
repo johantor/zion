@@ -24,11 +24,12 @@ concurrency:
   group: adversarial-${{ github.ref }}
   cancel-in-progress: true
 
-permissions:
-  contents: read
+permissions: {}
 
 jobs:
   scenarios:
+    permissions:
+      contents: read
     # On a PR, only run when the opt-in label is present; dispatch always runs.
     if: >-
       github.event_name != 'pull_request' ||

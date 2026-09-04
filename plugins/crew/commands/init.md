@@ -30,8 +30,11 @@ missing, and CI keeps it in lockstep with this repo's own `.claude/crew.md`:
   `unset` to let `morpheus` resolve it per project.
 - **Backend stack** (`backendStack`) — `dotnet`, `node`, `python`, `go`, `rust`, `java`, or
   `shell`. Optional/pin-only; leave `unset` to let `morpheus` resolve it per project.
-- **Frontend stack** (`frontendStack`) — `react` or `nextjs`. Optional/pin-only; leave `unset` to
-  let `morpheus` resolve it per project.
+- **Frontend stack** (`frontendStack`) — `react`, `nextjs`, or `none` when the project has no view
+  layer at all (a CLI, a service, a library, a script pack). `none` is a statement, not an absence:
+  it stops `morpheus` asking about frontend mode, e2e and unit-test tooling, and stops it
+  dispatching the frontend workers. Optional/pin-only otherwise; leave `unset` to let `morpheus`
+  resolve it per project.
 - **Frontend e2e tool** (`frontendE2eTool`) — `cypress` or `playwright`. Optional/pin-only; leave
   `unset` to let `morpheus` resolve it per project.
 - **Frontend unit test tool** (`frontendUnitTestTool`) — `vitest`, `jest`, or `cypress`.
@@ -156,7 +159,9 @@ trust or correct it; never invent a command you can't see configured.
   for `morpheus` to resolve. A repo with markers for two backends is ambiguous, not a tie to
   break — ask which one the crew should treat as the backend.
 - **Frontend stack:** a `next.config.*` → `nextjs`; a React/Vite SPA build with no
-  `next.config.*` → `react`. If ambiguous or absent, leave `unset` for `morpheus` to resolve.
+  `next.config.*` → `react`; no client-facing surface at all → propose `none` (say why, since it
+  turns off the frontend half of the crew). If ambiguous, leave `unset` for `morpheus` to
+  resolve.
 - **Frontend e2e tool:** a `cypress.config.*` (or a `cypress/` directory) → `cypress`; a
   `playwright.config.*` → `playwright`. If ambiguous or absent, leave `unset` for `morpheus` to
   resolve.

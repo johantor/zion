@@ -95,9 +95,11 @@ anything stated here updates this file in the same commit.** Conventions live in
   `format.sh` runs every formatter under a wall-clock bound (`CREW_FORMAT_TIMEOUT`,
   default 20s) via `timeout`/`gtimeout`, degrading to an unbounded run where neither
   exists (stock macOS/BSD); a hang is reported distinctly from a formatter that failed.
-  It routes by extension into six lanes: `dotnet` and `web` look their tools up in the project
-  (`node_modules/.bin`, a dotnet tool manifest), while `python`/`go`/`rust`/`java` look theirs up
-  on `PATH`, since those ship with a toolchain rather than a project. **Single-file formatters
+  It routes by extension into seven lanes. `dotnet` and `web` look their tools up **in the
+  project** (`node_modules/.bin`, a dotnet tool manifest); `python`/`go`/`rust`/`java`/`sh` look
+  theirs up **on `PATH`**, because those are standalone executables a project does not vendor.
+  Every lane is gated on the owning project's configuration, resolved by `find_up` from the edited
+  file and **bounded at the project root** — configuration above it is another project's. **Single-file formatters
   only** — a whole-project tool (`cargo fmt`, Spotless, the Maven format plugins) loads the
   project on every call, which is seconds per edit, so those belong to the review gate. Its
   cases mirror `PATH` minus the tools under test, so a host that happens to have `gofmt` or

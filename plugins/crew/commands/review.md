@@ -29,9 +29,10 @@ classify each path — same split the lane guard uses:
 - **Backend lane** — the resolved backend's sources and manifests: `*.cs`, `*.csproj`
   (and `*.cshtml`: it carries server-side logic); `*.py`, `*.pyi`, `pyproject.toml`,
   `requirements*.txt`, `setup.py`, `setup.cfg`, `tox.ini`, `Pipfile{,.lock}`, `poetry.lock`,
-  `uv.lock`, `pdm.lock`, `mypy.ini`, `pyrightconfig.json`, `pytest.ini`, `ruff.toml`, `.flake8`;
+  `uv.lock`, `pdm.lock`, `mypy.ini`/`.mypy.ini`, `pyrightconfig.json`, `pytest.ini`,
+  `ruff.toml`/`.ruff.toml`, `.flake8`;
   `*.go`, `go.mod`, `go.sum`, `go.work`, `go.work.sum`, `.golangci.y{a,}ml`, `testdata/**`; `*.rs`,
-  `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`, `clippy.toml`; `*.java`, `pom.xml`, `build.gradle{,.kts}`,
+  `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`/`.rustfmt.toml`, `clippy.toml`; `*.java`, `pom.xml`, `build.gradle{,.kts}`,
   `settings.gradle{,.kts}`, `gradle.properties`, `src/main/resources/application*` and `bootstrap*` **in `.properties`/`.yml`/`.yaml` only**
   (matching the guard — `templates/` and `static/` under it are the view, and so is an
   `application.html`), `src/test/resources/**`;

@@ -241,16 +241,16 @@ case "$lane" in
     # reading the wrong one hands rustfmt the wrong edition.
     _edition_in() {
       awk -v want="$2" '
-        /^[[:space:]]*\[/ { s=$0; gsub(/[][[:space:]]/, "", s); next }
+        /^[[:space:]]*\[/ { s=$0; sub(/#.*/, "", s); gsub(/[][[:space:]]/, "", s); next }
         s == want && /^[[:space:]]*edition[[:space:]]*=/ {
-          if (match($0, /"[0-9]+"/)) { print substr($0, RSTART + 1, RLENGTH - 2); exit }
+          if (match($0, /["\x27][0-9]+["\x27]/)) { print substr($0, RSTART + 1, RLENGTH - 2); exit }
         }' "$1" 2>/dev/null
     }
     # True only for an EXPLICIT `edition.workspace = true` / `= { workspace = true }`.
     # A member that simply omits edition does not inherit — Cargo defaults it to 2015.
     _inherits_edition() {
       awk '
-        /^[[:space:]]*\[/ { s=$0; gsub(/[][[:space:]]/, "", s); next }
+        /^[[:space:]]*\[/ { s=$0; sub(/#.*/, "", s); gsub(/[][[:space:]]/, "", s); next }
         s == "package" && /^[[:space:]]*edition[[:space:]]*(\.[[:space:]]*workspace|=[[:space:]]*\{)/ { f = 1; exit }
         END { exit(f ? 0 : 1) }' "$1" 2>/dev/null
     }
@@ -297,7 +297,11 @@ case "$lane" in
     # An .editorconfig counts only when it actually says something shfmt reads:
     # a shell-file section, or one of its own properties. A bare `root = true`
     # is not the project choosing a shell formatter.
-    if [ -z "$shroot" ] || { [ ! -f "$shroot/.shfmt" ] && ! grep -qE '^\[[^]]*\.(sh|bash)|^[[:space:]]*(shell_variant|binary_next_line|switch_case_indent|space_redirects|keep_padding|function_next_line)[[:space:]]*=' "$shroot/.editorconfig" 2>/dev/null; }; then
+    # The section must cover THIS file's extension: `[*.sh]` says nothing about a
+    # .bats file, and running shfmt on it anyway is the machine-dependent rewrite
+    # the gating exists to prevent. A shfmt property under any section counts,
+    # since those apply wherever their section does.
+    if [ -z "$shroot" ] || { [ ! -f "$shroot/.shfmt" ] && ! grep -qE "^\[[^]]*\.?\*?[^]]*\.$ext\b|^\[\*\]|^[[:space:]]*(shell_variant|binary_next_line|switch_case_indent|space_redirects|keep_padding|function_next_line)[[:space:]]*=" "$shroot/.editorconfig" 2>/dev/null; }; then
       echo "format hook: no shfmt configuration for $path; skipped" >&2; exit 0
     fi
     command -v shfmt >/dev/null 2>&1 || { echo "format hook: shfmt not on PATH for $path; skipped" >&2; exit 0; }

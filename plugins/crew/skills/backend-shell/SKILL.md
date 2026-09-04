@@ -22,7 +22,11 @@ POSIX or change the shebang deliberately and say you did.
 
 ## `set -euo pipefail` does not do what it looks like
 
-Use it, but know where it stops:
+**In bash.** `-o pipefail` is not POSIX and `dash` exits on it, so a `#!/bin/sh` script gets
+`set -eu` and handles pipeline failure explicitly. Adding `pipefail` to a POSIX script breaks it at
+the first line.
+
+Use it in bash, but know where it stops:
 
 - **`local x="$(cmd)"` swallows the failure.** `local` is itself a command, and its exit status is
   what `-e` sees — always zero. Declare first, assign second: `local x; x="$(cmd)"`.

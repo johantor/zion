@@ -286,8 +286,14 @@ assert_reports "a configured project with no shfmt on PATH is skipped" \
 fake_bin shfmt 'exit 0'
 assert_reports "shfmt formats a shell file" \
   "$(payload_file tank run.sh)" "$sh_proj" "applied shfmt"
-assert_reports "oracle's .bats edits are formatted too" \
-  "$(payload_file oracle tests/a.bats)" "$sh_proj" "applied shfmt"
+# A [*.sh] section says nothing about a .bats file, so formatting it would be
+# the machine-dependent rewrite the gating exists to prevent.
+assert_reports "a [*.sh] section does not authorize a .bats file" \
+  "$(payload_file oracle tests/a.bats)" "$sh_proj" "no shfmt configuration"
+bats_proj="$(make_tree '.editorconfig:[*.bats]
+indent_style = space' 'tests/a.bats:@test "x" { true; }')"
+assert_reports "oracle's .bats edits are formatted where configured" \
+  "$(payload_file oracle tests/a.bats)" "$bats_proj" "applied shfmt"
 fake_bin shfmt 'exit 1'
 assert_reports "a shfmt that rejects the file is reported as failed" \
   "$(payload_file tank run.sh)" "$sh_proj" "shfmt failed"

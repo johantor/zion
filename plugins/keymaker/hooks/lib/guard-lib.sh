@@ -125,8 +125,23 @@ GUARD_RE_GIT_MV_FORCE="(^|[[:space:]])${_g_frc}"'([[:space:]]|$)'
 # Watch/dev/serve commands never terminate, so an agent turn that launches one
 # hangs until its maxTurns/timeout. `--watch` matches the bare flag only, not
 # `--watch=false` (the disable spelling); `vite build` stays allowed.
-_g_watch='dotnet[[:space:]]+watch([[:space:]]|$)|(npm|pnpm|yarn|bun)[[:space:]]+(run[[:space:]]+)?(dev|start|serve|watch)([[:space:]]|$)|vite([[:space:]]+(dev|serve|preview)([[:space:]]|$)|[[:space:]]+-|[[:space:]]*($|[;&|]))|(next|nuxt)[[:space:]]+dev([[:space:]]|$)|ng[[:space:]]+serve([[:space:]]|$)|nodemon([[:space:]]|$)|webpack[[:space:]]+serve([[:space:]]|$)|webpack-dev-server([[:space:]]|$)'
-GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx)[[:space:]]+)?'"(${_g_watch})"'|--watch([[:space:]]|$)'
+# Grouped per ecosystem; every stack the crew resolves has its own.
+_g_watch_web='dotnet[[:space:]]+watch([[:space:]]|$)|(npm|pnpm|yarn|bun)[[:space:]]+(run[[:space:]]+)?(dev|start|serve|watch)([[:space:]]|$)|vite([[:space:]]+(dev|serve|preview)([[:space:]]|$)|[[:space:]]+-|[[:space:]]*($|[;&|]))|(next|nuxt)[[:space:]]+dev([[:space:]]|$)|ng[[:space:]]+serve([[:space:]]|$)|nodemon([[:space:]]|$)|webpack[[:space:]]+serve([[:space:]]|$)|webpack-dev-server([[:space:]]|$)'
+# Python: the servers block with or without --reload, so they match bare;
+# `runserver` needs its script prefix, being too generic on its own.
+_g_watch_py='(uvicorn|hypercorn|gunicorn|daphne|watchmedo|ptw|pytest-watch|http\.server)([[:space:]]|$)|fastapi[[:space:]]+(dev|run)([[:space:]]|$)|(([^[:space:]]*/)?manage\.py|django-admin|django)[[:space:]]+runserver([[:space:]]|$)|flask([[:space:]]+--[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]|$)'
+# Go/Rust: live-reload runners, plus `cargo watch`, a subcommand spelling the
+# bare `--watch` alternative below does not reach.
+_g_watch_gors='(air|reflex|gow)([[:space:]]|$)|cargo([[:space:]]+[-+][^[:space:]]+)*[[:space:]]+watch([[:space:]]|$)|trunk[[:space:]]+serve([[:space:]]|$)'
+# JVM: the run goals and Gradle's continuous build. Tasks may be module-qualified
+# (`:service:bootRun`). `-t` is matched only in the Gradle arm -- under Maven it
+# is --toolchains.
+_g_watch_jvm='(mvn|([^[:space:]]*/)?mvnw)[[:space:]]+([^[:space:]]+[[:space:]]+)*(spring-boot:run|quarkus:dev|jetty:run|tomcat7:run)([[:space:]]|$)|(gradle|([^[:space:]]*/)?gradlew)[[:space:]]+([^[:space:]]+[[:space:]]+)*((:[A-Za-z0-9_.:-]*)?(bootRun|quarkusDev)|--continuous|-t)([[:space:]]|$)'
+# Tool-agnostic re-runners: these wrap ANY command and never terminate, so they
+# belong to no single stack. `watch` is coreutils'; the rest are file watchers.
+_g_watch_any='(watch|watchexec|entr|fswatch|nodemon)([[:space:]]|$)'
+_g_watch="${_g_watch_web}|${_g_watch_py}|${_g_watch_gors}|${_g_watch_jvm}|${_g_watch_any}"
+GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*|([^[:space:]]*/)?python[0-9.]*[[:space:]]+-m|([^[:space:]]*/)?python[0-9.]*)[[:space:]]+)*(([^[:space:]]*/)?('"${_g_watch}"'))|--watch([[:space:]]|$)'
 
 # Raw/streaming reads that dump a whole file or an endless stream into context.
 GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'

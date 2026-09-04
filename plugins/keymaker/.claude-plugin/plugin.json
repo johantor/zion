@@ -1,6 +1,6 @@
 {
   "name": "keymaker",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "license": "Apache-2.0",
   "description": "Pay down tech debt one verified fix at a time: point it at a suppression, a rule, or an outdated package, and it reports the blast radius before editing, fixes in gated batches, and commits each batch only once its acceptance gate passes.",
   "author": {

@@ -28,10 +28,16 @@ missing, and CI keeps it in lockstep with this repo's own `.claude/crew.md`:
 
 - **Frontend mode** (`frontendMode`) — `headless` or `server-rendered`. Optional/pin-only; leave
   `unset` to let `morpheus` resolve it per project.
-- **Backend stack** (`backendStack`) — `dotnet` or `node`. Optional/pin-only; leave `unset` to let
-  `morpheus` resolve it per project.
-- **Frontend stack** (`frontendStack`) — `react` or `nextjs`. Optional/pin-only; leave `unset` to
-  let `morpheus` resolve it per project.
+- **Backend stack** (`backendStack`) — `dotnet`, `node`, `python`, `go`, `rust`, `java`, or
+  `shell`. Optional/pin-only; leave `unset` to let `morpheus` resolve it per project.
+- **Frontend stack** (`frontendStack`) — `react`, `nextjs`, or `none` when the project has no
+  client-facing surface at all (a library, a headless service, a script pack). **A TUI, or a CLI
+  whose rendered output is designed, is a view** — that is `trinity`'s lane, so it is not `none`.
+  No stack value covers it yet, so stop and surface unsupported instead of writing `none` or
+  leaving `unset` for a later prompt. `none` is a statement, not an absence:
+  it stops `morpheus` asking about frontend mode, e2e and unit-test tooling, and stops it
+  dispatching the frontend workers. Optional/pin-only otherwise; leave `unset` to let `morpheus`
+  resolve it per project.
 - **Frontend e2e tool** (`frontendE2eTool`) — `cypress` or `playwright`. Optional/pin-only; leave
   `unset` to let `morpheus` resolve it per project.
 - **Frontend unit test tool** (`frontendUnitTestTool`) — `vitest`, `jest`, or `cypress`.
@@ -101,6 +107,36 @@ trust or correct it; never invent a command you can't see configured.
 - **Backend (.NET):** a `*.sln`/`*.csproj` implies build `dotnet build`, test `dotnet test`,
   lint `dotnet format --verify-no-changes` (add `dotnet csharpier check` if a `.csharpierrc`
   exists).
+- **Backend (Python):** there is no compile step, so the build slot is the project's static gate —
+  a `[tool.mypy]`/`mypy.ini` implies `mypy .`, a `[tool.pyright]`/`pyrightconfig.json` implies
+  `pyright`. Test `pytest` when the project has it (a `[tool.pytest.ini_options]` table, a
+  `pytest.ini`, or pytest in the dependencies) — a `unittest`-only project need not have pytest
+  installed, so propose `python -m unittest discover` there instead, and leave the slot `unset`
+  when neither is present. Lint
+  `ruff check .` / `flake8` plus `black --check .` where configured. Prefix every command with
+  the project's runner when it has one (`poetry run`, `uv run`, `pdm run`, `pipenv run`) — a bare `pytest`
+  resolves against whatever interpreter is active. If no type checker is configured, say so and
+  leave the build slot `unset` rather than inventing one.
+- **Backend (shell):** there is no build, so the build slot is the project's static gate —
+  `shellcheck <globs>` (take the globs from CI, since the shell's `*` does not cross directory
+  separators and a single pattern usually misses a subdirectory), optionally `bash -n`. Test the
+  project's own runner (`bash tests/run.sh`, `bats tests/`); lint `shellcheck` plus `shfmt -d`
+  where shfmt is configured.
+- **Backend (Go):** build `go build ./...` (add `go vet ./...` when the repo runs it), test
+  `go test ./...` (keep `-race` if a CI workflow uses it), lint `golangci-lint run` when a
+  `.golangci.yml` exists, else `gofmt -l .`.
+- **Backend (Rust):** build `cargo check --all-targets` or `cargo build` — read which the repo's
+  CI runs rather than picking; add `cargo clippy --all-targets -- -D warnings` where clippy is
+  configured. Test `cargo test` (`cargo nextest run` when `nextest.toml`/the tool is configured);
+  lint `cargo fmt --check`.
+- **Backend (JVM):** prefer the committed wrapper. Maven (`pom.xml`) implies build `./mvnw -B
+  verify -DskipTests`, lint `./mvnw -B checkstyle:check` where the plugin is configured, and test
+  `./mvnw -B verify` — **not** `./mvnw -B test`, which stops before the `integration-test`/`verify`
+  phases where Failsafe runs, so every `*IT` class would be skipped by both gates. Gradle
+  (`build.gradle*`) implies build `./gradlew build -x test`, lint `./gradlew check -x test`, and
+  test `./gradlew test` plus any separate integration-test task the build script declares — Gradle
+  has no Failsafe equivalent by default, so read the source sets rather than assuming one task
+  covers both. Read the actual plugin/task set rather than assuming these exist.
 - **Frontend (Node):** read `package.json` `scripts` — map `build`/`typecheck` → frontend
   build, `test`/`e2e`/a Playwright config → frontend test, `lint` → frontend lint. Use the
   scripts that exist; don't assume an `npx` download.
@@ -115,10 +151,21 @@ trust or correct it; never invent a command you can't see configured.
   unclear, leave `unset` and note that `morpheus` will resolve it, or ask. A genuinely mixed repo
   stays `unset` with the split described in the body notes, so `morpheus` resolves per feature.
 - **Backend stack:** a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
-  dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`. If ambiguous or
-  absent, leave `unset` for `morpheus` to resolve.
+  dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`; a `pyproject.toml`
+  (or `requirements*.txt`/`setup.py`/`Pipfile`) → `python`; a `go.mod` → `go`; a `Cargo.toml` → `rust`; a
+  `pom.xml` or `build.gradle`/`build.gradle.kts` **together with Java sources**
+  (`src/main/java`, or a `java`/`java-library` plugin in the build script) → `java`. A Gradle or
+  Maven file on its own is not enough: Kotlin, Scala and Android builds carry the same marker and
+  none of them is a supported stack — ask rather than resolving `java` from the build tool alone; `*.sh`/`*.bats` with no other
+  backend marker → `shell` (a repo whose deliverable is the scripts themselves — not any repo
+  that merely has a build script). If ambiguous or absent, leave `unset`
+  for `morpheus` to resolve. A repo with markers for two backends is ambiguous, not a tie to
+  break — ask which one the crew should treat as the backend.
 - **Frontend stack:** a `next.config.*` → `nextjs`; a React/Vite SPA build with no
-  `next.config.*` → `react`. If ambiguous or absent, leave `unset` for `morpheus` to resolve.
+  `next.config.*` → `react`; no client-facing surface at all → propose `none` (say why, since it
+  turns off the frontend half of the crew). A TUI or a designed CLI output is a view, not `none`,
+  and this slot has no supported value for it yet — stop and surface unsupported.
+  If ambiguous for other reasons, leave `unset` for `morpheus` to resolve.
 - **Frontend e2e tool:** a `cypress.config.*` (or a `cypress/` directory) → `cypress`; a
   `playwright.config.*` → `playwright`. If ambiguous or absent, leave `unset` for `morpheus` to
   resolve.
@@ -143,9 +190,12 @@ makes the config unusable:
 - **Tooling slots** (backend/frontend test, build, and lint commands; run/dev URL): if the
   project genuinely has no such tooling, use `none`. Gates that need it then skip with that
   note, and nobody is asked again.
-- **Project-identity slots** (base branch, branch naming, frontend mode, backend stack,
-  frontend stack): never `none` — a base branch always exists, so `none` would be wrong. Leave
-  these `unset` so `morpheus` resolves or asks (for base branch, prefer asking — see above).
+- **Project-identity slots** (base branch, branch naming, frontend mode, backend stack): never
+  `none` — a base branch always exists, so `none` would be wrong. Leave these `unset` so
+  `morpheus` resolves or asks (for base branch, prefer asking — see above).
+- **Frontend stack is the exception.** `none` there is a real answer, not a missing one: it says
+  the project has no view layer. Write it when that is confirmed — `unset` would send `morpheus`
+  asking a question a CLI or a script pack cannot answer.
 
 Write both placeholders as plain YAML values — `unset` and `none`, never quoted, never
 backticked — so reconcile recognizes them later. A key that is absent altogether reads as

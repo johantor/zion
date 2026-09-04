@@ -7,7 +7,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 ## Map
 
 - `agents/` — `morpheus` (orchestrator, `model: opus`, sole git owner) + workers `tank`
-  (backend), `trinity` (frontend), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual —
+  (the resolved stack's core implementation — not "server-side": in a CLI, library or script pack
+  it is the commands, domain logic and I/O), `trinity` (the client-facing layer), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual —
   no Bash; measures computed styles/geometry through the browser MCP's script evaluation
   rather than comparing screenshots by eye), `neo` (express generalist), `sentinel` (post-merge triage; no Write/Edit/**Bash**,
   so its read-only posture is the `tools:` grant itself and needs no guard hook — history comes
@@ -39,7 +40,16 @@ anything stated here updates this file in the same commit.** Conventions live in
   resolved at runtime — one skill covers every token system: CSS custom properties, Tailwind,
   SCSS, tokens JSON, Figma variables — so there is no choice to resolve and `seraph` needs no
   `Skill` tool to reach it). Frontend-mode, per-stack, and per-test-tool
-  skills load dynamically once resolved. Skill = `<name>/SKILL.md`, frontmatter `name:` +
+  skills load dynamically once resolved. Backend stacks: `backend-dotnet`, `backend-node`,
+  `backend-python`, `backend-go`, `backend-rust`, `backend-java` (+ `cms-optimizely` composing on
+  dotnet), each paired with a test skill — `tests-xunit`, `tests-node`, `tests-pytest`,
+  `tests-go`, `tests-cargo`, `tests-junit`, plus `backend-shell`/`tests-shell` for a repo whose
+  deliverable is the scripts (this one). Node is the only one whose extensions collide with a
+  frontend's, so it is the only backend needing lane paths. A shell project has no view layer at
+  all: that is `frontendStack: none` — a stated absence, not an unresolved slot — which makes
+  `morpheus` skip frontend mode, e2e and unit-tool resolution and dispatch only `tank`/`oracle`.
+  The gate sits **above** the resolution table, since Frontend mode is listed first and would
+  otherwise be asked before the rule is read. Skill = `<name>/SKILL.md`, frontmatter `name:` +
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
   backstop; watch/dev commands refused; **file-mutating Bash refused for agent sessions** — an
@@ -89,6 +99,18 @@ anything stated here updates this file in the same commit.** Conventions live in
   `format.sh` runs every formatter under a wall-clock bound (`CREW_FORMAT_TIMEOUT`,
   default 20s) via `timeout`/`gtimeout`, degrading to an unbounded run where neither
   exists (stock macOS/BSD); a hang is reported distinctly from a formatter that failed.
+  It routes by extension into six lanes. `dotnet` and `web` look their tools up **in the
+  project** (`node_modules/.bin`, a dotnet tool manifest) and read **root-level** config only —
+  unchanged by #215, so a monorepo web edit still misses a nested `.prettierrc`.
+  `python`/`go`/`rust`/`java` look theirs up **on `PATH`**, because those are standalone
+  executables a project does not vendor, and resolve config with `find_up` from the edited file,
+  **bounded at the project root** — configuration above it is another project's. `.sh`/`.bats`
+  are deliberately unowned: shfmt's config mechanism is `.editorconfig`, and deciding which of
+  its sections applies to a file is its glob semantics, so shell formatting stays at the gate. **Single-file formatters
+  only** — a whole-project tool (`cargo fmt`, Spotless, the Maven format plugins) loads the
+  project on every call, which is seconds per edit, so those belong to the review gate. Its
+  cases mirror `PATH` minus the tools under test, so a host that happens to have `gofmt` or
+  `rustfmt` installed can't decide the result.
   `dispatch-denied.sh` (`PermissionDenied`, matcher `Agent|Task`) answers auto mode refusing a
   worker dispatch: attempt 1 emits `hookSpecificOutput.retry: true`, later attempts emit only a
   `systemMessage` naming the fixes that exist. **Advisory and stdout-based** — this event ignores

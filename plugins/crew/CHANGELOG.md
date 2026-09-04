@@ -7,10 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.24.0] - 2026-09-04
+
+### Added
+
+- Python, Go, Rust, Java and shell backend stacks: ten skills, plus the `backendStack` values
+  and detection that let `/crew:init` and `morpheus` resolve them (#215, #218).
+- `format.sh` formats `.py`, `.go`, `.rs` and `.java` after an edit, each gated on the owning
+  project's configuration rather than on what is installed, and honouring the project's own
+  exclusions (#215, #218).
+- `frontendStack: none` states that a project has no view layer, so `morpheus` skips frontend
+  resolution and dispatches only `tank`/`oracle` (#218).
+
+### Fixed
+
+- `/crew:review` classified a branch in any of the new stacks as "Neither" and skipped the
+  backend build, test and lint gates entirely (#215).
+- `lane-guard` denied `trinity` only `.cs`/`.csproj`, so the write lanes stopped separating in
+  any other backend — `.sh` included, which is what this repo is written in; `oracle` could not
+  author a test in one at all (#215, #218).
+- Watch/dev commands were refused only in the .NET/JS ecosystems, so `uvicorn`, `cargo watch` or
+  `./gradlew bootRun` could hang an agent's whole turn budget (#215).
+
 ### Changed
 
 - Rewrote the plugin description so the plugin directory shows what `crew` does rather than
   what it contains, and added `keywords` for discovery.
+- Docs name the supported backend stacks rather than implying web-only, and describe
+  `trinity`'s lane as the client-facing layer rather than "the frontend" (#215).
 
 ## [3.23.0] - 2026-09-04
 

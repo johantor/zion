@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-09-04
+
+### Fixed
+
+- The shared guard library refused watch/dev commands only in the .NET/JS ecosystems, so a
+  `uvicorn`, `fastapi dev` or `cargo watch` could hang a twin's whole turn budget (#215).
+
 ### Changed
 
 - Rewrote the plugin description for the plugin directory listing, and added `keywords`

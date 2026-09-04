@@ -26,9 +26,32 @@ Compute the files changed on this branch vs. the resolved base branch
 (`git diff --name-only <base>...HEAD`, plus any staged/unstaged changes), then
 classify each path — same split the lane guard uses:
 
-- **Backend lane** — `*.cs`, `*.csproj` (and `*.cshtml`: it carries server-side logic).
+- **Backend lane** — the resolved backend's sources and manifests: `*.cs`, `*.csproj`
+  (and `*.cshtml`: it carries server-side logic); `*.py`, `*.pyi`, `pyproject.toml`,
+  `requirements*.txt`, `setup.py`, `setup.cfg`, `tox.ini`, `Pipfile{,.lock}`, `poetry.lock`,
+  `uv.lock`, `pdm.lock`, `mypy.ini`/`.mypy.ini`, `pyrightconfig.json`, `pytest.ini`,
+  `ruff.toml`/`.ruff.toml`, `.flake8`;
+  `*.go`, `go.mod`, `go.sum`, `go.work`, `go.work.sum`, `.golangci.y{a,}ml`, `testdata/**`; `*.rs`,
+  `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`/`.rustfmt.toml`, `clippy.toml`; `*.java`, `pom.xml`, `build.gradle{,.kts}`,
+  `settings.gradle{,.kts}`, `gradle.properties`, `gradle/libs.versions.toml`,
+  `gradle/wrapper/gradle-wrapper.properties`, `src/main/resources/application*` and `bootstrap*` **in `.properties`/`.yml`/`.yaml` only**
+  (matching the guard — `templates/` and `static/` under it are the view, and so is an
+  `application.html`), `src/test/**`;
+  `*.sh`, `*.bash`, `*.bats`, `.shellcheckrc`. A gate's own configuration counts: it decides what
+  the build and lint do, so a branch that changes only `mypy.ini` or `.golangci.yml` is a backend
+  branch.
+  This list mirrors `lane-guard.sh`'s deny union — they must not drift, or the gate skips what
+  the guard protects.
 - **Frontend lane** — `*.ts`, `*.tsx`, `*.jsx`, `*.js`, `*.mjs`, `*.scss`, `*.css`, `*.html`
   (and `*.cshtml` in server-rendered mode, where trinity owns the markup).
+- **Node is the exception.** The whole JS/TS set — `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`,
+  `.mts`, `.cts` — belongs to whichever lane the **Backend/Frontend lane path(s)** put it in (the
+  same split `lane-guard.sh` falls back to), and to the backend alone when **Frontend stack** is
+  `none`. Classifying by extension would skip the backend gates on a backend-only Node repo.
+- **No view layer, no frontend gates.** When **Frontend stack** is `none` there is no frontend
+  lane in any mode: the frontend build/test/lint gates never run, and `seraph` is never dispatched
+  for design conformance. That holds in `full` mode too — a project with no view has nothing for
+  those gates to check.
 - **Neither** — docs, config, plugin files, etc.
 
 A diff can touch both lanes; `.cshtml` counts toward both.

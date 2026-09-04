@@ -4,8 +4,11 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../../LICENSE)
 
 **Ship a feature like a team, not a single agent.** `crew` turns a Claude Code session into a
-captain that plans and delegates, plus specialists — backend, frontend, tests, visual review —
-each scoped to its own lane. You approve the plan, every step is verified and committed as it
+captain that plans and delegates, plus specialists — backend, the client-facing layer, tests,
+visual review — each scoped to its own lane. The backend lane covers .NET, Node, Python, Go,
+Rust, the JVM and shell; the crew is for software delivery, not for websites specifically. A
+project with no view layer says so with `frontendStack: none`, and the frontend half of the crew
+stays out of the way. You approve the plan, every step is verified and committed as it
 lands, and nothing reaches a pull request until a consolidated review gate returns **GO**.
 
 Part of the [Zion](../../README.md) marketplace.
@@ -14,8 +17,8 @@ Part of the [Zion](../../README.md) marketplace.
 
 - **A plan you approve first.** One gate to catch a misread task before a branch, a commit, or
   worker time is spent.
-- **Specialists, not one generalist.** Backend, frontend, unit tests, e2e, and design conformance
-  each go to an agent scoped to that work, with only the tools it needs.
+- **Specialists, not one generalist.** Backend, the client-facing layer, unit tests, e2e, and
+  design conformance each go to an agent scoped to that work, with only the tools it needs.
 - **Guardrails in code, not prose.** Workers are blocked from `git` outright, and their file edits
   held to their lane by `PreToolUse` hooks, enforced by the harness rather than by asking politely.
 - **A gate that can say no, and you hold the door.** `/crew:review` returns GO / NO-GO across
@@ -30,9 +33,10 @@ Part of the [Zion](../../README.md) marketplace.
 - **The checkpoint is a real stop.** `morpheus` waits for your go-ahead before it branches or
   delegates. Background workers can't prompt, so a step that still needs a decision has to get one
   from you first.
-- **The lane guards will refuse things.** They fail closed: a same-language backend and frontend
-  with no lane paths configured gets a refusal rather than a guess. That's deliberate, and it
-  means `/crew:init` is not optional on those stacks.
+- **The lane guards will refuse things.** They fail closed: a same-language backend and
+  client-facing layer with no lane paths configured gets a refusal rather than a guess. That's
+  deliberate, and it means `/crew:init` is not optional on those stacks — in practice Node with a
+  JS frontend, since every other supported backend has extensions the guard can tell apart.
 - **Nothing ships on its own.** No push, no PR, not even in loop mode. If you wanted
   fire-and-forget, this is the wrong tool.
 
@@ -154,11 +158,12 @@ intercepted**.
 - **lane-guard** routes on the payload's `agent_type` and guards `Edit`/`Write` only. File
   writes via Bash (`sed -i`, `tee`, redirects) are refused by **bash-safety** instead, so there is
   one enforcement point rather than two lane implementations that can drift.
-  Two regimes: extension-based globs by default (correct when backend and frontend are different
-  languages, e.g. dotnet+react), or directory-based paths (the `backendLanePaths` /
-  `frontendLanePaths` slots) when both resolved stacks are the same language (e.g. node+nextjs) and an
-  extension alone can't tell the lanes apart. A Node backend with no lane paths configured fails
-  closed rather than guessing.
+  Two regimes: extension-based globs by default (correct when the backend and the client-facing
+  layer are different languages — dotnet, Python, Go, Rust or the JVM beside a JS frontend), or
+  directory-based paths (the `backendLanePaths` / `frontendLanePaths` slots) when both resolved
+  stacks are the same language (e.g. node+nextjs) and an extension alone can't tell the lanes
+  apart. Node is the only supported backend that shares its extensions with a frontend, so it is
+  the only one that needs the paths; without them it fails closed rather than guessing.
 - **read-guard** blocks raw reads of files over 64 KiB (65536 bytes); an explicit `limit` of
   ≤ 2000 lines passes. See the `context-discipline` skill.
 - **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*` in any flag
@@ -176,7 +181,10 @@ intercepted**.
   `.cs`/`.csproj` → `dotnet format`, plus `dotnet csharpier format` when `.csharpierrc` is
   present; known web extensions → every tool the project configures (Biome, Prettier, ESLint,
   Stylelint), each detected by its config file and run only when installed locally, never via an
-  `npx` download. Anything else is skipped cleanly. Best-effort: fails open.
+  `npx` download; `.py` → ruff or black, `.go` → gofmt/gofumpt, `.rs` → rustfmt, `.java` → a
+  standalone formatter, each run only when found on `PATH`. Single-file formatters only —
+  whole-project tools (`cargo fmt`, Spotless) load the project on every call, so they stay at the
+  review gate. Anything else is skipped cleanly. Best-effort: fails open.
 - **turn-budget** counts an agent's tool calls as a conservative stand-in for turns and warns
   **once at 75%** (wind down) and **once at 90%** (stop now) of that agent's `maxTurns`. On any
   path where it can't count (unknown agent, unwritable state, malformed payload) it stays
@@ -259,7 +267,8 @@ one that isn't installed, so it just reports the server as unavailable.
 
 ## What's included
 
-- **Agents:** `morpheus` (captain) and the workers `tank` (backend), `trinity` (frontend),
+- **Agents:** `morpheus` (captain) and the workers `tank` (backend), `trinity` (client-facing
+  layer),
   `oracle` (unit tests), `dozer` (e2e), `seraph` (visual review), `neo` (express generalist),
   `sentinel` (post-merge triage). Workers stay idle until `morpheus` delegates.
 - **Commands:** `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`,
@@ -269,8 +278,10 @@ one that isn't installed, so it just reports the server as unavailable.
 - **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`. Always
   on for workers only: `mid-run-direction` (how to treat a steer that arrives mid-run), and
   `design-tokens` for the agent doing design conformance.
-  Loaded once the stack is resolved: per frontend mode, per backend/frontend stack (.NET, Node,
-  React, Next.js, Optimizely), and per test tool (xUnit, Vitest, Jest, Cypress, Playwright).
+  Loaded once the stack is resolved: per frontend mode, per backend stack (.NET, Node, Python,
+  Go, Rust, JVM, shell — plus Optimizely on top of .NET), per frontend stack (React, Next.js),
+  and per test tool (xUnit, pytest, `go test`, cargo, JUnit, bats, Vitest, Jest, Cypress,
+  Playwright).
 
 Local agent memory is git-ignored (`.claude/agent-memory-local/`).
 

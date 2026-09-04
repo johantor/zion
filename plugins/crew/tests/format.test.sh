@@ -52,10 +52,17 @@ web_project() {
 
 # --- Gating: who and what the hook is a no-op for ------------------------------
 ok_project="$(web_project 'exit 0')"
-assert_silent "a non-formatter agent is a no-op" "$(payload_file oracle src/a.ts)" "$ok_project"
+assert_silent "a non-formatter agent is a no-op" "$(payload_file dozer src/a.ts)" "$ok_project"
+# oracle writes test files, which are source and need the same formatting.
+assert_reports "oracle's test edits are formatted too" \
+  "$(payload_file oracle src/a.test.ts)" "$ok_project" "applied prettier"
 assert_silent "the main session (no agent_type) is a no-op" \
   "$(jq -nc '{tool_input: {file_path: "src/a.ts"}}')" "$ok_project"
-assert_silent "an extension no formatter owns is a no-op" "$(payload_file neo scripts/a.sh)" "$ok_project"
+assert_silent "an extension no formatter owns is a no-op" "$(payload_file neo Views/A.cshtml)" "$ok_project"
+# Shell formatting belongs to the review gate: shfmt reads .editorconfig, and
+# deciding whether a section applies to a file is its glob semantics.
+assert_silent "a shell file is not formatter-owned" "$(payload_file tank run.sh)" "$ok_project"
+assert_silent "a .bats file is not formatter-owned" "$(payload_file oracle tests/a.bats)" "$ok_project"
 assert_silent "no file_path is a no-op" "$(jq -nc '{agent_type: "tank"}')" "$ok_project"
 assert_silent "the web lane without a package.json is a no-op" "$(payload_file tank src/a.ts)"
 
@@ -97,5 +104,229 @@ if command -v timeout >/dev/null 2>&1 || command -v gtimeout >/dev/null 2>&1; th
 else
   echo "note: no timeout/gtimeout binary — skipping the bounded-formatter case" >&2
 fi
+
+# --- The non-web lanes: tools found on PATH, not in node_modules/.bin ----------
+# These ship with a toolchain rather than a project, so the hook looks them up on
+# PATH.
+# PATH becomes a mirror of itself minus the tools under test, so a host that has
+# gofmt or rustfmt installed can't decide the result. _fake_bin is searched first.
+_fake_bin="$(new_tmpdir)"
+_mirror_bin="$(new_tmpdir)"
+_real_path="$PATH"
+while IFS= read -r -d ':' _d || [ -n "$_d" ]; do
+  [ -d "$_d" ] || continue
+  for _f in "$_d"/*; do
+    [ -x "$_f" ] || continue
+    case "${_f##*/}" in
+      ruff|black|gofmt|gofumpt|rustfmt|google-java-format|palantir-java-format|shfmt) continue ;;
+    esac
+    [ -e "$_mirror_bin/${_f##*/}" ] || ln -s "$_f" "$_mirror_bin/${_f##*/}" 2>/dev/null
+  done
+done <<<"$PATH:"
+fake_bin() { printf '#!/bin/sh\n%s\n' "$2" > "$_fake_bin/$1"; chmod +x "$_fake_bin/$1"; }
+PATH="$_fake_bin:$_mirror_bin"; export PATH
+
+plain="$(make_tree 'go.mod:module fixture')"
+
+# Absent tool: skipped and said so, never a download and never a claimed run.
+assert_reports "a Python file with no formatter on PATH is skipped" \
+  "$(payload_file tank pkg/svc.py)" "$plain" "no configured Python formatter"
+assert_reports "a Go file with no formatter on PATH is skipped" \
+  "$(payload_file tank pkg/svc.go)" "$plain" "no Go formatter on PATH"
+assert_reports "a Rust file with no rustfmt on PATH is skipped" \
+  "$(payload_file tank src/lib.rs)" "$plain" "rustfmt not on PATH"
+assert_reports "a Java file with no standalone formatter configured is skipped" \
+  "$(payload_file tank src/main/java/Svc.java)" "$plain" "no configured standalone Java formatter"
+
+# Present tool: runs and is reported.
+# A tool on PATH is not the project's choice: without config it must not run,
+# or the file's contents start depending on the developer's machine.
+fake_bin ruff 'exit 0'
+fake_bin black 'exit 0'
+assert_reports "an unconfigured ruff on PATH does not run" \
+  "$(payload_file tank pkg/svc.py)" "$plain" "no configured Python formatter"
+ruff_proj="$(make_tree 'pyproject.toml:[tool.ruff]
+line-length = 100')"
+# Lint config alone is not a formatter opt-in: fixes apply, formatting does not.
+run_hook "$HOOK" "$(payload_file tank pkg/svc.py)" "$ruff_proj"
+if [[ "$_stderr" == *"ruff-check"* && "$_stderr" != *"ruff-format"* ]]; then _pass
+else _fail "ruff lint-only: expected ruff-check without ruff-format (got: ${_stderr:-<empty>})"; fi
+black_proj="$(make_tree 'pyproject.toml:[tool.black]
+line-length = 100')"
+assert_reports "a Black-only project does not get ruff" \
+  "$(payload_file tank pkg/svc.py)" "$black_proj" "applied black"
+fake_bin black 'for a in "$@"; do [ "$a" = "pkg/svc.py" ] && exit 1; done; exit 0'
+assert_reports "black runs through project discovery, not an explicit file arg" \
+  "$(payload_file tank pkg/svc.py)" "$black_proj" "applied black"
+# Config belongs to the project that owns the file, which in a monorepo is not
+# the repo root -- checking only the root reports "no formatter" and lets the
+# edit reach the lint gate unformatted.
+mono="$(make_tree 'apps/api/pyproject.toml:[tool.ruff]
+line-length = 100')"
+assert_reports "config is found in the owning project, not just the root" \
+  "$(payload_file tank apps/api/pkg/svc.py)" "$mono" "ruff-check"
+mixed="$(make_tree 'apps/pyproject.toml:[tool.black]
+line-length = 100' 'apps/api/ruff.toml:[lint]
+select = ["E"]')"
+run_hook "$HOOK" "$(payload_file tank apps/api/pkg/svc.py)" "$mixed"
+if [[ "$_stderr" == *"ruff-check"* && "$_stderr" == *"black"* ]]; then
+  _pass
+else
+  _fail "mixed nested config: expected ruff-check and black (got: ${_stderr:-<empty>})"
+fi
+fake_bin black 'exit 0'
+lookalike="$(make_tree 'setup.cfg:[black]
+line-length = 100' 'black.toml:line-length = 100')"
+assert_reports "a config black never reads is not an opt-in" \
+  "$(payload_file tank pkg/svc.py)" "$lookalike" "no configured Python formatter"
+
+# Ruff lint config is not a formatter choice: a project may lint with ruff and
+# format with black, and then `ruff format` is an unrequested rewrite.
+lint_only="$(make_tree 'pyproject.toml:[tool.ruff]
+line-length = 100
+
+[tool.black]
+line-length = 100')"
+run_hook "$HOOK" "$(payload_file tank pkg/svc.py)" "$lint_only"
+if [[ "$_stderr" == *"ruff-check"* && "$_stderr" == *"black"* && "$_stderr" != *"ruff-format"* ]]; then
+  _pass
+else
+  _fail "ruff+black: expected ruff-check and black without ruff-format (got: ${_stderr:-<empty>})"
+fi
+# An explicit [tool.ruff.format] is that choice, even alongside black.
+fmt_opt_in="$(make_tree 'pyproject.toml:[tool.ruff]
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.black]
+line-length = 100')"
+assert_reports "an explicit [tool.ruff.format] opts into ruff formatting" \
+  "$(payload_file tank pkg/svc.py)" "$fmt_opt_in" "ruff-format"
+# Configuration above the project root is another project's, not this one's.
+outside="$(new_tmpdir)"
+mkdir -p "$outside/proj/pkg"
+printf '[tool.ruff]\n' > "$outside/pyproject.toml"
+assert_reports "config above the project root is not honored" \
+  "$(payload_file tank "$outside/proj/pkg/svc.py")" "$outside/proj" "no configured Python formatter"
+# A non-timeout failure is reported, not swallowed behind an "applied" line.
+fake_bin ruff 'exit 1'
+assert_reports "a ruff that rejects the file is reported as failed" \
+  "$(payload_file tank pkg/svc.py)" "$ruff_proj" "ruff-check failed"
+fake_bin gofmt 'exit 0'
+assert_reports "gofmt formats a Go file" \
+  "$(payload_file tank pkg/svc.go)" "$plain" "applied gofmt"
+# gofumpt rewrites beyond gofmt, so an installed copy must not win on its own.
+fake_bin gofumpt 'exit 0'
+assert_reports "an unrequested gofumpt does not displace gofmt" \
+  "$(payload_file tank pkg/svc.go)" "$plain" "applied gofmt"
+gofumpt_proj="$(make_tree 'go.mod:module fixture' '.golangci.yml:linters:
+  enable: [gofumpt]')"
+assert_reports "a project that asks for gofumpt gets it" \
+  "$(payload_file tank pkg/svc.go)" "$gofumpt_proj" "applied gofumpt"
+gofumpt_disabled="$(make_tree 'go.mod:module fixture' '.golangci.yml:linters: { disable: [gofumpt] }')"
+assert_reports "a disabled gofumpt does not displace gofmt" \
+  "$(payload_file tank pkg/svc.go)" "$gofumpt_disabled" "applied gofmt"
+fake_bin rustfmt 'exit 0'
+assert_reports "rustfmt formats a Rust file" \
+  "$(payload_file tank src/lib.rs)" "$plain" "applied rustfmt"
+fake_bin google-java-format 'exit 0'
+assert_reports "an unconfigured Java formatter on PATH does not run" \
+  "$(payload_file tank src/main/java/Svc.java)" "$plain" "no configured standalone Java formatter"
+gjf_proj="$(make_tree 'pom.xml:<project><plugin>google-java-format</plugin></project>')"
+assert_reports "a configured google-java-format formats a Java file" \
+  "$(payload_file tank src/main/java/Svc.java)" "$gjf_proj" "applied google-java-format"
+# Multi-module: the formatter is declared in the owning module's build file, not
+# the reactor root, so a root-only search would report none.
+gjf_multi="$(make_tree 'pom.xml:<project><modules><module>service</module></modules></project>' \
+  'service/pom.xml:<project><plugin>google-java-format</plugin></project>')"
+# Spotless names these formatters in its own config, so matching the name would
+# read Spotless as permission to run a standalone binary it never asked for.
+spotless="$(make_tree 'build.gradle:spotless { java { googleJavaFormat() } }')"
+# A module path containing a space must stay one argument to grep.
+spaced="$(make_tree 'my service/pom.xml:<project><plugin>google-java-format</plugin></project>')"
+fake_bin google-java-format 'exit 0'
+assert_reports "a module path with a space still finds the formatter" \
+  "$(payload_file tank 'my service/src/main/java/Svc.java')" "$spaced" "applied google-java-format"
+assert_reports "a Spotless project is left to the review gate" \
+  "$(payload_file tank src/main/java/Svc.java)" "$spotless" "Spotless formats through the build"
+assert_reports "a formatter configured in the owning module is found" \
+  "$(payload_file tank service/src/main/java/Svc.java)" "$gjf_multi" "applied google-java-format"
+
+# Bare rustfmt does not read Cargo.toml, so without this a later edition's source
+# is reformatted against the 2015 default.
+edition_tree="$(make_tree 'Cargo.toml:[package]
+edition = "2021"')"
+fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
+assert_reports "the manifest edition is passed to rustfmt" \
+  "$(payload_file tank src/lib.rs)" "$edition_tree" "applied rustfmt"
+# In a workspace the owning manifest is not the one in the working directory,
+# and a member that inherits its edition has no literal to read.
+ws="$(make_tree 'Cargo.toml:[workspace]
+members = ["crates/api"]
+
+[workspace.package]
+edition = "2021"' 'crates/api/Cargo.toml:[package]
+edition.workspace = true')"
+assert_reports "a workspace member inherits the root edition" \
+  "$(payload_file tank crates/api/src/lib.rs)" "$ws" "applied rustfmt"
+fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
+root_ws="$(make_tree 'Cargo.toml:[package]
+edition.workspace = true
+
+[workspace]
+members = []
+
+[workspace.package]
+edition = "2021"')"
+assert_reports "a root package inherits from its own workspace table" \
+  "$(payload_file tank src/lib.rs)" "$root_ws" "applied rustfmt"
+ws2="$(make_tree 'Cargo.toml:[workspace]
+members = ["crates/api"]
+
+[workspace.package]
+edition = "2015"' 'crates/api/Cargo.toml:[package]
+edition = "2021"')"
+assert_reports "a member's own edition wins over the workspace root" \
+  "$(payload_file tank crates/api/src/lib.rs)" "$ws2" "applied rustfmt"
+# Omitting edition is NOT inheritance — Cargo defaults it to 2015 — so the
+# workspace root's value must not be borrowed for a member that never asked.
+fake_bin rustfmt 'case "$*" in *--edition*) exit 1 ;; *) exit 0 ;; esac'
+ws3="$(make_tree 'Cargo.toml:[workspace]
+members = ["crates/api"]
+
+[workspace.package]
+edition = "2021"' 'crates/api/Cargo.toml:[package]
+name = "api"')"
+assert_reports "a member that omits edition does not inherit it" \
+  "$(payload_file tank crates/api/src/lib.rs)" "$ws3" "applied rustfmt"
+# TOML accepts single-quoted strings, and a section header may carry a comment;
+# missing either falls through to rustfmt's 2015 default.
+fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
+alt_toml="$(make_tree "Cargo.toml:[package] # the root crate
+edition = '2021'")"
+assert_reports "a single-quoted edition and a commented section header parse" \
+  "$(payload_file tank src/lib.rs)" "$alt_toml" "applied rustfmt"
+
+# A mixed root carries both sections; [package] is the one that applies here.
+fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
+mixed="$(make_tree 'Cargo.toml:[package]
+edition = "2021"
+
+[workspace]
+members = ["crates/api"]
+
+[workspace.package]
+edition = "2015"')"
+assert_reports "a mixed root reads [package], not [workspace.package]" \
+  "$(payload_file tank src/lib.rs)" "$mixed" "applied rustfmt"
+
+# A rejecting tool is reported as failed, not as applied.
+fake_bin rustfmt 'exit 1'
+assert_reports "a rustfmt that rejects the file is reported as failed" \
+  "$(payload_file tank src/lib.rs)" "$plain" "rustfmt failed"
+
+PATH="$_real_path"; export PATH
 
 finish

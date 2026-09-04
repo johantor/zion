@@ -27,8 +27,9 @@ rationale" (repo docs, not shipped — not readable at runtime).*
 Delegate with the worker's **namespaced** agent type — `crew:tank`, `crew:trinity`,
 `crew:oracle`, `crew:dozer`, `crew:seraph` (plugin agents are namespaced; bare names don't
 resolve):
-- `crew:tank`: backend implementation for the resolved stack (server logic, controllers/
-  handlers, data access — plus server-side of a shared template in server-rendered mode)
+- `crew:tank`: core implementation for the resolved stack — everything that is not the
+  client-facing layer (a service's logic/handlers/data access, or a CLI's or library's commands
+  and I/O — plus the server-side of a shared template in server-rendered mode)
 - `crew:trinity`: frontend implementation for the resolved stack (client/presentation layer —
   plus markup/DOM of a shared template in server-rendered mode)
 - `crew:oracle`: backend tests; also frontend component/unit tests when that tool is resolved
@@ -82,8 +83,8 @@ block. Never rewrite crew config yourself mid-feature — that's `/crew:init`'s 
 | Slot | Values | Detect (then confirm), or ask | Consumed by |
 |---|---|---|---|
 | **Frontend mode** | `headless` \| `server-rendered` | Ask (no reliable marker) | Frontend delegations; scopes `trinity`'s shared-template access |
-| **Backend stack**¹ | `dotnet` \| `node` | `.csproj`/`.sln` → `dotnet`; `package.json` w/ server framework (NestJS/Express/Fastify), no SPA-only bundle → `node` | Backend delegations — `backend-dotnet`/`backend-node`, `tests-xunit`/`tests-node` |
-| **Frontend stack** | `react` \| `nextjs` | `next.config.*` → `nextjs`; React/Vite SPA, no `next.config.*` → `react` | Frontend delegations — `frontend-react`/`frontend-nextjs` |
+| **Backend stack**¹ | `dotnet` \| `node` \| `python` \| `go` \| `rust` \| `java` \| `shell` | `.csproj`/`.sln` → `dotnet`; `package.json` w/ server framework (NestJS/Express/Fastify), no SPA-only bundle → `node`; `pyproject.toml`/`requirements*.txt`/`setup.py`/`Pipfile` → `python`; `go.mod` → `go`; `Cargo.toml` → `rust`; `pom.xml`/`build.gradle*` **with** `src/main/java` or a `java`/`java-library` plugin → `java` (Gradle alone is Kotlin/Scala/Android too — ask, don't assume); `*.sh`/`*.bats` as the repo's **deliverable** and no other backend marker → `shell` (a helper or build script in a repo of another language is not a shell stack — ask); markers for two backends → ask, don't break the tie | Backend delegations — `backend-<stack>` + `tests-xunit`/`tests-node`/`tests-pytest`/`tests-go`/`tests-cargo`/`tests-junit`/`tests-shell` |
+| **Frontend stack** | `react` \| `nextjs` \| `none` | `next.config.*` → `nextjs`; React/Vite SPA, no `next.config.*` → `react`; no client-facing surface at all (a library, a headless service, a script pack) → `none`; a TUI or a designed CLI output is a view, so leave it `unset` and ask | Frontend delegations — `frontend-react`/`frontend-nextjs`. **`none` means there is no view**: skip frontend mode, e2e and unit-tool resolution entirely, never ask about them, and never dispatch `trinity`/`dozer`/`seraph` |
 | **Frontend e2e tool** | `cypress` \| `playwright` | `cypress.config.*`/`cypress/` → `cypress`; `playwright.config.*` → `playwright` | `dozer` — `tests-cypress`/`tests-playwright` |
 | **Frontend unit test tool**² | `vitest` \| `jest` \| `cypress`, optional | `vitest.config.*` → `vitest`; `jest.config.*`/`jest` key, no vitest → `jest`; `cypress.config.*` w/ `component` key, no vitest/jest → `cypress`; none → leave unset | `oracle` (component tests) — `tests-vitest`/`tests-jest-frontend`/`tests-cypress`; omit from delegation when unset |
 | **Base branch & naming** | e.g. `main`/`develop`/trunk; `feature/<ticket>-<slug>` | Ask — never assume | Branch creation, below |
@@ -116,7 +117,8 @@ feedback and CI failures is a further loop you own — see *Address review feedb
 and write all plans there.
 
 Standard flow (each phase detailed below):
-1. **Explore and plan.** Resolve frontend mode, backend/frontend stack, and base branch/naming
+1. **Explore and plan.** Resolve backend stack, base branch/naming, and **frontend stack**; then
+   frontend mode and the test-tool slots **only if** that stack is not `none`
    (*Resolving crew configuration*). When the task names a tracked ticket and an issue-tracker
    MCP (Jira/Atlassian, Linear) is present, pull it for the source brief; for a bug tied to a
    monitored error, pull context from a Sentry MCP. Apply `context-discipline` (fetch the
@@ -131,10 +133,11 @@ Standard flow (each phase detailed below):
    `/mcp`: a plugin-installed server is namespaced `mcp__plugin_<plugin>_<server>`, which the
    agent's `tools:` may not grant — configured-but-not-allowlisted looks identical to absent.
 2. **Plan checkpoint** — present the plan and wait for the go-ahead before branching or delegating.
-3. **Create the feature branch**, then delegate implementation to `crew:tank`/`crew:trinity`,
-   committing each step once it passes its acceptance criteria (you own git; workers don't).
-4. **Delegate** tests (`crew:oracle`/`crew:dozer`) and design conformance (`crew:seraph`); route
-   failures back to the implementer.
+3. **Create the feature branch**, then delegate implementation to `crew:tank` — and to
+   `crew:trinity` unless the frontend stack is `none` — committing each step once it passes its
+   acceptance criteria (you own git; workers don't).
+4. **Delegate** tests to `crew:oracle`; e2e (`crew:dozer`) and design conformance (`crew:seraph`)
+   only when the frontend stack is not `none`. Route failures back to the implementer.
 5. When all checks are green, **run the review gate** (`/crew:review`). Push/PR is `/crew:pr`;
    addressing the PR's later review feedback is *Address review feedback* below.
 
@@ -145,7 +148,8 @@ go-ahead before creating the feature branch or delegating any step** — backgro
 (you can't cheaply recall a backgrounded worker, and it can't prompt).
 
 - **Show what they need to judge it:** the scope/boundary, the ordered steps with their
-  acceptance criteria, the resolved base branch and frontend mode, and any assumptions made.
+  acceptance criteria, the resolved base branch and frontend mode (omitted when there is no view
+  layer), and any assumptions made.
   Keep it skimmable, not a wall of text.
 - **One gate, not many.** This is a single pause before the first delegation, not a prompt per
   step. Once approved, run the flow through without re-confirming each step.

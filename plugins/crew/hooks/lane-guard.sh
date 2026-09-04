@@ -219,8 +219,17 @@ case "$agent_type" in
   # `.spec.*` is kept (Vitest/Jest/Angular unit tests use it), but oracle is
   # excluded from the e2e-tool directories, which are dozer's — otherwise a
   # Playwright `e2e/foo.spec.ts` would fall in oracle's lane too.
+  # The union of every stack's test convention: the stack isn't resolved here, so
+  # a test file in *any* of them is oracle's.
   oracle) mode="--allow"
           patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*'
+          patterns+=' **/test*.py **/*_test.py **/conftest.py'    # pytest + unittest discover
+          patterns+=' **/*_test.go **/testdata/**'                 # go test + its fixtures
+          patterns+=' **/*.bats **/*.test.sh'                      # bats + plain-bash harness
+          # Every Surefire/Failsafe name convention, not just src/test: a custom
+          # Gradle source set puts these classes elsewhere.
+          patterns+=' **/src/test/** **/*Test.java **/Test*.java **/*Tests.java'
+          patterns+=' **/*TestCase.java **/*IT.java **/IT*.java **/*ITCase.java'
           exclude='e2e/** cypress/** playwright/** tests/e2e/**' ;;
   dozer)
     # Scope to the resolved e2e tool's conventional locations rather than a blanket
@@ -297,11 +306,35 @@ case "$agent_type" in
       # either agent: Razor is shared by concern (trinity = markup/DOM, tank =
       # C#/server logic), and that split is enforced by the agent prompts, since
       # file globs can't see inside a file.
+      # trinity's deny list is the union of every backend's extensions, not the
+      # resolved stack's: none of them is a client-facing file. These stacks reach
+      # here rather than node's branch above because their extensions are disjoint
+      # from the frontend's.
       mode="--deny"
       if [ "$agent_type" = "tank" ]; then
         patterns='*.ts *.tsx *.jsx *.js *.mjs *.scss *.css *.html'
       else
-        patterns='*.cs *.csproj'
+        patterns='*.cs *.csproj'                                     # dotnet
+        # Manifests and build config count: they are backend-owned, and leaving
+        # them out lets the lane fail open on exactly the dependency files a
+        # frontend agent has no business editing.
+        patterns+=' *.py *.pyi pyproject.toml requirements*.txt setup.py setup.cfg'
+        patterns+=' tox.ini Pipfile Pipfile.lock poetry.lock uv.lock pdm.lock'
+        patterns+=' mypy.ini .mypy.ini pyrightconfig.json pytest.ini ruff.toml .ruff.toml .flake8'  # python
+        patterns+=' *.go go.mod go.sum go.work go.work.sum .golangci.yml .golangci.yaml'
+        patterns+=' **/testdata/**'                                              # go
+        patterns+=' *.rs Cargo.toml Cargo.lock rustfmt.toml .rustfmt.toml clippy.toml'   # rust
+        patterns+=' *.java pom.xml build.gradle build.gradle.kts'
+        patterns+=' settings.gradle settings.gradle.kts gradle.properties'
+        patterns+=' gradle/libs.versions.toml gradle/wrapper/gradle-wrapper.properties'
+        # Backend config under src/main/resources. NOT the whole tree: templates/
+        # and static/ under it are the view layer, so they stay trinity's the way
+        # .cshtml does.
+        patterns+=' **/src/main/resources/application*.properties'
+        patterns+=' **/src/main/resources/application*.yml **/src/main/resources/application*.yaml'
+        patterns+=' **/src/main/resources/bootstrap*.yml **/src/main/resources/bootstrap*.yaml'
+        patterns+=' **/src/test/**'                                              # java
+        patterns+=' *.sh *.bash *.bats .shellcheckrc'                             # shell
       fi
     fi
     ;;

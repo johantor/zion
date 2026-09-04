@@ -31,7 +31,9 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     which carries the sending half);
     frontend mode: `frontend-headless`, `frontend-server-rendered`; per-stack (loaded
     dynamically once `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
-    `cms-optimizely`, `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`;
+    `backend-python`, `backend-go`, `backend-rust`, `backend-java`, `cms-optimizely` (composes on
+    `backend-dotnet`), `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`,
+    `tests-pytest`, `tests-go`, `tests-cargo`, `tests-junit`, `backend-shell`, `tests-shell`;
     per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`;
     per-worker (preloaded, not stack-resolved): `design-tokens`, which `seraph` reads so a
@@ -105,8 +107,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   verified step; workers never run git. The crew stops at the local review gate by default —
   pushing and opening a PR is the separate `/crew:pr` command.
 - Worker lanes are stack-agnostic: `tank` = backend implementer for the resolved backend
-  stack, `trinity` = frontend implementer for the resolved frontend stack (plus a shared
-  server template's markup in server-rendered mode), `oracle` = all unit test authoring
+  stack, `trinity` = implementer of the client-facing layer for the resolved frontend stack
+  (plus a shared server template's markup in server-rendered mode), `oracle` = all unit test authoring
   (backend tests + frontend component tests when a frontend unit test tool is configured),
   `dozer` = frontend e2e only (for the resolved e2e tool), `seraph` = visual design
   conformance (read-only), `neo` = express-lane generalist for small changes (all lanes;
@@ -116,8 +118,11 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   E2e tool knowledge lives in per-tool skills (`Frontend e2e tool` slot); frontend unit test
   tool knowledge lives in its own per-tool skills (`Frontend unit test tool` slot). `lane-
   guard.sh` enforces the write lane by file extension for disjoint-language stacks (e.g.
-  dotnet+react), or by configured directory paths (**Backend/Frontend lane path(s)**) when
-  both stacks are the same language (e.g. node+nextjs).
+  dotnet+react, python+react — `trinity`'s deny list is the union of every backend's
+  extensions, so it holds whichever backend is resolved), or by configured directory paths
+  (**Backend/Frontend lane path(s)**) when both stacks are the same language (e.g.
+  node+nextjs). Node is the only supported backend that shares its extensions with a
+  frontend, so it is the only one that needs those paths.
 - `morpheus` **right-sizes the process by task size**: small, low-risk work takes an express lane
   (delegate to `neo`, skip the plan/checkpoint/full-gate, quick self-review, commit); features and
   anything risky, multi-lane, or needing new tests take the full flow through the specialists.

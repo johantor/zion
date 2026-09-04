@@ -13,10 +13,58 @@ assert_allow "tank allowed a .cs file"   "$HOOK" "$(payload_file tank Foo.cs)"
 assert_block "trinity denied a .cs file" "$HOOK" "$(payload_file trinity Foo.cs)" "out of"
 assert_allow "trinity allowed a .tsx file" "$HOOK" "$(payload_file trinity Foo.tsx)"
 
+# --- Extension regime, the Python/Go/Rust/JVM backends -------------------------
+# These extensions are disjoint from the frontend's, so the stacks need no lane
+# paths. A miss fails silently in production: the guard passes, the lanes don't.
+for _f in svc.py svc.pyi pyproject.toml requirements.txt setup.py setup.cfg \
+          tox.ini Pipfile poetry.lock uv.lock pdm.lock \
+          mypy.ini pyrightconfig.json pytest.ini ruff.toml .flake8 .golangci.yml \
+          rustfmt.toml clippy.toml \
+          svc.go go.mod go.sum go.work go.work.sum \
+          svc.rs Cargo.toml Cargo.lock \
+          Svc.java pom.xml build.gradle build.gradle.kts settings.gradle gradle.properties \
+          gradle/libs.versions.toml gradle/wrapper/gradle-wrapper.properties \
+          run.sh lib.bash .shellcheckrc \
+          pkg/testdata/golden.json src/test/resources/fixture.sql src/test/fixtures/data.json \
+          src/main/resources/application.yml svc/src/main/resources/application-prod.properties; do
+  assert_block "trinity denied a backend file ($_f)" "$HOOK" "$(payload_file trinity "$_f")" "out of"
+  assert_allow "tank allowed a backend file ($_f)"   "$HOOK" "$(payload_file tank "$_f")"
+done
+# The union is per-extension, not per-resolved-stack: a pinned Python backend
+# still denies trinity a .rs file. Pinning a stack must not widen trinity's lane.
+fm_python="$(make_crew_md 'backendStack: python
+frontendStack: react')"
+assert_block "trinity denied .rs under a pinned python backend" \
+  "$HOOK" "$(payload_file trinity svc.rs)" "out of" "$fm_python"
+assert_allow "trinity keeps repo-wide .editorconfig" "$HOOK" "$(payload_file trinity .editorconfig)"
+# The view half of src/main/resources stays trinity's, like .cshtml.
+assert_allow "trinity keeps a Thymeleaf template" \
+  "$HOOK" "$(payload_file trinity src/main/resources/templates/index.html)"
+assert_allow "trinity keeps Spring's static assets" \
+  "$HOOK" "$(payload_file trinity src/main/resources/static/app.css)"
+assert_allow "trinity still allowed a .tsx under a pinned python backend" \
+  "$HOOK" "$(payload_file trinity Foo.tsx)" "$fm_python"
+
 # --- oracle / dozer confined to test paths ------------------------------------
 assert_allow "oracle allowed a unit test"     "$HOOK" "$(payload_file oracle src/foo.test.ts)"
 assert_block "oracle denied a non-test file"  "$HOOK" "$(payload_file oracle src/foo.ts)" "allowed paths"
 assert_block "oracle denied an e2e spec (dozer's lane)" "$HOOK" "$(payload_file oracle e2e/foo.spec.ts)" "e2e lane"
+# One assertion per test convention in oracle's allow list.
+for _t in pkg/test_svc.py pkg/testservice.py pkg/svc_test.py pkg/conftest.py \
+          pkg/svc_test.go pkg/testdata/input.json \
+          tests/integration.rs \
+          src/test/java/com/example/SvcTest.java app/src/test/resources/fixture.sql \
+          tests/guard.bats plugins/crew/tests/lane-guard.test.sh; do
+  assert_allow "oracle allowed a test path ($_t)" "$HOOK" "$(payload_file oracle "$_t")"
+done
+# Every Surefire/Failsafe convention, including outside src/test.
+for _j in SvcTest.java TestSvc.java SvcTests.java SvcTestCase.java SvcIT.java ITSvc.java SvcITCase.java; do
+  assert_allow "oracle allowed a JUnit class ($_j)" "$HOOK" "$(payload_file oracle "$_j")"
+done
+# Production code in those same ecosystems stays out of oracle's lane.
+for _p in pkg/svc.py pkg/svc.go src/lib.rs src/main/java/com/example/Svc.java; do
+  assert_block "oracle denied production code ($_p)" "$HOOK" "$(payload_file oracle "$_p")" "allowed paths"
+done
 assert_allow "dozer allowed an e2e spec"      "$HOOK" "$(payload_file dozer e2e/foo.spec.ts)"
 assert_block "dozer denied a source file"     "$HOOK" "$(payload_file dozer src/foo.ts)" "allowed paths"
 

@@ -34,8 +34,10 @@ Use it in bash, but know where it stops:
   command may fail freely. That is usually what you want; it is not a place to rely on `-e`.
 - **`-e` does not reach into a subshell's caller** the way people expect, and a command
   substitution in an argument list is a subshell.
-- **`-u` and an empty array.** Under older bash, `"${arr[@]}"` on an empty array is an unbound
-  variable error. `"${arr[@]:-}"` or a length check first.
+- **`-u` and an empty array.** Under bash before 4.4, `"${arr[@]}"` on an empty array is an
+  unbound-variable error. Guard with a length check — `[ "${#arr[@]}" -gt 0 ] && cmd "${arr[@]}"`.
+  Do **not** reach for `"${arr[@]:-}"`: on an empty array that expands to one empty argument, so
+  the command receives an extra `''` it never asked for.
 - **`pipefail` changes what a pipeline returns**, so a `grep` that matches nothing now fails the
   script. Guard it (`|| true`) where an empty match is a legitimate outcome — and only there.
 

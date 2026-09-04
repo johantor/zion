@@ -145,7 +145,8 @@ go-ahead before creating the feature branch or delegating any step** — backgro
 (you can't cheaply recall a backgrounded worker, and it can't prompt).
 
 - **Show what they need to judge it:** the scope/boundary, the ordered steps with their
-  acceptance criteria, the resolved base branch and frontend mode, and any assumptions made.
+  acceptance criteria, the resolved base branch and frontend mode (omitted when there is no view
+  layer), and any assumptions made.
   Keep it skimmable, not a wall of text.
 - **One gate, not many.** This is a single pause before the first delegation, not a prompt per
   step. Once approved, run the flow through without re-confirming each step.

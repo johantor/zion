@@ -293,16 +293,17 @@ case "$lane" in
   sh)
     # shfmt only: shellcheck is a linter with no fix mode, so it belongs to the gate.
     # Config-gated like every other lane -- shfmt's defaults are not every project's.
-    shroot="$(find_up .shfmt .editorconfig)" || shroot=""
-    # An .editorconfig counts only when it actually says something shfmt reads:
-    # a shell-file section, or one of its own properties. A bare `root = true`
-    # is not the project choosing a shell formatter.
-    # The section must cover THIS file's extension: `[*.sh]` says nothing about a
-    # .bats file, and running shfmt on it anyway is the machine-dependent rewrite
-    # the gating exists to prevent. A shfmt property under any section counts,
-    # since those apply wherever their section does.
-    if [ -z "$shroot" ] || { [ ! -f "$shroot/.shfmt" ] && ! grep -qE "^\[[^]]*\.?\*?[^]]*\.$ext\b|^\[\*\]|^[[:space:]]*(shell_variant|binary_next_line|switch_case_indent|space_redirects|keep_padding|function_next_line)[[:space:]]*=" "$shroot/.editorconfig" 2>/dev/null; }; then
-      echo "format hook: no shfmt configuration for $path; skipped" >&2; exit 0
+    # `.shfmt` only, deliberately. Whether an .editorconfig section applies to a
+    # given file is EditorConfig's glob semantics -- brace lists, `**`, ranges,
+    # nearest-section precedence -- and approximating that with grep gets it wrong
+    # both ways: a `[Makefile]` section carrying shfmt properties looks like a
+    # match for a .sh file, and `[*.{sh,bash}]` looks like no match at all. Either
+    # error formats a file the project did not ask to have formatted. shfmt still
+    # reads .editorconfig itself at the review gate, where it applies the rules
+    # correctly; this hook just needs an unambiguous yes.
+    shroot="$(find_up .shfmt)" || shroot=""
+    if [ -z "$shroot" ]; then
+      echo "format hook: no .shfmt configuration for $path; skipped" >&2; exit 0
     fi
     command -v shfmt >/dev/null 2>&1 || { echo "format hook: shfmt not on PATH for $path; skipped" >&2; exit 0; }
     st=0; run_bounded shfmt -w "$path" || st=$?

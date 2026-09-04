@@ -33,7 +33,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     dynamically once `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
     `backend-python`, `backend-go`, `backend-rust`, `backend-java`, `cms-optimizely` (composes on
     `backend-dotnet`), `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`,
-    `tests-pytest`, `tests-go`, `tests-cargo`, `tests-junit`;
+    `tests-pytest`, `tests-go`, `tests-cargo`, `tests-junit`, `backend-shell`, `tests-shell`;
     per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
     test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`;
     per-worker (preloaded, not stack-resolved): `design-tokens`, which `seraph` reads so a

@@ -30,7 +30,8 @@ classify each path — same split the lane guard uses:
   (and `*.cshtml`: it carries server-side logic); `*.py`, `*.pyi`, `pyproject.toml`,
   `requirements*.txt`, `setup.py`, `setup.cfg`, `tox.ini`, the Python lockfiles; `*.go`,
   `go.mod`, `go.sum`; `*.rs`, `Cargo.toml`, `Cargo.lock`; `*.java`, `pom.xml`,
-  `build.gradle{,.kts}`, `settings.gradle{,.kts}`, `gradle.properties`. This list mirrors
+  `build.gradle{,.kts}`, `settings.gradle{,.kts}`, `gradle.properties`; `*.sh`, `*.bash`,
+  `*.bats`, `.shellcheckrc`. This list mirrors
   `lane-guard.sh`'s deny union — they must not drift, or the gate skips what the guard protects.
 - **Frontend lane** — `*.ts`, `*.tsx`, `*.jsx`, `*.js`, `*.mjs`, `*.scss`, `*.css`, `*.html`
   (and `*.cshtml` in server-rendered mode, where trinity owns the markup).

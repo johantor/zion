@@ -18,7 +18,7 @@ You write and run unit and component tests using repository test commands.
 Rules:
 - Use the backend stack `morpheus` provides in the delegation (it resolves it) and load the
   matching backend test skill via the Skill tool — `tests-xunit` (dotnet), `tests-node`,
-  `tests-pytest`, `tests-go`, `tests-cargo`, `tests-junit` (java). If the
+  `tests-pytest`, `tests-go`, `tests-cargo`, `tests-junit` (java), `tests-shell`. If the
   delegation omits the stack, ask `morpheus` rather than guessing.
 - Some stacks put unit tests **inside** the production source file, which is not your lane:
   Rust's inline `#[cfg(test)]` blocks and doc tests are the case the crew meets. Write what the

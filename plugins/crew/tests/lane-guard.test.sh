@@ -20,7 +20,8 @@ for _f in svc.py svc.pyi pyproject.toml requirements.txt setup.py setup.cfg \
           tox.ini Pipfile poetry.lock uv.lock pdm.lock \
           svc.go go.mod go.sum go.work go.work.sum \
           svc.rs Cargo.toml Cargo.lock \
-          Svc.java pom.xml build.gradle build.gradle.kts settings.gradle gradle.properties; do
+          Svc.java pom.xml build.gradle build.gradle.kts settings.gradle gradle.properties \
+          run.sh lib.bash .shellcheckrc; do
   assert_block "trinity denied a backend file ($_f)" "$HOOK" "$(payload_file trinity "$_f")" "out of"
   assert_allow "tank allowed a backend file ($_f)"   "$HOOK" "$(payload_file tank "$_f")"
 done
@@ -41,7 +42,8 @@ assert_block "oracle denied an e2e spec (dozer's lane)" "$HOOK" "$(payload_file 
 for _t in pkg/test_svc.py pkg/svc_test.py pkg/conftest.py \
           pkg/svc_test.go pkg/testdata/input.json \
           tests/integration.rs \
-          src/test/java/com/example/SvcTest.java app/src/test/resources/fixture.sql; do
+          src/test/java/com/example/SvcTest.java app/src/test/resources/fixture.sql \
+          tests/guard.bats plugins/crew/tests/lane-guard.test.sh; do
   assert_allow "oracle allowed a test path ($_t)" "$HOOK" "$(payload_file oracle "$_t")"
 done
 # Every Surefire/Failsafe convention, including outside src/test.

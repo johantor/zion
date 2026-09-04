@@ -42,8 +42,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   skills load dynamically once resolved. Backend stacks: `backend-dotnet`, `backend-node`,
   `backend-python`, `backend-go`, `backend-rust`, `backend-java` (+ `cms-optimizely` composing on
   dotnet), each paired with a test skill — `tests-xunit`, `tests-node`, `tests-pytest`,
-  `tests-go`, `tests-cargo`, `tests-junit`. Node is the only one whose extensions collide with a
-  frontend's, so it is the only backend needing lane paths. Skill = `<name>/SKILL.md`, frontmatter `name:` +
+  `tests-go`, `tests-cargo`, `tests-junit`, plus `backend-shell`/`tests-shell` for a repo whose
+  deliverable is the scripts (this one). Node is the only one whose extensions collide with a
+  frontend's, so it is the only backend needing lane paths. A shell project has no view layer at
+  all: `frontendStack` stays unset and only `tank`/`oracle` are dispatched. Skill = `<name>/SKILL.md`, frontmatter `name:` +
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
   backstop; watch/dev commands refused; **file-mutating Bash refused for agent sessions** — an

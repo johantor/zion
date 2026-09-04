@@ -28,8 +28,8 @@ missing, and CI keeps it in lockstep with this repo's own `.claude/crew.md`:
 
 - **Frontend mode** (`frontendMode`) — `headless` or `server-rendered`. Optional/pin-only; leave
   `unset` to let `morpheus` resolve it per project.
-- **Backend stack** (`backendStack`) — `dotnet`, `node`, `python`, `go`, `rust`, or `java`.
-  Optional/pin-only; leave `unset` to let `morpheus` resolve it per project.
+- **Backend stack** (`backendStack`) — `dotnet`, `node`, `python`, `go`, `rust`, `java`, or
+  `shell`. Optional/pin-only; leave `unset` to let `morpheus` resolve it per project.
 - **Frontend stack** (`frontendStack`) — `react` or `nextjs`. Optional/pin-only; leave `unset` to
   let `morpheus` resolve it per project.
 - **Frontend e2e tool** (`frontendE2eTool`) — `cypress` or `playwright`. Optional/pin-only; leave
@@ -111,6 +111,11 @@ trust or correct it; never invent a command you can't see configured.
   the project's runner when it has one (`poetry run`, `uv run`, `pdm run`) — a bare `pytest`
   resolves against whatever interpreter is active. If no type checker is configured, say so and
   leave the build slot `unset` rather than inventing one.
+- **Backend (shell):** there is no build, so the build slot is the project's static gate —
+  `shellcheck <globs>` (take the globs from CI, since the shell's `*` does not cross directory
+  separators and a single pattern usually misses a subdirectory), optionally `bash -n`. Test the
+  project's own runner (`bash tests/run.sh`, `bats tests/`); lint `shellcheck` plus `shfmt -d`
+  where shfmt is configured.
 - **Backend (Go):** build `go build ./...` (add `go vet ./...` when the repo runs it), test
   `go test ./...` (keep `-race` if a CI workflow uses it), lint `golangci-lint run` when a
   `.golangci.yml` exists, else `gofmt -l .`.
@@ -142,7 +147,9 @@ trust or correct it; never invent a command you can't see configured.
 - **Backend stack:** a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
   dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`; a `pyproject.toml`
   (or `requirements*.txt`/`setup.py`) → `python`; a `go.mod` → `go`; a `Cargo.toml` → `rust`; a
-  `pom.xml` or `build.gradle`/`build.gradle.kts` → `java`. If ambiguous or absent, leave `unset`
+  `pom.xml` or `build.gradle`/`build.gradle.kts` → `java`; `*.sh`/`*.bats` with no other
+  backend marker → `shell` (a repo whose deliverable is the scripts themselves — not any repo
+  that merely has a build script). If ambiguous or absent, leave `unset`
   for `morpheus` to resolve. A repo with markers for two backends is ambiguous, not a tie to
   break — ask which one the crew should treat as the backend.
 - **Frontend stack:** a `next.config.*` → `nextjs`; a React/Vite SPA build with no

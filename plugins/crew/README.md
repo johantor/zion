@@ -6,7 +6,8 @@
 **Ship a feature like a team, not a single agent.** `crew` turns a Claude Code session into a
 captain that plans and delegates, plus specialists — backend, the client-facing layer, tests,
 visual review — each scoped to its own lane. The backend lane covers .NET, Node, Python, Go,
-Rust and the JVM; the crew is for software delivery, not for websites specifically. You approve the plan, every step is verified and committed as it
+Rust, the JVM and shell; the crew is for software delivery, not for websites specifically. A
+project with no view layer simply leaves that lane unset. You approve the plan, every step is verified and committed as it
 lands, and nothing reaches a pull request until a consolidated review gate returns **GO**.
 
 Part of the [Zion](../../README.md) marketplace.
@@ -277,8 +278,9 @@ one that isn't installed, so it just reports the server as unavailable.
   on for workers only: `mid-run-direction` (how to treat a steer that arrives mid-run), and
   `design-tokens` for the agent doing design conformance.
   Loaded once the stack is resolved: per frontend mode, per backend stack (.NET, Node, Python,
-  Go, Rust, JVM — plus Optimizely on top of .NET), per frontend stack (React, Next.js), and per
-  test tool (xUnit, pytest, `go test`, cargo, JUnit, Vitest, Jest, Cypress, Playwright).
+  Go, Rust, JVM, shell — plus Optimizely on top of .NET), per frontend stack (React, Next.js),
+  and per test tool (xUnit, pytest, `go test`, cargo, JUnit, bats, Vitest, Jest, Cypress,
+  Playwright).
 
 Local agent memory is git-ignored (`.claude/agent-memory-local/`).
 

@@ -21,7 +21,8 @@ Scope:
   controllers/handlers, and data access.
 - Use the backend stack `morpheus` provides in the delegation (it resolves it) and load the
   matching stack skill via the Skill tool — `backend-<stack>` (`backend-dotnet`,
-  `backend-node`, `backend-python`, `backend-go`, `backend-rust`, `backend-java`). If the
+  `backend-node`, `backend-python`, `backend-go`, `backend-rust`, `backend-java`,
+  `backend-shell`). If the
   delegation omits the stack, ask `morpheus` rather than guessing. A stack skill may name a
   composable platform skill to also load when self-detectable (e.g. `backend-dotnet` names
   `cms-optimizely`, detected by an `EPiServer.CMS`/`Optimizely.CMS` package reference) —

@@ -10,7 +10,7 @@
 
 **Ship features like a crew, not a single agent.** Zion is a
 [Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
-team-style software delivery across .NET, Node, Python, Go, Rust and the JVM: a
+team-style software delivery across .NET, Node, Python, Go, Rust, the JVM and shell: a
 captain that plans and delegates to backend, view, test, and design specialists
 behind hook-enforced guardrails
 (**crew**), and a precision tool that pays down tech debt and upgrades
@@ -30,7 +30,7 @@ claude plugin install crew@zion
 
 | Plugin | Status | What it does | Adds to your session |
 |---|---|---|---|
-| **[crew](plugins/crew/README.md)** | Stable | Orchestrated, multi-agent feature delivery: a captain (`morpheus`) plans the work and delegates to backend, client-facing, test, and visual-review specialists across .NET, Node, Python, Go, Rust and the JVM, with a consolidated review gate before anything ships. | `/crew:*` commands, agents, safety hooks, skills |
+| **[crew](plugins/crew/README.md)** | Stable | Orchestrated, multi-agent feature delivery: a captain (`morpheus`) plans the work and delegates to backend, client-facing, test, and visual-review specialists across .NET, Node, Python, Go, Rust, the JVM and shell, with a consolidated review gate before anything ships. | `/crew:*` commands, agents, safety hooks, skills |
 | **[keymaker](plugins/keymaker/README.md)** | [Beta](plugins/keymaker/README.md#graduation-to-stable-v10) | Pointer-driven tech debt remediation and dependency upgrades: fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:*` commands, agents, safety hooks, skills |
 
 The plugins are designed to compose: they read the same `.claude/crew.md`

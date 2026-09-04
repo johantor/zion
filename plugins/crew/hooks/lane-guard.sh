@@ -225,6 +225,7 @@ case "$agent_type" in
           patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*'
           patterns+=' **/test_*.py **/*_test.py **/conftest.py'   # pytest
           patterns+=' **/*_test.go **/testdata/**'                 # go test + its fixtures
+          patterns+=' **/*.bats **/*.test.sh'                      # bats + plain-bash harness
           # Every Surefire/Failsafe name convention, not just src/test: a custom
           # Gradle source set puts these classes elsewhere.
           patterns+=' **/src/test/** **/*Test.java **/Test*.java **/*Tests.java'
@@ -323,6 +324,7 @@ case "$agent_type" in
         patterns+=' *.rs Cargo.toml Cargo.lock'                                  # rust
         patterns+=' *.java pom.xml build.gradle build.gradle.kts'
         patterns+=' settings.gradle settings.gradle.kts gradle.properties'       # java
+        patterns+=' *.sh *.bash *.bats .shellcheckrc .editorconfig'               # shell
       fi
     fi
     ;;

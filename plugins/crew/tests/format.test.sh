@@ -58,7 +58,7 @@ assert_reports "oracle's test edits are formatted too" \
   "$(payload_file oracle src/a.test.ts)" "$ok_project" "applied prettier"
 assert_silent "the main session (no agent_type) is a no-op" \
   "$(jq -nc '{tool_input: {file_path: "src/a.ts"}}')" "$ok_project"
-assert_silent "an extension no formatter owns is a no-op" "$(payload_file neo scripts/a.sh)" "$ok_project"
+assert_silent "an extension no formatter owns is a no-op" "$(payload_file neo Views/A.cshtml)" "$ok_project"
 assert_silent "no file_path is a no-op" "$(jq -nc '{agent_type: "tank"}')" "$ok_project"
 assert_silent "the web lane without a package.json is a no-op" "$(payload_file tank src/a.ts)"
 
@@ -114,7 +114,7 @@ while IFS= read -r -d ':' _d || [ -n "$_d" ]; do
   for _f in "$_d"/*; do
     [ -x "$_f" ] || continue
     case "${_f##*/}" in
-      ruff|black|gofmt|gofumpt|rustfmt|google-java-format|palantir-java-format) continue ;;
+      ruff|black|gofmt|gofumpt|rustfmt|google-java-format|palantir-java-format|shfmt) continue ;;
     esac
     [ -e "$_mirror_bin/${_f##*/}" ] || ln -s "$_f" "$_mirror_bin/${_f##*/}" 2>/dev/null
   done
@@ -223,6 +223,23 @@ assert_reports "a mixed root reads [package], not [workspace.package]" \
 fake_bin rustfmt 'exit 1'
 assert_reports "a rustfmt that rejects the file is reported as failed" \
   "$(payload_file tank src/lib.rs)" "$plain" "rustfmt failed"
+
+# Shell: shfmt only, and config-gated like the rest — shfmt's defaults are not
+# every project's, and .sh is the one extension a repo may have without owning it.
+sh_plain="$(make_tree 'run.sh:echo hi')"
+assert_reports "a shell file with no shfmt configuration is skipped" \
+  "$(payload_file tank run.sh)" "$sh_plain" "no shfmt configuration"
+sh_proj="$(make_tree '.editorconfig:root = true' 'run.sh:echo hi')"
+assert_reports "a configured project with no shfmt on PATH is skipped" \
+  "$(payload_file tank run.sh)" "$sh_proj" "shfmt not on PATH"
+fake_bin shfmt 'exit 0'
+assert_reports "shfmt formats a shell file" \
+  "$(payload_file tank run.sh)" "$sh_proj" "applied shfmt"
+assert_reports "oracle's .bats edits are formatted too" \
+  "$(payload_file oracle tests/a.bats)" "$sh_proj" "applied shfmt"
+fake_bin shfmt 'exit 1'
+assert_reports "a shfmt that rejects the file is reported as failed" \
+  "$(payload_file tank run.sh)" "$sh_proj" "shfmt failed"
 
 PATH="$_real_path"; export PATH
 

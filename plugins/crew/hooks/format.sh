@@ -42,7 +42,8 @@ case "$ext" in
   go) lane="go" ;;
   rs) lane="rust" ;;
   java) lane="java" ;;
-  *) exit 0 ;;  # not a formatter-owned extension (e.g. .cshtml, .sh) -- nothing to do
+  sh|bash|bats) lane="sh" ;;
+  *) exit 0 ;;  # not a formatter-owned extension (e.g. .cshtml) -- nothing to do
 esac
 
 # True if any given path exists (config-file detection; unmatched globs pass
@@ -253,6 +254,16 @@ case "$lane" in
     if [ "$st" = 0 ]; then echo "format hook: applied rustfmt on $path" >&2
     elif hung "$st"; then echo "format hook: rustfmt timed out after ${FORMAT_TIMEOUT}s on $path" >&2
     else echo "format hook: rustfmt failed on $path" >&2; fi
+    ;;
+  sh)
+    # shfmt only: shellcheck is a linter with no fix mode, so it belongs to the gate.
+    # Config-gated like every other lane -- shfmt's defaults are not every project's.
+    cfg .shfmt .editorconfig || { echo "format hook: no shfmt configuration for $path; skipped" >&2; exit 0; }
+    command -v shfmt >/dev/null 2>&1 || { echo "format hook: shfmt not on PATH for $path; skipped" >&2; exit 0; }
+    st=0; run_bounded shfmt -w "$path" || st=$?
+    if [ "$st" = 0 ]; then echo "format hook: applied shfmt on $path" >&2
+    elif hung "$st"; then echo "format hook: shfmt timed out after ${FORMAT_TIMEOUT}s on $path" >&2
+    else echo "format hook: shfmt failed on $path" >&2; fi
     ;;
   java)
     # Standalone formatters only: Spotless and the Maven plugins format through the

@@ -11,14 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- Python, Go, Rust and Java backend stacks: eight skills, plus the `backendStack` values and
-  detection that let `/crew:init` and `morpheus` resolve them (#215).
-- `format.sh` formats `.py`, `.go`, `.rs` and `.java` after an edit (#215).
+- Python, Go, Rust, Java and shell backend stacks: ten skills, plus the `backendStack` values
+  and detection that let `/crew:init` and `morpheus` resolve them (#215, #218).
+- `format.sh` formats `.py`, `.go`, `.rs`, `.java` and `.sh` after an edit, each gated on the
+  project's own configuration rather than on what is installed (#215, #218).
 
 ### Fixed
 
 - `lane-guard` denied `trinity` only `.cs`/`.csproj`, so the write lanes stopped separating in
-  any other backend; `oracle` could not author a test in one at all (#215).
+  any other backend — `.sh` included, which is what this repo is written in; `oracle` could not
+  author a test in one at all (#215, #218).
 - Watch/dev commands were refused only in the .NET/JS ecosystems, so `uvicorn`, `cargo watch` or
   `./gradlew bootRun` could hang an agent's whole turn budget (#215).
 

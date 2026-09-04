@@ -11,11 +11,6 @@
       "description": "Team-style feature delivery for Claude Code: a captain agent plans the work and delegates each step to backend, frontend, test, and design specialists behind hook-enforced guardrails, with a consolidated review gate before anything ships."
     },
     {
-      "name": "engineering-principles",
-      "source": "./plugins/engineering-principles",
-      "description": "The code-review rubric behind the Zion crew, as a standalone skill: YAGNI, KISS, DRY applied with judgment, small single-purpose units, clear naming, and minimal-scope diffs. Adds no commands, agents, or hooks."
-    },
-    {
       "name": "keymaker",
       "source": "./plugins/keymaker",
       "description": "Pay down tech debt one verified fix at a time: point it at a suppression, a rule, or an outdated package, and it reports the blast radius before editing, fixes in gated batches, and commits each batch only once its acceptance gate passes."

@@ -20,11 +20,13 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
   - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), and `sentinel` (post-merge triage; read-only, no Bash). Auto-discovered from this dir; not declared in the manifest.
   - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
-  - `skills/` — shared: `engineering-principles`, `context-discipline`, `loop-engineering`,
-    `operator-voice` (all also shipped by other plugins — kept byte-for-byte in sync
+  - `skills/` — shared: `context-discipline`, `loop-engineering`,
+    `operator-voice` (all also shipped by `keymaker` — kept byte-for-byte in sync
     automatically; see *How we review code* below; `loop-engineering` carries the loop-mode stop
     rules, preloaded by `morpheus` and `keymaker` with per-agent bindings, and `operator-voice`
-    sets how those two write to the operator); crew-only: `mid-run-direction` (how a
+    sets how those two write to the operator); crew-only: `engineering-principles` (the review
+    rubric — crew is its only home since the standalone plugin was dropped) and
+    `mid-run-direction` (how a
     worker treats a steer that arrives mid-run — preloaded by every worker, not by `morpheus`,
     which carries the sending half);
     frontend mode: `frontend-headless`, `frontend-server-rendered`; per-stack (loaded
@@ -59,10 +61,6 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     so it takes the base branch to compare against.
   - `release-notes.sh` — builds a release's notes: the version's changelog section plus the
     commits that shipped in the same tag without an entry. Called by `auto-release.yml`.
-- `plugins/engineering-principles/` — standalone plugin that ships only the `engineering-principles` skill:
-  - `.claude-plugin/plugin.json` — plugin manifest (name `engineering-principles`).
-  - `skills/engineering-principles/SKILL.md` — standalone shipped copy; must remain byte-for-byte synced with the canonical crew copy.
-  - `CHANGELOG.md` — release notes for this plugin's versions.
 - `.claude/settings.json` — this repo's own dev-time hooks: wires the same hooks as
   `plugins/crew/hooks/hooks.json`, resolved via `CLAUDE_PROJECT_DIR` instead of
   `CLAUDE_PLUGIN_ROOT`, so they still run while developing in this repo **without the crew
@@ -156,9 +154,8 @@ YAGNI, KISS, pragmatic DRY (rule of three), small single-purpose units, intentio
 names, fail-fast error handling, and minimal-scope diffs.
 
 Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
-today that's `engineering-principles` (crew's canonical copy, also shipped standalone by the
-`engineering-principles` plugin), `context-discipline`, `loop-engineering`, and
-`operator-voice` (all crew's canonical copies, also shipped by `keymaker`).
+today that's `context-discipline`, `loop-engineering`, and `operator-voice` (all crew's
+canonical copies, also shipped by `keymaker`).
 `scripts/validate-plugin.sh` enforces this automatically: the check
 is generic by skill *name*, not hardcoded to these pairs, so it also catches a future
 duplicate between any other plugins — crew included or not (CI fails on mismatch). The same
@@ -701,8 +698,7 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
   achievable, or an ownership contradiction between two files). Reviewers should be a backstop,
   not the first pass.
 - **A changed shipped file is a release for every plugin that ships it.** Editing a byte-synced
-  shared skill (`loop-engineering`, `context-discipline`, `engineering-principles`,
-  `operator-voice`) is
+  shared skill (`loop-engineering`, `context-discipline`, `operator-voice`) is
   user-visible in *each* plugin that ships it, so bump + changelog all of them, not just the one
   you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, and
   `check-changelog.sh` now names each plugin whose shipped files moved without a record, so the

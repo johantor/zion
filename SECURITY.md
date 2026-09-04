@@ -1,7 +1,7 @@
 # Security Policy
 
 Zion is a [Claude Code](https://code.claude.com/docs/en/overview) plugin
-marketplace (`crew`, `keymaker`, `engineering-principles`). Much of its value is
+marketplace (`crew`, `keymaker`). Much of its value is
 in *guardrails* — the Bash hooks that block unsafe commands and enforce write
 lanes — so a way to bypass a guard is a security bug, and we want to hear about
 it privately before it's public.
@@ -47,6 +47,6 @@ example:
 ## Supported versions
 
 Plugins are versioned independently. Fixes ship on the latest release of each
-affected plugin (`crew/vX.Y.Z`, `keymaker/vX.Y.Z`,
-`engineering-principles/vX.Y.Z`); there are no long-term-support branches.
+affected plugin (`crew/vX.Y.Z`, `keymaker/vX.Y.Z`); there are no
+long-term-support branches.
 Update with `claude plugin update <name>@zion`.

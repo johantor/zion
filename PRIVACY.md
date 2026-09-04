@@ -2,9 +2,9 @@
 
 **Effective date:** 2026-09-04
 
-This policy covers the plugins published from this repository — `crew`,
-`keymaker`, and `engineering-principles` — distributed through the Zion
-marketplace and the Claude plugin directory.
+This policy covers the plugins published from this repository — `crew` and
+`keymaker` — distributed through the Zion marketplace and the Claude plugin
+directory.
 
 ## The short version
 

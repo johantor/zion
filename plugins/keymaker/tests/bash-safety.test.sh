@@ -38,7 +38,7 @@ for cmd in 'uvicorn app:app' 'flask --debug run' './manage.py runserver' \
            'air' 'cargo watch -x test' './gradlew -t build' './gradlew :service:bootRun' \
            'fastapi dev app.py' 'uv run python -m uvicorn app:app' \
            'django-admin runserver' 'watch shellcheck .' 'uv run --project x uvicorn app:app' \
-           'python services/api/manage.py runserver' \
+           'python services/api/manage.py runserver' 'poetry -C service run uvicorn app:app' \
            './mvnw spring-boot:run' 'service/mvnw spring-boot:run'; do
   assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" twin)" "never terminate"
 done

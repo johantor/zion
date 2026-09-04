@@ -270,8 +270,11 @@ case "$lane" in
     if [ -n "$_m" ]; then
       edition="$(_edition_in "$_m" package)"
       if [ -z "$edition" ] && _inherits_edition "$_m"; then
+        # A root package is often its own workspace root, so look in this manifest
+        # before walking past it.
+        edition="$(_edition_in "$_m" workspace.package)"
         _n=0
-        while [ "$_n" -lt 32 ]; do
+        while [ -z "$edition" ] && [ "$_n" -lt 32 ]; do
           case "$_d" in .|/|"") break ;; esac
           _p="${_d%/*}"; [ "$_p" = "$_d" ] && _p="."
           _d="$_p"; _n=$((_n + 1))

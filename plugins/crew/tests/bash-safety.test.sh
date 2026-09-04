@@ -58,6 +58,7 @@ for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gun
            'uv run python -m uvicorn app:app' 'poetry run python -m flask run' \
            '.venv/bin/python -m uvicorn app:app' 'python3.12 -m uvicorn app:app' \
            'uv run --project service uvicorn app:app' 'pdm run --site-packages flask run' \
+           'poetry -C service run uvicorn app:app' 'uv --directory service run uvicorn app:app' \
            'watch shellcheck .' 'watchexec -- shellcheck .' 'entr make' \
            'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'trunk serve' \
            './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous' \
@@ -72,6 +73,7 @@ for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
            'python services/api/manage.py migrate' \
            '.venv/bin/python -m pytest' 'python3.12 -m build' \
            'uv run --project service pytest' 'pdm run --site-packages pytest' 'shellcheck hooks/a.sh' \
+           'poetry -C service run pytest' 'uv --directory service run pytest' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
            'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \
            './mvnw -B verify' './gradlew test' './gradlew check -x test' \

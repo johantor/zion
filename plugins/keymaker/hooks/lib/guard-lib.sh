@@ -141,7 +141,7 @@ _g_watch_jvm='(mvn|([^[:space:]]*/)?mvnw)[[:space:]]+([^[:space:]]+[[:space:]]+)
 # belong to no single stack. `watch` is coreutils'; the rest are file watchers.
 _g_watch_any='(watch|watchexec|entr|fswatch|nodemon)([[:space:]]|$)'
 _g_watch="${_g_watch_web}|${_g_watch_py}|${_g_watch_gors}|${_g_watch_jvm}|${_g_watch_any}"
-GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)[[:space:]]+run([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*|([^[:space:]]*/)?python[0-9.]*[[:space:]]+-m|([^[:space:]]*/)?python[0-9.]*)[[:space:]]+)*'"(${_g_watch})"'|--watch([[:space:]]|$)'
+GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*|([^[:space:]]*/)?python[0-9.]*[[:space:]]+-m|([^[:space:]]*/)?python[0-9.]*)[[:space:]]+)*'"(${_g_watch})"'|--watch([[:space:]]|$)'
 
 # Raw/streaming reads that dump a whole file or an endless stream into context.
 GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'

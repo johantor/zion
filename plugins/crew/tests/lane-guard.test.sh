@@ -23,6 +23,7 @@ for _f in svc.py svc.pyi pyproject.toml requirements.txt setup.py setup.cfg \
           svc.go go.mod go.sum go.work go.work.sum \
           svc.rs Cargo.toml Cargo.lock \
           Svc.java pom.xml build.gradle build.gradle.kts settings.gradle gradle.properties \
+          gradle/libs.versions.toml gradle/wrapper/gradle-wrapper.properties \
           run.sh lib.bash .shellcheckrc \
           pkg/testdata/golden.json src/test/resources/fixture.sql src/test/fixtures/data.json \
           src/main/resources/application.yml svc/src/main/resources/application-prod.properties; do

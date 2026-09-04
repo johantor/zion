@@ -33,7 +33,8 @@ classify each path — same split the lane guard uses:
   `ruff.toml`/`.ruff.toml`, `.flake8`;
   `*.go`, `go.mod`, `go.sum`, `go.work`, `go.work.sum`, `.golangci.y{a,}ml`, `testdata/**`; `*.rs`,
   `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`/`.rustfmt.toml`, `clippy.toml`; `*.java`, `pom.xml`, `build.gradle{,.kts}`,
-  `settings.gradle{,.kts}`, `gradle.properties`, `src/main/resources/application*` and `bootstrap*` **in `.properties`/`.yml`/`.yaml` only**
+  `settings.gradle{,.kts}`, `gradle.properties`, `gradle/libs.versions.toml`,
+  `gradle/wrapper/gradle-wrapper.properties`, `src/main/resources/application*` and `bootstrap*` **in `.properties`/`.yml`/`.yaml` only**
   (matching the guard — `templates/` and `static/` under it are the view, and so is an
   `application.html`), `src/test/**`;
   `*.sh`, `*.bash`, `*.bats`, `.shellcheckrc`. A gate's own configuration counts: it decides what
@@ -43,10 +44,14 @@ classify each path — same split the lane guard uses:
   the guard protects.
 - **Frontend lane** — `*.ts`, `*.tsx`, `*.jsx`, `*.js`, `*.mjs`, `*.scss`, `*.css`, `*.html`
   (and `*.cshtml` in server-rendered mode, where trinity owns the markup).
-- **Node is the exception.** `.ts`/`.js` belong to whichever lane the **Backend/Frontend lane
-  path(s)** put them in — the same split `lane-guard.sh` falls back to — and to the backend alone
-  when **Frontend stack** is `none`. Classifying them as frontend by extension would skip the
-  backend gates on a backend-only Node repo.
+- **Node is the exception.** The whole JS/TS set — `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`,
+  `.mts`, `.cts` — belongs to whichever lane the **Backend/Frontend lane path(s)** put it in (the
+  same split `lane-guard.sh` falls back to), and to the backend alone when **Frontend stack** is
+  `none`. Classifying by extension would skip the backend gates on a backend-only Node repo.
+- **No view layer, no frontend gates.** When **Frontend stack** is `none` there is no frontend
+  lane in any mode: the frontend build/test/lint gates never run, and `seraph` is never dispatched
+  for design conformance. That holds in `full` mode too — a project with no view has nothing for
+  those gates to check.
 - **Neither** — docs, config, plugin files, etc.
 
 A diff can touch both lanes; `.cshtml` counts toward both.

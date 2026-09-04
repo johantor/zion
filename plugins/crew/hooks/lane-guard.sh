@@ -326,6 +326,7 @@ case "$agent_type" in
         patterns+=' *.rs Cargo.toml Cargo.lock rustfmt.toml .rustfmt.toml clippy.toml'   # rust
         patterns+=' *.java pom.xml build.gradle build.gradle.kts'
         patterns+=' settings.gradle settings.gradle.kts gradle.properties'
+        patterns+=' gradle/libs.versions.toml gradle/wrapper/gradle-wrapper.properties'
         # Backend config under src/main/resources. NOT the whole tree: templates/
         # and static/ under it are the view layer, so they stay trinity's the way
         # .cshtml does.

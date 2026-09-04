@@ -244,6 +244,17 @@ edition = "2021"' 'crates/api/Cargo.toml:[package]
 edition.workspace = true')"
 assert_reports "a workspace member inherits the root edition" \
   "$(payload_file tank crates/api/src/lib.rs)" "$ws" "applied rustfmt"
+fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
+root_ws="$(make_tree 'Cargo.toml:[package]
+edition.workspace = true
+
+[workspace]
+members = []
+
+[workspace.package]
+edition = "2021"')"
+assert_reports "a root package inherits from its own workspace table" \
+  "$(payload_file tank src/lib.rs)" "$root_ws" "applied rustfmt"
 ws2="$(make_tree 'Cargo.toml:[workspace]
 members = ["crates/api"]
 

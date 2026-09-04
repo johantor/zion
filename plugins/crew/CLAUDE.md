@@ -7,7 +7,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 ## Map
 
 - `agents/` — `morpheus` (orchestrator, `model: opus`, sole git owner) + workers `tank`
-  (backend, any resolved stack), `trinity` (the client-facing layer), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual —
+  (the resolved stack's core implementation — not "server-side": in a CLI, library or script pack
+  it is the commands, domain logic and I/O), `trinity` (the client-facing layer), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual —
   no Bash; measures computed styles/geometry through the browser MCP's script evaluation
   rather than comparing screenshots by eye), `neo` (express generalist), `sentinel` (post-merge triage; no Write/Edit/**Bash**,
   so its read-only posture is the `tools:` grant itself and needs no guard hook — history comes

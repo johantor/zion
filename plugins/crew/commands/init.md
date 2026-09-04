@@ -186,9 +186,12 @@ makes the config unusable:
 - **Tooling slots** (backend/frontend test, build, and lint commands; run/dev URL): if the
   project genuinely has no such tooling, use `none`. Gates that need it then skip with that
   note, and nobody is asked again.
-- **Project-identity slots** (base branch, branch naming, frontend mode, backend stack,
-  frontend stack): never `none` — a base branch always exists, so `none` would be wrong. Leave
-  these `unset` so `morpheus` resolves or asks (for base branch, prefer asking — see above).
+- **Project-identity slots** (base branch, branch naming, frontend mode, backend stack): never
+  `none` — a base branch always exists, so `none` would be wrong. Leave these `unset` so
+  `morpheus` resolves or asks (for base branch, prefer asking — see above).
+- **Frontend stack is the exception.** `none` there is a real answer, not a missing one: it says
+  the project has no view layer. Write it when that is confirmed — `unset` would send `morpheus`
+  asking a question a CLI or a script pack cannot answer.
 
 Write both placeholders as plain YAML values — `unset` and `none`, never quoted, never
 backticked — so reconcile recognizes them later. A key that is absent altogether reads as

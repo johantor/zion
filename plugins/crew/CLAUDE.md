@@ -45,7 +45,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   `tests-go`, `tests-cargo`, `tests-junit`, plus `backend-shell`/`tests-shell` for a repo whose
   deliverable is the scripts (this one). Node is the only one whose extensions collide with a
   frontend's, so it is the only backend needing lane paths. A shell project has no view layer at
-  all: `frontendStack` stays unset and only `tank`/`oracle` are dispatched. Skill = `<name>/SKILL.md`, frontmatter `name:` +
+  all: that is `frontendStack: none` — a stated absence, not an unresolved slot — which makes
+  `morpheus` skip frontend mode, e2e and unit-tool resolution and dispatch only `tank`/`oracle`.
+  The gate sits **above** the resolution table, since Frontend mode is listed first and would
+  otherwise be asked before the rule is read. Skill = `<name>/SKILL.md`, frontmatter `name:` +
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
   backstop; watch/dev commands refused; **file-mutating Bash refused for agent sessions** — an

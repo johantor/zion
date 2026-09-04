@@ -7,7 +7,8 @@
 captain that plans and delegates, plus specialists — backend, the client-facing layer, tests,
 visual review — each scoped to its own lane. The backend lane covers .NET, Node, Python, Go,
 Rust, the JVM and shell; the crew is for software delivery, not for websites specifically. A
-project with no view layer simply leaves that lane unset. You approve the plan, every step is verified and committed as it
+project with no view layer says so with `frontendStack: none`, and the frontend half of the crew
+stays out of the way. You approve the plan, every step is verified and committed as it
 lands, and nothing reaches a pull request until a consolidated review gate returns **GO**.
 
 Part of the [Zion](../../README.md) marketplace.

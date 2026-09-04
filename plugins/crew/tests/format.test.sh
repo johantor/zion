@@ -103,8 +103,8 @@ fi
 # PATH.
 # PATH becomes a mirror of itself minus the tools under test, so a host that has
 # gofmt or rustfmt installed can't decide the result. _fake_bin is searched first.
-_fake_bin="$(mktemp -d)"
-_mirror_bin="$(mktemp -d)"
+_fake_bin="$(new_tmpdir)"
+_mirror_bin="$(new_tmpdir)"
 _real_path="$PATH"
 while IFS= read -r -d ':' _d || [ -n "$_d" ]; do
   [ -d "$_d" ] || continue
@@ -123,7 +123,7 @@ plain="$(make_tree 'go.mod:module fixture')"
 
 # Absent tool: skipped and said so, never a download and never a claimed run.
 assert_reports "a Python file with no formatter on PATH is skipped" \
-  "$(payload_file tank pkg/svc.py)" "$plain" "no Python formatter on PATH"
+  "$(payload_file tank pkg/svc.py)" "$plain" "no configured Python formatter"
 assert_reports "a Go file with no formatter on PATH is skipped" \
   "$(payload_file tank pkg/svc.go)" "$plain" "no Go formatter on PATH"
 assert_reports "a Rust file with no rustfmt on PATH is skipped" \
@@ -132,9 +132,24 @@ assert_reports "a Java file with no standalone formatter on PATH is skipped" \
   "$(payload_file tank src/main/java/Svc.java)" "$plain" "no standalone Java formatter on PATH"
 
 # Present tool: runs and is reported.
+# A tool on PATH is not the project's choice: without config it must not run,
+# or the file's contents start depending on the developer's machine.
 fake_bin ruff 'exit 0'
-assert_reports "ruff formats a Python file" \
-  "$(payload_file tank pkg/svc.py)" "$plain" "applied ruff-format"
+fake_bin black 'exit 0'
+assert_reports "an unconfigured ruff on PATH does not run" \
+  "$(payload_file tank pkg/svc.py)" "$plain" "no configured Python formatter"
+ruff_proj="$(make_tree 'pyproject.toml:[tool.ruff]
+line-length = 100')"
+assert_reports "a configured ruff formats a Python file" \
+  "$(payload_file tank pkg/svc.py)" "$ruff_proj" "applied ruff-format"
+black_proj="$(make_tree 'pyproject.toml:[tool.black]
+line-length = 100')"
+assert_reports "a Black-only project does not get ruff" \
+  "$(payload_file tank pkg/svc.py)" "$black_proj" "applied black"
+# A non-timeout failure is reported, not swallowed behind an "applied" line.
+fake_bin ruff 'exit 1'
+assert_reports "a ruff that rejects the file is reported as failed" \
+  "$(payload_file tank pkg/svc.py)" "$ruff_proj" "ruff-format failed"
 fake_bin gofmt 'exit 0'
 assert_reports "gofmt formats a Go file" \
   "$(payload_file tank pkg/svc.go)" "$plain" "applied gofmt"
@@ -156,6 +171,24 @@ edition = "2021"')"
 fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
 assert_reports "the manifest edition is passed to rustfmt" \
   "$(payload_file tank src/lib.rs)" "$edition_tree" "applied rustfmt"
+# In a workspace the owning manifest is not the one in the working directory,
+# and a member that inherits its edition has no literal to read.
+ws="$(make_tree 'Cargo.toml:[workspace]
+members = ["crates/api"]
+
+[workspace.package]
+edition = "2021"' 'crates/api/Cargo.toml:[package]
+edition.workspace = true')"
+assert_reports "a workspace member inherits the root edition" \
+  "$(payload_file tank crates/api/src/lib.rs)" "$ws" "applied rustfmt"
+ws2="$(make_tree 'Cargo.toml:[workspace]
+members = ["crates/api"]
+
+[workspace.package]
+edition = "2015"' 'crates/api/Cargo.toml:[package]
+edition = "2021"')"
+assert_reports "a member's own edition wins over the workspace root" \
+  "$(payload_file tank crates/api/src/lib.rs)" "$ws2" "applied rustfmt"
 
 # A rejecting tool is reported as failed, not as applied.
 fake_bin rustfmt 'exit 1'
@@ -163,6 +196,5 @@ assert_reports "a rustfmt that rejects the file is reported as failed" \
   "$(payload_file tank src/lib.rs)" "$plain" "rustfmt failed"
 
 PATH="$_real_path"; export PATH
-rm -rf "$_fake_bin" "$_mirror_bin"
 
 finish

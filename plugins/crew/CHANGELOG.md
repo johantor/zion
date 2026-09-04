@@ -26,8 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Rewrote the plugin description so the plugin directory shows what `crew` does rather than
   what it contains, and added `keywords` for discovery.
-- Docs describe the crew as delivery in any stack, and `trinity`'s lane as the client-facing
-  layer rather than "the frontend" (#215).
+- Docs name the supported backend stacks rather than implying web-only, and describe
+  `trinity`'s lane as the client-facing layer rather than "the frontend" (#215).
 
 ## [3.23.0] - 2026-09-04
 

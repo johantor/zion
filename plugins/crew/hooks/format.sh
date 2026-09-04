@@ -151,25 +151,36 @@ case "$lane" in
     else echo "format hook: no configured formatter/linter for $path; skipped" >&2; fi
     ;;
   python)
-    # Run directly, not through poetry/uv/pdm: a runner resolves the project
-    # environment on every call.
+    # Config-gated like the web lane: a tool merely present on the developer's
+    # PATH is not the project's choice, and running it would make the file's
+    # contents depend on the machine. Run directly rather than through
+    # poetry/uv/pdm, which resolve the environment on every call.
     ran=""
-    if command -v ruff >/dev/null 2>&1; then
-      st=0; run_bounded ruff format "$path" || st=$?
-      if [ "$st" = 0 ]; then ran="$ran ruff-format"
-      elif hung "$st"; then echo "format hook: ruff format timed out after ${FORMAT_TIMEOUT}s on $path" >&2
-      else echo "format hook: ruff format failed on $path" >&2; fi
+    # runpy <label> <cmd...> — run a tool, record it, report failure or a hang.
+    runpy() {
+      _label="$1"; shift
+      st=0; run_bounded "$@" || st=$?
+      if [ "$st" = 0 ]; then ran="$ran $_label"
+      elif hung "$st"; then echo "format hook: $_label timed out after ${FORMAT_TIMEOUT}s on $path" >&2
+      else echo "format hook: $_label failed on $path" >&2; fi
+    }
+    # `tool_cfg <tool>` — true when the project configures that tool.
+    tool_cfg() {
+      cfg "$1.toml" ".$1.toml" && return 0
+      [ -f pyproject.toml ] && grep -q "^\[tool\.$1" pyproject.toml && return 0
+      grep -q "^\[$1\]" setup.cfg tox.ini 2>/dev/null && return 0
+      return 1
+    }
+    if tool_cfg ruff && command -v ruff >/dev/null 2>&1; then
+      runpy ruff-format ruff format "$path"
       # --fix applies only ruff's safe fixes; the rest stay for the gate.
-      st=0; run_bounded ruff check --fix "$path" || st=$?
-      hung "$st" && echo "format hook: ruff check timed out after ${FORMAT_TIMEOUT}s on $path" >&2
-    elif command -v black >/dev/null 2>&1; then
-      st=0; run_bounded black -q "$path" || st=$?
-      if [ "$st" = 0 ]; then ran="$ran black"
-      elif hung "$st"; then echo "format hook: black timed out after ${FORMAT_TIMEOUT}s on $path" >&2
-      else echo "format hook: black failed on $path" >&2; fi
+      runpy ruff-check ruff check --fix "$path"
+    fi
+    if tool_cfg black && command -v black >/dev/null 2>&1; then
+      runpy black black -q "$path"
     fi
     if [ -n "$ran" ]; then echo "format hook: applied$ran on $path" >&2
-    else echo "format hook: no Python formatter on PATH for $path; skipped" >&2; fi
+    else echo "format hook: no configured Python formatter for $path; skipped" >&2; fi
     ;;
   go)
     # gofumpt is a strict superset of gofmt, so it wins where installed.
@@ -186,7 +197,25 @@ case "$lane" in
     # rustfmt, not `cargo fmt`, which formats the whole package. Bare rustfmt does
     # not read Cargo.toml, so pass the edition when it is declared.
     command -v rustfmt >/dev/null 2>&1 || { echo "format hook: rustfmt not on PATH for $path; skipped" >&2; exit 0; }
-    edition="$(sed -n 's/^[[:space:]]*edition[[:space:]]*=[[:space:]]*"\([0-9]*\)".*/\1/p' Cargo.toml 2>/dev/null | head -1)"
+    # The edition comes from the manifest that OWNS the file, not the one in the
+    # working directory: in a workspace those differ, and the wrong edition makes
+    # rustfmt reject or misformat valid source.
+    _edition_in() { sed -n 's/^[[:space:]]*edition[[:space:]]*=[[:space:]]*"\([0-9]*\)".*/\1/p' "$1" 2>/dev/null | head -1; }
+    # Walk up until a manifest states a literal edition. A member that inherits
+    # (`edition.workspace = true`) has no such line, so the walk continues to the
+    # workspace root's [workspace.package]; absent everywhere, rustfmt defaults.
+    edition=""
+    _d="${path%/*}"; [ "$_d" = "$path" ] && _d="."
+    _n=0
+    while [ "$_n" -lt 32 ]; do
+      if [ -f "$_d/Cargo.toml" ]; then
+        edition="$(_edition_in "$_d/Cargo.toml")"
+        [ -n "$edition" ] && break
+      fi
+      case "$_d" in .|/|"") break ;; esac
+      _p="${_d%/*}"; [ "$_p" = "$_d" ] && _p="."
+      _d="$_p"; _n=$((_n + 1))
+    done
     st=0
     if [ -n "$edition" ]; then
       run_bounded rustfmt --edition "$edition" "$path" || st=$?

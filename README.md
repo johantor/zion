@@ -10,8 +10,9 @@
 
 **Ship features like a crew, not a single agent.** Zion is a
 [Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
-team-style software delivery in any stack: a captain that plans and delegates to
-backend, view, test, and design specialists behind hook-enforced guardrails
+team-style software delivery across .NET, Node, Python, Go, Rust and the JVM: a
+captain that plans and delegates to backend, view, test, and design specialists
+behind hook-enforced guardrails
 (**crew**), and a precision tool that pays down tech debt and upgrades
 dependencies one verified fix at a time (**keymaker**) — installable together
 or independently.

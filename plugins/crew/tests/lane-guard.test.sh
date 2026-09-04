@@ -13,11 +13,10 @@ assert_allow "tank allowed a .cs file"   "$HOOK" "$(payload_file tank Foo.cs)"
 assert_block "trinity denied a .cs file" "$HOOK" "$(payload_file trinity Foo.cs)" "out of"
 assert_allow "trinity allowed a .tsx file" "$HOOK" "$(payload_file trinity Foo.tsx)"
 
-# --- Extension regime, the non-.NET backend stacks -----------------------------
-# Python/Go/Rust/Java extensions are disjoint from the frontend's, so they need
-# no lane paths: trinity's deny list is the union of every backend's extensions,
-# and tank is denied only frontend-shaped files. A miss here is silent in
-# production -- the guard would pass and the lanes would simply stop separating.
+# --- Extension regime, the Python/Go/Rust/JVM backends -------------------------
+# These extensions are disjoint from the frontend's, so the stacks need no lane
+# paths. A miss here fails silently in production: the guard passes and the
+# lanes simply stop separating.
 for _f in svc.py svc.pyi pyproject.toml requirements.txt \
           svc.go go.mod go.sum \
           svc.rs Cargo.toml Cargo.lock \
@@ -38,8 +37,7 @@ assert_allow "trinity still allowed a .tsx under a pinned python backend" \
 assert_allow "oracle allowed a unit test"     "$HOOK" "$(payload_file oracle src/foo.test.ts)"
 assert_block "oracle denied a non-test file"  "$HOOK" "$(payload_file oracle src/foo.ts)" "allowed paths"
 assert_block "oracle denied an e2e spec (dozer's lane)" "$HOOK" "$(payload_file oracle e2e/foo.spec.ts)" "e2e lane"
-# oracle's allow list is the union of every ecosystem's test convention; without
-# these it cannot write a test in any of the four new stacks at all.
+# One assertion per test convention in oracle's allow list.
 for _t in pkg/test_svc.py pkg/svc_test.py pkg/conftest.py \
           pkg/svc_test.go \
           tests/integration.rs \
@@ -47,7 +45,7 @@ for _t in pkg/test_svc.py pkg/svc_test.py pkg/conftest.py \
   assert_allow "oracle allowed a test path ($_t)" "$HOOK" "$(payload_file oracle "$_t")"
 done
 assert_allow "oracle allowed a JUnit IT class" "$HOOK" "$(payload_file oracle SvcIT.java)"
-# Production code in the new stacks stays out of oracle's lane.
+# Production code in those same ecosystems stays out of oracle's lane.
 for _p in pkg/svc.py pkg/svc.go src/lib.rs src/main/java/com/example/Svc.java; do
   assert_block "oracle denied production code ($_p)" "$HOOK" "$(payload_file oracle "$_p")" "allowed paths"
 done

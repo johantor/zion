@@ -47,6 +47,23 @@ done
 assert_block "bare --watch flag" "$HOOK" "$(payload_bash 'jest --watch' tank)" "never terminate"
 assert_allow "vite build (not a dev server)"  "$HOOK" "$(payload_bash 'vite build' tank)"
 assert_allow "--watch=false (disable spelling)" "$HOOK" "$(payload_bash 'jest --watch=false' tank)"
+
+# The same rule in the non-web stacks.
+for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gunicorn wsgi:app' \
+           'python manage.py runserver' 'flask run' 'flask --app app run' 'ptw' 'watchmedo auto-restart' \
+           'poetry run uvicorn app:app' 'uv run flask run' \
+           'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'trunk serve' \
+           './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous'; do
+  assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)" "never terminate"
+done
+# One-shot commands in the same ecosystems stay allowed: refusing one of these
+# would break the gate it belongs to.
+for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
+           'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
+           'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \
+           './mvnw -B verify' './gradlew test' './gradlew check -x test'; do
+  assert_allow "one-shot: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)"
+done
 assert_allow "npm run build"                  "$HOOK" "$(payload_bash 'npm run build' tank)"
 assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm run dev')"
 

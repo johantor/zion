@@ -224,7 +224,7 @@ case "$agent_type" in
   oracle) mode="--allow"
           patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*'
           patterns+=' **/test_*.py **/*_test.py **/conftest.py'   # pytest
-          patterns+=' **/*_test.go'                               # go test, beside the source
+          patterns+=' **/*_test.go **/testdata/**'                 # go test + its fixtures
           # Every Surefire/Failsafe name convention, not just src/test: a custom
           # Gradle source set puts these classes elsewhere.
           patterns+=' **/src/test/** **/*Test.java **/Test*.java **/*Tests.java'

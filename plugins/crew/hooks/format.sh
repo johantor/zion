@@ -231,11 +231,15 @@ case "$lane" in
   java)
     # Standalone formatters only: Spotless and the Maven plugins format through the
     # build, so they stay at the review gate.
+    # Which formatter is the project's choice is stated in its build file, not by
+    # what happens to be installed: running the other one reformats the whole file
+    # to a different style.
     tool=""
     for _t in google-java-format palantir-java-format; do
+      grep -qr -- "$_t" pom.xml build.gradle build.gradle.kts 2>/dev/null || continue
       command -v "$_t" >/dev/null 2>&1 && { tool="$_t"; break; }
     done
-    [ -n "$tool" ] || { echo "format hook: no standalone Java formatter on PATH for $path; skipped" >&2; exit 0; }
+    [ -n "$tool" ] || { echo "format hook: no configured standalone Java formatter for $path; skipped" >&2; exit 0; }
     st=0; run_bounded "$tool" --replace "$path" || st=$?
     if [ "$st" = 0 ]; then echo "format hook: applied $tool on $path" >&2
     elif hung "$st"; then echo "format hook: $tool timed out after ${FORMAT_TIMEOUT}s on $path" >&2

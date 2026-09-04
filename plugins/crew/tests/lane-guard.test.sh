@@ -39,7 +39,7 @@ assert_block "oracle denied a non-test file"  "$HOOK" "$(payload_file oracle src
 assert_block "oracle denied an e2e spec (dozer's lane)" "$HOOK" "$(payload_file oracle e2e/foo.spec.ts)" "e2e lane"
 # One assertion per test convention in oracle's allow list.
 for _t in pkg/test_svc.py pkg/svc_test.py pkg/conftest.py \
-          pkg/svc_test.go \
+          pkg/svc_test.go pkg/testdata/input.json \
           tests/integration.rs \
           src/test/java/com/example/SvcTest.java app/src/test/resources/fixture.sql; do
   assert_allow "oracle allowed a test path ($_t)" "$HOOK" "$(payload_file oracle "$_t")"

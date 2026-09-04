@@ -131,8 +131,8 @@ assert_reports "a Go file with no formatter on PATH is skipped" \
   "$(payload_file tank pkg/svc.go)" "$plain" "no Go formatter on PATH"
 assert_reports "a Rust file with no rustfmt on PATH is skipped" \
   "$(payload_file tank src/lib.rs)" "$plain" "rustfmt not on PATH"
-assert_reports "a Java file with no standalone formatter on PATH is skipped" \
-  "$(payload_file tank src/main/java/Svc.java)" "$plain" "no standalone Java formatter on PATH"
+assert_reports "a Java file with no standalone formatter configured is skipped" \
+  "$(payload_file tank src/main/java/Svc.java)" "$plain" "no configured standalone Java formatter"
 
 # Present tool: runs and is reported.
 # A tool on PATH is not the project's choice: without config it must not run,
@@ -164,8 +164,11 @@ fake_bin rustfmt 'exit 0'
 assert_reports "rustfmt formats a Rust file" \
   "$(payload_file tank src/lib.rs)" "$plain" "applied rustfmt"
 fake_bin google-java-format 'exit 0'
-assert_reports "google-java-format formats a Java file" \
-  "$(payload_file tank src/main/java/Svc.java)" "$plain" "applied google-java-format"
+assert_reports "an unconfigured Java formatter on PATH does not run" \
+  "$(payload_file tank src/main/java/Svc.java)" "$plain" "no configured standalone Java formatter"
+gjf_proj="$(make_tree 'pom.xml:<project><!-- google-java-format --></project>')"
+assert_reports "a configured google-java-format formats a Java file" \
+  "$(payload_file tank src/main/java/Svc.java)" "$gjf_proj" "applied google-java-format"
 
 # Bare rustfmt does not read Cargo.toml, so without this a later edition's source
 # is reformatted against the 2015 default.

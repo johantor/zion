@@ -31,6 +31,7 @@ fm_python="$(make_crew_md 'backendStack: python
 frontendStack: react')"
 assert_block "trinity denied .rs under a pinned python backend" \
   "$HOOK" "$(payload_file trinity svc.rs)" "out of" "$fm_python"
+assert_allow "trinity keeps repo-wide .editorconfig" "$HOOK" "$(payload_file trinity .editorconfig)"
 assert_allow "trinity still allowed a .tsx under a pinned python backend" \
   "$HOOK" "$(payload_file trinity Foo.tsx)" "$fm_python"
 
@@ -39,7 +40,7 @@ assert_allow "oracle allowed a unit test"     "$HOOK" "$(payload_file oracle src
 assert_block "oracle denied a non-test file"  "$HOOK" "$(payload_file oracle src/foo.ts)" "allowed paths"
 assert_block "oracle denied an e2e spec (dozer's lane)" "$HOOK" "$(payload_file oracle e2e/foo.spec.ts)" "e2e lane"
 # One assertion per test convention in oracle's allow list.
-for _t in pkg/test_svc.py pkg/svc_test.py pkg/conftest.py \
+for _t in pkg/test_svc.py pkg/testservice.py pkg/svc_test.py pkg/conftest.py \
           pkg/svc_test.go pkg/testdata/input.json \
           tests/integration.rs \
           src/test/java/com/example/SvcTest.java app/src/test/resources/fixture.sql \

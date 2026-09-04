@@ -51,7 +51,7 @@ assert_allow "--watch=false (disable spelling)" "$HOOK" "$(payload_bash 'jest --
 # The same rule in the non-web stacks.
 for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gunicorn wsgi:app' \
            'python manage.py runserver' 'flask run' 'flask --app app run' 'ptw' 'watchmedo auto-restart' \
-           'poetry run uvicorn app:app' 'uv run flask run' \
+           'poetry run uvicorn app:app' 'uv run flask run' 'pipenv run uvicorn app:app' \
            'fastapi dev app.py' 'fastapi run' \
            'django-admin runserver' 'python -m django runserver' \
            'uv run python -m uvicorn app:app' 'poetry run python -m flask run' \
@@ -62,7 +62,7 @@ done
 # One-shot commands in the same ecosystems stay allowed: refusing one of these
 # would break the gate it belongs to.
 for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
-           'uv run pytest' 'poetry run python -m pytest tests/' 'python -m build' \
+           'uv run pytest' 'poetry run python -m pytest tests/' 'python -m build' 'pipenv run pytest' \
            'django-admin startproject x' 'python -m django --version' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
            'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \

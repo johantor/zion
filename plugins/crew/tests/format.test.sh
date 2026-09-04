@@ -156,10 +156,14 @@ assert_reports "a ruff that rejects the file is reported as failed" \
 fake_bin gofmt 'exit 0'
 assert_reports "gofmt formats a Go file" \
   "$(payload_file tank pkg/svc.go)" "$plain" "applied gofmt"
-# gofumpt is a strict superset, so it wins wherever it is installed.
+# gofumpt rewrites beyond gofmt, so an installed copy must not win on its own.
 fake_bin gofumpt 'exit 0'
-assert_reports "gofumpt wins over gofmt when both are present" \
-  "$(payload_file tank pkg/svc.go)" "$plain" "applied gofumpt"
+assert_reports "an unrequested gofumpt does not displace gofmt" \
+  "$(payload_file tank pkg/svc.go)" "$plain" "applied gofmt"
+gofumpt_proj="$(make_tree 'go.mod:module fixture' '.golangci.yml:linters:
+  enable: [gofumpt]')"
+assert_reports "a project that asks for gofumpt gets it" \
+  "$(payload_file tank pkg/svc.go)" "$gofumpt_proj" "applied gofumpt"
 fake_bin rustfmt 'exit 0'
 assert_reports "rustfmt formats a Rust file" \
   "$(payload_file tank src/lib.rs)" "$plain" "applied rustfmt"

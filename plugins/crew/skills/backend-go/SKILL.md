@@ -22,8 +22,10 @@ out of `internal/` is an API change, not a tidy-up.
   the cause by formatting it with `%v` when the caller may need to match on it.
 - Accept interfaces, return structs. Define the interface where it is *consumed*, not beside the
   implementation.
-- A `context.Context` is the first parameter of any call that does I/O, and it is passed through,
-  never stored in a struct.
+- A `context.Context` is the first parameter of any **request-scoped or cancellable** call — an
+  RPC, a query, an HTTP request — and it is passed through, never stored in a struct. It is not a
+  universal I/O rule: `os.ReadFile` and `io.Reader.Read` take no context, and wrapping them to
+  accept one buys nothing.
 - `go.mod`'s `go` directive sets the language version — don't use a construct newer than it
   without raising the directive deliberately.
 

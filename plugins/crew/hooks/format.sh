@@ -186,10 +186,15 @@ case "$lane" in
     else echo "format hook: no configured Python formatter for $path; skipped" >&2; fi
     ;;
   go)
-    # gofumpt is a strict superset of gofmt, so it wins where installed.
+    # gofmt ships with the toolchain and needs no configuration. gofumpt applies
+    # rewrites gofmt does not, so it is used only where the project asks for it --
+    # otherwise the same edit produces different source on different machines.
     tool=""
     command -v gofmt >/dev/null 2>&1 && tool="gofmt"
-    command -v gofumpt >/dev/null 2>&1 && tool="gofumpt"
+    if grep -qr -- gofumpt .golangci.yml .golangci.yaml Makefile .github/workflows 2>/dev/null \
+       && command -v gofumpt >/dev/null 2>&1; then
+      tool="gofumpt"
+    fi
     [ -n "$tool" ] || { echo "format hook: no Go formatter on PATH for $path; skipped" >&2; exit 0; }
     st=0; run_bounded "$tool" -w "$path" || st=$?
     if [ "$st" = 0 ]; then echo "format hook: applied $tool on $path" >&2

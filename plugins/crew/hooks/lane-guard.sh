@@ -223,7 +223,7 @@ case "$agent_type" in
   # a test file in *any* of them is oracle's.
   oracle) mode="--allow"
           patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*'
-          patterns+=' **/test_*.py **/*_test.py **/conftest.py'   # pytest
+          patterns+=' **/test*.py **/*_test.py **/conftest.py'    # pytest + unittest discover
           patterns+=' **/*_test.go **/testdata/**'                 # go test + its fixtures
           patterns+=' **/*.bats **/*.test.sh'                      # bats + plain-bash harness
           # Every Surefire/Failsafe name convention, not just src/test: a custom
@@ -324,7 +324,7 @@ case "$agent_type" in
         patterns+=' *.rs Cargo.toml Cargo.lock'                                  # rust
         patterns+=' *.java pom.xml build.gradle build.gradle.kts'
         patterns+=' settings.gradle settings.gradle.kts gradle.properties'       # java
-        patterns+=' *.sh *.bash *.bats .shellcheckrc .editorconfig'               # shell
+        patterns+=' *.sh *.bash *.bats .shellcheckrc'                             # shell
       fi
     fi
     ;;

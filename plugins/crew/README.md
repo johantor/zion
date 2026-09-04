@@ -156,11 +156,12 @@ intercepted**.
 - **lane-guard** routes on the payload's `agent_type` and guards `Edit`/`Write` only. File
   writes via Bash (`sed -i`, `tee`, redirects) are refused by **bash-safety** instead, so there is
   one enforcement point rather than two lane implementations that can drift.
-  Two regimes: extension-based globs by default (correct when backend and frontend are different
-  languages, e.g. dotnet+react), or directory-based paths (the `backendLanePaths` /
-  `frontendLanePaths` slots) when both resolved stacks are the same language (e.g. node+nextjs) and an
-  extension alone can't tell the lanes apart. A Node backend with no lane paths configured fails
-  closed rather than guessing.
+  Two regimes: extension-based globs by default (correct when the backend and the client-facing
+  layer are different languages — dotnet, Python, Go, Rust or the JVM beside a JS frontend), or
+  directory-based paths (the `backendLanePaths` / `frontendLanePaths` slots) when both resolved
+  stacks are the same language (e.g. node+nextjs) and an extension alone can't tell the lanes
+  apart. Node is the only supported backend that shares its extensions with a frontend, so it is
+  the only one that needs the paths; without them it fails closed rather than guessing.
 - **read-guard** blocks raw reads of files over 64 KiB (65536 bytes); an explicit `limit` of
   ≤ 2000 lines passes. See the `context-discipline` skill.
 - **bash-safety** blocks destructive commands (recursive+force `rm` of `/`/`~`/`*` in any flag
@@ -178,7 +179,10 @@ intercepted**.
   `.cs`/`.csproj` → `dotnet format`, plus `dotnet csharpier format` when `.csharpierrc` is
   present; known web extensions → every tool the project configures (Biome, Prettier, ESLint,
   Stylelint), each detected by its config file and run only when installed locally, never via an
-  `npx` download. Anything else is skipped cleanly. Best-effort: fails open.
+  `npx` download; `.py` → ruff or black, `.go` → gofmt/gofumpt, `.rs` → rustfmt, `.java` → a
+  standalone formatter, each run only when found on `PATH`. Single-file formatters only —
+  whole-project tools (`cargo fmt`, Spotless) load the project on every call, so they stay at the
+  review gate. Anything else is skipped cleanly. Best-effort: fails open.
 - **turn-budget** counts an agent's tool calls as a conservative stand-in for turns and warns
   **once at 75%** (wind down) and **once at 90%** (stop now) of that agent's `maxTurns`. On any
   path where it can't count (unknown agent, unwritable state, malformed payload) it stays

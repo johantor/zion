@@ -7,7 +7,7 @@ anything stated here updates this file in the same commit.** Conventions live in
 ## Map
 
 - `agents/` — `morpheus` (orchestrator, `model: opus`, sole git owner) + workers `tank`
-  (backend), `trinity` (frontend), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual —
+  (backend, any resolved stack), `trinity` (the client-facing layer), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual —
   no Bash; measures computed styles/geometry through the browser MCP's script evaluation
   rather than comparing screenshots by eye), `neo` (express generalist), `sentinel` (post-merge triage; no Write/Edit/**Bash**,
   so its read-only posture is the `tools:` grant itself and needs no guard hook — history comes
@@ -39,7 +39,11 @@ anything stated here updates this file in the same commit.** Conventions live in
   resolved at runtime — one skill covers every token system: CSS custom properties, Tailwind,
   SCSS, tokens JSON, Figma variables — so there is no choice to resolve and `seraph` needs no
   `Skill` tool to reach it). Frontend-mode, per-stack, and per-test-tool
-  skills load dynamically once resolved. Skill = `<name>/SKILL.md`, frontmatter `name:` +
+  skills load dynamically once resolved. Backend stacks: `backend-dotnet`, `backend-node`,
+  `backend-python`, `backend-go`, `backend-rust`, `backend-java` (+ `cms-optimizely` composing on
+  dotnet), each paired with a test skill — `tests-xunit`, `tests-node`, `tests-pytest`,
+  `tests-go`, `tests-cargo`, `tests-junit`. Node is the only one whose extensions collide with a
+  frontend's, so it is the only backend needing lane paths. Skill = `<name>/SKILL.md`, frontmatter `name:` +
   `description:` only; the `description:` carries the trigger phrases.
 - `hooks/` — `bash-safety.sh` (workers blocked from git entirely; protected-branch commit
   backstop; watch/dev commands refused; **file-mutating Bash refused for agent sessions** — an
@@ -89,6 +93,13 @@ anything stated here updates this file in the same commit.** Conventions live in
   `format.sh` runs every formatter under a wall-clock bound (`CREW_FORMAT_TIMEOUT`,
   default 20s) via `timeout`/`gtimeout`, degrading to an unbounded run where neither
   exists (stock macOS/BSD); a hang is reported distinctly from a formatter that failed.
+  It routes by extension into six lanes: `dotnet` and `web` look their tools up in the project
+  (`node_modules/.bin`, a dotnet tool manifest), while `python`/`go`/`rust`/`java` look theirs up
+  on `PATH`, since those ship with a toolchain rather than a project. **Single-file formatters
+  only** — a whole-project tool (`cargo fmt`, Spotless, the Maven format plugins) loads the
+  project on every call, which is seconds per edit, so those belong to the review gate. Its
+  cases mirror `PATH` minus the tools under test, so a host that happens to have `gofmt` or
+  `rustfmt` installed can't decide the result.
   `dispatch-denied.sh` (`PermissionDenied`, matcher `Agent|Task`) answers auto mode refusing a
   worker dispatch: attempt 1 emits `hookSpecificOutput.retry: true`, later attempts emit only a
   `systemMessage` naming the fixes that exist. **Advisory and stdout-based** — this event ignores

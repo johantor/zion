@@ -7,10 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.24.0] - 2026-09-04
+
+### Added
+
+- **Python, Go, Rust and Java as backend stacks (#215).** Eight skills — `backend-python`,
+  `backend-go`, `backend-rust`, `backend-java` and their `tests-pytest`, `tests-go`,
+  `tests-cargo`, `tests-junit` counterparts — plus the `backendStack` values, detection markers
+  and per-language build/test/lint proposals that let `/crew:init` and `morpheus` resolve them.
+  Node stays the only backend that needs lane paths; the rest have extensions the guard tells
+  apart on its own.
+- **The formatter hook covers those stacks (#215).** `.py` → ruff or black, `.go` →
+  gofmt/gofumpt, `.rs` → rustfmt (passed the manifest's edition, which it does not read itself),
+  `.java` → a standalone formatter. Single-file formatters only: a whole-project tool loads the
+  project on every call, so `cargo fmt` and Spotless stay at the review gate.
+
+### Fixed
+
+- **Write and test lanes stopped separating outside the web stacks (#215).** `lane-guard`
+  denied `trinity` only `*.cs`/`*.csproj`, so in a Python, Go, Rust or Java repo neither
+  implementer was denied anything relevant and the guard passed while the lanes did nothing.
+  `trinity`'s deny list is now the union of every supported backend's extensions. `oracle`
+  matched xUnit and JS test conventions only, so it could not author `test_*.py`, `*_test.go`
+  or `src/test/java/**` at all; its allow list now covers each ecosystem's convention.
+- **Never-terminating commands were only refused in the .NET/JS ecosystems (#215).** An agent
+  could launch `uvicorn`, `flask run`, `air`, `cargo watch`, `./gradlew bootRun` or a Maven run
+  goal and burn its whole turn budget waiting on it. Refused per ecosystem now, with the
+  one-shot build and test commands of each left alone.
+
 ### Changed
 
 - Rewrote the plugin description so the plugin directory shows what `crew` does rather than
   what it contains, and added `keywords` for discovery.
+- Documentation describes the crew as software delivery in any stack rather than web delivery,
+  and `trinity`'s lane as the client-facing layer rather than "the frontend" — the crew is not
+  only for projects whose view is a web page.
 
 ## [3.23.0] - 2026-09-04
 

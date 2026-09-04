@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Never-terminating commands are refused outside the .NET/JS ecosystems too (#215). The shared
+  guard library listed only web watch/dev/serve commands, so a twin working in a Python, Go,
+  Rust or JVM project could launch a server that never returns. The one-shot build and test
+  commands of each ecosystem are left alone.
+
 ### Changed
 
 - Rewrote the plugin description for the plugin directory listing, and added `keywords`

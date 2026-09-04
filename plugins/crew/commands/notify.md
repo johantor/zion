@@ -1,5 +1,5 @@
 ---
-description: Message another running crew session — ask a long-running loop for progress, tell a peer that a branch landed, or push a scope change into an unattended run. Plain text only, best-effort delivery: it sends the message and relays what comes back, and never acts on a peer's behalf.
+description: "Message another running crew session — ask a long-running loop for progress, tell a peer that a branch landed, or push a scope change into an unattended run. Plain text only, best-effort delivery: it sends the message and relays what comes back, and never acts on a peer's behalf."
 ---
 
 Given `$ARGUMENTS`:

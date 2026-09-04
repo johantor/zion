@@ -7,59 +7,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Fixed
-- **`keymaker` may run `git mv`.** The shared floor's file-write block refused every `mv`,
-  `git mv` included, so a rename was impossible for the one agent that owns git. `bash-safety.sh`
-  now names its git owner (`git_owner=keymaker`) and the floor allows a plain `git mv` for that
-  agent alone: a rename changes no bytes and lands in its commit. `git mv -f`/`--force` and bare
-  `mv`/`cp` stay refused, and a twin's `git mv` is told to hand the rename back to `keymaker`.
-- **A twin's Bash writes are now guarded too (crew #192).** `write-guard.sh` is wired to
-  `Edit|Write`, so a write shelled out through `sed -i`, `tee`, a redirect or a `cp`/`mv` reached no
-  guard at all. The shared floor in `bash-safety.sh` now refuses file-mutating Bash for agent
-  sessions and names `Edit`/`Write` instead; exempt sinks (`/dev/null`, an fd dup, the temp
-  directories) and read-only uses of the same tools stay allowed, and the operator's own session is
-  untouched.
-- **`>|` counts as a redirect.** The noclobber override was not in the redirect pattern, so its
-  target hid behind the `|`. That also let `echo s >| .env` past the existing destructive rule,
-  which is fixed with the same change.
-
-### Changed
-- **The hooks' inline comments were cut back to what the code cannot say itself,** the same pass
-  crew's copies got. `hooks/lib/guard-lib.sh` and `read-guard.sh` stay byte-identical with crew's
-  (validator §5); rationale that belongs in `AGENTS.md` is pointed to rather than restated at each
-  call site. Comments only; no guard's allow/block behavior changes.
-- **The guards' shared logic moved into a sourced library, `hooks/lib/guard-lib.sh`,** vendored
-  byte-identically from crew. `bash-safety.sh`, `read-guard.sh` and `write-guard.sh` source it
-  instead of carrying their own copies of the payload plumbing and command-shape patterns, so a
-  standalone keymaker install enforces the same floor as crew from one shared file rather than
-  from regions kept in step by hand. It is the one file in `hooks/` that is neither executable
-  nor wired (validator §3/§6). No guard's allow/block behavior changes.
-- **The guards stopped forking to match** — bash's own `=~` and parameter expansion replace the
-  `echo | grep -E` chain that ran before every Bash tool call, leaving `jq` as the only child
-  process. Behavior is unchanged; the patterns were compared old-against-new across 533
-  command/pattern pairs with no divergence.
-- **Reads crew configuration from `.claude/crew.md`.** keymaker borrows crew's build/test/lint and
-  base-branch slots, which moved out of a project's `CLAUDE.md` in the same release. It now reads
-  the new file — YAML frontmatter, one key per slot — and falls back to a legacy **Crew
-  configuration** block in `CLAUDE.md` when that file is absent, so projects that have not migrated
-  are unaffected. A slot set to `none` means the project has no such tooling: skip what needs it,
-  don't ask.
+## [0.9.0] - 2026-09-04
 
 ### Added
-- **`morpheus` and `keymaker` share one operator-facing voice, the `operator-voice` skill.** The
-  two orchestrators are the only agents that report to the operator directly — plan checkpoints,
-  gates, run summaries, blockers — and each phrased those its own way. Both now preload the same
-  skill — ASD-STE-100 (Simplified Technical English), named in the skill along with what the
-  standard is: short sentences, active voice, one term per thing held for the whole run, exact
-  numbers and paths, and a caveat kept in the sentence it qualifies. The skill notes that it
-  carries the rules but not the standard's approved-word dictionary, so agents write to the
-  standard rather than claim compliance with it. It governs operator-facing messages
-  only; code, plan files, ledgers and commit messages keep the project's own conventions.
-- **keymaker's hooks have tests.** They had none: `write-guard.sh` — the fail-closed allowlist
-  that keeps the orchestrator out of source files — was entirely uncovered, and the shared floor
-  was only ever exercised through crew's copies. `plugins/keymaker/tests/` now covers all three
-  guards against *this* plugin's own files (67 assertions), so a vendored library that stopped
-  loading here fails a test instead of silently disarming the guards in a standalone install.
+- **`operator-voice` skill (#190)**, shared with crew and preloaded by `keymaker`: one ASD-STE-100
+  operator-facing voice for both orchestrators. Twins, which report to `keymaker`, do not load it.
+- **Hook tests (#188).** `plugins/keymaker/tests/` covers all three guards against this plugin's
+  own files, so a vendored library that stops loading fails a test instead of silently disarming a
+  standalone install.
+
+### Changed
+- **The guards' shared logic lives in a sourced library, `hooks/lib/guard-lib.sh` (#188, #202),**
+  vendored byte-identically from crew (validator §5). The guards match with bash's own `=~` instead
+  of forking `echo | grep`, and their comments were cut back to what the code cannot say. No
+  allow/block behavior changes.
+- **Reads crew configuration from `.claude/crew.md` (#198)** — YAML frontmatter, one key per slot —
+  falling back to a legacy **Crew configuration** block in `CLAUDE.md`. A slot set to `none` means
+  the project has no such tooling: skip, don't ask.
+
+### Fixed
+- **`keymaker` may run `git mv` (#208).** The shared floor allows a plain `git mv` for the git owner
+  alone; `-f`/`--force` and bare `mv`/`cp` stay refused, and a twin's `git mv` is told to hand the
+  rename back.
+- **A twin's Bash writes are guarded (crew #192, #199).** File-mutating Bash — `sed -i`, `tee`, a
+  redirect, `cp`/`mv` — is refused for agent sessions; exempt sinks and read-only uses stay allowed.
+- **`>|` counts as a redirect**, including into `.env`.
 
 ## [0.8.1] - 2026-08-11
 

@@ -7,23 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-- **`morpheus` may run `git mv`.** `bash-safety.sh` refused every `mv` at a word boundary,
-  `git mv` included, so a task whose core action was a rename stalled on one command the user had
-  to run by hand. A rename changes no bytes — there is nothing for a lane guard or a formatter to
-  inspect — and it lands in the git owner's commit, so the shared floor now allows `git mv` for
-  the agent the hook names in its `git_owner=` line (validator §9 keeps that name in lockstep
-  with `owns-git: true`). Bare `mv`/`cp` stay refused for everyone, `git mv -f`/`--force` is
-  refused because it can clobber an existing destination, and a worker's `git mv` is answered
-  with whose the rename is and what to hand back instead of the generic write message.
-  `morpheus` gains a matching rule: renames are its own, never a recreate-and-delete by a worker.
-- `backend-dotnet`, `morpheus`, `/crew:review`: the build gate now runs as strict as the project
-  configures — no narrowed target or relaxed analyzers, and warnings reported, not dropped (#193).
-- README: document that a git worktree keeps only committed files, so local agent memory and an
-  uncommitted plan are deleted with it (#197).
-- `morpheus`, `/crew:review`, `backend-dotnet`: never race a lane's build/test/lint gates over one
-  shared `obj/` — serialize them, or split the intermediate path per writer (#194).
-- `morpheus`, `backend-dotnet`: rule out a crew-caused build collision before reporting a lock
-  error as the operator's environment (#194).
+## [3.23.0] - 2026-09-04
+
+### Fixed
+- **`morpheus` may run `git mv` (#208).** The Bash guard refused every `mv`, so a rename stalled on
+  a command the user had to run by hand. A plain `git mv` is now allowed for the git owner alone;
+  `-f`/`--force` and bare `mv`/`cp` stay refused, and a worker's `git mv` is told to hand the rename
+  back. Validator §9 pins the hook's `git_owner=` line to the `owns-git: true` agent.
+- **The gate build runs as strict as the project configures (#193, #206)** — no narrowed target or
+  relaxed analyzers, and warnings reported rather than dropped.
+- **Lane gates never race over one shared `obj/` (#194, #205)** — serialize them or split the
+  intermediate path per writer, and rule out a crew-caused collision before reporting a lock error
+  as the operator's environment.
+
+### Changed
+- README: a git worktree keeps only committed files, so local agent memory and an uncommitted plan
+  are deleted with it (#197, #204).
 
 ## [3.22.0] - 2026-08-31
 

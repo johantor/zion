@@ -180,6 +180,12 @@ assert_reports "an unconfigured Java formatter on PATH does not run" \
 gjf_proj="$(make_tree 'pom.xml:<project><!-- google-java-format --></project>')"
 assert_reports "a configured google-java-format formats a Java file" \
   "$(payload_file tank src/main/java/Svc.java)" "$gjf_proj" "applied google-java-format"
+# Multi-module: the formatter is declared in the owning module's build file, not
+# the reactor root, so a root-only search would report none.
+gjf_multi="$(make_tree 'pom.xml:<project><modules><module>service</module></modules></project>' \
+  'service/pom.xml:<project><!-- google-java-format --></project>')"
+assert_reports "a formatter configured in the owning module is found" \
+  "$(payload_file tank service/src/main/java/Svc.java)" "$gjf_multi" "applied google-java-format"
 
 # Bare rustfmt does not read Cargo.toml, so without this a later edition's source
 # is reformatted against the 2015 default.

@@ -2,12 +2,21 @@
   "name": "keymaker",
   "version": "0.9.0",
   "license": "Apache-2.0",
-  "description": "Pointer-driven tech debt and dependency upgrade crew. Fixes one identified suppression, rule, or package at a time; produces handoff outlines for platform-scale migrations.",
+  "description": "Pay down tech debt one verified fix at a time: point it at a suppression, a rule, or an outdated package, and it reports the blast radius before editing, fixes in gated batches, and commits each batch only once its acceptance gate passes.",
   "author": {
     "name": "johantor"
   },
   "homepage": "https://github.com/johantor/zion",
   "repository": "https://github.com/johantor/zion",
+  "keywords": [
+    "claude-code",
+    "tech-debt",
+    "dependency-upgrade",
+    "refactoring",
+    "code-quality",
+    "dotnet",
+    "typescript"
+  ],
   "commands": "./commands",
   "skills": "./skills"
 }

@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Rewrote the plugin description for the plugin directory listing, and added `keywords`
+  for discovery.
+
 ## [0.9.0] - 2026-09-04
 
 ### Added

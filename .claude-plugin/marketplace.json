@@ -8,17 +8,17 @@
     {
       "name": "crew",
       "source": "./plugins/crew",
-      "description": "Claude Code crew/plugin pack with orchestrated agents, commands, hooks, and skills for feature delivery."
+      "description": "Team-style feature delivery for Claude Code: a captain agent plans the work and delegates each step to backend, frontend, test, and design specialists behind hook-enforced guardrails, with a consolidated review gate before anything ships."
     },
     {
       "name": "engineering-principles",
       "source": "./plugins/engineering-principles",
-      "description": "Standalone engineering-principles skill plugin for focused code review standards."
+      "description": "The code-review rubric behind the Zion crew, as a standalone skill: YAGNI, KISS, DRY applied with judgment, small single-purpose units, clear naming, and minimal-scope diffs. Adds no commands, agents, or hooks."
     },
     {
       "name": "keymaker",
       "source": "./plugins/keymaker",
-      "description": "Pointer-driven tech debt and dependency upgrade crew. Fixes one identified suppression, rule, or package at a time; produces handoff outlines for platform-scale migrations."
+      "description": "Pay down tech debt one verified fix at a time: point it at a suppression, a rule, or an outdated package, and it reports the blast radius before editing, fixes in gated batches, and commits each batch only once its acceptance gate passes."
     }
   ]
 }

@@ -14,10 +14,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Python, Go, Rust, Java and shell backend stacks: ten skills, plus the `backendStack` values
   and detection that let `/crew:init` and `morpheus` resolve them (#215, #218).
 - `format.sh` formats `.py`, `.go`, `.rs`, `.java` and `.sh` after an edit, each gated on the
-  project's own configuration rather than on what is installed (#215, #218).
+  owning project's configuration rather than on what is installed (#215, #218).
+- `frontendStack: none` states that a project has no view layer, so `morpheus` skips frontend
+  resolution and dispatches only `tank`/`oracle` (#218).
 
 ### Fixed
 
+- `/crew:review` classified a branch in any of the new stacks as "Neither" and skipped the
+  backend build, test and lint gates entirely (#215).
 - `lane-guard` denied `trinity` only `.cs`/`.csproj`, so the write lanes stopped separating in
   any other backend — `.sh` included, which is what this repo is written in; `oracle` could not
   author a test in one at all (#215, #218).

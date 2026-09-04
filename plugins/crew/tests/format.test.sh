@@ -155,7 +155,7 @@ black_proj="$(make_tree 'pyproject.toml:[tool.black]
 line-length = 100')"
 assert_reports "a Black-only project does not get ruff" \
   "$(payload_file tank pkg/svc.py)" "$black_proj" "applied black"
-fake_bin black 'for a in "$@"; do [ "$a" = "pkg/svc.py" ] && exit 1; done; exit 0'
+fake_bin black "for a in \"\$@\"; do [ \"\$a\" = \"pkg/svc.py\" ] && exit 1; done; exit 0"
 assert_reports "black runs through project discovery, not an explicit file arg" \
   "$(payload_file tank pkg/svc.py)" "$black_proj" "applied black"
 # Config belongs to the project that owns the file, which in a monorepo is not

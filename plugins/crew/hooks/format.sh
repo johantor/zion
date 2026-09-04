@@ -203,7 +203,9 @@ case "$lane" in
       # Formatting is a separate choice: `[tool.ruff]` alone may be lint-only,
       # and a project that lints with ruff often formats with black. Format with
       # ruff only on an explicit [tool.ruff.format] or when black is absent.
-      if grep -q '^\[tool\.ruff\.format' "$pyroot/pyproject.toml" 2>/dev/null || ! tool_cfg black; then
+      if grep -q '^\[tool\.ruff\.format' "$pyroot/pyproject.toml" 2>/dev/null \
+         || grep -q '^\[format\]' "$pyroot/ruff.toml" "$pyroot/.ruff.toml" 2>/dev/null \
+         || ! tool_cfg black; then
         runpy ruff-format ruff format "$path"
       fi
     fi
@@ -318,16 +320,19 @@ case "$lane" in
     # what happens to be installed: running the other one reformats the whole file
     # to a different style.
     jvmroot="$(find_up pom.xml build.gradle build.gradle.kts)" || jvmroot="."
+    _builds="$jvmroot/pom.xml $jvmroot/build.gradle $jvmroot/build.gradle.kts pom.xml build.gradle build.gradle.kts"
+    # A Spotless project formats through the build, so per-edit formatting is the
+    # gate's job. Its config NAMES these formatters (`googleJavaFormat()`), so
+    # matching the name alone would read Spotless as permission to run a
+    # standalone binary -- the opposite of what the project configured. Skip.
+    # shellcheck disable=SC2086  # deliberate word-split over the build-file list
+    if grep -qriE -- 'spotless' $_builds 2>/dev/null; then
+      echo "format hook: Spotless formats through the build; left to the review gate for $path" >&2; exit 0
+    fi
     tool=""
     for _t in google-java-format palantir-java-format; do
-      # Gradle spells these as plugins (`googleJavaFormat()`,
-      # `com.palantir.java-format`), not as the executable name.
-      case "$_t" in
-        google-java-format)   _pat='google-java-format|googleJavaFormat' ;;
-        palantir-java-format) _pat='palantir-java-format|palantirJavaFormat|com\.palantir\.java-format' ;;
-      esac
-      grep -qrE -- "$_pat" "$jvmroot/pom.xml" "$jvmroot/build.gradle" "$jvmroot/build.gradle.kts" \
-        pom.xml build.gradle build.gradle.kts 2>/dev/null || continue
+      # shellcheck disable=SC2086
+      grep -qrF -- "$_t" $_builds 2>/dev/null || continue
       command -v "$_t" >/dev/null 2>&1 && { tool="$_t"; break; }
     done
     [ -n "$tool" ] || { echo "format hook: no configured standalone Java formatter for $path; skipped" >&2; exit 0; }

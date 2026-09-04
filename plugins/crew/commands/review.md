@@ -43,6 +43,10 @@ classify each path — same split the lane guard uses:
   the guard protects.
 - **Frontend lane** — `*.ts`, `*.tsx`, `*.jsx`, `*.js`, `*.mjs`, `*.scss`, `*.css`, `*.html`
   (and `*.cshtml` in server-rendered mode, where trinity owns the markup).
+- **Node is the exception.** `.ts`/`.js` belong to whichever lane the **Backend/Frontend lane
+  path(s)** put them in — the same split `lane-guard.sh` falls back to — and to the backend alone
+  when **Frontend stack** is `none`. Classifying them as frontend by extension would skip the
+  backend gates on a backend-only Node repo.
 - **Neither** — docs, config, plugin files, etc.
 
 A diff can touch both lanes; `.cshtml` counts toward both.

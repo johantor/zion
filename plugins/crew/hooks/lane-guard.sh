@@ -321,7 +321,8 @@ case "$agent_type" in
         patterns+=' *.py *.pyi pyproject.toml requirements*.txt setup.py setup.cfg'
         patterns+=' tox.ini Pipfile Pipfile.lock poetry.lock uv.lock pdm.lock'
         patterns+=' mypy.ini .mypy.ini pyrightconfig.json pytest.ini ruff.toml .ruff.toml .flake8'  # python
-        patterns+=' *.go go.mod go.sum go.work go.work.sum .golangci.yml .golangci.yaml'  # go
+        patterns+=' *.go go.mod go.sum go.work go.work.sum .golangci.yml .golangci.yaml'
+        patterns+=' **/testdata/**'                                              # go
         patterns+=' *.rs Cargo.toml Cargo.lock rustfmt.toml .rustfmt.toml clippy.toml'   # rust
         patterns+=' *.java pom.xml build.gradle build.gradle.kts'
         patterns+=' settings.gradle settings.gradle.kts gradle.properties'
@@ -330,7 +331,8 @@ case "$agent_type" in
         # .cshtml does.
         patterns+=' **/src/main/resources/application*.properties'
         patterns+=' **/src/main/resources/application*.yml **/src/main/resources/application*.yaml'
-        patterns+=' **/src/main/resources/bootstrap*.yml **/src/main/resources/bootstrap*.yaml'  # java
+        patterns+=' **/src/main/resources/bootstrap*.yml **/src/main/resources/bootstrap*.yaml'
+        patterns+=' **/src/test/**'                                              # java
         patterns+=' *.sh *.bash *.bats .shellcheckrc'                             # shell
       fi
     fi

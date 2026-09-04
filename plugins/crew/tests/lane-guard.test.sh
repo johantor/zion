@@ -24,6 +24,7 @@ for _f in svc.py svc.pyi pyproject.toml requirements.txt setup.py setup.cfg \
           svc.rs Cargo.toml Cargo.lock \
           Svc.java pom.xml build.gradle build.gradle.kts settings.gradle gradle.properties \
           run.sh lib.bash .shellcheckrc \
+          pkg/testdata/golden.json src/test/resources/fixture.sql \
           src/main/resources/application.yml svc/src/main/resources/application-prod.properties; do
   assert_block "trinity denied a backend file ($_f)" "$HOOK" "$(payload_file trinity "$_f")" "out of"
   assert_allow "tank allowed a backend file ($_f)"   "$HOOK" "$(payload_file tank "$_f")"

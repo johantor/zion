@@ -207,13 +207,18 @@ assert_reports "rustfmt formats a Rust file" \
 fake_bin google-java-format 'exit 0'
 assert_reports "an unconfigured Java formatter on PATH does not run" \
   "$(payload_file tank src/main/java/Svc.java)" "$plain" "no configured standalone Java formatter"
-gjf_proj="$(make_tree 'pom.xml:<project><!-- google-java-format --></project>')"
+gjf_proj="$(make_tree 'pom.xml:<project><plugin>google-java-format</plugin></project>')"
 assert_reports "a configured google-java-format formats a Java file" \
   "$(payload_file tank src/main/java/Svc.java)" "$gjf_proj" "applied google-java-format"
 # Multi-module: the formatter is declared in the owning module's build file, not
 # the reactor root, so a root-only search would report none.
 gjf_multi="$(make_tree 'pom.xml:<project><modules><module>service</module></modules></project>' \
-  'service/pom.xml:<project><!-- google-java-format --></project>')"
+  'service/pom.xml:<project><plugin>google-java-format</plugin></project>')"
+# Spotless names these formatters in its own config, so matching the name would
+# read Spotless as permission to run a standalone binary it never asked for.
+spotless="$(make_tree 'build.gradle:spotless { java { googleJavaFormat() } }')"
+assert_reports "a Spotless project is left to the review gate" \
+  "$(payload_file tank src/main/java/Svc.java)" "$spotless" "Spotless formats through the build"
 assert_reports "a formatter configured in the owning module is found" \
   "$(payload_file tank service/src/main/java/Svc.java)" "$gjf_multi" "applied google-java-format"
 

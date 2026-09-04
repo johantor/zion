@@ -24,6 +24,25 @@ small task.
 - [ ] **`in-progress` reset on crash** — a step left `in-progress` by a lost round-trip is
   re-verified against the tree and reset to `pending` if unmet, not trusted as `done`.
 
+### Stack resolution
+
+These are prompt behavior, so they need a scratch repo and an observed run — a structural check
+cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
+
+- [ ] **Each backend stack resolves and loads its pair** — a scratch repo carrying only that
+  stack's marker (`pyproject.toml` / `go.mod` / `Cargo.toml` / `pom.xml` with `src/main/java` /
+  `*.sh` with no other marker) → `morpheus` resolves the stack without asking, and the dispatch
+  names `backend-<stack>` for `tank` and the matching `tests-*` for `oracle`.
+- [ ] **A Gradle build alone is a question, not an answer** — `build.gradle` with no
+  `src/main/java` and no `java` plugin → `morpheus` **asks** rather than resolving `java`, since
+  Kotlin, Scala and Android carry the same marker.
+- [ ] **Two backend markers ask** — `pyproject.toml` **and** `go.mod` → `morpheus` asks which is
+  the backend rather than breaking the tie.
+- [ ] **`frontendStack: none` suppresses the frontend half** — a shell or CLI scratch repo with
+  `frontendStack: none` in `.claude/crew.md` → `morpheus` asks nothing about frontend mode, e2e
+  tool or unit test tool, and dispatches only `tank`/`oracle`. With the slot **unset** instead it
+  does ask — that difference is the whole point of the value.
+
 ### Review gate
 
 - [ ] **GO / NO-GO** — `/crew:review` on a clean diff → **GO**; on a diff with a planted bug →

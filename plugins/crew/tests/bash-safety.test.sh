@@ -54,6 +54,7 @@ for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gun
            'poetry run uvicorn app:app' 'uv run flask run' 'pipenv run uvicorn app:app' \
            'fastapi dev app.py' 'fastapi run' \
            'django-admin runserver' 'python -m django runserver' \
+           'python services/api/manage.py runserver' \
            'uv run python -m uvicorn app:app' 'poetry run python -m flask run' \
            '.venv/bin/python -m uvicorn app:app' 'python3.12 -m uvicorn app:app' \
            'uv run --project service uvicorn app:app' 'pdm run --site-packages flask run' \
@@ -67,6 +68,7 @@ done
 for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
            'uv run pytest' 'poetry run python -m pytest tests/' 'python -m build' 'pipenv run pytest' \
            'django-admin startproject x' 'python -m django --version' \
+           'python services/api/manage.py migrate' \
            '.venv/bin/python -m pytest' 'python3.12 -m build' \
            'uv run --project service pytest' 'pdm run --site-packages pytest' 'shellcheck hooks/a.sh' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \

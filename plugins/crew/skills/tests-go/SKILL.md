@@ -49,8 +49,8 @@ Notes on reading a run:
 
 - `go test` **caches** passing results. A rerun that prints `(cached)` did not execute the test;
   when you need a real run, `-count=1` defeats the cache.
-- `ok … [no test files]` is not a pass — it means the package has no tests at all. Report it as a
-  gap rather than as green.
+- `?   <package>   [no test files]` is not a pass — the `?` marks a package with no tests at
+  all, and it does not affect the run's exit code. Report it as a gap rather than as green.
 - `-race` is a different build. If the project's command carries it, keep it: a race the detector
   finds does not reproduce without it. Never drop `-race` to make a run finish faster.
 

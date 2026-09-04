@@ -219,8 +219,16 @@ case "$agent_type" in
   # `.spec.*` is kept (Vitest/Jest/Angular unit tests use it), but oracle is
   # excluded from the e2e-tool directories, which are dozer's — otherwise a
   # Playwright `e2e/foo.spec.ts` would fall in oracle's lane too.
+  # Test-file conventions differ per ecosystem and none of them is inferable from
+  # a stack slot at this point, so the allow list is the union of all of them: a
+  # path that is a test file in *some* supported stack is oracle's. The union is
+  # safe because oracle is allow-mode -- widening it grants oracle more test
+  # shapes, never any production file.
   oracle) mode="--allow"
           patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*'
+          patterns+=' **/test_*.py **/*_test.py **/conftest.py'   # pytest
+          patterns+=' **/*_test.go'                               # go test, beside the source
+          patterns+=' **/src/test/** **/*Test.java **/*Tests.java **/*IT.java'  # JUnit
           exclude='e2e/** cypress/** playwright/** tests/e2e/**' ;;
   dozer)
     # Scope to the resolved e2e tool's conventional locations rather than a blanket
@@ -297,11 +305,23 @@ case "$agent_type" in
       # either agent: Razor is shared by concern (trinity = markup/DOM, tank =
       # C#/server logic), and that split is enforced by the agent prompts, since
       # file globs can't see inside a file.
+      #
+      # trinity's deny list is the UNION of every supported backend's extensions,
+      # not just the resolved stack's. trinity must never write a backend source
+      # file whichever stack is resolved, and a union costs nothing it should be
+      # allowed: none of these extensions belongs to a client-facing layer. It is
+      # also what makes the four non-.NET stacks work without lane paths -- their
+      # extensions are disjoint from the frontend's, unlike node's .ts/.js, which
+      # is why node is handled above and these are not.
       mode="--deny"
       if [ "$agent_type" = "tank" ]; then
         patterns='*.ts *.tsx *.jsx *.js *.mjs *.scss *.css *.html'
       else
-        patterns='*.cs *.csproj'
+        patterns='*.cs *.csproj'                                     # dotnet
+        patterns+=' *.py *.pyi pyproject.toml requirements*.txt'     # python
+        patterns+=' *.go go.mod go.sum'                              # go
+        patterns+=' *.rs Cargo.toml Cargo.lock'                      # rust
+        patterns+=' *.java pom.xml build.gradle build.gradle.kts'    # java
       fi
     fi
     ;;

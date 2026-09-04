@@ -156,6 +156,12 @@ mono="$(make_tree 'apps/api/pyproject.toml:[tool.ruff]
 line-length = 100')"
 assert_reports "config is found in the owning project, not just the root" \
   "$(payload_file tank apps/api/pkg/svc.py)" "$mono" "ruff-format"
+fake_bin black 'exit 0'
+lookalike="$(make_tree 'setup.cfg:[black]
+line-length = 100' 'black.toml:line-length = 100')"
+assert_reports "a config black never reads is not an opt-in" \
+  "$(payload_file tank pkg/svc.py)" "$lookalike" "no configured Python formatter"
+
 # Ruff lint config is not a formatter choice: a project may lint with ruff and
 # format with black, and then `ruff format` is an unrequested rewrite.
 lint_only="$(make_tree 'pyproject.toml:[tool.ruff]

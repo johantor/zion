@@ -60,7 +60,8 @@ for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gun
            'uv run --project service uvicorn app:app' 'pdm run --site-packages flask run' \
            'poetry -C service run uvicorn app:app' 'uv --directory service run uvicorn app:app' \
            'watch shellcheck .' 'watchexec -- shellcheck .' 'entr make' \
-           'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'trunk serve' \
+           'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'cargo +nightly watch -x test' \
+           'trunk serve' 'python -m http.server' 'python3 -m http.server 8000' \
            './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous' \
            'service/mvnw spring-boot:run' './service/gradlew bootRun'; do
   assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)" "never terminate"
@@ -75,7 +76,7 @@ for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
            'uv run --project service pytest' 'pdm run --site-packages pytest' 'shellcheck hooks/a.sh' \
            'poetry -C service run pytest' 'uv --directory service run pytest' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
-           'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \
+           'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' 'cargo +nightly test' \
            './mvnw -B verify' './gradlew test' './gradlew check -x test' \
            'service/mvnw -B verify' './service/gradlew test'; do
   assert_allow "one-shot: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)"

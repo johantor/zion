@@ -191,22 +191,31 @@ case "$lane" in
     }
     # `tool_cfg <tool>` — true when the owning project configures that tool.
     pyroot="$(find_up pyproject.toml setup.cfg tox.ini ruff.toml .ruff.toml)" || pyroot="."
+    # Each tool reads only the files it actually supports. ruff reads
+    # ruff.toml/.ruff.toml and [tool.ruff]; black reads [tool.black] in
+    # pyproject.toml and nothing else. A `black.toml` or a `[black]` INI section
+    # is not configuration black would ever load, so treating it as an opt-in
+    # would run black with its defaults on a project that never chose it.
     tool_cfg() {
-      cfg "$pyroot/$1.toml" "$pyroot/.$1.toml" && return 0
+      case "$1" in
+        ruff) cfg "$pyroot/ruff.toml" "$pyroot/.ruff.toml" && return 0 ;;
+      esac
       [ -f "$pyroot/pyproject.toml" ] && grep -q "^\[tool\.$1" "$pyroot/pyproject.toml" && return 0
-      grep -q "^\[$1\]" "$pyroot/setup.cfg" "$pyroot/tox.ini" 2>/dev/null && return 0
       return 1
     }
     if tool_cfg ruff && command -v ruff >/dev/null 2>&1; then
       # --fix applies only ruff's safe fixes; the rest stay for the gate.
-      runpy ruff-check ruff check --fix "$path"
+      # --force-exclude: with an explicit path both ruff commands ignore the
+      # project's exclude/extend-exclude, so vendored or generated code would be
+      # rewritten by this hook. The project's configuration stays authoritative.
+      runpy ruff-check ruff check --force-exclude --fix "$path"
       # Formatting is a separate choice: `[tool.ruff]` alone may be lint-only,
       # and a project that lints with ruff often formats with black. Format with
       # ruff only on an explicit [tool.ruff.format] or when black is absent.
       if grep -q '^\[tool\.ruff\.format' "$pyroot/pyproject.toml" 2>/dev/null \
          || grep -q '^\[format\]' "$pyroot/ruff.toml" "$pyroot/.ruff.toml" 2>/dev/null \
          || ! tool_cfg black; then
-        runpy ruff-format ruff format "$path"
+        runpy ruff-format ruff format --force-exclude "$path"
       fi
     fi
     if tool_cfg black && command -v black >/dev/null 2>&1; then
@@ -275,6 +284,7 @@ case "$lane" in
         edition="$(_edition_in "$_m" workspace.package)"
         _n=0
         while [ -z "$edition" ] && [ "$_n" -lt 32 ]; do
+          [ "$_d" = "$PWD" ] && break
           case "$_d" in .|/|"") break ;; esac
           _p="${_d%/*}"; [ "$_p" = "$_d" ] && _p="."
           _d="$_p"; _n=$((_n + 1))
@@ -311,7 +321,9 @@ case "$lane" in
       echo "format hook: no .shfmt configuration for $path; skipped" >&2; exit 0
     fi
     command -v shfmt >/dev/null 2>&1 || { echo "format hook: shfmt not on PATH for $path; skipped" >&2; exit 0; }
-    st=0; run_bounded shfmt -w "$path" || st=$?
+    # --apply-ignore: shfmt skips EditorConfig `ignore = true` for an explicit
+    # path without it, so an excluded file would still be rewritten.
+    st=0; run_bounded shfmt --apply-ignore -w "$path" || st=$?
     if [ "$st" = 0 ]; then echo "format hook: applied shfmt on $path" >&2
     elif hung "$st"; then echo "format hook: shfmt timed out after ${FORMAT_TIMEOUT}s on $path" >&2
     else echo "format hook: shfmt failed on $path" >&2; fi

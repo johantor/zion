@@ -83,7 +83,7 @@ block. Never rewrite crew config yourself mid-feature — that's `/crew:init`'s 
 | Slot | Values | Detect (then confirm), or ask | Consumed by |
 |---|---|---|---|
 | **Frontend mode** | `headless` \| `server-rendered` | Ask (no reliable marker) | Frontend delegations; scopes `trinity`'s shared-template access |
-| **Backend stack**¹ | `dotnet` \| `node` \| `python` \| `go` \| `rust` \| `java` \| `shell` | `.csproj`/`.sln` → `dotnet`; `package.json` w/ server framework (NestJS/Express/Fastify), no SPA-only bundle → `node`; `pyproject.toml`/`requirements*.txt`/`setup.py`/`Pipfile` → `python`; `go.mod` → `go`; `Cargo.toml` → `rust`; `pom.xml`/`build.gradle*` **with** `src/main/java` or a `java`/`java-library` plugin → `java` (Gradle alone is Kotlin/Scala/Android too — ask, don't assume); `*.sh`/`*.bats` and no other backend marker → `shell`; markers for two backends → ask, don't break the tie | Backend delegations — `backend-<stack>` + `tests-xunit`/`tests-node`/`tests-pytest`/`tests-go`/`tests-cargo`/`tests-junit`/`tests-shell` |
+| **Backend stack**¹ | `dotnet` \| `node` \| `python` \| `go` \| `rust` \| `java` \| `shell` | `.csproj`/`.sln` → `dotnet`; `package.json` w/ server framework (NestJS/Express/Fastify), no SPA-only bundle → `node`; `pyproject.toml`/`requirements*.txt`/`setup.py`/`Pipfile` → `python`; `go.mod` → `go`; `Cargo.toml` → `rust`; `pom.xml`/`build.gradle*` **with** `src/main/java` or a `java`/`java-library` plugin → `java` (Gradle alone is Kotlin/Scala/Android too — ask, don't assume); `*.sh`/`*.bats` as the repo's **deliverable** and no other backend marker → `shell` (a helper or build script in a repo of another language is not a shell stack — ask); markers for two backends → ask, don't break the tie | Backend delegations — `backend-<stack>` + `tests-xunit`/`tests-node`/`tests-pytest`/`tests-go`/`tests-cargo`/`tests-junit`/`tests-shell` |
 | **Frontend stack** | `react` \| `nextjs` \| `none` | `next.config.*` → `nextjs`; React/Vite SPA, no `next.config.*` → `react`; no view layer at all (a CLI, a service, a library, a script pack) → `none` | Frontend delegations — `frontend-react`/`frontend-nextjs`. **`none` means there is no view**: skip frontend mode, e2e and unit-tool resolution entirely, never ask about them, and never dispatch `trinity`/`dozer`/`seraph` |
 | **Frontend e2e tool** | `cypress` \| `playwright` | `cypress.config.*`/`cypress/` → `cypress`; `playwright.config.*` → `playwright` | `dozer` — `tests-cypress`/`tests-playwright` |
 | **Frontend unit test tool**² | `vitest` \| `jest` \| `cypress`, optional | `vitest.config.*` → `vitest`; `jest.config.*`/`jest` key, no vitest → `jest`; `cypress.config.*` w/ `component` key, no vitest/jest → `cypress`; none → leave unset | `oracle` (component tests) — `tests-vitest`/`tests-jest-frontend`/`tests-cypress`; omit from delegation when unset |
@@ -117,8 +117,9 @@ feedback and CI failures is a further loop you own — see *Address review feedb
 and write all plans there.
 
 Standard flow (each phase detailed below):
-1. **Explore and plan.** Resolve backend stack and base branch/naming, and — unless the frontend
-   stack resolves to `none` — frontend mode and stack too (*Resolving crew configuration*). When the task names a tracked ticket and an issue-tracker
+1. **Explore and plan.** Resolve backend stack, base branch/naming, and **frontend stack**; then
+   frontend mode and the test-tool slots **only if** that stack is not `none`
+   (*Resolving crew configuration*). When the task names a tracked ticket and an issue-tracker
    MCP (Jira/Atlassian, Linear) is present, pull it for the source brief; for a bug tied to a
    monitored error, pull context from a Sentry MCP. Apply `context-discipline` (fetch the
    specific item, not a dump). **When the task is a regression rather than new work** (a bug

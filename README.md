@@ -135,6 +135,9 @@ Release notes: [crew](plugins/crew/CHANGELOG.md) ·
 
 [Apache-2.0](LICENSE)
 
+The plugins collect no data and send nothing to the maintainers — see
+[PRIVACY.md](PRIVACY.md) for what stays local, what leaves your machine, and why.
+
 ---
 
 <details>

@@ -216,17 +216,17 @@
 
 <script>
   document.getElementById('copy').addEventListener('click', function () {
-    var text = Array.prototype.map
-      .call(document.querySelectorAll('#cmd'), function (el) { return el.innerText; })
+    const text = Array.prototype.map
+      .call(document.querySelectorAll('#cmd'), (el) => el.innerText)
       .join('')
       .replace(/^\$ /gm, '')
       .trim();
-    var done = function (ok) {
+    const done = function (ok) {
       this.textContent = ok ? 'Copied' : 'Press ⌘C to copy';
       setTimeout(function () { this.textContent = 'Copy commands'; }.bind(this), 1800);
     }.bind(this);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(() => { done(true); }, () => { done(false); });
     } else {
       done(false);
     }

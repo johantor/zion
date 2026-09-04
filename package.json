@@ -1,0 +1,14 @@
+{
+  "name": "zion",
+  "private": true,
+  "type": "commonjs",
+  "description": "Repo tooling for the Zion plugin marketplace. Not published, and not part of any plugin: the plugins themselves ship no JavaScript and have no dependencies.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "lint": "biome ci .",
+    "lint:fix": "biome check --write ."
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.12"
+  }
+}

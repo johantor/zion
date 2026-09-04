@@ -9,8 +9,7 @@ on:
       - main
   pull_request:
 
-permissions:
-  contents: read
+permissions: {}
 
 # Cancel superseded runs on rapid pushes to the same ref.
 concurrency:
@@ -19,6 +18,8 @@ concurrency:
 
 jobs:
   shellcheck:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -29,6 +30,8 @@ jobs:
         run: shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
 
   plugin:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -41,6 +44,8 @@ jobs:
   # script is deliberately tree-only (it runs locally, mid-branch, with no base).
   changelog:
     if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -52,6 +57,8 @@ jobs:
         run: scripts/check-changelog.sh "${{ github.base_ref }}"
 
   hook-tests:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -68,6 +75,8 @@ jobs:
         run: bash tests/scenarios/mocks/selftest.sh
 
   biome:
+    permissions:
+      contents: read
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

@@ -84,7 +84,7 @@ block. Never rewrite crew config yourself mid-feature — that's `/crew:init`'s 
 |---|---|---|---|
 | **Frontend mode** | `headless` \| `server-rendered` | Ask (no reliable marker) | Frontend delegations; scopes `trinity`'s shared-template access |
 | **Backend stack**¹ | `dotnet` \| `node` \| `python` \| `go` \| `rust` \| `java` \| `shell` | `.csproj`/`.sln` → `dotnet`; `package.json` w/ server framework (NestJS/Express/Fastify), no SPA-only bundle → `node`; `pyproject.toml`/`requirements*.txt`/`setup.py`/`Pipfile` → `python`; `go.mod` → `go`; `Cargo.toml` → `rust`; `pom.xml`/`build.gradle*` **with** `src/main/java` or a `java`/`java-library` plugin → `java` (Gradle alone is Kotlin/Scala/Android too — ask, don't assume); `*.sh`/`*.bats` as the repo's **deliverable** and no other backend marker → `shell` (a helper or build script in a repo of another language is not a shell stack — ask); markers for two backends → ask, don't break the tie | Backend delegations — `backend-<stack>` + `tests-xunit`/`tests-node`/`tests-pytest`/`tests-go`/`tests-cargo`/`tests-junit`/`tests-shell` |
-| **Frontend stack** | `react` \| `nextjs` \| `none` | `next.config.*` → `nextjs`; React/Vite SPA, no `next.config.*` → `react`; no view layer at all (a CLI, a service, a library, a script pack) → `none` | Frontend delegations — `frontend-react`/`frontend-nextjs`. **`none` means there is no view**: skip frontend mode, e2e and unit-tool resolution entirely, never ask about them, and never dispatch `trinity`/`dozer`/`seraph` |
+| **Frontend stack** | `react` \| `nextjs` \| `none` | `next.config.*` → `nextjs`; React/Vite SPA, no `next.config.*` → `react`; no client-facing surface at all (a library, a headless service, a script pack) → `none`; a TUI or a designed CLI output is a view, so leave it `unset` and ask | Frontend delegations — `frontend-react`/`frontend-nextjs`. **`none` means there is no view**: skip frontend mode, e2e and unit-tool resolution entirely, never ask about them, and never dispatch `trinity`/`dozer`/`seraph` |
 | **Frontend e2e tool** | `cypress` \| `playwright` | `cypress.config.*`/`cypress/` → `cypress`; `playwright.config.*` → `playwright` | `dozer` — `tests-cypress`/`tests-playwright` |
 | **Frontend unit test tool**² | `vitest` \| `jest` \| `cypress`, optional | `vitest.config.*` → `vitest`; `jest.config.*`/`jest` key, no vitest → `jest`; `cypress.config.*` w/ `component` key, no vitest/jest → `cypress`; none → leave unset | `oracle` (component tests) — `tests-vitest`/`tests-jest-frontend`/`tests-cypress`; omit from delegation when unset |
 | **Base branch & naming** | e.g. `main`/`develop`/trunk; `feature/<ticket>-<slug>` | Ask — never assume | Branch creation, below |
@@ -133,10 +133,11 @@ Standard flow (each phase detailed below):
    `/mcp`: a plugin-installed server is namespaced `mcp__plugin_<plugin>_<server>`, which the
    agent's `tools:` may not grant — configured-but-not-allowlisted looks identical to absent.
 2. **Plan checkpoint** — present the plan and wait for the go-ahead before branching or delegating.
-3. **Create the feature branch**, then delegate implementation to `crew:tank`/`crew:trinity`,
-   committing each step once it passes its acceptance criteria (you own git; workers don't).
-4. **Delegate** tests (`crew:oracle`/`crew:dozer`) and design conformance (`crew:seraph`); route
-   failures back to the implementer.
+3. **Create the feature branch**, then delegate implementation to `crew:tank` — and to
+   `crew:trinity` unless the frontend stack is `none` — committing each step once it passes its
+   acceptance criteria (you own git; workers don't).
+4. **Delegate** tests to `crew:oracle`; e2e (`crew:dozer`) and design conformance (`crew:seraph`)
+   only when the frontend stack is not `none`. Route failures back to the implementer.
 5. When all checks are green, **run the review gate** (`/crew:review`). Push/PR is `/crew:pr`;
    addressing the PR's later review feedback is *Address review feedback* below.
 

@@ -59,6 +59,10 @@ assert_reports "oracle's test edits are formatted too" \
 assert_silent "the main session (no agent_type) is a no-op" \
   "$(jq -nc '{tool_input: {file_path: "src/a.ts"}}')" "$ok_project"
 assert_silent "an extension no formatter owns is a no-op" "$(payload_file neo Views/A.cshtml)" "$ok_project"
+# Shell formatting belongs to the review gate: shfmt reads .editorconfig, and
+# deciding whether a section applies to a file is its glob semantics.
+assert_silent "a shell file is not formatter-owned" "$(payload_file tank run.sh)" "$ok_project"
+assert_silent "a .bats file is not formatter-owned" "$(payload_file oracle tests/a.bats)" "$ok_project"
 assert_silent "no file_path is a no-op" "$(jq -nc '{agent_type: "tank"}')" "$ok_project"
 assert_silent "the web lane without a package.json is a no-op" "$(payload_file tank src/a.ts)"
 
@@ -143,8 +147,10 @@ assert_reports "an unconfigured ruff on PATH does not run" \
   "$(payload_file tank pkg/svc.py)" "$plain" "no configured Python formatter"
 ruff_proj="$(make_tree 'pyproject.toml:[tool.ruff]
 line-length = 100')"
-assert_reports "a configured ruff formats a Python file" \
-  "$(payload_file tank pkg/svc.py)" "$ruff_proj" "ruff-format"
+# Lint config alone is not a formatter opt-in: fixes apply, formatting does not.
+run_hook "$HOOK" "$(payload_file tank pkg/svc.py)" "$ruff_proj"
+if [[ "$_stderr" == *"ruff-check"* && "$_stderr" != *"ruff-format"* ]]; then _pass
+else _fail "ruff lint-only: expected ruff-check without ruff-format (got: ${_stderr:-<empty>})"; fi
 black_proj="$(make_tree 'pyproject.toml:[tool.black]
 line-length = 100')"
 assert_reports "a Black-only project does not get ruff" \
@@ -155,7 +161,7 @@ assert_reports "a Black-only project does not get ruff" \
 mono="$(make_tree 'apps/api/pyproject.toml:[tool.ruff]
 line-length = 100')"
 assert_reports "config is found in the owning project, not just the root" \
-  "$(payload_file tank apps/api/pkg/svc.py)" "$mono" "ruff-format"
+  "$(payload_file tank apps/api/pkg/svc.py)" "$mono" "ruff-check"
 fake_bin black 'exit 0'
 lookalike="$(make_tree 'setup.cfg:[black]
 line-length = 100' 'black.toml:line-length = 100')"
@@ -195,7 +201,7 @@ assert_reports "config above the project root is not honored" \
 # A non-timeout failure is reported, not swallowed behind an "applied" line.
 fake_bin ruff 'exit 1'
 assert_reports "a ruff that rejects the file is reported as failed" \
-  "$(payload_file tank pkg/svc.py)" "$ruff_proj" "ruff-format failed"
+  "$(payload_file tank pkg/svc.py)" "$ruff_proj" "ruff-check failed"
 fake_bin gofmt 'exit 0'
 assert_reports "gofmt formats a Go file" \
   "$(payload_file tank pkg/svc.go)" "$plain" "applied gofmt"
@@ -305,26 +311,6 @@ assert_reports "a mixed root reads [package], not [workspace.package]" \
 fake_bin rustfmt 'exit 1'
 assert_reports "a rustfmt that rejects the file is reported as failed" \
   "$(payload_file tank src/lib.rs)" "$plain" "rustfmt failed"
-
-# Shell: shfmt only, and config-gated like the rest — shfmt's defaults are not
-# every project's, and .sh is the one extension a repo may have without owning it.
-sh_plain="$(make_tree 'run.sh:echo hi')"
-assert_reports "a shell file with no shfmt configuration is skipped" \
-  "$(payload_file tank run.sh)" "$sh_plain" "no .shfmt configuration"
-bare_ec="$(make_tree '.editorconfig:root = true' 'run.sh:echo hi')"
-assert_reports "an .editorconfig is not shfmt configuration" \
-  "$(payload_file tank run.sh)" "$bare_ec" "no .shfmt configuration"
-sh_proj="$(make_tree '.shfmt:' 'run.sh:echo hi')"
-assert_reports "a project with no shfmt on PATH is skipped" \
-  "$(payload_file tank run.sh)" "$sh_proj" "shfmt not on PATH"
-fake_bin shfmt 'exit 0'
-assert_reports "shfmt formats a shell file" \
-  "$(payload_file tank run.sh)" "$sh_proj" "applied shfmt"
-assert_reports "oracle's .bats edits are formatted too" \
-  "$(payload_file oracle tests/a.bats)" "$sh_proj" "applied shfmt"
-fake_bin shfmt 'exit 1'
-assert_reports "a shfmt that rejects the file is reported as failed" \
-  "$(payload_file tank run.sh)" "$sh_proj" "shfmt failed"
 
 PATH="$_real_path"; export PATH
 

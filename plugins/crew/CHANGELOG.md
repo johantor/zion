@@ -13,8 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Python, Go, Rust, Java and shell backend stacks: ten skills, plus the `backendStack` values
   and detection that let `/crew:init` and `morpheus` resolve them (#215, #218).
-- `format.sh` formats `.py`, `.go`, `.rs`, `.java` and `.sh` after an edit, each gated on the
-  owning project's configuration rather than on what is installed (#215, #218).
+- `format.sh` formats `.py`, `.go`, `.rs` and `.java` after an edit, each gated on the owning
+  project's configuration rather than on what is installed, and honouring the project's own
+  exclusions (#215, #218).
 - `frontendStack: none` states that a project has no view layer, so `morpheus` skips frontend
   resolution and dispatches only `tank`/`oracle` (#218).
 

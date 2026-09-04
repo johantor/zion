@@ -42,8 +42,13 @@ case "$ext" in
   go) lane="go" ;;
   rs) lane="rust" ;;
   java) lane="java" ;;
-  sh|bash|bats) lane="sh" ;;
-  *) exit 0 ;;  # not a formatter-owned extension (e.g. .cshtml) -- nothing to do
+  # .sh/.bash/.bats are deliberately unowned. shfmt's configuration mechanism is
+  # .editorconfig, and deciding whether one of its sections applies to a given
+  # file is its glob semantics (brace lists, **, ranges, nearest-section
+  # precedence). Approximating that in bash was wrong both ways, and gating on a
+  # `.shfmt` marker instead gated on a file shfmt never reads. Shell formatting
+  # belongs to the review gate, where shfmt reads .editorconfig itself.
+  *) exit 0 ;;  # not a formatter-owned extension (e.g. .cshtml, .sh) -- nothing to do
 esac
 
 # True if any given path exists (config-file detection; unmatched globs pass
@@ -209,12 +214,12 @@ case "$lane" in
       # project's exclude/extend-exclude, so vendored or generated code would be
       # rewritten by this hook. The project's configuration stays authoritative.
       runpy ruff-check ruff check --force-exclude --fix "$path"
-      # Formatting is a separate choice: `[tool.ruff]` alone may be lint-only,
-      # and a project that lints with ruff often formats with black. Format with
-      # ruff only on an explicit [tool.ruff.format] or when black is absent.
+      # Formatting is a separate, explicit choice. `[tool.ruff]` alone may be
+      # lint-only, and a project may lint with ruff and format with something else
+      # or not at all -- inferring "ruff formats here" from black's absence would
+      # rewrite a project that never asked. The lint fixes above still apply.
       if grep -q '^\[tool\.ruff\.format' "$pyroot/pyproject.toml" 2>/dev/null \
-         || grep -q '^\[format\]' "$pyroot/ruff.toml" "$pyroot/.ruff.toml" 2>/dev/null \
-         || ! tool_cfg black; then
+         || grep -q '^\[format\]' "$pyroot/ruff.toml" "$pyroot/.ruff.toml" 2>/dev/null; then
         runpy ruff-format ruff format --force-exclude "$path"
       fi
     fi
@@ -231,7 +236,8 @@ case "$lane" in
     tool=""
     command -v gofmt >/dev/null 2>&1 && tool="gofmt"
     goroot="$(find_up go.mod .golangci.yml .golangci.yaml)" || goroot="."
-    if grep -qr -- gofumpt "$goroot/.golangci.yml" "$goroot/.golangci.yaml" Makefile .github/workflows 2>/dev/null \
+    if grep -qr -- gofumpt "$goroot/.golangci.yml" "$goroot/.golangci.yaml" "$goroot/Makefile" \
+         .golangci.yml .golangci.yaml Makefile .github/workflows 2>/dev/null \
        && command -v gofumpt >/dev/null 2>&1; then
       tool="gofumpt"
     fi
@@ -304,29 +310,6 @@ case "$lane" in
     if [ "$st" = 0 ]; then echo "format hook: applied rustfmt on $path" >&2
     elif hung "$st"; then echo "format hook: rustfmt timed out after ${FORMAT_TIMEOUT}s on $path" >&2
     else echo "format hook: rustfmt failed on $path" >&2; fi
-    ;;
-  sh)
-    # shfmt only: shellcheck is a linter with no fix mode, so it belongs to the gate.
-    # Config-gated like every other lane -- shfmt's defaults are not every project's.
-    # `.shfmt` only, deliberately. Whether an .editorconfig section applies to a
-    # given file is EditorConfig's glob semantics -- brace lists, `**`, ranges,
-    # nearest-section precedence -- and approximating that with grep gets it wrong
-    # both ways: a `[Makefile]` section carrying shfmt properties looks like a
-    # match for a .sh file, and `[*.{sh,bash}]` looks like no match at all. Either
-    # error formats a file the project did not ask to have formatted. shfmt still
-    # reads .editorconfig itself at the review gate, where it applies the rules
-    # correctly; this hook just needs an unambiguous yes.
-    shroot="$(find_up .shfmt)" || shroot=""
-    if [ -z "$shroot" ]; then
-      echo "format hook: no .shfmt configuration for $path; skipped" >&2; exit 0
-    fi
-    command -v shfmt >/dev/null 2>&1 || { echo "format hook: shfmt not on PATH for $path; skipped" >&2; exit 0; }
-    # --apply-ignore: shfmt skips EditorConfig `ignore = true` for an explicit
-    # path without it, so an excluded file would still be rewritten.
-    st=0; run_bounded shfmt --apply-ignore -w "$path" || st=$?
-    if [ "$st" = 0 ]; then echo "format hook: applied shfmt on $path" >&2
-    elif hung "$st"; then echo "format hook: shfmt timed out after ${FORMAT_TIMEOUT}s on $path" >&2
-    else echo "format hook: shfmt failed on $path" >&2; fi
     ;;
   java)
     # Standalone formatters only: Spotless and the Maven plugins format through the

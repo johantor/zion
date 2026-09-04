@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zion — Claude Code plugins for team-style delivery</title>
+<meta name="description" content="Ship features like a crew, not a single agent. Zion is a Claude Code plugin marketplace: an orchestrated multi-agent crew, a tech-debt fixer, and the review rubric behind both.">
+<link rel="canonical" href="https://johantor.github.io/zion/">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Zion — Claude Code plugins for team-style delivery">
+<meta property="og:description" content="Ship features like a crew, not a single agent. An orchestrated multi-agent crew for Claude Code, behind hook-enforced guardrails.">
+<meta property="og:url" content="https://johantor.github.io/zion/">
+<meta property="og:image" content="https://johantor.github.io/zion/solo-vs-crew.png">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%93%3C/text%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0a0d0c;
+    --bg-soft:#101614;
+    --surface:#141b19;
+    --line:#20302b;
+    --line-soft:#1a2422;
+    --text:#dbe4e0;
+    --head:#f2f7f5;
+    --muted:#8ea099;
+    --accent:#3ddc9a;
+    --accent-dim:#1e7a58;
+    --amber:#e3b341;
+    --mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,"Liberation Mono",monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+    --wrap:1080px;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;background:var(--bg);color:var(--text);
+    font:16px/1.65 var(--sans);
+    -webkit-font-smoothing:antialiased;
+    background-image:
+      radial-gradient(60rem 30rem at 50% -10rem, rgba(61,220,154,.09), transparent 70%);
+    background-repeat:no-repeat;
+  }
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 24px}
+  h1,h2,h3{color:var(--head);line-height:1.2;letter-spacing:-.02em;margin:0}
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code{font-family:var(--mono);font-size:.92em}
+
+  /* nav */
+  nav{position:sticky;top:0;z-index:20;backdrop-filter:blur(10px);
+      background:rgba(10,13,12,.82);border-bottom:1px solid var(--line-soft)}
+  nav .wrap{display:flex;align-items:center;gap:28px;height:58px}
+  .brand{font-family:var(--mono);font-weight:700;color:var(--head);letter-spacing:.14em;font-size:15px}
+  .brand span{color:var(--accent)}
+  nav ul{display:flex;gap:22px;list-style:none;margin:0;padding:0;margin-left:auto;flex-wrap:wrap}
+  nav a{color:var(--muted);font-size:14px}
+  nav a:hover{color:var(--text);text-decoration:none}
+
+  /* hero */
+  header.hero{padding:86px 0 60px;text-align:center}
+  .eyebrow{font-family:var(--mono);font-size:12.5px;letter-spacing:.2em;text-transform:uppercase;
+           color:var(--accent);margin-bottom:20px}
+  h1{font-size:clamp(2.3rem,6vw,3.9rem)}
+  .lede{max-width:47rem;margin:22px auto 0;font-size:clamp(1.02rem,2.1vw,1.2rem);color:var(--muted)}
+  .lede strong{color:var(--text);font-weight:600}
+
+  /* install box */
+  .install{max-width:600px;margin:38px auto 0;text-align:left;
+           background:var(--surface);border:1px solid var(--line);border-radius:11px;overflow:hidden}
+  .install-head{display:flex;align-items:center;gap:7px;padding:11px 15px;border-bottom:1px solid var(--line-soft)}
+  .dot{width:11px;height:11px;border-radius:50%;background:#2b3a35}
+  .install-head span{margin-left:auto;font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+  .install pre{margin:0;padding:17px 18px;font-family:var(--mono);font-size:13.5px;line-height:2;
+               overflow-x:auto;white-space:pre}
+  .install .p{color:var(--accent-dim);user-select:none}
+  button.copy{display:block;width:100%;padding:11px;border:0;border-top:1px solid var(--line-soft);
+              background:transparent;color:var(--muted);font:600 12.5px/1 var(--sans);cursor:pointer;
+              letter-spacing:.03em}
+  button.copy:hover{background:var(--bg-soft);color:var(--accent)}
+
+  .cta{margin-top:26px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+  .btn{display:inline-block;padding:11px 20px;border-radius:8px;font-size:14.5px;font-weight:600;
+       border:1px solid var(--line);color:var(--text)}
+  .btn:hover{border-color:var(--accent-dim);text-decoration:none;color:var(--head)}
+  .btn.primary{background:var(--accent);color:#06120d;border-color:var(--accent)}
+  .btn.primary:hover{background:#5ae8ae;color:#06120d}
+
+  /* sections */
+  section{padding:64px 0;border-top:1px solid var(--line-soft)}
+  .sec-head{max-width:44rem;margin-bottom:36px}
+  h2{font-size:clamp(1.5rem,3.4vw,2.05rem)}
+  .sec-head p{color:var(--muted);margin:12px 0 0}
+
+  figure{margin:0}
+  figure img{width:100%;height:auto;display:block;border:1px solid var(--line);
+             border-radius:11px;background:var(--bg-soft)}
+  figcaption{margin-top:12px;font-size:13.5px;color:var(--muted);text-align:center}
+
+  /* plugin cards */
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:24px;
+        display:flex;flex-direction:column}
+  .card h3{font-size:1.16rem;font-family:var(--mono);letter-spacing:-.01em}
+  .card p{color:var(--muted);font-size:14.5px;margin:11px 0 0;flex:1}
+  .card .foot{margin-top:18px;font-size:13.5px}
+  .tag{display:inline-block;margin-left:9px;padding:2.5px 9px;border-radius:99px;
+       font:600 10.5px/1.5 var(--sans);letter-spacing:.07em;text-transform:uppercase;vertical-align:2px}
+  .tag.stable{background:rgba(61,220,154,.13);color:var(--accent);border:1px solid rgba(61,220,154,.28)}
+  .tag.beta{background:rgba(227,179,65,.12);color:var(--amber);border:1px solid rgba(227,179,65,.28)}
+
+  /* agent roster */
+  /* 232px keeps eight agents at four columns on a full-width canvas — two clean rows,
+     no orphan cell — and steps down to 3/2/1 as the viewport narrows. */
+  .roster{display:grid;gap:1px;background:var(--line-soft);border:1px solid var(--line);
+          border-radius:12px;overflow:hidden;grid-template-columns:repeat(auto-fit,minmax(232px,1fr))}
+  .agent{background:var(--surface);padding:19px 21px}
+  .agent b{font-family:var(--mono);color:var(--accent);font-size:14.5px;font-weight:600}
+  .agent i{font-style:normal;color:var(--muted);font-size:11.5px;font-family:var(--mono);
+           letter-spacing:.06em;text-transform:uppercase;display:block;margin-top:3px}
+  .agent p{margin:9px 0 0;font-size:14px;color:var(--muted)}
+
+  /* command list */
+  .cmds{list-style:none;padding:0;margin:0;display:grid;gap:1px;background:var(--line-soft);
+        border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .cmds li{background:var(--surface);padding:15px 21px;display:flex;gap:20px;flex-wrap:wrap;align-items:baseline}
+  .cmds code{color:var(--accent);font-weight:600;min-width:11.5rem;font-size:13.5px}
+  .cmds span{color:var(--muted);font-size:14px;flex:1;min-width:15rem}
+
+  /* guardrails */
+  .rails{list-style:none;padding:0;margin:0;display:grid;gap:13px;
+         grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .rails li{background:var(--bg-soft);border:1px solid var(--line-soft);border-left:2px solid var(--accent-dim);
+            border-radius:0 9px 9px 0;padding:15px 18px;font-size:14.5px;color:var(--muted)}
+  .rails b{color:var(--text);font-weight:600;display:block;margin-bottom:3px}
+
+  .note{margin-top:26px;padding:16px 19px;background:var(--bg-soft);border:1px solid var(--line-soft);
+        border-radius:9px;font-size:14px;color:var(--muted)}
+
+  footer{border-top:1px solid var(--line-soft);padding:44px 0 56px;color:var(--muted);font-size:14px}
+  .flinks{display:flex;gap:22px;flex-wrap:wrap;margin-bottom:22px}
+  .fine{font-size:13px;opacity:.8;margin:0}
+  .fine + .fine{margin-top:7px}
+
+  @media (max-width:640px){
+    header.hero{padding:56px 0 44px}
+    section{padding:48px 0}
+    nav ul{gap:15px}
+    nav .wrap{height:auto;padding-top:11px;padding-bottom:11px;flex-wrap:wrap;gap:12px}
+    .cmds code{min-width:auto}
+  }
+  @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <span class="brand">ZI<span>O</span>N</span>
+    <ul>
+      <li><a href="#plugins">Plugins</a></li>
+      <li><a href="#crew">crew</a></li>
+      <li><a href="#keymaker">keymaker</a></li>
+      <li><a href="#install">Install</a></li>
+      <li><a href="https://github.com/johantor/zion">GitHub&nbsp;↗</a></li>
+    </ul>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Claude Code plugin marketplace</div>
+    <h1>Ship features like a crew,<br>not a single agent.</h1>
+    <p class="lede">One agent doing everything holds the whole feature in one context and reviews its own
+      work. Zion splits the job the way a team would: a captain that <strong>plans and delegates</strong>,
+      specialists that each own one lane, and <strong>hook-enforced guardrails</strong> that make the
+      boundaries real rather than advisory.</p>
+
+    <div class="install" id="install">
+      <div class="install-head">
+        <i class="dot"></i><i class="dot"></i><i class="dot"></i>
+        <span>bash</span>
+      </div>
+<pre id="cmd"><span class="p">$ </span>claude plugin marketplace add johantor/zion
+<span class="p">$ </span>claude plugin install crew@zion</pre>
+      <button class="copy" id="copy" type="button">Copy commands</button>
+    </div>
+
+    <div class="cta">
+      <a class="btn primary" href="#crew">See how the crew works</a>
+      <a class="btn" href="https://github.com/johantor/zion">Source on GitHub</a>
+    </div>
+  </div>
+</header>
+
+<section id="why">
+  <div class="wrap">
+    <figure>
+      <img src="solo-vs-crew.png" width="1200" height="630"
+           alt="Left: one agent juggling backend, frontend, tests, and review at once. Right: the Zion crew, with a captain planning lanes, specialists working in parallel, a review gate, and then a pull request.">
+      <figcaption>A solo agent juggling every concern, versus planned lanes, a review gate, then a PR.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="plugins">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Three plugins, composable</h2>
+      <p>They share the same configuration slots and the same review rubric, so installing more than
+        one adds capability without conflicts.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <h3>crew <span class="tag stable">Stable</span></h3>
+        <p>Orchestrated, multi-agent feature delivery. A captain plans the work and delegates to
+          backend, frontend, test, and visual-review specialists, with a consolidated GO/NO-GO gate
+          before anything ships.</p>
+        <div class="foot"><a href="#crew">How it works ↓</a></div>
+      </div>
+      <div class="card">
+        <h3>keymaker <span class="tag beta">Beta</span></h3>
+        <p>Pointer-driven tech-debt remediation and dependency upgrades. Fix one suppression, rule, or
+          package at a time, with the blast radius reported before anything moves.</p>
+        <div class="foot"><a href="#keymaker">How it works ↓</a></div>
+      </div>
+      <div class="card">
+        <h3>engineering-principles <span class="tag stable">Stable</span></h3>
+        <p>The code-review rubric used across the suite, packaged standalone for teams who only want
+          the standards. One skill — no commands, agents, or hooks.</p>
+        <div class="foot">
+          <a href="https://github.com/johantor/zion/blob/main/plugins/engineering-principles/README.md">Read the rubric ↗</a>
+        </div>
+      </div>
+    </div>
+    <p class="note"><strong>Note:</strong> <code>crew</code> already bundles the
+      <code>engineering-principles</code> rubric. Install the standalone plugin only if you don't
+      use <code>crew</code>.</p>
+  </div>
+</section>
+
+<section id="crew">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>The crew</h2>
+      <p><code>morpheus</code> plans the work, presents the plan for your go-ahead, then delegates each
+        step to a specialist. It writes no production code itself, and it is the only agent that
+        touches git.</p>
+    </div>
+
+    <div class="roster">
+      <div class="agent"><b>morpheus</b><i>Captain</i>
+        <p>Plans and delegates. Maintains a written plan with per-step acceptance criteria, and commits
+          each step only once it passes.</p></div>
+      <div class="agent"><b>tank</b><i>Backend</i>
+        <p>Implements backend work for the stack the project resolves to.</p></div>
+      <div class="agent"><b>trinity</b><i>Frontend</i>
+        <p>Implements the frontend, including a shared server template's markup in server-rendered mode.</p></div>
+      <div class="agent"><b>oracle</b><i>Unit tests</i>
+        <p>Authors all unit tests — backend, plus frontend component tests when a tool is configured.</p></div>
+      <div class="agent"><b>dozer</b><i>End-to-end</i>
+        <p>Frontend e2e only, for whichever e2e tool the project resolves to.</p></div>
+      <div class="agent"><b>seraph</b><i>Design · read-only</i>
+        <p>Visual design conformance. Names the design token, not just the pixel value.</p></div>
+      <div class="agent"><b>neo</b><i>Express lane</i>
+        <p>Generalist for small, low-risk changes across all lanes, skipping the full ceremony.</p></div>
+      <div class="agent"><b>sentinel</b><i>Triage · read-only</i>
+        <p>Post-merge triage. Traces a production signal to the code and the suspect commits, and returns
+          a pointer rather than a fix.</p></div>
+    </div>
+
+    <div class="sec-head" style="margin-top:52px">
+      <h2>Commands</h2>
+      <p>Namespaced once installed. <code>/crew:feature</code> and <code>/crew:address</code> are thin
+        routers, so both also work by just asking in a
+        <code>claude --agent crew:morpheus</code> session.</p>
+    </div>
+    <ul class="cmds">
+      <li><code>/crew:init</code><span>Once per project: detect and record the build, test, and lint configuration.</span></li>
+      <li><code>/crew:feature</code><span>Plan, delegate, build, and stop at the review gate.</span></li>
+      <li><code>/crew:review</code><span>Pre-PR GO / NO-GO: code, security, and design review plus build, test, and lint.</span></li>
+      <li><code>/crew:pr</code><span>Push the branch and open the pull request. The only path out of the machine.</span></li>
+      <li><code>/crew:address</code><span>Route review comments and CI failures back to the crew, then re-run the gate.</span></li>
+      <li><code>/crew:triage</code><span>A bug report, trace, or alert → the code and the suspect commits.</span></li>
+      <li><code>/crew:loop</code><span>Outer-loop driver: re-launch the captain each tick until the plan's exit conditions are met.</span></li>
+      <li><code>/crew:notify</code><span>Message another running crew session.</span></li>
+    </ul>
+
+    <div class="sec-head" style="margin-top:52px">
+      <h2>The guardrails are hooks, not prose</h2>
+      <p>An instruction in a prompt is a suggestion to a model. These are enforced by the harness before
+        the tool call runs, so a worker cannot talk its way past them.</p>
+    </div>
+    <ul class="rails">
+      <li><b>One pair of hands on git</b>Only the captain runs git. Workers never do.</li>
+      <li><b>No commits on the base branch</b>Work happens on a feature branch the captain creates.</li>
+      <li><b>Writes stay in lane</b>Each worker edits only its own lane — and file-mutating shell commands
+        are refused too, so a write cannot route around the guard.</li>
+      <li><b>Destructive commands refused</b>Destructive <code>rm</code>, force-push, and writes into
+        <code>.git/</code> are blocked.</li>
+      <li><b>Guards fail closed</b>When a guard cannot inspect its input, it blocks rather than allows.</li>
+      <li><b>Nothing leaves on its own</b>No push, no pull request, until you run <code>/crew:pr</code>.</li>
+    </ul>
+
+    <figure style="margin-top:52px">
+      <img src="demo.gif" alt="Terminal recording of a /crew:feature run: the captain presents a plan, delegates steps to workers, and commits each verified step." loading="lazy">
+      <figcaption>A <code>/crew:feature</code> run, start to review gate.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<section id="keymaker">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>keymaker <span class="tag beta">Beta</span></h2>
+      <p>Pointer-driven, not sweep-driven. Every run starts from something you identified, and a required
+        scope argument prevents accidental full-repo scans. Deleting the suppression makes the analyzer
+        itself the regression test.</p>
+    </div>
+    <ul class="cmds">
+      <li><code>/keymaker:open</code><span>A suppression at a line, an analyzer or ESLint rule, or a dependency upgrade.</span></li>
+      <li><code>/keymaker:audit</code><span>Read-only scout over a scope you name; returns ready-to-paste pointers.</span></li>
+    </ul>
+    <p class="note">Two stacks today: .NET / C# and TypeScript / JavaScript. Platform-scale migrations get
+      a handoff outline rather than a forced implementation, and the blast radius is reported before any
+      edit. Expect breaking changes before v1.0.</p>
+  </div>
+</section>
+
+<section id="install">
+  <div class="wrap">
+    <div class="sec-head">
+      <h2>Requirements</h2>
+    </div>
+    <ul class="rails">
+      <li><b>Claude Code</b>CLI, desktop, or IDE extension, with plugin support.</li>
+      <li><b>A git repository</b><code>crew</code> and <code>keymaker</code> branch and commit their work.</li>
+      <li><b>Optional MCP servers</b>Playwright, Figma, and a GitHub or Azure DevOps server unlock visual
+        review and PR workflows. Everything else works without them.</li>
+    </ul>
+    <p class="note">You can also install from the UI: run <code>/plugin</code> in Claude Code and browse
+      to <strong>Discover</strong>.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div class="flinks">
+      <a href="https://github.com/johantor/zion">GitHub</a>
+      <a href="https://github.com/johantor/zion/blob/main/plugins/crew/README.md">crew docs</a>
+      <a href="https://github.com/johantor/zion/blob/main/plugins/keymaker/README.md">keymaker docs</a>
+      <a href="https://github.com/johantor/zion/blob/main/AGENTS.md">Contributing</a>
+      <a href="https://github.com/johantor/zion/blob/main/PRIVACY.md">Privacy</a>
+      <a href="https://github.com/johantor/zion/blob/main/SECURITY.md">Security</a>
+      <a href="https://github.com/johantor/zion/releases">Releases</a>
+    </div>
+    <p class="fine">Apache-2.0 licensed. The plugins collect no data and send nothing to the maintainers.</p>
+    <p class="fine">Named from <em>The Matrix</em>: Zion is the city that houses the resistance.</p>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('copy').addEventListener('click', function () {
+    var text = Array.prototype.map
+      .call(document.querySelectorAll('#cmd'), function (el) { return el.innerText; })
+      .join('')
+      .replace(/^\$ /gm, '')
+      .trim();
+    var done = function (ok) {
+      this.textContent = ok ? 'Copied' : 'Press ⌘C to copy';
+      setTimeout(function () { this.textContent = 'Copy commands'; }.bind(this), 1800);
+    }.bind(this);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { done(true); }, function () { done(false); });
+    } else {
+      done(false);
+    }
+  });
+</script>
+
+</body>
+</html>

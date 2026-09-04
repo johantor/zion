@@ -155,6 +155,9 @@ black_proj="$(make_tree 'pyproject.toml:[tool.black]
 line-length = 100')"
 assert_reports "a Black-only project does not get ruff" \
   "$(payload_file tank pkg/svc.py)" "$black_proj" "applied black"
+fake_bin black 'for a in "$@"; do [ "$a" = "pkg/svc.py" ] && exit 1; done; exit 0'
+assert_reports "black runs through project discovery, not an explicit file arg" \
+  "$(payload_file tank pkg/svc.py)" "$black_proj" "applied black"
 # Config belongs to the project that owns the file, which in a monorepo is not
 # the repo root -- checking only the root reports "no formatter" and lets the
 # edit reach the lint gate unformatted.
@@ -162,6 +165,15 @@ mono="$(make_tree 'apps/api/pyproject.toml:[tool.ruff]
 line-length = 100')"
 assert_reports "config is found in the owning project, not just the root" \
   "$(payload_file tank apps/api/pkg/svc.py)" "$mono" "ruff-check"
+mixed="$(make_tree 'apps/pyproject.toml:[tool.black]
+line-length = 100' 'apps/api/ruff.toml:[lint]
+select = ["E"]')"
+run_hook "$HOOK" "$(payload_file tank apps/api/pkg/svc.py)" "$mixed"
+if [[ "$_stderr" == *"ruff-check"* && "$_stderr" == *"black"* ]]; then
+  _pass
+else
+  _fail "mixed nested config: expected ruff-check and black (got: ${_stderr:-<empty>})"
+fi
 fake_bin black 'exit 0'
 lookalike="$(make_tree 'setup.cfg:[black]
 line-length = 100' 'black.toml:line-length = 100')"
@@ -213,6 +225,9 @@ gofumpt_proj="$(make_tree 'go.mod:module fixture' '.golangci.yml:linters:
   enable: [gofumpt]')"
 assert_reports "a project that asks for gofumpt gets it" \
   "$(payload_file tank pkg/svc.go)" "$gofumpt_proj" "applied gofumpt"
+gofumpt_disabled="$(make_tree 'go.mod:module fixture' '.golangci.yml:linters: { disable: [gofumpt] }')"
+assert_reports "a disabled gofumpt does not displace gofmt" \
+  "$(payload_file tank pkg/svc.go)" "$gofumpt_disabled" "applied gofmt"
 fake_bin rustfmt 'exit 0'
 assert_reports "rustfmt formats a Rust file" \
   "$(payload_file tank src/lib.rs)" "$plain" "applied rustfmt"

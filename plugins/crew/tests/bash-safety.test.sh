@@ -57,9 +57,10 @@ for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gun
            'python services/api/manage.py runserver' \
            'uv run python -m uvicorn app:app' 'poetry run python -m flask run' \
            '.venv/bin/python -m uvicorn app:app' 'python3.12 -m uvicorn app:app' \
+           '.venv/bin/uvicorn app:app' \
            'uv run --project service uvicorn app:app' 'pdm run --site-packages flask run' \
            'poetry -C service run uvicorn app:app' 'uv --directory service run uvicorn app:app' \
-           'watch shellcheck .' 'watchexec -- shellcheck .' 'entr make' \
+           'watch shellcheck .' '/usr/bin/watch shellcheck .' 'watchexec -- shellcheck .' 'entr make' \
            'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'cargo +nightly watch -x test' \
            'trunk serve' 'python -m http.server' 'python3 -m http.server 8000' \
            './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous' \

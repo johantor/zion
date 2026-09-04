@@ -77,6 +77,41 @@ find_up() {
   return 1
 }
 
+# find_up_pyproject_section <name> — nearest ancestor whose pyproject.toml has
+# [tool.<name>]. Some tools read only a section in pyproject; stopping on a
+# different tool's nearest config would hide the right one.
+find_up_pyproject_section() {
+  _fps_want="$1"
+  _fps_d="${path%/*}"; [ "$_fps_d" = "$path" ] && _fps_d="."
+  _fps_n=0
+  while [ "$_fps_n" -lt 32 ]; do
+    if [ -f "$_fps_d/pyproject.toml" ] && grep -Eq "^\[tool\.${_fps_want}([.]|\\])" "$_fps_d/pyproject.toml"; then
+      printf '%s' "$_fps_d"; return 0
+    fi
+    [ "$_fps_d" = "$PWD" ] && return 1
+    case "$_fps_d" in .|/|"") return 1 ;; esac
+    _fps_p="${_fps_d%/*}"; [ "$_fps_p" = "$_fps_d" ] && _fps_p="."
+    _fps_d="$_fps_p"; _fps_n=$((_fps_n + 1))
+  done
+  return 1
+}
+
+# rel_from_root <root> <file> — file path relative to the selected project root.
+rel_from_root() {
+  _rfr_root="$1"; _rfr_file="$2"
+  case "$_rfr_file" in
+    "$_rfr_root"/*) printf '%s' "${_rfr_file#"$_rfr_root"/}" ;;
+    "$PWD"/*)       printf '%s' "${_rfr_file#"$PWD"/}" ;;
+    ./*)            printf '%s' "${_rfr_file#./}" ;;
+    *)              printf '%s' "$_rfr_file" ;;
+  esac
+}
+
+# regex_escape <text> — quote regex metacharacters for exact matching.
+regex_escape() {
+  printf '%s' "$1" | awk '{ gsub(/[][(){}.^$*+?|\\]/, "\\\\&"); print }'
+}
+
 # Every formatter runs under a wall-clock bound. This fires after *every* edit, so
 # a hang would stall the agent each time, and the harness's kill can land mid
 # `--write` and truncate a source file. `timeout`/`gtimeout` is used when present
@@ -195,17 +230,16 @@ case "$lane" in
       else echo "format hook: $_label failed on $path" >&2; fi
     }
     # `tool_cfg <tool>` — true when the owning project configures that tool.
-    pyroot="$(find_up pyproject.toml setup.cfg tox.ini ruff.toml .ruff.toml)" || pyroot="."
-    # Each tool reads only the files it actually supports. ruff reads
-    # ruff.toml/.ruff.toml and [tool.ruff]; black reads [tool.black] in
-    # pyproject.toml and nothing else. A `black.toml` or a `[black]` INI section
-    # is not configuration black would ever load, so treating it as an opt-in
-    # would run black with its defaults on a project that never chose it.
+    # Resolve each tool independently: a nearby ruff config must not hide a
+    # parent [tool.black], and vice versa.
+    ruff_root="$(find_up ruff.toml .ruff.toml)" || ruff_root=""
+    [ -n "$ruff_root" ] || ruff_root="$(find_up_pyproject_section ruff)" || ruff_root=""
+    black_root="$(find_up_pyproject_section black)" || black_root=""
     tool_cfg() {
       case "$1" in
-        ruff) cfg "$pyroot/ruff.toml" "$pyroot/.ruff.toml" && return 0 ;;
+        ruff) [ -n "$ruff_root" ] && return 0 ;;
+        black) [ -n "$black_root" ] && return 0 ;;
       esac
-      [ -f "$pyroot/pyproject.toml" ] && grep -q "^\[tool\.$1" "$pyroot/pyproject.toml" && return 0
       return 1
     }
     if tool_cfg ruff && command -v ruff >/dev/null 2>&1; then
@@ -218,13 +252,18 @@ case "$lane" in
       # lint-only, and a project may lint with ruff and format with something else
       # or not at all -- inferring "ruff formats here" from black's absence would
       # rewrite a project that never asked. The lint fixes above still apply.
-      if grep -q '^\[tool\.ruff\.format' "$pyroot/pyproject.toml" 2>/dev/null \
-         || grep -q '^\[format\]' "$pyroot/ruff.toml" "$pyroot/.ruff.toml" 2>/dev/null; then
+      if grep -q '^\[tool\.ruff\.format' "$ruff_root/pyproject.toml" 2>/dev/null \
+         || grep -q '^\[format\]' "$ruff_root/ruff.toml" "$ruff_root/.ruff.toml" 2>/dev/null; then
         runpy ruff-format ruff format --force-exclude "$path"
       fi
     fi
     if tool_cfg black && command -v black >/dev/null 2>&1; then
-      runpy black black -q "$path"
+      # Black ignores exclude/extend-exclude for an explicit file argument. Run on
+      # the owning project root with an exact include pattern so discovery and
+      # configured exclusions still apply.
+      black_rel="$(rel_from_root "$black_root" "$path")"
+      black_pat="$(regex_escape "$black_rel")"
+      runpy black black -q --include "^${black_pat}$" "$black_root"
     fi
     if [ -n "$ran" ]; then echo "format hook: applied$ran on $path" >&2
     else echo "format hook: no configured Python formatter for $path; skipped" >&2; fi
@@ -233,11 +272,31 @@ case "$lane" in
     # gofmt ships with the toolchain and needs no configuration. gofumpt applies
     # rewrites gofmt does not, so it is used only where the project asks for it --
     # otherwise the same edit produces different source on different machines.
+    gofumpt_enabled() {
+      _gf_cfg="$1"
+      [ -f "$_gf_cfg" ] || return 1
+      awk '
+        {
+          line=$0
+          sub(/[[:space:]]*#.*/, "", line)
+          if (line ~ /^[[:space:]]*$/) next
+          if (line ~ /^[[:space:]]*enable:[[:space:]]*\[[^]]*gofumpt/) { ok=1; next }
+          if (line ~ /^[[:space:]]*disable:[[:space:]]*\[[^]]*gofumpt/) next
+          if (line ~ /^[[:space:]]*enable:[[:space:]]*$/) { sec="enable"; next }
+          if (line ~ /^[[:space:]]*disable:[[:space:]]*$/) { sec="disable"; next }
+          if (line ~ /^[[:space:]]*[A-Za-z0-9_.-]+:[[:space:]]*$/) { sec=""; next }
+          if (sec == "enable" && line ~ /^[[:space:]]*-[[:space:]]*gofumpt([[:space:]]|$)/) { ok=1; next }
+        }
+        END { exit(ok ? 0 : 1) }
+      ' "$_gf_cfg" 2>/dev/null
+    }
     tool=""
     command -v gofmt >/dev/null 2>&1 && tool="gofmt"
     goroot="$(find_up go.mod .golangci.yml .golangci.yaml)" || goroot="."
-    if grep -qr -- gofumpt "$goroot/.golangci.yml" "$goroot/.golangci.yaml" "$goroot/Makefile" \
-         .golangci.yml .golangci.yaml Makefile .github/workflows 2>/dev/null \
+    if { gofumpt_enabled "$goroot/.golangci.yml" || gofumpt_enabled "$goroot/.golangci.yaml"; } \
+       && command -v gofumpt >/dev/null 2>&1; then
+      tool="gofumpt"
+    elif grep -qrE -- '(^|[[:space:]])gofumpt([[:space:]]|$)' "$goroot/Makefile" Makefile .github/workflows 2>/dev/null \
        && command -v gofumpt >/dev/null 2>&1; then
       tool="gofumpt"
     fi

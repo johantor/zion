@@ -219,10 +219,8 @@ case "$agent_type" in
   # `.spec.*` is kept (Vitest/Jest/Angular unit tests use it), but oracle is
   # excluded from the e2e-tool directories, which are dozer's — otherwise a
   # Playwright `e2e/foo.spec.ts` would fall in oracle's lane too.
-  # The allow list is the union of every supported stack's test convention: the
-  # stack is not resolved at this point, so a path that is a test file in *some*
-  # stack is oracle's. Safe to widen -- this is allow-mode, so a new pattern
-  # grants a test shape, never a production file.
+  # The union of every stack's test convention: the stack isn't resolved here, so
+  # a test file in *any* of them is oracle's.
   oracle) mode="--allow"
           patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*'
           patterns+=' **/test_*.py **/*_test.py **/conftest.py'   # pytest
@@ -304,11 +302,10 @@ case "$agent_type" in
       # either agent: Razor is shared by concern (trinity = markup/DOM, tank =
       # C#/server logic), and that split is enforced by the agent prompts, since
       # file globs can't see inside a file.
-      # trinity's deny list is the union of every supported backend's extensions,
-      # not the resolved stack's alone: none of them belongs to a client-facing
-      # layer, so trinity may write none of them whichever stack is resolved.
-      # These stacks reach here rather than node's fail-closed branch above
-      # because their extensions are disjoint from the frontend's.
+      # trinity's deny list is the union of every backend's extensions, not the
+      # resolved stack's: none of them is a client-facing file. These stacks reach
+      # here rather than node's branch above because their extensions are disjoint
+      # from the frontend's.
       mode="--deny"
       if [ "$agent_type" = "tank" ]; then
         patterns='*.ts *.tsx *.jsx *.js *.mjs *.scss *.css *.html'

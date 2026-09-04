@@ -15,8 +15,7 @@ assert_allow "trinity allowed a .tsx file" "$HOOK" "$(payload_file trinity Foo.t
 
 # --- Extension regime, the Python/Go/Rust/JVM backends -------------------------
 # These extensions are disjoint from the frontend's, so the stacks need no lane
-# paths. A miss here fails silently in production: the guard passes and the
-# lanes simply stop separating.
+# paths. A miss fails silently in production: the guard passes, the lanes don't.
 for _f in svc.py svc.pyi pyproject.toml requirements.txt \
           svc.go go.mod go.sum \
           svc.rs Cargo.toml Cargo.lock \

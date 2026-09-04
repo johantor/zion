@@ -151,17 +151,15 @@ case "$lane" in
     else echo "format hook: no configured formatter/linter for $path; skipped" >&2; fi
     ;;
   python)
-    # Ordered formatter-then-linter, each skipped when the tool is absent, so a
-    # project that configures neither is a no-op rather than a failure. Run
-    # directly rather than through poetry/uv/pdm: a runner resolves the project
-    # environment on every call, which is seconds per edit.
+    # Run directly, not through poetry/uv/pdm: a runner resolves the project
+    # environment on every call.
     ran=""
     if command -v ruff >/dev/null 2>&1; then
       st=0; run_bounded ruff format "$path" || st=$?
       if [ "$st" = 0 ]; then ran="$ran ruff-format"
       elif hung "$st"; then echo "format hook: ruff format timed out after ${FORMAT_TIMEOUT}s on $path" >&2
       else echo "format hook: ruff format failed on $path" >&2; fi
-      # --fix only applies the fixes ruff considers safe; the rest stay for the gate.
+      # --fix applies only ruff's safe fixes; the rest stay for the gate.
       st=0; run_bounded ruff check --fix "$path" || st=$?
       hung "$st" && echo "format hook: ruff check timed out after ${FORMAT_TIMEOUT}s on $path" >&2
     elif command -v black >/dev/null 2>&1; then
@@ -174,8 +172,7 @@ case "$lane" in
     else echo "format hook: no Python formatter on PATH for $path; skipped" >&2; fi
     ;;
   go)
-    # gofmt ships with the toolchain, so it needs no config detection; gofumpt is
-    # a strict superset and wins where the project installed it.
+    # gofumpt is a strict superset of gofmt, so it wins where installed.
     tool=""
     command -v gofmt >/dev/null 2>&1 && tool="gofmt"
     command -v gofumpt >/dev/null 2>&1 && tool="gofumpt"
@@ -186,9 +183,8 @@ case "$lane" in
     else echo "format hook: $tool failed on $path" >&2; fi
     ;;
   rust)
-    # rustfmt over `cargo fmt`: cargo fmt formats the whole package, which is the
-    # gate's job, not a per-edit hook's. Edition comes from the manifest, which
-    # bare rustfmt does not read, so pass it when it is declared.
+    # rustfmt, not `cargo fmt`, which formats the whole package. Bare rustfmt does
+    # not read Cargo.toml, so pass the edition when it is declared.
     command -v rustfmt >/dev/null 2>&1 || { echo "format hook: rustfmt not on PATH for $path; skipped" >&2; exit 0; }
     edition="$(sed -n 's/^[[:space:]]*edition[[:space:]]*=[[:space:]]*"\([0-9]*\)".*/\1/p' Cargo.toml 2>/dev/null | head -1)"
     st=0
@@ -202,9 +198,8 @@ case "$lane" in
     else echo "format hook: rustfmt failed on $path" >&2; fi
     ;;
   java)
-    # Only a standalone single-file formatter runs here. Spotless and the Maven
-    # plugins format through the build, which loads the project on every call --
-    # too slow for a per-edit hook, so those stay at the review gate.
+    # Standalone formatters only: Spotless and the Maven plugins format through the
+    # build, so they stay at the review gate.
     tool=""
     for _t in google-java-format palantir-java-format; do
       command -v "$_t" >/dev/null 2>&1 && { tool="$_t"; break; }

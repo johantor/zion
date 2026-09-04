@@ -99,12 +99,10 @@ else
 fi
 
 # --- The non-web lanes: tools found on PATH, not in node_modules/.bin ----------
-# These formatters ship with a toolchain rather than a project, so the hook looks
-# them up on PATH. fake_bin puts a stub there for the duration of these cases.
-# Whether the host happens to have gofmt or rustfmt installed must not decide
-# the result, so PATH becomes a mirror of itself with exactly these tools left
-# out; the harness keeps everything else it needs. Anything a case wants found
-# is stubbed into _fake_bin, which is searched first.
+# These ship with a toolchain rather than a project, so the hook looks them up on
+# PATH.
+# PATH becomes a mirror of itself minus the tools under test, so a host that has
+# gofmt or rustfmt installed can't decide the result. _fake_bin is searched first.
 _fake_bin="$(mktemp -d)"
 _mirror_bin="$(mktemp -d)"
 _real_path="$PATH"
@@ -151,8 +149,8 @@ fake_bin google-java-format 'exit 0'
 assert_reports "google-java-format formats a Java file" \
   "$(payload_file tank src/main/java/Svc.java)" "$plain" "applied google-java-format"
 
-# The manifest's edition reaches rustfmt; bare rustfmt does not read Cargo.toml,
-# so a 2015-only default would reformat a later edition's source wrongly.
+# Bare rustfmt does not read Cargo.toml, so without this a later edition's source
+# is reformatted against the 2015 default.
 edition_tree="$(make_tree 'Cargo.toml:[package]
 edition = "2021"')"
 fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'

@@ -61,6 +61,10 @@ find_up() {
     for _fu_f in "$@"; do
       [ -e "$_fu_d/$_fu_f" ] && { printf '%s' "$_fu_d"; return 0; }
     done
+    # Stop at the project root. The hook runs there, and configuration above it
+    # belongs to another project or the user's home -- honoring it would select a
+    # formatter for a project that configured none.
+    [ "$_fu_d" = "$PWD" ] && return 1
     case "$_fu_d" in .|/|"") return 1 ;; esac
     _fu_p="${_fu_d%/*}"; [ "$_fu_p" = "$_fu_d" ] && _fu_p="."
     _fu_d="$_fu_p"; _fu_n=$((_fu_n + 1))
@@ -194,9 +198,14 @@ case "$lane" in
       return 1
     }
     if tool_cfg ruff && command -v ruff >/dev/null 2>&1; then
-      runpy ruff-format ruff format "$path"
       # --fix applies only ruff's safe fixes; the rest stay for the gate.
       runpy ruff-check ruff check --fix "$path"
+      # Formatting is a separate choice: `[tool.ruff]` alone may be lint-only,
+      # and a project that lints with ruff often formats with black. Format with
+      # ruff only on an explicit [tool.ruff.format] or when black is absent.
+      if grep -q '^\[tool\.ruff\.format' "$pyroot/pyproject.toml" 2>/dev/null || ! tool_cfg black; then
+        runpy ruff-format ruff format "$path"
+      fi
     fi
     if tool_cfg black && command -v black >/dev/null 2>&1; then
       runpy black black -q "$path"
@@ -251,6 +260,7 @@ case "$lane" in
     _n=0
     while [ "$_n" -lt 32 ]; do
       [ -f "$_d/Cargo.toml" ] && { _m="$_d/Cargo.toml"; break; }
+      [ "$_d" = "$PWD" ] && break
       case "$_d" in .|/|"") break ;; esac
       _p="${_d%/*}"; [ "$_p" = "$_d" ] && _p="."
       _d="$_p"; _n=$((_n + 1))
@@ -305,7 +315,13 @@ case "$lane" in
     jvmroot="$(find_up pom.xml build.gradle build.gradle.kts)" || jvmroot="."
     tool=""
     for _t in google-java-format palantir-java-format; do
-      grep -qr -- "$_t" "$jvmroot/pom.xml" "$jvmroot/build.gradle" "$jvmroot/build.gradle.kts" \
+      # Gradle spells these as plugins (`googleJavaFormat()`,
+      # `com.palantir.java-format`), not as the executable name.
+      case "$_t" in
+        google-java-format)   _pat='google-java-format|googleJavaFormat' ;;
+        palantir-java-format) _pat='palantir-java-format|palantirJavaFormat|com\.palantir\.java-format' ;;
+      esac
+      grep -qrE -- "$_pat" "$jvmroot/pom.xml" "$jvmroot/build.gradle" "$jvmroot/build.gradle.kts" \
         pom.xml build.gradle build.gradle.kts 2>/dev/null || continue
       command -v "$_t" >/dev/null 2>&1 && { tool="$_t"; break; }
     done

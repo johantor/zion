@@ -20,6 +20,7 @@ The dependency manifest tells you which tool the project uses; use that one and 
 - `[tool.poetry]` in `pyproject.toml` → Poetry (`poetry run …`, `poetry add`).
 - `uv.lock`, or `[tool.uv]` → uv (`uv run …`, `uv add`).
 - `[tool.pdm]`/`pdm.lock` → PDM.
+- `Pipfile`/`Pipfile.lock` → Pipenv (`pipenv run …`, `pipenv install`).
 - `requirements*.txt` with no `pyproject.toml` → pip against the project's venv.
 
 Never add a dependency by editing the lockfile, and never install into the system interpreter.

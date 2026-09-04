@@ -53,7 +53,9 @@ source sets and filters declare, so read the build script rather than assuming.
 - Prefer constructor injection and a plain `new` in the test to spinning a framework context;
   reserve `@SpringBootTest` for tests that genuinely need the container, and use the sliced
   annotations (`@WebMvcTest`, `@DataJpaTest`) when only one layer is under test.
-- `@BeforeAll` is static and shared — anything mutable there leaks between tests.
+- `@BeforeAll` is shared across the class, so anything mutable there leaks between tests. It must
+  be `static` under the default per-method lifecycle; with `@TestInstance(PER_CLASS)` it need not
+  be, so don't reject a non-static one before checking the class's lifecycle.
 
 ## Running
 

@@ -32,8 +32,9 @@ classify each path — same split the lane guard uses:
   `uv.lock`, `pdm.lock`, `mypy.ini`, `pyrightconfig.json`, `pytest.ini`, `ruff.toml`, `.flake8`;
   `*.go`, `go.mod`, `go.sum`, `go.work`, `go.work.sum`, `.golangci.y{a,}ml`, `testdata/**`; `*.rs`,
   `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`, `clippy.toml`; `*.java`, `pom.xml`, `build.gradle{,.kts}`,
-  `settings.gradle{,.kts}`, `gradle.properties`, `src/main/resources/application*` and
-  `bootstrap*` (not `templates/` or `static/` under it — those are the view), `src/test/resources/**`;
+  `settings.gradle{,.kts}`, `gradle.properties`, `src/main/resources/application*` and `bootstrap*` **in `.properties`/`.yml`/`.yaml` only**
+  (matching the guard — `templates/` and `static/` under it are the view, and so is an
+  `application.html`), `src/test/resources/**`;
   `*.sh`, `*.bash`, `*.bats`, `.shellcheckrc`. A gate's own configuration counts: it decides what
   the build and lint do, so a branch that changes only `mypy.ini` or `.golangci.yml` is a backend
   branch.

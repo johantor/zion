@@ -144,7 +144,7 @@ assert_reports "an unconfigured ruff on PATH does not run" \
 ruff_proj="$(make_tree 'pyproject.toml:[tool.ruff]
 line-length = 100')"
 assert_reports "a configured ruff formats a Python file" \
-  "$(payload_file tank pkg/svc.py)" "$ruff_proj" "applied ruff-format"
+  "$(payload_file tank pkg/svc.py)" "$ruff_proj" "ruff-format"
 black_proj="$(make_tree 'pyproject.toml:[tool.black]
 line-length = 100')"
 assert_reports "a Black-only project does not get ruff" \
@@ -155,7 +155,37 @@ assert_reports "a Black-only project does not get ruff" \
 mono="$(make_tree 'apps/api/pyproject.toml:[tool.ruff]
 line-length = 100')"
 assert_reports "config is found in the owning project, not just the root" \
-  "$(payload_file tank apps/api/pkg/svc.py)" "$mono" "applied ruff-format"
+  "$(payload_file tank apps/api/pkg/svc.py)" "$mono" "ruff-format"
+# Ruff lint config is not a formatter choice: a project may lint with ruff and
+# format with black, and then `ruff format` is an unrequested rewrite.
+lint_only="$(make_tree 'pyproject.toml:[tool.ruff]
+line-length = 100
+
+[tool.black]
+line-length = 100')"
+run_hook "$HOOK" "$(payload_file tank pkg/svc.py)" "$lint_only"
+if [[ "$_stderr" == *"ruff-check"* && "$_stderr" == *"black"* && "$_stderr" != *"ruff-format"* ]]; then
+  _pass
+else
+  _fail "ruff+black: expected ruff-check and black without ruff-format (got: ${_stderr:-<empty>})"
+fi
+# An explicit [tool.ruff.format] is that choice, even alongside black.
+fmt_opt_in="$(make_tree 'pyproject.toml:[tool.ruff]
+line-length = 100
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.black]
+line-length = 100')"
+assert_reports "an explicit [tool.ruff.format] opts into ruff formatting" \
+  "$(payload_file tank pkg/svc.py)" "$fmt_opt_in" "ruff-format"
+# Configuration above the project root is another project's, not this one's.
+outside="$(new_tmpdir)"
+mkdir -p "$outside/proj/pkg"
+printf '[tool.ruff]\n' > "$outside/pyproject.toml"
+assert_reports "config above the project root is not honored" \
+  "$(payload_file tank "$outside/proj/pkg/svc.py")" "$outside/proj" "no configured Python formatter"
 # A non-timeout failure is reported, not swallowed behind an "applied" line.
 fake_bin ruff 'exit 1'
 assert_reports "a ruff that rejects the file is reported as failed" \

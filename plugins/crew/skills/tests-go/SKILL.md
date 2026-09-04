@@ -28,7 +28,10 @@ binary or a golden file puts it there rather than in the package directory.
   one of them.
 - `t.Helper()` in any assertion helper, so a failure reports the caller's line rather than the
   helper's.
-- `t.Cleanup(...)` over `defer` for teardown that must run even when a subtest fails early.
+- `t.Cleanup(...)` for teardown registered inside a helper, or that must run after a test's
+  subtests finish. Not because `defer` misses failures — `t.Fatal` ends the goroutine through
+  `runtime.Goexit`, which does run deferred calls — but because a helper's `defer` fires when the
+  *helper* returns, which is too early.
 - Use `t.Fatalf` when continuing would panic (a nil result), `t.Errorf` when the test can usefully
   report more failures.
 - Never call `t.Parallel()` on subtests that share mutable state through the loop variable or a

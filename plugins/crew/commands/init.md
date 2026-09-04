@@ -108,7 +108,7 @@ trust or correct it; never invent a command you can't see configured.
   installed, so propose `python -m unittest discover` there instead, and leave the slot `unset`
   when neither is present. Lint
   `ruff check .` / `flake8` plus `black --check .` where configured. Prefix every command with
-  the project's runner when it has one (`poetry run`, `uv run`, `pdm run`) — a bare `pytest`
+  the project's runner when it has one (`poetry run`, `uv run`, `pdm run`, `pipenv run`) — a bare `pytest`
   resolves against whatever interpreter is active. If no type checker is configured, say so and
   leave the build slot `unset` rather than inventing one.
 - **Backend (shell):** there is no build, so the build slot is the project's static gate —
@@ -146,7 +146,7 @@ trust or correct it; never invent a command you can't see configured.
   stays `unset` with the split described in the body notes, so `morpheus` resolves per feature.
 - **Backend stack:** a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
   dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`; a `pyproject.toml`
-  (or `requirements*.txt`/`setup.py`) → `python`; a `go.mod` → `go`; a `Cargo.toml` → `rust`; a
+  (or `requirements*.txt`/`setup.py`/`Pipfile`) → `python`; a `go.mod` → `go`; a `Cargo.toml` → `rust`; a
   `pom.xml` or `build.gradle`/`build.gradle.kts` **together with Java sources**
   (`src/main/java`, or a `java`/`java-library` plugin in the build script) → `java`. A Gradle or
   Maven file on its own is not enough: Kotlin, Scala and Android builds carry the same marker and

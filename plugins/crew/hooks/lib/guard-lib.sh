@@ -137,8 +137,11 @@ _g_watch_gors='(air|reflex|gow)([[:space:]]|$)|cargo([[:space:]]+-[^[:space:]]+)
 # (`:service:bootRun`). `-t` is matched only in the Gradle arm -- under Maven it
 # is --toolchains.
 _g_watch_jvm='(mvn|mvnw|\./mvnw)[[:space:]]+([^[:space:]]+[[:space:]]+)*(spring-boot:run|quarkus:dev|jetty:run|tomcat7:run)([[:space:]]|$)|(gradle|gradlew|\./gradlew)[[:space:]]+([^[:space:]]+[[:space:]]+)*((:[A-Za-z0-9_.:-]*)?(bootRun|quarkusDev)|--continuous|-t)([[:space:]]|$)'
-_g_watch="${_g_watch_web}|${_g_watch_py}|${_g_watch_gors}|${_g_watch_jvm}"
-GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|uv[[:space:]]+run|poetry[[:space:]]+run|pdm[[:space:]]+run|pipenv[[:space:]]+run|([^[:space:]]*/)?python[0-9.]*[[:space:]]+-m|([^[:space:]]*/)?python[0-9.]*)[[:space:]]+)*'"(${_g_watch})"'|--watch([[:space:]]|$)'
+# Tool-agnostic re-runners: these wrap ANY command and never terminate, so they
+# belong to no single stack. `watch` is coreutils'; the rest are file watchers.
+_g_watch_any='(watch|watchexec|entr|fswatch|nodemon)([[:space:]]|$)'
+_g_watch="${_g_watch_web}|${_g_watch_py}|${_g_watch_gors}|${_g_watch_jvm}|${_g_watch_any}"
+GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)[[:space:]]+run([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*|([^[:space:]]*/)?python[0-9.]*[[:space:]]+-m|([^[:space:]]*/)?python[0-9.]*)[[:space:]]+)*'"(${_g_watch})"'|--watch([[:space:]]|$)'
 
 # Raw/streaming reads that dump a whole file or an endless stream into context.
 GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'

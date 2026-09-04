@@ -56,6 +56,8 @@ for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gun
            'django-admin runserver' 'python -m django runserver' \
            'uv run python -m uvicorn app:app' 'poetry run python -m flask run' \
            '.venv/bin/python -m uvicorn app:app' 'python3.12 -m uvicorn app:app' \
+           'uv run --project service uvicorn app:app' 'pdm run --site-packages flask run' \
+           'watch shellcheck .' 'watchexec -- shellcheck .' 'entr make' \
            'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'trunk serve' \
            './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous'; do
   assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)" "never terminate"
@@ -66,6 +68,7 @@ for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
            'uv run pytest' 'poetry run python -m pytest tests/' 'python -m build' 'pipenv run pytest' \
            'django-admin startproject x' 'python -m django --version' \
            '.venv/bin/python -m pytest' 'python3.12 -m build' \
+           'uv run --project service pytest' 'pdm run --site-packages pytest' 'shellcheck hooks/a.sh' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
            'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \
            './mvnw -B verify' './gradlew test' './gradlew check -x test'; do

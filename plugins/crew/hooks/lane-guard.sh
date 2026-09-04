@@ -319,9 +319,10 @@ case "$agent_type" in
         # them out lets the lane fail open on exactly the dependency files a
         # frontend agent has no business editing.
         patterns+=' *.py *.pyi pyproject.toml requirements*.txt setup.py setup.cfg'
-        patterns+=' tox.ini Pipfile Pipfile.lock poetry.lock uv.lock pdm.lock'   # python
-        patterns+=' *.go go.mod go.sum go.work go.work.sum'                      # go
-        patterns+=' *.rs Cargo.toml Cargo.lock'                                  # rust
+        patterns+=' tox.ini Pipfile Pipfile.lock poetry.lock uv.lock pdm.lock'
+        patterns+=' mypy.ini .mypy.ini pyrightconfig.json pytest.ini ruff.toml .ruff.toml .flake8'  # python
+        patterns+=' *.go go.mod go.sum go.work go.work.sum .golangci.yml .golangci.yaml'  # go
+        patterns+=' *.rs Cargo.toml Cargo.lock rustfmt.toml .rustfmt.toml clippy.toml'   # rust
         patterns+=' *.java pom.xml build.gradle build.gradle.kts'
         patterns+=' settings.gradle settings.gradle.kts gradle.properties'
         # Backend config under src/main/resources. NOT the whole tree: templates/

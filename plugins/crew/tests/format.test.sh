@@ -240,7 +240,11 @@ assert_reports "a rustfmt that rejects the file is reported as failed" \
 sh_plain="$(make_tree 'run.sh:echo hi')"
 assert_reports "a shell file with no shfmt configuration is skipped" \
   "$(payload_file tank run.sh)" "$sh_plain" "no shfmt configuration"
-sh_proj="$(make_tree '.editorconfig:root = true' 'run.sh:echo hi')"
+bare_ec="$(make_tree '.editorconfig:root = true' 'run.sh:echo hi')"
+assert_reports "an .editorconfig that says nothing about shell is not configuration" \
+  "$(payload_file tank run.sh)" "$bare_ec" "no shfmt configuration"
+sh_proj="$(make_tree '.editorconfig:[*.sh]
+indent_style = space' 'run.sh:echo hi')"
 assert_reports "a configured project with no shfmt on PATH is skipped" \
   "$(payload_file tank run.sh)" "$sh_proj" "shfmt not on PATH"
 fake_bin shfmt 'exit 0'

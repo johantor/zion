@@ -37,7 +37,7 @@ assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm ru
 for cmd in 'uvicorn app:app' 'flask --debug run' './manage.py runserver' \
            'air' 'cargo watch -x test' './gradlew -t build' './gradlew :service:bootRun' \
            'fastapi dev app.py' 'uv run python -m uvicorn app:app' \
-           'django-admin runserver' \
+           'django-admin runserver' 'watch shellcheck .' 'uv run --project x uvicorn app:app' \
            './mvnw spring-boot:run'; do
   assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" twin)" "never terminate"
 done

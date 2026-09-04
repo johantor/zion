@@ -283,7 +283,13 @@ case "$lane" in
   sh)
     # shfmt only: shellcheck is a linter with no fix mode, so it belongs to the gate.
     # Config-gated like every other lane -- shfmt's defaults are not every project's.
-    find_up .shfmt .editorconfig >/dev/null || { echo "format hook: no shfmt configuration for $path; skipped" >&2; exit 0; }
+    shroot="$(find_up .shfmt .editorconfig)" || shroot=""
+    # An .editorconfig counts only when it actually says something shfmt reads:
+    # a shell-file section, or one of its own properties. A bare `root = true`
+    # is not the project choosing a shell formatter.
+    if [ -z "$shroot" ] || { [ ! -f "$shroot/.shfmt" ] && ! grep -qE '^\[[^]]*\.(sh|bash)|^[[:space:]]*(shell_variant|binary_next_line|switch_case_indent|space_redirects|keep_padding|function_next_line)[[:space:]]*=' "$shroot/.editorconfig" 2>/dev/null; }; then
+      echo "format hook: no shfmt configuration for $path; skipped" >&2; exit 0
+    fi
     command -v shfmt >/dev/null 2>&1 || { echo "format hook: shfmt not on PATH for $path; skipped" >&2; exit 0; }
     st=0; run_bounded shfmt -w "$path" || st=$?
     if [ "$st" = 0 ]; then echo "format hook: applied shfmt on $path" >&2

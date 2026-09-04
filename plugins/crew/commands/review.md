@@ -29,11 +29,14 @@ classify each path — same split the lane guard uses:
 - **Backend lane** — the resolved backend's sources and manifests: `*.cs`, `*.csproj`
   (and `*.cshtml`: it carries server-side logic); `*.py`, `*.pyi`, `pyproject.toml`,
   `requirements*.txt`, `setup.py`, `setup.cfg`, `tox.ini`, `Pipfile{,.lock}`, `poetry.lock`,
-  `uv.lock`, `pdm.lock`; `*.go`, `go.mod`, `go.sum`, `go.work`, `go.work.sum`; `*.rs`,
-  `Cargo.toml`, `Cargo.lock`; `*.java`, `pom.xml`, `build.gradle{,.kts}`,
+  `uv.lock`, `pdm.lock`, `mypy.ini`, `pyrightconfig.json`, `pytest.ini`, `ruff.toml`, `.flake8`;
+  `*.go`, `go.mod`, `go.sum`, `go.work`, `go.work.sum`, `.golangci.y{a,}ml`, `testdata/**`; `*.rs`,
+  `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`, `clippy.toml`; `*.java`, `pom.xml`, `build.gradle{,.kts}`,
   `settings.gradle{,.kts}`, `gradle.properties`, `src/main/resources/application*` and
-  `bootstrap*` (not `templates/` or `static/` under it — those are the view); `*.sh`, `*.bash`,
-  `*.bats`, `.shellcheckrc`.
+  `bootstrap*` (not `templates/` or `static/` under it — those are the view), `src/test/resources/**`;
+  `*.sh`, `*.bash`, `*.bats`, `.shellcheckrc`. A gate's own configuration counts: it decides what
+  the build and lint do, so a branch that changes only `mypy.ini` or `.golangci.yml` is a backend
+  branch.
   This list mirrors `lane-guard.sh`'s deny union — they must not drift, or the gate skips what
   the guard protects.
 - **Frontend lane** — `*.ts`, `*.tsx`, `*.jsx`, `*.js`, `*.mjs`, `*.scss`, `*.css`, `*.html`

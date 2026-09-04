@@ -108,6 +108,13 @@ assert_block "bare mv behind an allowed git mv" "$HOOK" "$(payload_bash 'git mv 
 assert_block "cp behind an allowed git mv"      "$HOOK" "$(payload_bash 'git mv a b && cp c d' morpheus)" "$gap"
 assert_block "redirect behind an allowed git mv" "$HOOK" "$(payload_bash 'git mv a b > src/log' morpheus)" "$gap"
 assert_block "morpheus bare mv"                 "$HOOK" "$(payload_bash 'mv src/a.cs src/b.cs' morpheus)" "$gap"
+# The matched `git mv` text is interpolated quoted when it is masked and when the
+# operands are cut out, so a glob metacharacter in it stays literal: the mask
+# lands on that one token and a bare `mv` behind it is still seen.
+assert_allow "git mv with a glob in a flag value" "$HOOK" "$(payload_bash 'git -C "*" mv a b' morpheus)"
+assert_allow "git mv with globs in its operands"  "$HOOK" "$(payload_bash 'git mv "a*" "b[1]"' morpheus)"
+assert_block "bare mv behind a glob-carrying git mv" "$HOOK" "$(payload_bash 'git -C "[" mv a b && mv c d' morpheus)" "$gap"
+assert_block "forced glob-carrying git mv"          "$HOOK" "$(payload_bash 'git -C "*" mv -f a b' morpheus)"       "$force"
 # Only a `git mv` at a command position is recognised; `-exec git mv` is not.
 assert_block "git mv under find -exec"          "$HOOK" "$(payload_bash 'find . -name "*.cs" -exec git mv {} old/ \;' morpheus)" "$gap"
 # A worker is told whose the rename is and what to hand back, rather than the

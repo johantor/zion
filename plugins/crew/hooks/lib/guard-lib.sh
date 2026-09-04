@@ -302,6 +302,9 @@ guard_block_file_writes() {
     # Operands up to the next separator, quotes stripped so `'-f'` still reads as
     # the flag git would see. A filename that merely looks like a force flag is
     # refused too: the failure direction is a refused rename, never a clobber.
+    # `$m` stays QUOTED inside every expansion below, as in the redirect scan:
+    # unquoted it would be a glob, and a `*` or `[` in a flag value (`git -C
+    # "*" mv`) or an operand would widen the match and mask what follows.
     ops="${cmd#*"$m"}"; ops="${ops%%[;|&]*}"; ops="${ops//[\'\"]/}"
     if [[ $ops =~ $GUARD_RE_GIT_MV_FORCE ]]; then
       echo "Blocked: git mv -f/--force can overwrite an existing path, which is a write. Rename without it; if the destination exists, move or remove it as its own step first." >&2

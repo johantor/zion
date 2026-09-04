@@ -12,9 +12,9 @@
 [Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
 team-style software delivery: a captain that plans and delegates to backend,
 frontend, test, and design specialists behind hook-enforced guardrails
-(**crew**), a precision tool that pays down tech debt and upgrades dependencies
-one verified fix at a time (**keymaker**) — installable together or
-independently, and sharing one review rubric.
+(**crew**), and a precision tool that pays down tech debt and upgrades
+dependencies one verified fix at a time (**keymaker**) — installable together
+or independently.
 
 ```bash
 claude plugin marketplace add johantor/zion

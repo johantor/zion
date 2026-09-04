@@ -217,6 +217,11 @@ gjf_multi="$(make_tree 'pom.xml:<project><modules><module>service</module></modu
 # Spotless names these formatters in its own config, so matching the name would
 # read Spotless as permission to run a standalone binary it never asked for.
 spotless="$(make_tree 'build.gradle:spotless { java { googleJavaFormat() } }')"
+# A module path containing a space must stay one argument to grep.
+spaced="$(make_tree 'my service/pom.xml:<project><plugin>google-java-format</plugin></project>')"
+fake_bin google-java-format 'exit 0'
+assert_reports "a module path with a space still finds the formatter" \
+  "$(payload_file tank 'my service/src/main/java/Svc.java')" "$spaced" "applied google-java-format"
 assert_reports "a Spotless project is left to the review gate" \
   "$(payload_file tank src/main/java/Svc.java)" "$spotless" "Spotless formats through the build"
 assert_reports "a formatter configured in the owning module is found" \

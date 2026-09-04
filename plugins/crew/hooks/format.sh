@@ -245,7 +245,7 @@ case "$lane" in
       awk -v want="$2" '
         /^[[:space:]]*\[/ { s=$0; sub(/#.*/, "", s); gsub(/[][[:space:]]/, "", s); next }
         s == want && /^[[:space:]]*edition[[:space:]]*=/ {
-          if (match($0, /["\x27][0-9]+["\x27]/)) { print substr($0, RSTART + 1, RLENGTH - 2); exit }
+          if (match($0, /["\047][0-9]+["\047]/)) { print substr($0, RSTART + 1, RLENGTH - 2); exit }
         }' "$1" 2>/dev/null
     }
     # True only for an EXPLICIT `edition.workspace = true` / `= { workspace = true }`.
@@ -320,19 +320,18 @@ case "$lane" in
     # what happens to be installed: running the other one reformats the whole file
     # to a different style.
     jvmroot="$(find_up pom.xml build.gradle build.gradle.kts)" || jvmroot="."
-    _builds="$jvmroot/pom.xml $jvmroot/build.gradle $jvmroot/build.gradle.kts pom.xml build.gradle build.gradle.kts"
+    _builds=("$jvmroot/pom.xml" "$jvmroot/build.gradle" "$jvmroot/build.gradle.kts" \
+             pom.xml build.gradle build.gradle.kts)
     # A Spotless project formats through the build, so per-edit formatting is the
     # gate's job. Its config NAMES these formatters (`googleJavaFormat()`), so
     # matching the name alone would read Spotless as permission to run a
     # standalone binary -- the opposite of what the project configured. Skip.
-    # shellcheck disable=SC2086  # deliberate word-split over the build-file list
-    if grep -qriE -- 'spotless' $_builds 2>/dev/null; then
+    if grep -qriE -- 'spotless' "${_builds[@]}" 2>/dev/null; then
       echo "format hook: Spotless formats through the build; left to the review gate for $path" >&2; exit 0
     fi
     tool=""
     for _t in google-java-format palantir-java-format; do
-      # shellcheck disable=SC2086
-      grep -qrF -- "$_t" $_builds 2>/dev/null || continue
+      grep -qrF -- "$_t" "${_builds[@]}" 2>/dev/null || continue
       command -v "$_t" >/dev/null 2>&1 && { tool="$_t"; break; }
     done
     [ -n "$tool" ] || { echo "format hook: no configured standalone Java formatter for $path; skipped" >&2; exit 0; }

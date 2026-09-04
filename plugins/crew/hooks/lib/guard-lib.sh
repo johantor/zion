@@ -136,7 +136,7 @@ _g_watch_gors='(air|reflex|gow)([[:space:]]|$)|cargo([[:space:]]+-[^[:space:]]+)
 # JVM: the run goals and Gradle's continuous build. Tasks may be module-qualified
 # (`:service:bootRun`). `-t` is matched only in the Gradle arm -- under Maven it
 # is --toolchains.
-_g_watch_jvm='(mvn|mvnw|\./mvnw)[[:space:]]+([^[:space:]]+[[:space:]]+)*(spring-boot:run|quarkus:dev|jetty:run|tomcat7:run)([[:space:]]|$)|(gradle|gradlew|\./gradlew)[[:space:]]+([^[:space:]]+[[:space:]]+)*((:[A-Za-z0-9_.:-]*)?(bootRun|quarkusDev)|--continuous|-t)([[:space:]]|$)'
+_g_watch_jvm='(mvn|([^[:space:]]*/)?mvnw)[[:space:]]+([^[:space:]]+[[:space:]]+)*(spring-boot:run|quarkus:dev|jetty:run|tomcat7:run)([[:space:]]|$)|(gradle|([^[:space:]]*/)?gradlew)[[:space:]]+([^[:space:]]+[[:space:]]+)*((:[A-Za-z0-9_.:-]*)?(bootRun|quarkusDev)|--continuous|-t)([[:space:]]|$)'
 # Tool-agnostic re-runners: these wrap ANY command and never terminate, so they
 # belong to no single stack. `watch` is coreutils'; the rest are file watchers.
 _g_watch_any='(watch|watchexec|entr|fswatch|nodemon)([[:space:]]|$)'

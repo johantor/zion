@@ -60,7 +60,8 @@ for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gun
            'uv run --project service uvicorn app:app' 'pdm run --site-packages flask run' \
            'watch shellcheck .' 'watchexec -- shellcheck .' 'entr make' \
            'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'trunk serve' \
-           './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous'; do
+           './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous' \
+           'service/mvnw spring-boot:run' './service/gradlew bootRun'; do
   assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)" "never terminate"
 done
 # One-shot commands in the same ecosystems stay allowed: refusing one of these
@@ -73,7 +74,8 @@ for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
            'uv run --project service pytest' 'pdm run --site-packages pytest' 'shellcheck hooks/a.sh' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
            'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \
-           './mvnw -B verify' './gradlew test' './gradlew check -x test'; do
+           './mvnw -B verify' './gradlew test' './gradlew check -x test' \
+           'service/mvnw -B verify' './service/gradlew test'; do
   assert_allow "one-shot: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)"
 done
 assert_allow "npm run build"                  "$HOOK" "$(payload_bash 'npm run build' tank)"

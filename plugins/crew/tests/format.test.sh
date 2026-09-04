@@ -52,7 +52,10 @@ web_project() {
 
 # --- Gating: who and what the hook is a no-op for ------------------------------
 ok_project="$(web_project 'exit 0')"
-assert_silent "a non-formatter agent is a no-op" "$(payload_file oracle src/a.ts)" "$ok_project"
+assert_silent "a non-formatter agent is a no-op" "$(payload_file dozer src/a.ts)" "$ok_project"
+# oracle writes test files, which are source and need the same formatting.
+assert_reports "oracle's test edits are formatted too" \
+  "$(payload_file oracle src/a.test.ts)" "$ok_project" "applied prettier"
 assert_silent "the main session (no agent_type) is a no-op" \
   "$(jq -nc '{tool_input: {file_path: "src/a.ts"}}')" "$ok_project"
 assert_silent "an extension no formatter owns is a no-op" "$(payload_file neo scripts/a.sh)" "$ok_project"

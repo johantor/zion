@@ -52,6 +52,8 @@ assert_allow "--watch=false (disable spelling)" "$HOOK" "$(payload_bash 'jest --
 for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gunicorn wsgi:app' \
            'python manage.py runserver' 'flask run' 'flask --app app run' 'ptw' 'watchmedo auto-restart' \
            'poetry run uvicorn app:app' 'uv run flask run' \
+           'fastapi dev app.py' 'fastapi run' \
+           'uv run python -m uvicorn app:app' 'poetry run python -m flask run' \
            'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'trunk serve' \
            './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous'; do
   assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" tank)" "never terminate"
@@ -59,6 +61,7 @@ done
 # One-shot commands in the same ecosystems stay allowed: refusing one of these
 # would break the gate it belongs to.
 for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
+           'uv run pytest' 'poetry run python -m pytest tests/' 'python -m build' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
            'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \
            './mvnw -B verify' './gradlew test' './gradlew check -x test'; do

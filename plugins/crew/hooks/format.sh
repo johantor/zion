@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# PostToolUse(Edit|Write) formatter, gated to tank/trinity/neo (other agents and
-# the main session are no-ops). The formatter set is chosen by the edited file's
+# PostToolUse(Edit|Write) formatter, gated to the agents that write source
+# (tank/trinity/neo/oracle; other agents and the main session are no-ops). oracle
+# is included because a test file is source too: unformatted, it fails the same
+# lint gate at the end of the run. The formatter set is chosen by the edited file's
 # extension, not a fixed agent->lane table: a backend stack can be dotnet or node,
 # so lane != language. A Node-backend file tank edits still gets web tooling, and
 # a .cs/.csproj file gets dotnet/CSharpier whichever agent produced it.
@@ -20,14 +22,14 @@ guard_read_payload
 # neo is the cross-lane express-lane generalist, so it gets the same
 # extension-based routing as tank/trinity rather than a fixed lane.
 guard_jq2 \
-  '(if ((.agent_type // "") | test("^(tank|trinity|neo)$")) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
+  '(if ((.agent_type // "") | test("^(tank|trinity|neo|oracle)$")) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
   '.agent_type // ""' || exit 0
 agent_type="$guard_trusted"
 path="$guard_untrusted"
 
 case "$agent_type" in
-  tank|trinity|neo) : ;;
-  *)                exit 0 ;;
+  tank|trinity|neo|oracle) : ;;
+  *)                       exit 0 ;;
 esac
 # Extension-based routing needs a path to route on.
 [ -n "$path" ] || exit 0

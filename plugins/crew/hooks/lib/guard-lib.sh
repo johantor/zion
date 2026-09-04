@@ -129,7 +129,7 @@ GUARD_RE_GIT_MV_FORCE="(^|[[:space:]])${_g_frc}"'([[:space:]]|$)'
 _g_watch_web='dotnet[[:space:]]+watch([[:space:]]|$)|(npm|pnpm|yarn|bun)[[:space:]]+(run[[:space:]]+)?(dev|start|serve|watch)([[:space:]]|$)|vite([[:space:]]+(dev|serve|preview)([[:space:]]|$)|[[:space:]]+-|[[:space:]]*($|[;&|]))|(next|nuxt)[[:space:]]+dev([[:space:]]|$)|ng[[:space:]]+serve([[:space:]]|$)|nodemon([[:space:]]|$)|webpack[[:space:]]+serve([[:space:]]|$)|webpack-dev-server([[:space:]]|$)'
 # Python: the servers block with or without --reload, so they match bare;
 # `runserver` needs its script prefix, being too generic on its own.
-_g_watch_py='(uvicorn|hypercorn|gunicorn|daphne|watchmedo|ptw|pytest-watch)([[:space:]]|$)|(\./)?manage\.py[[:space:]]+runserver([[:space:]]|$)|flask([[:space:]]+--[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]|$)'
+_g_watch_py='(uvicorn|hypercorn|gunicorn|daphne|watchmedo|ptw|pytest-watch)([[:space:]]|$)|fastapi[[:space:]]+(dev|run)([[:space:]]|$)|(\./)?manage\.py[[:space:]]+runserver([[:space:]]|$)|flask([[:space:]]+--[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]|$)'
 # Go/Rust: live-reload runners, plus `cargo watch`, a subcommand spelling the
 # bare `--watch` alternative below does not reach.
 _g_watch_gors='(air|reflex|gow)([[:space:]]|$)|cargo([[:space:]]+-[^[:space:]]+)*[[:space:]]+watch([[:space:]]|$)|trunk[[:space:]]+serve([[:space:]]|$)'
@@ -138,7 +138,7 @@ _g_watch_gors='(air|reflex|gow)([[:space:]]|$)|cargo([[:space:]]+-[^[:space:]]+)
 # is --toolchains.
 _g_watch_jvm='(mvn|mvnw|\./mvnw)[[:space:]]+([^[:space:]]+[[:space:]]+)*(spring-boot:run|quarkus:dev|jetty:run|tomcat7:run)([[:space:]]|$)|(gradle|gradlew|\./gradlew)[[:space:]]+([^[:space:]]+[[:space:]]+)*((:[A-Za-z0-9_.:-]*)?(bootRun|quarkusDev)|--continuous|-t)([[:space:]]|$)'
 _g_watch="${_g_watch_web}|${_g_watch_py}|${_g_watch_gors}|${_g_watch_jvm}"
-GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|uv[[:space:]]+run|poetry[[:space:]]+run|pdm[[:space:]]+run|python3?[[:space:]]+-m|python3?)[[:space:]]+)?'"(${_g_watch})"'|--watch([[:space:]]|$)'
+GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|uv[[:space:]]+run|poetry[[:space:]]+run|pdm[[:space:]]+run|python3?[[:space:]]+-m|python3?)[[:space:]]+)*'"(${_g_watch})"'|--watch([[:space:]]|$)'
 
 # Raw/streaming reads that dump a whole file or an endless stream into context.
 GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'

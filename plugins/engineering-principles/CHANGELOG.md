@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Rewrote the plugin description so it names the rubric's rules instead of restating the
+  plugin's own name, and added `keywords` for discovery.
+
 ## [1.2.0] - 2026-07-18
 
 ### Added

@@ -1049,14 +1049,18 @@ while IFS= read -r f; do
       sub(/^[A-Za-z][A-Za-z0-9_-]*:[[:space:]]*/, "", val)
       if (val == "") next
       if (index("\"\047|>[{&*!#", substr(val, 1, 1))) next
-      if (val ~ /:[[:space:]]/ || val ~ /:$/) print FNR " " key
+      # Name the pattern that fired: the two read differently to whoever has to
+      # find it, and "colon+space" sends them hunting for a space that a
+      # trailing colon does not have.
+      if (val ~ /:[[:space:]]/) print FNR " " key " a colon before whitespace"
+      else if (val ~ /:$/)      print FNR " " key " a trailing colon"
     }
   ' "$f")"
   if [ -z "$offenders" ]; then
     ok "frontmatter parses as YAML: $f"
   else
-    while IFS=' ' read -r lineno key; do
-      err "$f:$lineno frontmatter '$key' is an unquoted scalar containing a colon+space; YAML reads that as a nested mapping and drops the whole block (the file loads with no name and no description). Wrap the value in double quotes."
+    while read -r lineno key reason; do
+      err "$f:$lineno frontmatter '$key' is an unquoted scalar carrying $reason; YAML reads that as a nested mapping and drops the whole block (the file loads with no name and no description). Wrap the value in double quotes."
     done <<< "$offenders"
   fi
 done < <(git ls-files 'plugins/*/agents/*.md' 'plugins/*/commands/*.md' 'plugins/*/skills/*/SKILL.md' '.claude/crew.md')

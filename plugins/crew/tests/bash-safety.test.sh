@@ -87,6 +87,33 @@ assert_block "tee into a file"        "$HOOK" "$(payload_bash 'cat t | tee src/F
 assert_block "cp into the tree"       "$HOOK" "$(payload_bash 'cp /tmp/x src/Foo.cs' tank)"  "$gap"
 assert_block "mv inside the tree"     "$HOOK" "$(payload_bash 'mv src/a.cs src/b.cs' tank)"  "$gap"
 assert_block "patch"                  "$HOOK" "$(payload_bash 'patch -p1 < fix.diff' tank)"  "$gap"
+# `git mv` is a rename recorded in the index, not a write: no bytes change, so no
+# lane guard or formatter has anything to inspect. The git owner alone may run it
+# -- the rename lands in its commit, where it is reviewed. Bare `mv`/`cp` stay
+# refused for everyone, and so does a forced `git mv`, which can clobber.
+force="git mv -f/--force can overwrite"
+assert_allow "morpheus git mv"                 "$HOOK" "$(payload_bash 'git mv BishopsArms.Members src/BishopsArms.Members' morpheus)"
+assert_allow "morpheus git -C dir mv"          "$HOOK" "$(payload_bash 'git -C . mv src/a.cs src/b.cs' morpheus)"
+assert_allow "morpheus git mv after &&"        "$HOOK" "$(payload_bash 'cd src && git mv a.cs b.cs' morpheus)"
+assert_allow "morpheus two git mvs"            "$HOOK" "$(payload_bash 'git mv a b; git mv c d' morpheus)"
+assert_allow "morpheus git mv -k (skip errors)" "$HOOK" "$(payload_bash 'git mv -k a b' morpheus)"
+assert_allow "morpheus git mv of an mv-prefixed path" "$HOOK" "$(payload_bash 'git mv mvc/a.cs mvc/b.cs' morpheus)"
+assert_block "morpheus git mv -f"              "$HOOK" "$(payload_bash 'git mv -f a b' morpheus)"       "$force"
+assert_block "morpheus git mv --force"         "$HOOK" "$(payload_bash 'git mv --force a b' morpheus)"  "$force"
+assert_block "morpheus git mv -kf (bundled)"   "$HOOK" "$(payload_bash 'git mv -kf a b' morpheus)"      "$force"
+assert_block "morpheus git mv with a quoted -f" "$HOOK" "$(payload_bash "git mv '-f' a b" morpheus)"    "$force"
+assert_block "forced git mv behind an allowed one" "$HOOK" "$(payload_bash 'git mv a b; git mv -f c d' morpheus)" "$force"
+# The allowance covers the `git mv` token only: what follows is checked as before.
+assert_block "bare mv behind an allowed git mv" "$HOOK" "$(payload_bash 'git mv a b && mv c d' morpheus)" "$gap"
+assert_block "cp behind an allowed git mv"      "$HOOK" "$(payload_bash 'git mv a b && cp c d' morpheus)" "$gap"
+assert_block "redirect behind an allowed git mv" "$HOOK" "$(payload_bash 'git mv a b > src/log' morpheus)" "$gap"
+assert_block "morpheus bare mv"                 "$HOOK" "$(payload_bash 'mv src/a.cs src/b.cs' morpheus)" "$gap"
+# Only a `git mv` at a command position is recognised; `-exec git mv` is not.
+assert_block "git mv under find -exec"          "$HOOK" "$(payload_bash 'find . -name "*.cs" -exec git mv {} old/ \;' morpheus)" "$gap"
+# A worker is told whose the rename is and what to hand back, rather than the
+# generic write message that sends it looking for a synonym.
+assert_block "tank git mv names the owner"      "$HOOK" "$(payload_bash 'git mv a b' tank)" "morpheus owns git"
+assert_block "tank git mv says hand it back"    "$HOOK" "$(payload_bash 'git mv a b' tank)" "Hand the rename back"
 # Exempt sinks and read-only uses of the same tools stay allowed: a guard that
 # blocked `> /dev/null` would just be routed around.
 assert_allow "redirect to /dev/null"  "$HOOK" "$(payload_bash 'dotnet build > /dev/null' tank)"

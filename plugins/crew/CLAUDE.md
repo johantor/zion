@@ -45,7 +45,14 @@ anything stated here updates this file in the same commit.** Conventions live in
   backstop; watch/dev commands refused; **file-mutating Bash refused for agent sessions** — an
   in-place `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, and a redirect to anything but an
   exempt sink — so a Bash write can't route around `lane-guard`/`format.sh`, which are
-  `Edit|Write`-only; #192), `read-guard.sh` (>64 KiB raw reads; an explicit
+  `Edit|Write`-only; #192. The one carve-out is **`git mv` for `morpheus`**: a rename changes no
+  bytes, so no lane guard or formatter has anything to inspect, and it lands in the git owner's
+  commit; `git mv -f`/`--force` stays refused because it can clobber, bare `mv`/`cp` stay refused
+  for everyone, and a worker's `git mv` is answered with *whose* the rename is and what to hand
+  back. The hook names the owner in a `git_owner=morpheus` line above the shared region and
+  passes it into the floor; validator §9 pins that line to the `owns-git: true` agent. Matched at
+  a command position only — `find -exec git mv` and `(git mv …)` fall through to the generic
+  refusal), `read-guard.sh` (>64 KiB raw reads; an explicit
   `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes; the **only** hook that reads
   crew configuration — `.claude/crew.md` frontmatter by key, falling back to a legacy
   **Crew configuration** block in `CLAUDE.md` when that file is absent, so `config_slot` takes
@@ -172,8 +179,11 @@ anything stated here updates this file in the same commit.** Conventions live in
   writes nothing.
 - Agent write-access declarations, checked by validator §9 (see below): every crew agent
   carries `owns-git: true|false` and `lane-guarded: true|false` before `skills:`. Exactly one
-  agent (`morpheus`) owns git. These are the declarative half of what the guard hooks enforce
-  — a new agent that omits them fails CI instead of silently getting unguarded git and no lane.
+  agent (`morpheus`) owns git, and `bash-safety.sh`'s `git_owner=` line must name that same
+  agent — it is what the shared floor's `git mv` allowance keys on, and a stale name there fails
+  closed for the one agent that may rename. These are the declarative half of what the guard hooks
+  enforce — a new agent that omits them fails CI instead of silently getting unguarded git and no
+  lane.
 
 ## Gotchas & release
 

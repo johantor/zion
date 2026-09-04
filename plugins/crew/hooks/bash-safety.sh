@@ -33,15 +33,22 @@ fi
 agent_type="$guard_trusted"
 guard_normalize "$guard_untrusted"
 
+# The one agent that owns git. The floor's file-write block lets this agent, and
+# only this agent, run `git mv`: a rename is a git operation and lands in its
+# commit, so it needs no lane or formatting guard. Validator §9 keeps this line
+# in lockstep with the agents' `owns-git` frontmatter.
+git_owner=morpheus
+
 # --- BEGIN shared guard: floor ---
 # The floor every plugin's Bash guard enforces, in this order. Destructive ops
 # are refused for everyone; the watch/dev/serve and file-write blocks are scoped
 # to agent sessions, since the user's own session may legitimately run a dev
-# server, and is not write-guarded on the Edit|Write path either.
+# server, and is not write-guarded on the Edit|Write path either. The file-write
+# block takes the plugin's git owner, the one agent it lets run `git mv`.
 guard_block_destructive
 [ -n "$agent_type" ] && guard_block_watch_commands
 guard_block_raw_reads
-[ -n "$agent_type" ] && guard_block_file_writes
+[ -n "$agent_type" ] && guard_block_file_writes "$agent_type" "$git_owner"
 # --- END shared guard: floor ---
 
 # Workers never touch git -- morpheus is the sole git owner (see AGENTS.md, "How

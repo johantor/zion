@@ -33,6 +33,16 @@ assert_allow "vite build (not a dev server)"     "$HOOK" "$(payload_bash 'vite b
 assert_allow "--watch=false (disable spelling)"  "$HOOK" "$(payload_bash 'jest --watch=false' twin)"
 assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm run dev')"
 
+# The shared library also covers the non-web ecosystems a twin works in.
+for cmd in 'uvicorn app:app' 'flask --debug run' './manage.py runserver' \
+           'air' 'cargo watch -x test' './gradlew -t build' './gradlew :service:bootRun' \
+           './mvnw spring-boot:run'; do
+  assert_block "watch: $cmd" "$HOOK" "$(payload_bash "$cmd" twin)" "never terminate"
+done
+for cmd in 'pytest -q' 'go test ./...' 'cargo test' './gradlew test' './mvnw -B verify'; do
+  assert_allow "one-shot: $cmd" "$HOOK" "$(payload_bash "$cmd" twin)"
+done
+
 assert_block "sed -i"                "$HOOK" "$(payload_bash "sed -i 's/a/b/' src/Foo.cs" twin)" "reaches no Edit|Write hook"
 assert_block "redirect into a file"  "$HOOK" "$(payload_bash 'echo x > src/Foo.cs' twin)"        "reaches no Edit|Write hook"
 assert_allow "redirect to /dev/null" "$HOOK" "$(payload_bash 'npm run build > /dev/null' twin)"

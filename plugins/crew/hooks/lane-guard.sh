@@ -225,7 +225,10 @@ case "$agent_type" in
           patterns='**/*Tests/** **/*.Tests.* tests/** **/__tests__/** **/*.test.* **/*.spec.*'
           patterns+=' **/test_*.py **/*_test.py **/conftest.py'   # pytest
           patterns+=' **/*_test.go'                               # go test, beside the source
-          patterns+=' **/src/test/** **/*Test.java **/*Tests.java **/*IT.java'  # JUnit
+          # Every Surefire/Failsafe name convention, not just src/test: a custom
+          # Gradle source set puts these classes elsewhere.
+          patterns+=' **/src/test/** **/*Test.java **/Test*.java **/*Tests.java'
+          patterns+=' **/*TestCase.java **/*IT.java **/IT*.java **/*ITCase.java'
           exclude='e2e/** cypress/** playwright/** tests/e2e/**' ;;
   dozer)
     # Scope to the resolved e2e tool's conventional locations rather than a blanket
@@ -311,10 +314,15 @@ case "$agent_type" in
         patterns='*.ts *.tsx *.jsx *.js *.mjs *.scss *.css *.html'
       else
         patterns='*.cs *.csproj'                                     # dotnet
-        patterns+=' *.py *.pyi pyproject.toml requirements*.txt'     # python
-        patterns+=' *.go go.mod go.sum'                              # go
-        patterns+=' *.rs Cargo.toml Cargo.lock'                      # rust
-        patterns+=' *.java pom.xml build.gradle build.gradle.kts'    # java
+        # Manifests and build config count: they are backend-owned, and leaving
+        # them out lets the lane fail open on exactly the dependency files a
+        # frontend agent has no business editing.
+        patterns+=' *.py *.pyi pyproject.toml requirements*.txt setup.py setup.cfg'
+        patterns+=' tox.ini Pipfile Pipfile.lock poetry.lock uv.lock pdm.lock'   # python
+        patterns+=' *.go go.mod go.sum'                                          # go
+        patterns+=' *.rs Cargo.toml Cargo.lock'                                  # rust
+        patterns+=' *.java pom.xml build.gradle build.gradle.kts'
+        patterns+=' settings.gradle settings.gradle.kts gradle.properties'       # java
       fi
     fi
     ;;

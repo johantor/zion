@@ -46,9 +46,14 @@ Use the one-shot backend build command from crew config — typically `./mvnw -B
 
 Run it as strict as the project configures:
 
-- **Never skip the checks.** `-DskipTests`, `-Dmaven.test.skip=true`, `-x test`,
-  `-Dcheckstyle.skip`, `-Dspotbugs.skip`, `-Denforcer.skip` and friends each remove a part of the
-  gate. If the gate is meant to run tests, let it.
+- **Never skip a non-test check.** `-Dcheckstyle.skip`, `-Dspotbugs.skip`, `-Denforcer.skip` and
+  friends each remove a part of the gate you were asked to run.
+  `-DskipTests`/`-Dmaven.test.skip=true`/`-x test` are the exception: the crew runs tests through
+  the separate **backend test command**, which `oracle` owns, so a build command that excludes
+  them is deliberate. Don't add a test-skipping flag the command doesn't have, and don't report
+  one it does have as a weakening. Note that `-Dmaven.test.skip=true` also skips *compiling* the
+  tests, so a test that no longer compiles stays invisible until `oracle` runs — say so if you
+  see it where `-DskipTests` would do.
 - **Never narrow the reactor.** `-pl <module>` builds one module of many and can report clean
   while a sibling is broken. `-am`/`-amd` change which modules build too. Keep the configured shape.
 - **Never go below the default log level.** Maven's `-q` hides warnings; Gradle's `-q` does the

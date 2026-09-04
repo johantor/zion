@@ -39,9 +39,10 @@ Run it as strict as the project configures:
   report clean while another package is broken. If the configured command says `./...`, keep it.
 - **`go build` alone is not the whole gate.** It does not run `go vet`'s checks. When the
   configured command pairs them, run both and report both.
-- **A cached build proves nothing new.** Go's build cache means an unchanged tree compiles
-  instantly; that is fine, but don't read a fast no-op as evidence your change compiled. Check
-  that the packages you touched are in the output of the run.
+- **Silence is success.** A clean `go build` prints nothing, so no output is the pass, not a
+  sign that nothing ran. The cache is content-addressed against the current tree, so a cached
+  result is a real result — use `-v` or `-x` only when you have a concrete reason to see which
+  packages compiled.
 - **Never pass `-tags` the project doesn't configure** to route around a broken file. Build tags
   select which files compile — adding one hides the failure rather than fixing it.
 

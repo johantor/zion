@@ -16,10 +16,11 @@ assert_allow "trinity allowed a .tsx file" "$HOOK" "$(payload_file trinity Foo.t
 # --- Extension regime, the Python/Go/Rust/JVM backends -------------------------
 # These extensions are disjoint from the frontend's, so the stacks need no lane
 # paths. A miss fails silently in production: the guard passes, the lanes don't.
-for _f in svc.py svc.pyi pyproject.toml requirements.txt \
+for _f in svc.py svc.pyi pyproject.toml requirements.txt setup.py setup.cfg \
+          tox.ini Pipfile poetry.lock uv.lock pdm.lock \
           svc.go go.mod go.sum \
           svc.rs Cargo.toml Cargo.lock \
-          Svc.java pom.xml build.gradle build.gradle.kts; do
+          Svc.java pom.xml build.gradle build.gradle.kts settings.gradle gradle.properties; do
   assert_block "trinity denied a backend file ($_f)" "$HOOK" "$(payload_file trinity "$_f")" "out of"
   assert_allow "tank allowed a backend file ($_f)"   "$HOOK" "$(payload_file tank "$_f")"
 done
@@ -43,7 +44,10 @@ for _t in pkg/test_svc.py pkg/svc_test.py pkg/conftest.py \
           src/test/java/com/example/SvcTest.java app/src/test/resources/fixture.sql; do
   assert_allow "oracle allowed a test path ($_t)" "$HOOK" "$(payload_file oracle "$_t")"
 done
-assert_allow "oracle allowed a JUnit IT class" "$HOOK" "$(payload_file oracle SvcIT.java)"
+# Every Surefire/Failsafe convention, including outside src/test.
+for _j in SvcTest.java TestSvc.java SvcTests.java SvcTestCase.java SvcIT.java ITSvc.java SvcITCase.java; do
+  assert_allow "oracle allowed a JUnit class ($_j)" "$HOOK" "$(payload_file oracle "$_j")"
+done
 # Production code in those same ecosystems stays out of oracle's lane.
 for _p in pkg/svc.py pkg/svc.go src/lib.rs src/main/java/com/example/Svc.java; do
   assert_block "oracle denied production code ($_p)" "$HOOK" "$(payload_file oracle "$_p")" "allowed paths"

@@ -10,8 +10,8 @@
 
 **Ship features like a crew, not a single agent.** Zion is a
 [Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
-team-style software delivery: a captain that plans and delegates to backend,
-frontend, test, and design specialists behind hook-enforced guardrails
+team-style software delivery in any stack: a captain that plans and delegates to
+backend, view, test, and design specialists behind hook-enforced guardrails
 (**crew**), and a precision tool that pays down tech debt and upgrades
 dependencies one verified fix at a time (**keymaker**) — installable together
 or independently.
@@ -29,7 +29,7 @@ claude plugin install crew@zion
 
 | Plugin | Status | What it does | Adds to your session |
 |---|---|---|---|
-| **[crew](plugins/crew/README.md)** | Stable | Orchestrated, multi-agent feature delivery: a captain (`morpheus`) plans the work and delegates to backend, frontend, test, and visual-review specialists, with a consolidated review gate before anything ships. | `/crew:*` commands, agents, safety hooks, skills |
+| **[crew](plugins/crew/README.md)** | Stable | Orchestrated, multi-agent feature delivery: a captain (`morpheus`) plans the work and delegates to backend, client-facing, test, and visual-review specialists across .NET, Node, Python, Go, Rust and the JVM, with a consolidated review gate before anything ships. | `/crew:*` commands, agents, safety hooks, skills |
 | **[keymaker](plugins/keymaker/README.md)** | [Beta](plugins/keymaker/README.md#graduation-to-stable-v10) | Pointer-driven tech debt remediation and dependency upgrades: fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:*` commands, agents, safety hooks, skills |
 
 The plugins are designed to compose: they read the same `.claude/crew.md`
@@ -138,7 +138,7 @@ mapped loosely to what they do:
 - **morpheus** — the captain: plans and leads, writes no code himself (crew orchestrator).
 - **neo** — "The One," not bound to a single role: the generalist who takes the express lane for small fixes.
 - **tank** & **dozer** — the operators: **tank** runs the backend, **dozer** runs the e2e tests.
-- **trinity** — the hacker on point: the frontend.
+- **trinity** — the hacker on point: the client-facing layer.
 - **oracle** — sees what will and won't hold up: the unit tests (backend, plus frontend component tests).
 - **seraph** — the guardian who knows you by testing you ("you do not truly know someone until you fight them"): visual design conformance.
 - **sentinel** — the machines' search unit, hunting through the dark: post-merge triage, tracking a production signal back to the commit that caused it.

@@ -4,8 +4,9 @@
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](../../LICENSE)
 
 **Ship a feature like a team, not a single agent.** `crew` turns a Claude Code session into a
-captain that plans and delegates, plus specialists — backend, frontend, tests, visual review —
-each scoped to its own lane. You approve the plan, every step is verified and committed as it
+captain that plans and delegates, plus specialists — backend, the client-facing layer, tests,
+visual review — each scoped to its own lane. The backend lane covers .NET, Node, Python, Go,
+Rust and the JVM; the crew is for software delivery, not for websites specifically. You approve the plan, every step is verified and committed as it
 lands, and nothing reaches a pull request until a consolidated review gate returns **GO**.
 
 Part of the [Zion](../../README.md) marketplace.
@@ -14,8 +15,8 @@ Part of the [Zion](../../README.md) marketplace.
 
 - **A plan you approve first.** One gate to catch a misread task before a branch, a commit, or
   worker time is spent.
-- **Specialists, not one generalist.** Backend, frontend, unit tests, e2e, and design conformance
-  each go to an agent scoped to that work, with only the tools it needs.
+- **Specialists, not one generalist.** Backend, the client-facing layer, unit tests, e2e, and
+  design conformance each go to an agent scoped to that work, with only the tools it needs.
 - **Guardrails in code, not prose.** Workers are blocked from `git` outright, and their file edits
   held to their lane by `PreToolUse` hooks, enforced by the harness rather than by asking politely.
 - **A gate that can say no, and you hold the door.** `/crew:review` returns GO / NO-GO across
@@ -30,9 +31,10 @@ Part of the [Zion](../../README.md) marketplace.
 - **The checkpoint is a real stop.** `morpheus` waits for your go-ahead before it branches or
   delegates. Background workers can't prompt, so a step that still needs a decision has to get one
   from you first.
-- **The lane guards will refuse things.** They fail closed: a same-language backend and frontend
-  with no lane paths configured gets a refusal rather than a guess. That's deliberate, and it
-  means `/crew:init` is not optional on those stacks.
+- **The lane guards will refuse things.** They fail closed: a same-language backend and
+  client-facing layer with no lane paths configured gets a refusal rather than a guess. That's
+  deliberate, and it means `/crew:init` is not optional on those stacks — in practice Node with a
+  JS frontend, since every other supported backend has extensions the guard can tell apart.
 - **Nothing ships on its own.** No push, no PR, not even in loop mode. If you wanted
   fire-and-forget, this is the wrong tool.
 
@@ -259,7 +261,8 @@ one that isn't installed, so it just reports the server as unavailable.
 
 ## What's included
 
-- **Agents:** `morpheus` (captain) and the workers `tank` (backend), `trinity` (frontend),
+- **Agents:** `morpheus` (captain) and the workers `tank` (backend), `trinity` (client-facing
+  layer),
   `oracle` (unit tests), `dozer` (e2e), `seraph` (visual review), `neo` (express generalist),
   `sentinel` (post-merge triage). Workers stay idle until `morpheus` delegates.
 - **Commands:** `/crew:init`, `/crew:feature`, `/crew:review`, `/crew:pr`, `/crew:address`,
@@ -269,8 +272,9 @@ one that isn't installed, so it just reports the server as unavailable.
 - **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`. Always
   on for workers only: `mid-run-direction` (how to treat a steer that arrives mid-run), and
   `design-tokens` for the agent doing design conformance.
-  Loaded once the stack is resolved: per frontend mode, per backend/frontend stack (.NET, Node,
-  React, Next.js, Optimizely), and per test tool (xUnit, Vitest, Jest, Cypress, Playwright).
+  Loaded once the stack is resolved: per frontend mode, per backend stack (.NET, Node, Python,
+  Go, Rust, JVM — plus Optimizely on top of .NET), per frontend stack (React, Next.js), and per
+  test tool (xUnit, pytest, `go test`, cargo, JUnit, Vitest, Jest, Cypress, Playwright).
 
 Local agent memory is git-ignored (`.claude/agent-memory-local/`).
 

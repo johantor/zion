@@ -98,4 +98,73 @@ else
   echo "note: no timeout/gtimeout binary — skipping the bounded-formatter case" >&2
 fi
 
+# --- The non-web lanes: tools found on PATH, not in node_modules/.bin ----------
+# These formatters ship with a toolchain rather than a project, so the hook looks
+# them up on PATH. fake_bin puts a stub there for the duration of these cases.
+# Whether the host happens to have gofmt or rustfmt installed must not decide
+# the result, so PATH becomes a mirror of itself with exactly these tools left
+# out; the harness keeps everything else it needs. Anything a case wants found
+# is stubbed into _fake_bin, which is searched first.
+_fake_bin="$(mktemp -d)"
+_mirror_bin="$(mktemp -d)"
+_real_path="$PATH"
+while IFS= read -r -d ':' _d || [ -n "$_d" ]; do
+  [ -d "$_d" ] || continue
+  for _f in "$_d"/*; do
+    [ -x "$_f" ] || continue
+    case "${_f##*/}" in
+      ruff|black|gofmt|gofumpt|rustfmt|google-java-format|palantir-java-format) continue ;;
+    esac
+    [ -e "$_mirror_bin/${_f##*/}" ] || ln -s "$_f" "$_mirror_bin/${_f##*/}" 2>/dev/null
+  done
+done <<<"$PATH:"
+fake_bin() { printf '#!/bin/sh\n%s\n' "$2" > "$_fake_bin/$1"; chmod +x "$_fake_bin/$1"; }
+PATH="$_fake_bin:$_mirror_bin"; export PATH
+
+plain="$(make_tree 'go.mod:module fixture')"
+
+# Absent tool: skipped and said so, never a download and never a claimed run.
+assert_reports "a Python file with no formatter on PATH is skipped" \
+  "$(payload_file tank pkg/svc.py)" "$plain" "no Python formatter on PATH"
+assert_reports "a Go file with no formatter on PATH is skipped" \
+  "$(payload_file tank pkg/svc.go)" "$plain" "no Go formatter on PATH"
+assert_reports "a Rust file with no rustfmt on PATH is skipped" \
+  "$(payload_file tank src/lib.rs)" "$plain" "rustfmt not on PATH"
+assert_reports "a Java file with no standalone formatter on PATH is skipped" \
+  "$(payload_file tank src/main/java/Svc.java)" "$plain" "no standalone Java formatter on PATH"
+
+# Present tool: runs and is reported.
+fake_bin ruff 'exit 0'
+assert_reports "ruff formats a Python file" \
+  "$(payload_file tank pkg/svc.py)" "$plain" "applied ruff-format"
+fake_bin gofmt 'exit 0'
+assert_reports "gofmt formats a Go file" \
+  "$(payload_file tank pkg/svc.go)" "$plain" "applied gofmt"
+# gofumpt is a strict superset, so it wins wherever it is installed.
+fake_bin gofumpt 'exit 0'
+assert_reports "gofumpt wins over gofmt when both are present" \
+  "$(payload_file tank pkg/svc.go)" "$plain" "applied gofumpt"
+fake_bin rustfmt 'exit 0'
+assert_reports "rustfmt formats a Rust file" \
+  "$(payload_file tank src/lib.rs)" "$plain" "applied rustfmt"
+fake_bin google-java-format 'exit 0'
+assert_reports "google-java-format formats a Java file" \
+  "$(payload_file tank src/main/java/Svc.java)" "$plain" "applied google-java-format"
+
+# The manifest's edition reaches rustfmt; bare rustfmt does not read Cargo.toml,
+# so a 2015-only default would reformat a later edition's source wrongly.
+edition_tree="$(make_tree 'Cargo.toml:[package]
+edition = "2021"')"
+fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
+assert_reports "the manifest edition is passed to rustfmt" \
+  "$(payload_file tank src/lib.rs)" "$edition_tree" "applied rustfmt"
+
+# A rejecting tool is reported as failed, not as applied.
+fake_bin rustfmt 'exit 1'
+assert_reports "a rustfmt that rejects the file is reported as failed" \
+  "$(payload_file tank src/lib.rs)" "$plain" "rustfmt failed"
+
+PATH="$_real_path"; export PATH
+rm -rf "$_fake_bin" "$_mirror_bin"
+
 finish

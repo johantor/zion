@@ -103,7 +103,10 @@ trust or correct it; never invent a command you can't see configured.
   exists).
 - **Backend (Python):** there is no compile step, so the build slot is the project's static gate —
   a `[tool.mypy]`/`mypy.ini` implies `mypy .`, a `[tool.pyright]`/`pyrightconfig.json` implies
-  `pyright`. Test `pytest` (or the configured `[tool.pytest.ini_options]` invocation); lint
+  `pyright`. Test `pytest` when the project has it (a `[tool.pytest.ini_options]` table, a
+  `pytest.ini`, or pytest in the dependencies) — a `unittest`-only project need not have pytest
+  installed, so propose `python -m unittest discover` there instead, and leave the slot `unset`
+  when neither is present. Lint
   `ruff check .` / `flake8` plus `black --check .` where configured. Prefix every command with
   the project's runner when it has one (`poetry run`, `uv run`, `pdm run`) — a bare `pytest`
   resolves against whatever interpreter is active. If no type checker is configured, say so and
@@ -116,10 +119,13 @@ trust or correct it; never invent a command you can't see configured.
   configured. Test `cargo test` (`cargo nextest run` when `nextest.toml`/the tool is configured);
   lint `cargo fmt --check`.
 - **Backend (JVM):** prefer the committed wrapper. Maven (`pom.xml`) implies build `./mvnw -B
-  verify -DskipTests`, test `./mvnw -B test`, lint `./mvnw -B checkstyle:check` where the plugin is
-  configured. Gradle (`build.gradle*`) implies build `./gradlew build -x test`, test
-  `./gradlew test`, lint `./gradlew check -x test`. Read the actual plugin/task set rather than
-  assuming these exist.
+  verify -DskipTests`, lint `./mvnw -B checkstyle:check` where the plugin is configured, and test
+  `./mvnw -B verify` — **not** `./mvnw -B test`, which stops before the `integration-test`/`verify`
+  phases where Failsafe runs, so every `*IT` class would be skipped by both gates. Gradle
+  (`build.gradle*`) implies build `./gradlew build -x test`, lint `./gradlew check -x test`, and
+  test `./gradlew test` plus any separate integration-test task the build script declares — Gradle
+  has no Failsafe equivalent by default, so read the source sets rather than assuming one task
+  covers both. Read the actual plugin/task set rather than assuming these exist.
 - **Frontend (Node):** read `package.json` `scripts` — map `build`/`typecheck` → frontend
   build, `test`/`e2e`/a Playwright config → frontend test, `lint` → frontend lint. Use the
   scripts that exist; don't assume an `npx` download.

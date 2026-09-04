@@ -319,7 +319,7 @@ case "$agent_type" in
         # frontend agent has no business editing.
         patterns+=' *.py *.pyi pyproject.toml requirements*.txt setup.py setup.cfg'
         patterns+=' tox.ini Pipfile Pipfile.lock poetry.lock uv.lock pdm.lock'   # python
-        patterns+=' *.go go.mod go.sum'                                          # go
+        patterns+=' *.go go.mod go.sum go.work go.work.sum'                      # go
         patterns+=' *.rs Cargo.toml Cargo.lock'                                  # rust
         patterns+=' *.java pom.xml build.gradle build.gradle.kts'
         patterns+=' settings.gradle settings.gradle.kts gradle.properties'       # java

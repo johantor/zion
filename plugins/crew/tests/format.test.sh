@@ -195,6 +195,29 @@ edition = "2015"' 'crates/api/Cargo.toml:[package]
 edition = "2021"')"
 assert_reports "a member's own edition wins over the workspace root" \
   "$(payload_file tank crates/api/src/lib.rs)" "$ws2" "applied rustfmt"
+# Omitting edition is NOT inheritance — Cargo defaults it to 2015 — so the
+# workspace root's value must not be borrowed for a member that never asked.
+fake_bin rustfmt 'case "$*" in *--edition*) exit 1 ;; *) exit 0 ;; esac'
+ws3="$(make_tree 'Cargo.toml:[workspace]
+members = ["crates/api"]
+
+[workspace.package]
+edition = "2021"' 'crates/api/Cargo.toml:[package]
+name = "api"')"
+assert_reports "a member that omits edition does not inherit it" \
+  "$(payload_file tank crates/api/src/lib.rs)" "$ws3" "applied rustfmt"
+# A mixed root carries both sections; [package] is the one that applies here.
+fake_bin rustfmt 'case "$*" in *"--edition 2021"*) exit 0 ;; *) exit 1 ;; esac'
+mixed="$(make_tree 'Cargo.toml:[package]
+edition = "2021"
+
+[workspace]
+members = ["crates/api"]
+
+[workspace.package]
+edition = "2015"')"
+assert_reports "a mixed root reads [package], not [workspace.package]" \
+  "$(payload_file tank src/lib.rs)" "$mixed" "applied rustfmt"
 
 # A rejecting tool is reported as failed, not as applied.
 fake_bin rustfmt 'exit 1'

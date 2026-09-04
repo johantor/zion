@@ -18,7 +18,7 @@ assert_allow "trinity allowed a .tsx file" "$HOOK" "$(payload_file trinity Foo.t
 # paths. A miss fails silently in production: the guard passes, the lanes don't.
 for _f in svc.py svc.pyi pyproject.toml requirements.txt setup.py setup.cfg \
           tox.ini Pipfile poetry.lock uv.lock pdm.lock \
-          svc.go go.mod go.sum \
+          svc.go go.mod go.sum go.work go.work.sum \
           svc.rs Cargo.toml Cargo.lock \
           Svc.java pom.xml build.gradle build.gradle.kts settings.gradle gradle.properties; do
   assert_block "trinity denied a backend file ($_f)" "$HOOK" "$(payload_file trinity "$_f")" "out of"

@@ -129,7 +129,7 @@ GUARD_RE_GIT_MV_FORCE="(^|[[:space:]])${_g_frc}"'([[:space:]]|$)'
 _g_watch_web='dotnet[[:space:]]+watch([[:space:]]|$)|(npm|pnpm|yarn|bun)[[:space:]]+(run[[:space:]]+)?(dev|start|serve|watch)([[:space:]]|$)|vite([[:space:]]+(dev|serve|preview)([[:space:]]|$)|[[:space:]]+-|[[:space:]]*($|[;&|]))|(next|nuxt)[[:space:]]+dev([[:space:]]|$)|ng[[:space:]]+serve([[:space:]]|$)|nodemon([[:space:]]|$)|webpack[[:space:]]+serve([[:space:]]|$)|webpack-dev-server([[:space:]]|$)'
 # Python: the servers block with or without --reload, so they match bare;
 # `runserver` needs its script prefix, being too generic on its own.
-_g_watch_py='(uvicorn|hypercorn|gunicorn|daphne|watchmedo|ptw|pytest-watch)([[:space:]]|$)|fastapi[[:space:]]+(dev|run)([[:space:]]|$)|(\./)?manage\.py[[:space:]]+runserver([[:space:]]|$)|flask([[:space:]]+--[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]|$)'
+_g_watch_py='(uvicorn|hypercorn|gunicorn|daphne|watchmedo|ptw|pytest-watch)([[:space:]]|$)|fastapi[[:space:]]+(dev|run)([[:space:]]|$)|((\./)?manage\.py|django-admin|django)[[:space:]]+runserver([[:space:]]|$)|flask([[:space:]]+--[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]|$)'
 # Go/Rust: live-reload runners, plus `cargo watch`, a subcommand spelling the
 # bare `--watch` alternative below does not reach.
 _g_watch_gors='(air|reflex|gow)([[:space:]]|$)|cargo([[:space:]]+-[^[:space:]]+)*[[:space:]]+watch([[:space:]]|$)|trunk[[:space:]]+serve([[:space:]]|$)'

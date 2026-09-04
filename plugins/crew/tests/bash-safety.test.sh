@@ -53,6 +53,7 @@ for cmd in 'uvicorn app:app --reload' 'uvicorn app:app' 'hypercorn app:app' 'gun
            'python manage.py runserver' 'flask run' 'flask --app app run' 'ptw' 'watchmedo auto-restart' \
            'poetry run uvicorn app:app' 'uv run flask run' \
            'fastapi dev app.py' 'fastapi run' \
+           'django-admin runserver' 'python -m django runserver' \
            'uv run python -m uvicorn app:app' 'poetry run python -m flask run' \
            'air' 'reflex' 'cargo watch' 'cargo watch -x test' 'trunk serve' \
            './mvnw spring-boot:run' 'mvn quarkus:dev' './gradlew bootRun' './gradlew build --continuous'; do
@@ -62,6 +63,7 @@ done
 # would break the gate it belongs to.
 for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
            'uv run pytest' 'poetry run python -m pytest tests/' 'python -m build' \
+           'django-admin startproject x' 'python -m django --version' \
            'go build ./...' 'go test ./...' 'go run ./cmd/tool' \
            'cargo test' 'cargo build --all-targets' 'cargo clippy -- -D warnings' \
            './mvnw -B verify' './gradlew test' './gradlew check -x test'; do

@@ -202,22 +202,48 @@ case "$lane" in
     # The edition comes from the manifest that OWNS the file, not the one in the
     # working directory: in a workspace those differ, and the wrong edition makes
     # rustfmt reject or misformat valid source.
-    _edition_in() { sed -n 's/^[[:space:]]*edition[[:space:]]*=[[:space:]]*"\([0-9]*\)".*/\1/p' "$1" 2>/dev/null | head -1; }
-    # Walk up until a manifest states a literal edition. A member that inherits
-    # (`edition.workspace = true`) has no such line, so the walk continues to the
-    # workspace root's [workspace.package]; absent everywhere, rustfmt defaults.
-    edition=""
+    # Section-aware: a mixed root has both [package] and [workspace.package], and
+    # reading the wrong one hands rustfmt the wrong edition.
+    _edition_in() {
+      awk -v want="$2" '
+        /^[[:space:]]*\[/ { s=$0; gsub(/[][[:space:]]/, "", s); next }
+        s == want && /^[[:space:]]*edition[[:space:]]*=/ {
+          if (match($0, /"[0-9]+"/)) { print substr($0, RSTART + 1, RLENGTH - 2); exit }
+        }' "$1" 2>/dev/null
+    }
+    # True only for an EXPLICIT `edition.workspace = true` / `= { workspace = true }`.
+    # A member that simply omits edition does not inherit — Cargo defaults it to 2015.
+    _inherits_edition() {
+      awk '
+        /^[[:space:]]*\[/ { s=$0; gsub(/[][[:space:]]/, "", s); next }
+        s == "package" && /^[[:space:]]*edition[[:space:]]*(\.[[:space:]]*workspace|=[[:space:]]*\{)/ { f = 1; exit }
+        END { exit(f ? 0 : 1) }' "$1" 2>/dev/null
+    }
+    # Nearest owning manifest, then the workspace root only when it inherits.
+    edition=""; _m=""
     _d="${path%/*}"; [ "$_d" = "$path" ] && _d="."
     _n=0
     while [ "$_n" -lt 32 ]; do
-      if [ -f "$_d/Cargo.toml" ]; then
-        edition="$(_edition_in "$_d/Cargo.toml")"
-        [ -n "$edition" ] && break
-      fi
+      [ -f "$_d/Cargo.toml" ] && { _m="$_d/Cargo.toml"; break; }
       case "$_d" in .|/|"") break ;; esac
       _p="${_d%/*}"; [ "$_p" = "$_d" ] && _p="."
       _d="$_p"; _n=$((_n + 1))
     done
+    if [ -n "$_m" ]; then
+      edition="$(_edition_in "$_m" package)"
+      if [ -z "$edition" ] && _inherits_edition "$_m"; then
+        _n=0
+        while [ "$_n" -lt 32 ]; do
+          case "$_d" in .|/|"") break ;; esac
+          _p="${_d%/*}"; [ "$_p" = "$_d" ] && _p="."
+          _d="$_p"; _n=$((_n + 1))
+          if [ -f "$_d/Cargo.toml" ]; then
+            edition="$(_edition_in "$_d/Cargo.toml" workspace.package)"
+            [ -n "$edition" ] && break
+          fi
+        done
+      fi
+    fi
     st=0
     if [ -n "$edition" ]; then
       run_bounded rustfmt --edition "$edition" "$path" || st=$?

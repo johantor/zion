@@ -1019,6 +1019,52 @@ while IFS= read -r agent; do
   done < <(printf '%s\n' "$plugin_keys" | tr ' ' '\n')
 done < <(git ls-files 'plugins/*/agents/*.md')
 
+# 14. Frontmatter parses as YAML. A plain (unquoted) scalar cannot contain a
+#     colon followed by whitespace: YAML reads it as a nested mapping, the whole
+#     block fails to load, and a loader then sees an agent, command or skill with
+#     no `name` and no `description` at all. Prose descriptions fall into this
+#     naturally -- "Read-only: it investigates and reports" is the shape -- and
+#     the file still looks right, so nothing about the failure is visible while
+#     authoring. No other section here catches it either: they all read
+#     frontmatter key by key with awk rather than parsing the block.
+#
+#     Targeted rather than a real parse: this repo ships no YAML dependency, and
+#     the colon trap is the whole class that a hand-written description hits. A
+#     value that opens with a quote, a block scalar (`|`, `>`), a flow collection
+#     or an anchor/tag indicator has already declared its type, so it is left to
+#     YAML's own rules.
+while IFS= read -r f; do
+  # A staged-but-deleted file is still listed here; awk would die on it and take
+  # the whole run down under `set -e`, so report it and keep going.
+  if [ ! -r "$f" ]; then
+    err "$f could not be read to check its frontmatter"
+    continue
+  fi
+  offenders="$(awk '
+    /^---[[:space:]]*$/ { if (in_fm == 0) { in_fm = 1; next } else exit }
+    in_fm && /^[A-Za-z][A-Za-z0-9_-]*:/ {
+      key = $0
+      sub(/:.*$/, "", key)
+      val = $0
+      sub(/^[A-Za-z][A-Za-z0-9_-]*:[[:space:]]*/, "", val)
+      if (val == "") next
+      if (index("\"\047|>[{&*!#", substr(val, 1, 1))) next
+      # Name the pattern that fired: the two read differently to whoever has to
+      # find it, and "colon+space" sends them hunting for a space that a
+      # trailing colon does not have.
+      if (val ~ /:[[:space:]]/) print FNR " " key " a colon before whitespace"
+      else if (val ~ /:$/)      print FNR " " key " a trailing colon"
+    }
+  ' "$f")"
+  if [ -z "$offenders" ]; then
+    ok "frontmatter parses as YAML: $f"
+  else
+    while read -r lineno key reason; do
+      err "$f:$lineno frontmatter '$key' is an unquoted scalar carrying $reason; YAML reads that as a nested mapping and drops the whole block (the file loads with no name and no description). Wrap the value in double quotes."
+    done <<< "$offenders"
+  fi
+done < <(git ls-files 'plugins/*/agents/*.md' 'plugins/*/commands/*.md' 'plugins/*/skills/*/SKILL.md' '.claude/crew.md')
+
 if [ "$fail" -ne 0 ]; then
   echo "Plugin validation failed." >&2
   exit 1

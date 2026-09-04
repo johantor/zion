@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `tank`, `/crew:notify`, `/crew:triage` and the `mid-run-direction` skill carried a
+  description whose prose put a colon before a space in an unquoted YAML scalar, so the
+  frontmatter block did not parse and each file loaded with no `name` and no `description` —
+  a skill with no description never triggers, and an agent with none is invisible to the
+  orchestrator. The four descriptions are now quoted, with their wording unchanged.
+
 ## [3.24.0] - 2026-09-04
 
 ### Added

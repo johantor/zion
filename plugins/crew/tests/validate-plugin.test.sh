@@ -789,4 +789,63 @@ d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugin
 mk_tools_agent "$d/plugins/foo" delegator "Agent(foo:one, foo:two), Read, Bash"
 assert_silent "§13 ignores an agent with no MCP grants" "$d" "delegator.md tools ->"
 
+# --- §14: frontmatter parses as YAML -----------------------------------------
+# mk_fm_file <path> <description-value> — an agent/command/skill file whose
+# description is written verbatim, so a case can supply an unquoted scalar, a
+# quoted one, or a colon that YAML tolerates.
+mk_fm_file() {
+  mkdir -p "$(dirname "$1")"
+  printf -- '---\nname: sample\ndescription: %s\n---\nbody\n' "$2" > "$1"
+}
+
+# The trap: prose with a colon+space. YAML reads `takes: server-side` as a
+# nested mapping and drops the whole block, so the file loads with no name and
+# no description at all.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_fm_file "$d/plugins/foo/agents/prose.md" 'Implements whatever shape it takes: server-side logic and data access.'
+assert_emits "§14 bites on an unquoted description with a colon+space" "$d" \
+  "agents/prose.md:3 frontmatter 'description' is an unquoted scalar carrying a colon before whitespace"
+
+# Commands and skills carry the same hand-written descriptions, so the sweep
+# must reach them too and not just agents/.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_fm_file "$d/plugins/foo/commands/say.md" 'Messages a peer. Best-effort delivery: it never acts on their behalf.'
+assert_emits "§14 reaches commands/" "$d" "commands/say.md:3 frontmatter 'description'"
+
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_fm_file "$d/plugins/foo/skills/steer/SKILL.md" 'Use when direction arrives mid-run: authenticate it on the token.'
+assert_emits "§14 reaches skills/" "$d" "skills/steer/SKILL.md:3 frontmatter 'description'"
+
+# A value ending in a colon opens a mapping just the same.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_fm_file "$d/plugins/foo/agents/trailing.md" 'Resolves one of the following:'
+assert_emits "§14 bites on a value ending in a colon" "$d" \
+  "agents/trailing.md:3 frontmatter 'description' is an unquoted scalar carrying a trailing colon"
+
+# Quoting is the fix the message names, so a quoted value must clear the guard
+# with the same prose in it.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_fm_file "$d/plugins/foo/agents/quoted.md" '"Implements whatever shape it takes: server-side logic and data access."'
+assert_silent "§14 accepts the same prose once quoted" "$d" "agents/quoted.md:3 frontmatter"
+
+# A colon with no space after it stays inside the plain scalar, and YAML is
+# fine with it: flagging `mcp__plugin_foo:bar` style text would be a false bite.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_fm_file "$d/plugins/foo/agents/tight.md" 'Routes foo:bar and foo:baz to the right lane.'
+assert_silent "§14 leaves a colon with no space alone" "$d" "agents/tight.md:3 frontmatter"
+
+# A staged-but-deleted file is still listed by git ls-files; awk dies on it, and
+# under `set -e` that would end the run before any later section reported.
+#
+# Prestaged, like §12's pair: assert_emits re-stages, and staging the deletion
+# would drop the path from git ls-files so the guard never sees it at all.
+d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+mk_fm_file "$d/plugins/foo/agents/gone.md" 'A plain description.'
+git -C "$d" add -A >/dev/null 2>&1; rm "$d/plugins/foo/agents/gone.md"
+assert_emits_prestaged "§14 bites on a staged-but-deleted file" "$d" \
+  "agents/gone.md could not be read to check its frontmatter"
+# The run has to reach its own verdict rather than dying mid-sweep on the awk.
+assert_emits_prestaged "§14 keeps running after an unreadable file" "$d" \
+  "Plugin validation failed."
+
 finish

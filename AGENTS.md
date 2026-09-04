@@ -56,8 +56,9 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `scripts/` — repo tooling (not part of any plugin; it needs this monorepo's layout and never
   runs in an installed plugin):
   - `validate-plugin.sh` — validates every plugin's manifest/structure, including skill-drift
-    across plugins (§4 in the script), hook-script drift (§5), and hooks.json wiring (§6; see
-    *How we review code* below). Tree-only: no base ref, so it runs anywhere.
+    across plugins (§4 in the script), hook-script drift (§5), hooks.json wiring (§6; see
+    *How we review code* below), and YAML-parseable frontmatter (§14; see *Validating changes*).
+    Tree-only: no base ref, so it runs anywhere.
   - `check-changelog.sh` — the release-notes gate: a change to shipped files must be described
     by a version bump or a bullet parked under `## [Unreleased]` (see *Releasing*). Diff-based,
     so it takes the base branch to compare against.
@@ -439,6 +440,17 @@ here use and a `  - name` block list — since reading only one would let the ot
 section without a word. Hosted
 connectors that can't be plugin-installed are exempt by name (`mcp__claude_ai_Figma`) — asserting
 a plugin twin for one would name a namespace that cannot exist.
+
+§14 parses what every other section reads key by key. A plain (unquoted) YAML scalar cannot hold
+a colon followed by whitespace — YAML reads it as a nested mapping and drops the whole
+frontmatter block — so a description written as ordinary prose ("Read-only: it investigates and
+reports") loads the file with no `name` and no `description` at all. A skill in that state never
+triggers and an agent in it is invisible to the orchestrator, while the file still reads
+correctly to a human, so nothing about the failure is visible while authoring. The check is
+targeted rather than a real parse: the repo carries no YAML dependency, and this is the whole
+class hand-written descriptions fall into. A value that opens with a quote, a block scalar, a
+flow collection or an anchor/tag indicator has already declared its type and is left to YAML's
+own rules; the fix the message names is to wrap the value in double quotes.
 
 ### Adversarial scenario suite (`tests/scenarios/`)
 

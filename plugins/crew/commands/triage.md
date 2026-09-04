@@ -1,5 +1,5 @@
 ---
-description: Post-merge triage. Takes a production signal — a work item/bug report reference, a pasted stack trace or alert, or prose — and returns the code it points at, ranked suspect commits correlated to a deploy changeset, and an explicit confidence, plus a ready-to-paste handoff. Read-only: it investigates and reports, and writes nothing.
+description: "Post-merge triage. Takes a production signal — a work item/bug report reference, a pasted stack trace or alert, or prose — and returns the code it points at, ranked suspect commits correlated to a deploy changeset, and an explicit confidence, plus a ready-to-paste handoff. Read-only: it investigates and reports, and writes nothing."
 ---
 
 Given `$ARGUMENTS`:

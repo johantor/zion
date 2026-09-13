@@ -159,6 +159,8 @@ assert_block "pager on a second line"    "$HOOK" "$(payload_bash 'echo ok
 less foo.txt' twin)" "interactive raw reads"
 assert_allow "a backslash-newline is a continuation, not a separator" "$HOOK" "$(payload_bash 'echo one \
 two' twin)"
+assert_block "an even backslash run keeps newline as a separator" "$HOOK" "$(payload_bash 'echo one \\
+git status' twin)" "never runs git"
 
 # --- Twins never run git ------------------------------------------------------
 assert_block "twin blocked from git"         "$HOOK" "$(payload_bash 'git status' twin)" "never runs git"

@@ -85,8 +85,21 @@ guard_jq2() {
 # continuation, and bash joins the two halves into one command, so it collapses
 # to a space before the rest are separated.
 guard_normalize() {
-  local _joined="${1//\\$'\n'/ }"
-  guard_cmd="${_joined//$'\n'/; }"
+  local _rest="$1"
+  local _line _trail _n
+  guard_cmd=''
+  while [[ $_rest == *$'\n'* ]]; do
+    _line="${_rest%%$'\n'*}"
+    _rest="${_rest#*$'\n'}"
+    _trail="${_line##*[^\\]}"
+    _n=${#_trail}
+    if ((_n % 2 == 1)); then
+      guard_cmd+="${_line%\\} "
+    else
+      guard_cmd+="${_line}; "
+    fi
+  done
+  guard_cmd+="${_rest}"
 }
 
 # ------------------------------------------------- command-shape patterns

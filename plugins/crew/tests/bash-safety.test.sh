@@ -192,6 +192,8 @@ assert_block "pager on a second line"    "$HOOK" "$(payload_bash 'echo ok
 less foo.txt' tank)" "interactive raw reads"
 assert_allow "a backslash-newline is a continuation, not a separator" "$HOOK" "$(payload_bash 'echo one \
 two' tank)"
+assert_block "an even backslash run keeps newline as a separator" "$HOOK" "$(payload_bash 'echo one \\
+git status' tank)" "never runs git"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

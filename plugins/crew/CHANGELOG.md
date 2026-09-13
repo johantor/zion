@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Hardened the shared protected-branch commit parser for opaque shell forms (`coproc`, `case`, function definitions), path-qualified `git`, `&&` continuation newlines, and quoted `com'mit` spellings so these shapes still fail closed.
+
 - The protected-branch commit backstop read the branch of the directory the *hook* sat in, so a
   crew session working in a git worktree was refused every commit whenever the main checkout was
   on `main`/`master`/`develop` — the worktree's own branch, which is what the commit lands on,

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- The Bash guard's raw-read rule let `cat <file> 2>/dev/null` through: the stderr redirect ended
+  the end-of-command match, so a file that dumps into the context exactly like a bare `cat` got
+  the opposite verdict. A trailing `2>`/`2>>` is now consumed before that match, and both
+  spellings block. A `>` redirect still falls through, since it moves stdout out of the context.
+
+### Changed
+
+- The raw-read refusals name the tool to use instead of guessing at one — "Use the Read tool for
+  a file in the checkout" — and say why the shell read is refused: it reaches no `Read` hook, so
+  `read-guard`'s size bound never applies to it.
+
 ## [3.25.0] - 2026-09-10
 
 ### Changed

@@ -24,6 +24,23 @@ the active voice, one instruction per sentence, and the same word for the same t
 This applies to what you say to the operator, not to what you write into the repository — files,
 docs, and commit messages keep the repo's own voice.
 
+## Reading and editing files
+
+Reads and writes in this repository go through the `Read`, `Edit` and `Write` tools, not
+through the shell. A guard hook enforces it, so the glance-level habit fails here:
+
+- **Reading a file**: use `Read`. A bare `cat <file>` is refused in *every* session — a shell
+  read reaches no `PreToolUse(Read)` hook, so the size bound in `read-guard.sh` never applies
+  to it. Bounded shell reads stay available and are the right tool for a slice: `head`,
+  `sed -n '10,40p'`, `grep`, `jq`, and any `cat` whose output is piped into a filter.
+- **Changing a file**: use `Edit` or `Write`. An in-place `sed`/`perl`, a `tee`, a `cp`/`mv`,
+  or a redirect into the checkout is refused in agent sessions, because such a write reaches
+  no `PreToolUse(Edit|Write)` hook and would skip both the write lanes and the formatter.
+  Scratch output under `/tmp` is exempt.
+
+Both rules close the same gap: a shell that edges around the tool the hooks are wired to.
+The refusal message names the tool to use instead, so a blocked command has a one-step fix.
+
 The rest of this file describes how the orchestration works. It stays in the project-root
 CLAUDE.md because its reader is anything that reads `CLAUDE.md` to understand this repo —
 including auto mode's permission classifier, which otherwise has only a dispatch label to judge a

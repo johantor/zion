@@ -62,7 +62,13 @@ anything stated here updates this file in the same commit.** Conventions live in
   back. The hook names the owner in a `git_owner=morpheus` line above the shared region and
   passes it into the floor; validator §9 pins that line to the `owns-git: true` agent. Matched at
   a command position only — `find -exec git mv` and `(git mv …)` fall through to the generic
-  refusal), `read-guard.sh` (>64 KiB raw reads; an explicit
+  refusal). **Raw reads are refused for every session**, agent or not — a `cat` of a whole file
+  reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it, the same
+  gap on the read path that the file-write block closes on the write path. The pattern fires only
+  where stdout still reaches the context: a pipe or a `>` redirect moves the bytes elsewhere and
+  falls through, but a trailing `2>`/`2>>` does not, so `cat f 2>/dev/null` is blocked like the
+  bare form rather than slipping past the end-of-command match), `read-guard.sh` (>64 KiB raw
+  reads; an explicit
   `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes; the **only** hook that reads
   crew configuration — `.claude/crew.md` frontmatter by key, falling back to a legacy
   **Crew configuration** block in `CLAUDE.md` when that file is absent, so `config_slot` takes

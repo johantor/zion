@@ -90,6 +90,13 @@ assert_block "cat a file"     "$HOOK" "$(payload_bash 'cat foo.txt' tank)"      
 assert_block "less a file"    "$HOOK" "$(payload_bash 'less foo.txt' tank)"     "interactive raw reads"
 assert_block "tail -f a log"  "$HOOK" "$(payload_bash 'tail -f app.log' tank)"  "streaming raw output"
 assert_allow "cat piped into grep" "$HOOK" "$(payload_bash 'cat foo.txt | grep x' tank)"
+# A stderr redirect moves no stdout, so the file lands in the context exactly as
+# the bare form does and gets the same verdict. A `>` redirect does move it, and
+# still falls through -- asserted without an agent_type, since for an agent the
+# file-write guard would answer first and the read side would go untested.
+assert_block "cat with stderr discarded" "$HOOK" "$(payload_bash 'cat foo.txt 2>/dev/null' tank)" "unbounded cat"
+assert_block "cat with stderr duped"     "$HOOK" "$(payload_bash 'cat foo.txt 2>&1' tank)"        "unbounded cat"
+assert_allow "cat redirected into a file" "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

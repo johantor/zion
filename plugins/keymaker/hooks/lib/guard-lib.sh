@@ -144,9 +144,21 @@ _g_watch="${_g_watch_web}|${_g_watch_py}|${_g_watch_gors}|${_g_watch_jvm}|${_g_w
 GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*|([^[:space:]]*/)?python[0-9.]*[[:space:]]+-m|([^[:space:]]*/)?python[0-9.]*)[[:space:]]+)*(([^[:space:]]*/)?('"${_g_watch}"'))|--watch([[:space:]]|$)'
 
 # Raw/streaming reads that dump a whole file or an endless stream into context.
+# Such a read reaches no PreToolUse(Read) hook, so read-guard's size bound never
+# applies to it -- the same gap on the read path that guard_block_file_writes
+# closes on the write path.
+#
+# The cat pattern fires only where stdout still lands in the context: a pipe or a
+# `>` redirect sends the bytes elsewhere and falls through, which is what makes
+# filtering the documented way out. A *stderr* redirect sends nothing elsewhere
+# -- `cat f 2>/dev/null` dumps the file exactly as the bare form does -- so a
+# trailing `2>`/`2>>` is consumed here instead of ending the match, and the two
+# spellings get the same verdict. The target excludes `&`, so `2>&1` leaves it
+# empty and the `&` is read by the alternation below.
 GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'
 GUARD_RE_STREAM="${_g_cmdpos}"'tail[[:space:]]+-f([[:space:]]|$)'
-GUARD_RE_CAT="${_g_cmdpos}"'cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&]|&&|\|\|))'
+_g_cat_err='(2>>?[^[:space:];|&<>]*[[:space:]]*)*'
+GUARD_RE_CAT="${_g_cmdpos}"'cat[[:space:]]+[^|><;&]+'"${_g_cat_err}"'([[:space:]]*($|[;&]|&&|\|\|))'
 
 # Bash can mutate a file without any Edit|Write hook seeing it: a redirect, a
 # `tee`, an in-place stream edit, a copy into the tree. Such a write skips every
@@ -193,7 +205,7 @@ guard_block_watch_commands() {
 
 guard_block_raw_reads() {
   if [[ $guard_cmd =~ $GUARD_RE_PAGER ]]; then
-    echo "Blocked: interactive raw reads are disallowed. Use targeted grep/rg/jq/scripted summaries instead." >&2
+    echo "Blocked: interactive raw reads are disallowed. Use the Read tool for a file in the checkout, or targeted grep/rg/jq/scripted summaries." >&2
     exit 2
   fi
   if [[ $guard_cmd =~ $GUARD_RE_STREAM ]]; then
@@ -201,7 +213,7 @@ guard_block_raw_reads() {
     exit 2
   fi
   if [[ $guard_cmd =~ $GUARD_RE_CAT ]]; then
-    echo "Blocked: unbounded cat reads are disallowed. Pipe/filter with grep/rg/jq or script the analysis." >&2
+    echo "Blocked: unbounded cat reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or pipe/filter with grep/rg/jq." >&2
     exit 2
   fi
 }

@@ -567,7 +567,7 @@ guard_add_dir() {
 
 # Words that move the shell, or run a command this walk cannot see into. Either
 # way the directory a later commit runs in stops being knowable from here.
-GUARD_RE_OPAQUE_CMD='^(pushd|popd|eval|exec|source|\.|bash|sh|zsh|dash|ksh|xargs)$'
+GUARD_RE_OPAQUE_CMD='^(pushd|popd|eval|exec|source|\.|bash|sh|zsh|dash|ksh|xargs|coproc|case|esac|function|\{|\})$'
 # Prefixes that may stand before the real command word: an assignment, a wrapper,
 # and the shell keywords that put a command after them (`then git commit …`).
 GUARD_RE_CMD_PREFIX='^([A-Za-z_][A-Za-z0-9_]*=.*|env|command|builtin|nohup|time|if|then|else|elif|while|until|do|!)$'
@@ -590,8 +590,9 @@ GUARD_RE_GIT_ENV='^(GIT_DIR|GIT_WORK_TREE)=(.*)$'
 # this cannot follow costs confidence, and lost confidence adds '' to the
 # candidates rather than replacing them.
 guard_collect_commit_dirs() {
-  local cur='' sure=1 cond='' in_pipe='' next_cond='' list_cur='' phys='' opaque commit
-  local dir dirsure target extra masked opens closes did_cd pre_cur w i n
+  local cur='' sure=1 cond='' in_pipe='' next_cond='' list_cur='' opaque commit
+  local dir dirsure target extra masked opens closes did_cd pre_cur w i n sep_norm
+  local cd_phys
   local -a stack=()
   guard_rest="${guard_cmd_raw:-$guard_cmd}"
   guard_dirs=()
@@ -638,10 +639,14 @@ guard_collect_commit_dirs() {
       # with a redirection or a construct this does not parse.
       ''|-*) [ -n "$guard_seg" ] && opaque=1 ;;
     esac
+    # `name() { ...; }`: a function definition. This walk cannot model its body or
+    # a later call site, so it is an opaque construct.
+    target="${guard_wrest#"${guard_wrest%%[![:space:]]*}"}"
+    case "$target" in '()'*) [ -n "$guard_word" ] && opaque=1 ;; esac
     if [ -z "$opaque" ]; then
       case "$guard_word" in
         cd)
-          target=''; extra=''
+          target=''; extra=''; cd_phys=''
           while guard_next_word; do
             if [ -z "$guard_word_ok" ]; then extra=1; break; fi
             case "$guard_word" in
@@ -653,7 +658,7 @@ guard_collect_commit_dirs() {
                    # `-P` resolves symlinks as it goes and leaves the shell on
                    # the physical path, so from here on `..` means what it means
                    # to git, and the joins stop collapsing it.
-                   case "$guard_word" in -*P*) phys=1 ;; esac
+                   case "$guard_word" in -*P*) cd_phys=1 ;; *) cd_phys='' ;; esac
                    continue ;;
             esac
             if [ -n "$target" ]; then extra=1; break; fi   # `cd a b` fails outright
@@ -671,7 +676,7 @@ guard_collect_commit_dirs() {
             sure=''
             if [ -n "${HOME:-}" ] && guard_dir_usable "$HOME"; then did_cd=1; cur="$HOME"; fi
           else
-            if [ -n "$phys" ]; then
+            if [ -n "$cd_phys" ]; then
               guard_join_dir "$cur" "$target"
             else
               guard_join_dir "$cur" "$target" logical
@@ -685,7 +690,7 @@ guard_collect_commit_dirs() {
               sure=''
             fi
           fi ;;
-        git)
+        git|*/git)
           while guard_next_word; do
             if [ -z "$guard_word_ok" ]; then
               # The subcommand itself can be the unreadable word: a trailing
@@ -766,12 +771,13 @@ guard_collect_commit_dirs() {
       '&')      cur="$list_cur" ;;
     esac
     if [ -n "$in_pipe" ] && [ -n "$did_cd" ]; then cur="$pre_cur"; fi
+    sep_norm="${guard_sep//$'\n'/}"
     # A `cd` reached through `&&` is safe to carry while that chain continues; a
     # `;` or `&` ends the chain, and with it the certainty.
-    case "$guard_sep" in
-      ';'|'&'|'||'|$'\n') if [ -n "$cond" ]; then sure=''; cond=''; fi ;;
+    case "$sep_norm" in
+      ';'|'&'|'||'|'') if [ -n "$cond" ]; then sure=''; cond=''; fi ;;
     esac
-    case "$guard_sep" in
+    case "$sep_norm" in
       '&&') next_cond='and' ;;
       '||') next_cond='or' ;;
       *)    next_cond='' ;;
@@ -820,7 +826,6 @@ guard_branch_at() {
 guard_block_protected_branch_commit() {
   local agent_type="$1" advice="$2" dir where
   [ -n "$agent_type" ] || return 0
-  case "$guard_cmd" in *commit*) ;; *) return 0 ;; esac
   guard_collect_commit_dirs
   if [ "${#guard_dirs[@]}" -eq 0 ]; then
     # The walk found nothing that commits. `echo commit` and `git log

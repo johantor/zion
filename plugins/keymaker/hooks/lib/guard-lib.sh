@@ -204,13 +204,23 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 # already knows -- `env cat f`, `command cat f`, `FOO=1 cat f` -- cannot walk the
 # read past the guard any more than it can the git block.
 #
-# A floor, not a sandbox, as on the write path, and the two residuals sit on
-# opposite sides. A pipe ends the run before a dup can say otherwise, so
-# `cat f >&2 | grep x` reads as filtered. And redirections apply left to right
-# while a token match has no fd state, so `cat f 2>/dev/null 1>&2` -- stdout
-# landing in the sink stderr already points at -- is refused. Following that
-# needs an interpreter, not a pattern; the refusal is the safe direction, and
-# `>/dev/null 2>&1` is the spelling that reads correctly.
+# A floor, not a sandbox, as on the write path. What it does not model is fd
+# state and redirection order, and the residuals follow from that, both ways:
+#
+#   cat f >&2 | grep x       allowed -- the pipe ends the run before the dup
+#   cat f >/dev/null >&2     allowed -- stdout is reopened onto the context
+#   cat f 2>/dev/null 1>&2   refused -- stdout does reach the sink, in order
+#
+# Nor does it reach a redirect welded to the command name or an operand
+# (`cat<f`, `cat foo2>&2`), a dup whose target is a separate word (`>& 2`), a
+# zero-padded stdout fd (`01>`), or an input redirect on a non-stdin fd, which
+# reads nothing yet counts here as a read (`cat 3<f`).
+#
+# Every one of those needs bash's own tokenizer: the fd-prefix rule that makes
+# `file2>` an operand plus a stdout redirect, applied in order, with state. That
+# is an interpreter, not a pattern. This rule exists to correct the routine path
+# -- a plain `cat` where `Read` belongs -- not to withstand an agent spelling its
+# way around it, which anything that means to can do by calling an interpreter.
 GUARD_RE_PAGER="${_g_cmdpos}${_g_pfx}"'(less|more)[[:space:]]+'
 GUARD_RE_STREAM="${_g_cmdpos}${_g_pfx}"'tail[[:space:]]+-f([[:space:]]|$)'
 # Any fd but stdout: a lone `1` and the empty fd of a bare `>` are excluded, so

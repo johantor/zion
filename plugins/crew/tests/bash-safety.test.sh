@@ -132,6 +132,10 @@ assert_allow "cat with stdout to /dev/null, stderr duped" "$HOOK" "$(payload_bas
 # The refusals are a user-facing contract: they name the tool to use and say why
 # the shell read is refused. Asserted apart from the category substrings above,
 # which would still pass if the guidance were dropped.
+# Raw reads are refused in EVERY session: guard_block_raw_reads is called
+# unconditionally, unlike the agent-only write and watch blocks. Asserted on the
+# bare form with no agent_type, so restoring an agent-only condition fails here.
+assert_block "bare cat with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
 assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "Use the Read tool"
 assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "reaches no Read hook"
 assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' tank)" "Use the Read tool"

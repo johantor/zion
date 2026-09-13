@@ -66,14 +66,18 @@ anything stated here updates this file in the same commit.** Conventions live in
   reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it, the same
   gap on the read path that the file-write block closes on the write path. The pattern fires only
   where the bytes still reach the context, and reads the simple command as whitespace-separated
-  **tokens** to decide, in two kinds. A **reading** token puts a file on stdout — an operand, or
-  an input redirect (`<`, `3<`) — and the match requires at least one, which is why `cat <<EOF`
-  never matches at all. The rest **ride along**, reading no file and leaving stdout where it was:
-  a redirect of any fd but stdout (`2>`/`3>`/`2>>`/`2>|`, spaced target or fd dup), stdout duped
-  to another fd (`>&N`, `1>&N` — stderr is surfaced in the tool result too), and `<<`/`<<-`/`<<<`,
-  which replace stdin, and so never make a read safe on their own: `cat f <<EOF` still prints `f`.
-  Anything else ends the token run and falls through: a stdout redirect to a file (`>`, `>>`,
-  `>|`, `1>`, `&>`), a pipe, and `>&-`, which closes stdout. All three raw-read patterns take
+  **tokens** to decide, in two kinds, over the **quote-masked** copy (as the write path does, so a
+  metacharacter inside a filename — `cat 'report>2026'` — is not read as a redirect). A
+  **reading** token puts a file on stdout — an operand, or an input redirect (`<`, `3<`, `<>`) —
+  and the match requires at least one, which is why `cat <<EOF` never matches at all. The rest
+  **ride along**, reading no file and leaving stdout where it was: a redirect of any fd but stdout
+  (`2>`/`3>`/`2>>`/`2>|`, spaced target or fd dup), stdout duped or moved to another fd (`>&N`,
+  `1>&N`, `>&N-` — stderr is surfaced in the tool result too), a redirect to a stream that is
+  surfaced anyway (`>/dev/stderr`, `>/dev/stdout`, `>/dev/fd/N` — but **not** `/dev/null`), and
+  `<<`/`<<-`/`<<<`, which replace stdin and so never make a read safe on their own: `cat f <<EOF`
+  still prints `f`. Anything else ends the token run and falls through: a stdout redirect to a
+  file (`>`, `>>`, `>|`, `1>`, `&>`), a pipe, and `>&-`, which closes stdout. All three raw-read
+  patterns take
   `${_g_pfx}` as well, so `env cat f`, `command cat f` and `FOO=1 cat f` cannot walk a read past
   them. Three boundaries carry the rest — tokens are whitespace-separated, so the fd arm cannot
   reinterpret an operand's suffix (`cat file2>/tmp` is `file2` plus a stdout redirect); the input
@@ -102,11 +106,16 @@ anything stated here updates this file in the same commit.** Conventions live in
   with agent `maxTurns`, both directions). Wiring in
   `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
   `hooks/lib/guard-lib.sh` is the **sourced library** every entry point above loads: payload
-  plumbing (`guard_read_payload`, `guard_jq2`), the command-shape patterns
+  plumbing (`guard_read_payload`, `guard_jq2`, and `guard_normalize`, which flattens the command
+  to one line — a newline becomes `;`, **not** a space, so a later line reaches the
+  command-position anchor as its own command; flattening it to a space welded it onto the
+  previous command's operands and hid it from every anchored guard, the workers' git block
+  included. A backslash-newline is joined as the line continuation it is), the command-shape patterns
   (`GUARD_RE_*`), the shared block helpers (`guard_block_destructive` /
   `_watch_commands` / `_raw_reads` / `_file_writes` / `_protected_branch_commit`), the
-  quote masking `_file_writes` needs (a `>` inside a string is not a redirect, a quoted
-  target still is a write), the protected-branch list,
+  quote masking `_file_writes` and `_raw_reads` both scan through (a `>` inside a string is not a
+  redirect, a quoted target still is a write and a quoted operand still is a read), the
+  protected-branch list,
   read-guard's limits, and the TTL-swept state-file helper. It is the one file in `hooks/`
   that must **not** be executable and must **not** be wired (validator §3/§6) — it has no
   main. Matching goes through bash's `=~` and parameter expansion, never `echo | grep`: these

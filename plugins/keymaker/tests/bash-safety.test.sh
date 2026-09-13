@@ -133,11 +133,36 @@ assert_allow "fd 1 closed"        "$HOOK" "$(payload_bash 'cat secret 1>&-')"
 assert_block "stdout moved onto fd 2"      "$HOOK" "$(payload_bash 'cat secret >&2-')"  "unbounded cat"
 assert_block "fd 1 moved onto fd 2"        "$HOOK" "$(payload_bash 'cat secret 1>&2-')" "unbounded cat"
 assert_block "stderr closed"      "$HOOK" "$(payload_bash 'cat secret 2>&-')" "unbounded cat"
+# A redirect whose destination the tool result surfaces anyway is not an escape;
+# `/dev/null` still is.
+assert_block "stdout to /dev/stderr" "$HOOK" "$(payload_bash 'cat f >/dev/stderr')" "unbounded cat"
+assert_block "stdout to /dev/stdout" "$HOOK" "$(payload_bash 'cat f >/dev/stdout')" "unbounded cat"
+assert_block "stdout to /dev/fd/2"   "$HOOK" "$(payload_bash 'cat f >/dev/fd/2')"   "unbounded cat"
+assert_block "both streams to /dev/stderr" "$HOOK" "$(payload_bash 'cat f &>/dev/stderr')" "unbounded cat"
+assert_allow "stdout to /dev/null"   "$HOOK" "$(payload_bash 'cat f >/dev/null')"
+# A metacharacter inside a quoted filename is not a redirect: the scan reads the
+# quote-masked copy, as the write path does.
+assert_block "quoted operand with >" "$HOOK" "$(payload_bash "cat 'report>2026'")" "unbounded cat"
+assert_allow "quoted operand, quoted redirect target" "$HOOK" "$(payload_bash "cat 'a' > 'out.txt'")"
+# `<>` opens the file read-write and still prints it.
+assert_block "read-write redirect"       "$HOOK" "$(payload_bash 'cat f <>tmp')" "unbounded cat"
+assert_block "fd-qualified read-write"   "$HOOK" "$(payload_bash 'cat f 3<>tmp')" "unbounded cat"
+# guard_normalize turns a newline into `;`, so a later line is its own command at
+# every anchored guard -- not welded onto the previous line's operands.
+assert_block "raw read on a second line" "$HOOK" "$(payload_bash 'echo ok
+cat foo.txt' twin)" "unbounded cat"
+assert_block "pager on a second line"    "$HOOK" "$(payload_bash 'echo ok
+less foo.txt' twin)" "interactive raw reads"
+assert_allow "a backslash-newline is a continuation, not a separator" "$HOOK" "$(payload_bash 'echo one \
+two' twin)"
 
 # --- Twins never run git ------------------------------------------------------
 assert_block "twin blocked from git"         "$HOOK" "$(payload_bash 'git status' twin)" "never runs git"
 assert_block "smuggled env git (twin)"       "$HOOK" "$(payload_bash 'env git push' twin)" "never runs git"
 assert_block "smuggled FOO=1 git (twin)"     "$HOOK" "$(payload_bash 'FOO=1 git status' twin)" "never runs git"
+# A newline separates commands, so a twin cannot reach git on a later line.
+assert_block "twin git on a second line"     "$HOOK" "$(payload_bash 'echo ok
+git status' twin)" "never runs git"
 assert_block "smuggled command git (twin)"   "$HOOK" "$(payload_bash 'command git log' twin)" "never runs git"
 # keymaker owns branching and commits, so the git block is scoped to twins only.
 assert_allow "keymaker itself may run git"   "$HOOK" "$(payload_bash 'git status' keymaker)"

@@ -72,9 +72,22 @@ guard_jq2() {
   guard_trusted="${_fields##*"$GUARD_RS"}"
 }
 
-# guard_normalize <cmd> -- sets $guard_cmd with newlines flattened to spaces, so
-# a multi-line command cannot slip a clause past the single-line patterns below.
-guard_normalize() { guard_cmd="${1//$'\n'/ }"; }
+# guard_normalize <cmd> -- sets $guard_cmd as one line, so a multi-line command
+# cannot slip a clause past the single-line patterns below.
+#
+# A newline becomes `;`, not a space. It separates two commands exactly as `;`
+# does, and flattening it to a space welded the next command onto the previous
+# one's operands, where no pattern anchored at a command position could see it:
+# `echo ok\ncat f` read as `echo ok cat f`, and the raw-read, watch and
+# workers-never-run-git blocks all missed the second line.
+#
+# A backslash-newline is the exception -- there the newline is a line
+# continuation, and bash joins the two halves into one command, so it collapses
+# to a space before the rest are separated.
+guard_normalize() {
+  local _joined="${1//\\$'\n'/ }"
+  guard_cmd="${_joined//$'\n'/; }"
+}
 
 # ------------------------------------------------- command-shape patterns
 
@@ -102,7 +115,9 @@ _g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]
 _g_dotgit='\.git/'
 GUARD_RE_DESTRUCTIVE="${_g_rm_rf}"'|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|$)|-[A-Za-z]*f)|>>?\|?[[:space:]]*\.env|>>?\|?[^|;&]*'"${_g_dotgit}"'|(^|[[:space:];|&(])rm[[:space:]][^|;&]*'"${_g_dotgit}"
 
-# A command position: start of line, or just after a separator.
+# A command position: start of line, or just after a separator. guard_normalize
+# turns a newline into `;`, so a later line reaches this anchor as its own
+# command.
 _g_cmdpos='(^|[;&|][&|]?[[:space:]]*)'
 # Prefixes that must not smuggle a command past that anchor: leading env
 # assignments, `env`, `command`.
@@ -203,9 +218,12 @@ GUARD_RE_STREAM="${_g_cmdpos}${_g_pfx}"'tail[[:space:]]+-f([[:space:]]|$)'
 _g_cat_fd='([02-9]|[0-9][0-9]+)'
 _g_cat_tgt='[[:space:]]*[^[:space:];|&<>]+'
 # A reading token: an operand, or an input redirect. At least one is required.
-_g_cat_rd='([^|><;&[:space:]]+|[0-9]*<'"${_g_cat_tgt}"')'
+_g_cat_rd='([^|><;&[:space:]]+|[0-9]*<>?'"${_g_cat_tgt}"')'
+# A stdout redirect whose destination the tool result surfaces anyway. `/dev/null`
+# is deliberately absent: that one really does end the read.
+_g_cat_ctx='([0-9]*|&)>>?[|]?[[:space:]]*/dev/(stderr|stdout|tty|fd/[0-9]+)'
 # A token that rides along: reads no file and leaves stdout where it was.
-_g_cat_ride='('"${_g_cat_fd}"'(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|1?>&[0-9]+-?|(<<<|<<-?)[[:space:]]*[^[:space:];|&<>]*)'
+_g_cat_ride='('"${_g_cat_fd}"'(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|1?>&[0-9]+-?|(<<<|<<-?)[[:space:]]*[^[:space:];|&<>]*|'"${_g_cat_ctx}"')'
 _g_cat_tok='('"${_g_cat_ride}"'|'"${_g_cat_rd}"')'
 _g_cat_end='[[:space:]]*($|;|\|\||&($|[^>]))'
 GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat([[:space:]]+'"${_g_cat_tok}"')*[[:space:]]+'"${_g_cat_rd}"'([[:space:]]+'"${_g_cat_tok}"')*'"${_g_cat_end}"
@@ -254,15 +272,19 @@ guard_block_watch_commands() {
 }
 
 guard_block_raw_reads() {
-  if [[ $guard_cmd =~ $GUARD_RE_PAGER ]]; then
+  # Scan the quote-masked copy, as the write path does: a metacharacter inside a
+  # filename (`cat 'report>2026'`) is not a redirect, and masking it leaves a
+  # plain operand behind rather than a scan that stops at the `>`.
+  guard_mask_quotes "$guard_cmd"
+  if [[ $guard_masked =~ $GUARD_RE_PAGER ]]; then
     echo "Blocked: interactive raw reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or targeted grep/rg/jq/scripted summaries." >&2
     exit 2
   fi
-  if [[ $guard_cmd =~ $GUARD_RE_STREAM ]]; then
+  if [[ $guard_masked =~ $GUARD_RE_STREAM ]]; then
     echo "Blocked: streaming raw output is disallowed. Capture/filter and surface only the needed result." >&2
     exit 2
   fi
-  if [[ $guard_cmd =~ $GUARD_RE_CAT ]]; then
+  if [[ $guard_masked =~ $GUARD_RE_CAT ]]; then
     echo "Blocked: unbounded cat reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or pipe/filter with grep/rg/jq." >&2
     exit 2
   fi

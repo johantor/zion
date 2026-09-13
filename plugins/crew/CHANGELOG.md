@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pipe, a stdout redirect, `cat f >&-`, `cat <<EOF` and `cat file2>/tmp` fall through (#226).
 - The three raw-read rules take the same wrapper prefixes as the rest of the guard, so
   `env cat f`, `command cat f` and `FOO=1 cat f` no longer walk a read past them (#226).
+- **A newline now separates commands.** `guard_normalize` flattened it to a space, welding a
+  later line onto the previous command's operands, so every guard anchored at a command position
+  saw only the first line: a worker could run `git` on line 2, and a watch command or raw read on
+  a later line went unrefused. A backslash-newline is still joined as the line continuation it is
+  (#226).
+- Raw reads: a redirect to a stream the tool result surfaces (`/dev/stderr`, `/dev/stdout`,
+  `/dev/fd/N`) no longer reads as an escape, a metacharacter inside a quoted filename is no longer
+  read as a redirect, and `<>` counts as the read it is (#226).
 
 ### Changed
 

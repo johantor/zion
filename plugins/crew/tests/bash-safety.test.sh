@@ -12,6 +12,9 @@ done
 assert_allow "git in a no-agent session" "$HOOK" "$(payload_bash 'git status')"
 assert_block "smuggled env git push (tank)" "$HOOK" "$(payload_bash 'env git push' tank)" "never runs git"
 assert_block "smuggled FOO=1 git (tank)" "$HOOK" "$(payload_bash 'FOO=1 git status' tank)" "never runs git"
+# A newline separates commands, so a worker cannot reach git on a later line.
+assert_block "worker git on a second line" "$HOOK" "$(payload_bash 'echo ok
+git status' tank)" "never runs git"
 
 # --- Protected-branch commit backstop -----------------------------------------
 main_repo="$(make_git_branch main)"
@@ -84,6 +87,8 @@ for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
 done
 assert_allow "npm run build"                  "$HOOK" "$(payload_bash 'npm run build' tank)"
 assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm run dev')"
+assert_block "watch on a second line" "$HOOK" "$(payload_bash 'echo ok
+npm run dev' tank)" "never terminate"
 
 # --- Raw / streaming reads -----------------------------------------------------
 assert_block "cat a file"     "$HOOK" "$(payload_bash 'cat foo.txt' tank)"      "unbounded cat"
@@ -161,6 +166,28 @@ assert_allow "fd 1 closed"        "$HOOK" "$(payload_bash 'cat secret 1>&-')"
 assert_block "stdout moved onto fd 2"      "$HOOK" "$(payload_bash 'cat secret >&2-')"  "unbounded cat"
 assert_block "fd 1 moved onto fd 2"        "$HOOK" "$(payload_bash 'cat secret 1>&2-')" "unbounded cat"
 assert_block "stderr closed"      "$HOOK" "$(payload_bash 'cat secret 2>&-')" "unbounded cat"
+# A redirect whose destination the tool result surfaces anyway is not an escape;
+# `/dev/null` still is.
+assert_block "stdout to /dev/stderr" "$HOOK" "$(payload_bash 'cat f >/dev/stderr')" "unbounded cat"
+assert_block "stdout to /dev/stdout" "$HOOK" "$(payload_bash 'cat f >/dev/stdout')" "unbounded cat"
+assert_block "stdout to /dev/fd/2"   "$HOOK" "$(payload_bash 'cat f >/dev/fd/2')"   "unbounded cat"
+assert_block "both streams to /dev/stderr" "$HOOK" "$(payload_bash 'cat f &>/dev/stderr')" "unbounded cat"
+assert_allow "stdout to /dev/null"   "$HOOK" "$(payload_bash 'cat f >/dev/null')"
+# A metacharacter inside a quoted filename is not a redirect: the scan reads the
+# quote-masked copy, as the write path does.
+assert_block "quoted operand with >" "$HOOK" "$(payload_bash "cat 'report>2026'")" "unbounded cat"
+assert_allow "quoted operand, quoted redirect target" "$HOOK" "$(payload_bash "cat 'a' > 'out.txt'")"
+# `<>` opens the file read-write and still prints it.
+assert_block "read-write redirect"       "$HOOK" "$(payload_bash 'cat f <>tmp')" "unbounded cat"
+assert_block "fd-qualified read-write"   "$HOOK" "$(payload_bash 'cat f 3<>tmp')" "unbounded cat"
+# guard_normalize turns a newline into `;`, so a later line is its own command at
+# every anchored guard -- not welded onto the previous line's operands.
+assert_block "raw read on a second line" "$HOOK" "$(payload_bash 'echo ok
+cat foo.txt' tank)" "unbounded cat"
+assert_block "pager on a second line"    "$HOOK" "$(payload_bash 'echo ok
+less foo.txt' tank)" "interactive raw reads"
+assert_allow "a backslash-newline is a continuation, not a separator" "$HOOK" "$(payload_bash 'echo one \
+two' tank)"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

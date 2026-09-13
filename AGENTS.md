@@ -539,15 +539,26 @@ Versions are per-plugin. To cut a release:
    matching changelog entry → it skips with a warning. No manual tagging is needed
    (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
 
-### Small changes park under `## [Unreleased]`
+### Release by default; park only what a user cannot observe
 
 A tag carries **everything** merged since the previous tag, not just the bump — so a change that
 skips the bump/changelog step doesn't wait for a release of its own, it ships inside the next one,
 described nowhere. That is how a README rewrite and a pass over the shipped hooks' comments both
 went out in `crew/v3.15.0` without appearing in any notes.
 
-So every changelog keeps an `## [Unreleased]` heading at the top (§2i requires it), and a change
-too small to justify its own release parks a bullet there instead of skipping the step:
+**So bump by default.** The question is not "is this big enough for a release?" but:
+
+> **Would a user who runs `claude plugin update` notice?**
+
+If yes, it earns a version bump in the same PR — patch for a fix, minor for an addition. A guard
+that blocks a command it used to allow, a reworded refusal, a changed agent prompt, a README
+users read: every one of those is a release, however few lines it took. Releasing often is the
+cheap side of the trade. Auto-release does the tagging, versions are per-plugin, and a small
+release that names its change beats a large one that buries it. Several in a day is fine.
+
+Park only when the answer is no — a comment inside a shipped file, whitespace, an internal
+cross-reference, anything a user cannot observe from the outside. Every changelog keeps an
+`## [Unreleased]` heading at the top (§2i requires it) for those:
 
 ```
 ## [Unreleased]

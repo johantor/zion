@@ -7,22 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-09-13
+
 ### Fixed
 
-- The shared guard library's raw-read rule gave a file that dumps into the context the opposite
-  verdict of a bare `cat` whenever a stderr redirect followed it: `cat <file> 2>/dev/null` ended
-  the end-of-command match and slipped through. The rule now reads the command as
-  whitespace-separated tokens and follows stdout, so every stderr spelling and position blocks
-  with the bare form — `2>`, `2>>`, a spaced target, an fd dup, and a redirect written before the
-  operand. A stdout redirect (`>`, `1>`, `&>`) and a pipe still fall through, since each moves
-  stdout out of the context; `cat f 2>&1 | grep x` and `cat file2>/tmp` are now on that side
-  rather than blocked.
+- Shared guard library: the raw-read block follows stdout now, so every stderr redirect spelling
+  blocks with a bare `cat`, and `cat f 2>&1 | grep x`, `cat file2>/tmp` and `cat f &>/dev/null` no
+  longer do (#226).
 
 ### Changed
 
-- The raw-read refusals name the tool to use instead of guessing at one — "Use the Read tool for
-  a file in the checkout" — and say why the shell read is refused: it reaches no `Read` hook, so
-  `read-guard`'s size bound never applies to it.
+- The raw-read refusals name the `Read` tool and say why a shell read is refused: it reaches no
+  `Read` hook, so `read-guard`'s size bound never applies (#226).
 
 ## [0.9.1] - 2026-09-04
 

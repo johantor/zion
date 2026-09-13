@@ -249,7 +249,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   folding in anything parked under `## [Unreleased]`. On merge to main, auto-release tags
   `crew/vX.Y.Z` and builds notes with `scripts/release-notes.sh` — that section plus the
   commits since the previous tag that have no entry of their own.
-- A shipped change too small for its own release parks a bullet under `## [Unreleased]` rather
-  than skipping the changelog: `scripts/check-changelog.sh` blocks a shipped change with no
-  trace, and a bump that leaves bullets parked. Shipped = everything here except `tests/`,
+- **Bump by default** — the bar is "would a user who runs `claude plugin update` notice?", not
+  "is this big enough?". A changed guard verdict or a reworded refusal is a patch release. Only a
+  change no user can observe (a comment inside a shipped file, whitespace) parks a bullet under
+  `## [Unreleased]` instead. `scripts/check-changelog.sh` blocks a shipped change with no trace,
+  and a bump that leaves bullets parked. Shipped = everything here except `tests/`,
   `CLAUDE.md`, `VERIFICATION.md`, and the changelog. Root `AGENTS.md` §"Releasing" has the rest.

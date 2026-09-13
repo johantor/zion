@@ -163,9 +163,10 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 #                        dup, so `cat f 2>/dev/null` and `cat 2>/dev/null f` dump
 #                        the file exactly as the bare form does. Bare `>` and
 #                        `1>` are stdout and are not here
-#   `>&N` `1>&N`         stdout duped to another fd -- stderr is surfaced in the
-#                        tool result too, so this moves nothing out of reach.
-#                        `>&-` is not here: it closes stdout, and nothing is read
+#   `>&N` `1>&N` `>&N-`  stdout duped to another fd, or moved onto it -- stderr
+#                        is surfaced in the tool result too, so this moves
+#                        nothing out of reach. The fd is required, which keeps
+#                        `>&-` out: that closes stdout, and nothing is read
 #   `<<` `<<-` `<<<`     a heredoc replaces stdin, which `cat` ignores once it
 #                        has an operand -- `cat f <<EOF` still prints f. So these
 #                        never make a command safe on their own; a `cat` with no
@@ -204,7 +205,7 @@ _g_cat_tgt='[[:space:]]*[^[:space:];|&<>]+'
 # A reading token: an operand, or an input redirect. At least one is required.
 _g_cat_rd='([^|><;&[:space:]]+|[0-9]*<'"${_g_cat_tgt}"')'
 # A token that rides along: reads no file and leaves stdout where it was.
-_g_cat_ride='('"${_g_cat_fd}"'(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|1?>&[0-9]+|(<<<|<<-?)[[:space:]]*[^[:space:];|&<>]*)'
+_g_cat_ride='('"${_g_cat_fd}"'(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|1?>&[0-9]+-?|(<<<|<<-?)[[:space:]]*[^[:space:];|&<>]*)'
 _g_cat_tok='('"${_g_cat_ride}"'|'"${_g_cat_rd}"')'
 _g_cat_end='[[:space:]]*($|;|\|\||&($|[^>]))'
 GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat([[:space:]]+'"${_g_cat_tok}"')*[[:space:]]+'"${_g_cat_rd}"'([[:space:]]+'"${_g_cat_tok}"')*'"${_g_cat_end}"

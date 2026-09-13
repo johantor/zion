@@ -155,7 +155,11 @@ assert_block "herestring with a file operand" "$HOOK" "$(payload_bash 'cat foo.t
 assert_block "herestring before the operand"  "$HOOK" "$(payload_bash 'cat <<<somestring foo.txt')" "unbounded cat"
 assert_allow "cat reading stdin only"         "$HOOK" "$(payload_bash 'cat 2>/dev/null' tank)"
 # `>&-` closes stdout rather than duping it, so nothing is read into the context.
+# `>&N-` is the move form: stderr becomes stdout, and stderr is surfaced too.
 assert_allow "stdout closed"      "$HOOK" "$(payload_bash 'cat secret >&-')"
+assert_allow "fd 1 closed"        "$HOOK" "$(payload_bash 'cat secret 1>&-')"
+assert_block "stdout moved onto fd 2"      "$HOOK" "$(payload_bash 'cat secret >&2-')"  "unbounded cat"
+assert_block "fd 1 moved onto fd 2"        "$HOOK" "$(payload_bash 'cat secret 1>&2-')" "unbounded cat"
 assert_block "stderr closed"      "$HOOK" "$(payload_bash 'cat secret 2>&-')" "unbounded cat"
 
 # --- File writes through Bash (agent sessions only) ---------------------------

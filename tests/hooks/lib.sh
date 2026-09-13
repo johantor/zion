@@ -146,6 +146,26 @@ make_git_branch() {
   printf '%s' "$dir"
 }
 
+# make_git_worktree <branch> <worktree-branch> -> echoes a throwaway git repo
+# checked out on <branch>, with a linked worktree at ./wt on <worktree-branch>.
+# The shape a crew session runs in: the commit lands in the worktree while the
+# hook's own directory is the main checkout, so the two branches differ. Needs a
+# commit for `git worktree add` to have a HEAD to branch from, and carries its own
+# identity so the fixture does not depend on the host's git config.
+make_git_worktree() {
+  local branch="$1" wt_branch="$2" dir
+  dir="$(make_git_branch "$branch")"
+  git -C "$dir" -c user.email=crew@example.invalid -c user.name=crew \
+    commit -q --allow-empty -m init >/dev/null 2>&1 || die "fixture commit failed in $dir"
+  git -C "$dir" worktree add -q "$dir/wt" -b "$wt_branch" >/dev/null 2>&1 \
+    || die "git worktree add failed in $dir"
+  # A second worktree whose path carries spaces: a quoted operand is a shape the
+  # guards have to read as one word, so every suite gets one to point at.
+  git -C "$dir" worktree add -q "$dir/wt two words" -b "$wt_branch-spaced" >/dev/null 2>&1 \
+    || die "git worktree add (spaced) failed in $dir"
+  printf '%s' "$dir"
+}
+
 # make_claude_md <content> -> echoes a throwaway dir containing a CLAUDE.md
 make_claude_md() {
   local dir

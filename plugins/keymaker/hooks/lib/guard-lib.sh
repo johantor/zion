@@ -148,24 +148,37 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 # applies to it -- the same gap on the read path that guard_block_file_writes
 # closes on the write path.
 #
-# The cat pattern fires only where stdout still lands in the context, so it reads
-# the simple command as whitespace-separated tokens rather than as one operand
-# run. A token is an operand or a *stderr* redirect (`2>`/`2>>`, spaced target or
-# fd dup): neither moves stdout, so `cat f 2>/dev/null`, `cat f 2> /dev/null` and
-# `cat 2>/dev/null f` all dump the file exactly as the bare form does and get the
-# same verdict. Anything else ends the token run and falls through to allowed --
-# a stdout redirect (`>`, `1>`, `&>`) or a pipe sends the bytes elsewhere, which
-# is what makes filtering the documented way out, and a heredoc reads no file.
+# The cat pattern fires only where the bytes still land in the context, so it
+# reads the simple command as whitespace-separated tokens rather than as one
+# operand run. A token is anything that leaves them there:
 #
-# Two boundaries carry the difference. Tokens are whitespace-separated, so the
+#   operand              the file being read
+#   `2>` `2>>` `2>|`     a stderr redirect, spaced target or fd dup -- stdout is
+#                        untouched, so `cat f 2>/dev/null` and `cat 2>/dev/null f`
+#                        dump the file exactly as the bare form does
+#   `<`                  an input redirect: `cat < f` reads f and prints it
+#   `>&N` `1>&N`         stdout duped to another fd -- stderr is surfaced in the
+#                        tool result too, so this moves nothing out of reach
+#
+# Anything else ends the token run and falls through to allowed: a stdout
+# redirect to a file (`>`, `>>`, `>|`, `1>`, `&>`) or a pipe sends the bytes
+# somewhere the context never sees, which is what makes filtering the documented
+# way out, and `<<`/`<<<` feed text the caller already has rather than a file.
+#
+# Three boundaries carry the cases. Tokens are whitespace-separated, so the
 # stderr arm cannot reinterpret an operand's own suffix: `cat file2>/tmp` is the
-# operand `file2` plus a stdout redirect, not `file` plus `2>/tmp`. And the end
-# alternation takes `&` only where it separates, never where it opens the `&>`
-# that redirects stdout -- `cat f 2>&1` ends at the context, while
-# `cat f 2>&1 | grep x` does not.
+# operand `file2` plus a stdout redirect, not `file` plus `2>/tmp`. The input arm
+# takes a target that cannot start with `<`, which is what separates `cat < f`
+# from a heredoc. And the end alternation takes `&` only where it separates,
+# never where it opens the `&>` that redirects stdout -- `cat f 2>&1` ends at the
+# context, while `cat f 2>&1 | grep x` does not.
+#
+# A floor, not a sandbox, as on the write path: `cat f >&2 | grep x` still reads
+# as filtered, since the pipe ends the run before the dup can say otherwise.
 GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'
 GUARD_RE_STREAM="${_g_cmdpos}"'tail[[:space:]]+-f([[:space:]]|$)'
-_g_cat_tok='([^|><;&[:space:]]+|2>>?[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+))'
+_g_cat_tgt='[[:space:]]*[^[:space:];|&<>]+'
+_g_cat_tok='([^|><;&[:space:]]+|2(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|<'"${_g_cat_tgt}"'|1?>&[0-9-]+)'
 _g_cat_end='[[:space:]]*($|;|\|\||&($|[^>]))'
 GUARD_RE_CAT="${_g_cmdpos}"'cat([[:space:]]+'"${_g_cat_tok}"')+'"${_g_cat_end}"
 

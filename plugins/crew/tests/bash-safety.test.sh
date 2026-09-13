@@ -107,6 +107,26 @@ assert_allow "cat redirected into a file"   "$HOOK" "$(payload_bash 'cat foo.txt
 # `file2>/tmp/out` is the operand `file2` plus a stdout redirect. The stderr arm
 # must not reinterpret an operand's own suffix as its `2>`.
 assert_allow "operand ending in 2 before a redirect" "$HOOK" "$(payload_bash 'cat file2>/tmp/out' tank)"
+# An input redirect reads the file and prints it; `<<`/`<<<` feed text the caller
+# already has. The noclobber stderr spelling is a stderr redirect like the rest --
+# asserted without an agent_type, since the file-write guard answers `2>|` first.
+assert_block "cat with input redirect"        "$HOOK" "$(payload_bash 'cat < foo.txt' tank)"  "unbounded cat"
+assert_block "cat with glued input redirect"  "$HOOK" "$(payload_bash 'cat <foo.txt' tank)"   "unbounded cat"
+assert_block "cat with noclobber stderr"      "$HOOK" "$(payload_bash 'cat foo.txt 2>|err.log')" "unbounded cat"
+assert_allow "heredoc"    "$HOOK" "$(payload_bash 'cat <<EOF' tank)"
+assert_allow "herestring" "$HOOK" "$(payload_bash 'cat <<<somestring' tank)"
+# Duping stdout to stderr moves nothing out of reach: stderr is surfaced in the
+# tool result too. A noclobber *stdout* redirect does move it.
+assert_block "cat duped to stderr"         "$HOOK" "$(payload_bash 'cat foo.txt >&2' tank)"  "unbounded cat"
+assert_block "cat fd 1 duped to stderr"    "$HOOK" "$(payload_bash 'cat foo.txt 1>&2' tank)" "unbounded cat"
+assert_allow "cat with noclobber stdout"   "$HOOK" "$(payload_bash 'cat foo.txt >|out.txt')"
+assert_allow "cat with stdout to /dev/null, stderr duped" "$HOOK" "$(payload_bash 'cat foo.txt >/dev/null 2>&1' tank)"
+# The refusals are a user-facing contract: they name the tool to use and say why
+# the shell read is refused. Asserted apart from the category substrings above,
+# which would still pass if the guidance were dropped.
+assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "Use the Read tool"
+assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "reaches no Read hook"
+assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' tank)" "Use the Read tool"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

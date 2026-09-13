@@ -11,9 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Bash guard: the raw-read block follows stdout now, so every stderr redirect spelling blocks with
-  a bare `cat`, and `cat f 2>&1 | grep x`, `cat file2>/tmp` and `cat f &>/dev/null` no longer do
-  (#226).
+- Bash guard: the raw-read block follows where the bytes go now, so `cat < f`, `cat f 2>/dev/null`,
+  `cat f 2>|log` and `cat f >&2` block with a bare `cat`, while a pipe, a stdout redirect,
+  `cat file2>/tmp` and `<<`/`<<<` fall through (#226).
 
 ### Changed
 

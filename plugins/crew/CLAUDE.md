@@ -62,18 +62,21 @@ anything stated here updates this file in the same commit.** Conventions live in
   back. The hook names the owner in a `git_owner=morpheus` line above the shared region and
   passes it into the floor; validator §9 pins that line to the `owns-git: true` agent. Matched at
   a command position only — `find -exec git mv` and `(git mv …)` fall through to the generic
-  refusal). **Raw reads are refused for every session**, agent or not — a `cat` of a whole file
+  refusal. **Raw reads are refused for every session**, agent or not — a `cat` of a whole file
   reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it, the same
   gap on the read path that the file-write block closes on the write path. The pattern fires only
-  where stdout still reaches the context, and reads the simple command as whitespace-separated
-  **tokens** to decide: an operand or a *stderr* redirect (`2>`/`2>>`, spaced target or fd dup) is
-  a token, because neither moves stdout, so `cat f 2>/dev/null`, `cat f 2> /dev/null` and
-  `cat 2>/dev/null f` all block with the bare form. Anything else ends the token run and falls
-  through — a stdout redirect (`>`, `1>`, `&>`) or a pipe moves the bytes elsewhere, a heredoc
-  reads no file. Two boundaries carry it: tokens are whitespace-separated, so the stderr arm
-  cannot reinterpret an operand's suffix (`cat file2>/tmp` is `file2` plus a stdout redirect), and
-  the end alternation takes `&` only where it separates, never where it opens `&>` — which is why
-  `cat f 2>&1` blocks but `cat f 2>&1 | grep x` does not), `read-guard.sh` (>64 KiB raw
+  where the bytes still reach the context, and reads the simple command as whitespace-separated
+  **tokens** to decide. A token is anything that leaves them there: an operand, a *stderr*
+  redirect (`2>`/`2>>`/`2>|`, spaced target or fd dup), an input redirect (`<`), or stdout duped
+  to another fd (`>&N`, `1>&N`) — stderr is surfaced in the tool result too, so a dup moves
+  nothing out of reach. Anything else ends the token run and falls through: a stdout redirect to a
+  file (`>`, `>>`, `>|`, `1>`, `&>`) or a pipe, and `<<`/`<<<`, which feed text the caller already
+  has. Three boundaries carry it — tokens are whitespace-separated, so the stderr arm cannot
+  reinterpret an operand's suffix (`cat file2>/tmp` is `file2` plus a stdout redirect); the input
+  arm's target cannot start with `<`, which separates `cat < f` from a heredoc; and the end
+  alternation takes `&` only where it separates, never where it opens `&>` — which is why
+  `cat f 2>&1` blocks but `cat f 2>&1 | grep x` does not. A floor, not a sandbox: a dup followed
+  by a pipe (`cat f >&2 | grep x`) still reads as filtered), `read-guard.sh` (>64 KiB raw
   reads; an explicit
   `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes; the **only** hook that reads
   crew configuration — `.claude/crew.md` frontmatter by key, falling back to a legacy

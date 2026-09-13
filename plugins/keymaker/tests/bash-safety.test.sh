@@ -93,6 +93,7 @@ assert_block "keymaker function commit"     "$HOOK" "$(payload_bash 'f() { git c
 assert_block "keymaker /usr/bin/git commit" "$HOOK" "$(payload_bash '/usr/bin/git commit -m x' keymaker)" "protected branch" "$wt_repo"
 assert_block "keymaker && newline carry"    "$HOOK" "$(payload_bash $'false &&\ncd wt\ngit commit -m x' keymaker)" "protected branch" "$wt_repo"
 assert_block "keymaker quoted commit word"  "$HOOK" "$(payload_bash "git com'mit' -m x" keymaker)" "protected branch" "$wt_repo"
+assert_block "keymaker checkout main commit" "$HOOK" "$(payload_bash 'git checkout main && git commit -m x' keymaker)" "protected branch" "$wt_repo"
 assert_allow "keymaker echoes the word"     "$HOOK" "$(payload_bash 'echo commit' keymaker)" "$wt_repo"
 assert_block "keymaker newline separator"   "$HOOK" "$(payload_bash $'cd wt\ncd ..\ngit commit -m x' keymaker)" "protected branch" "$wt_repo"
 assert_allow "keymaker commit on the work branch" "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "$work_repo"

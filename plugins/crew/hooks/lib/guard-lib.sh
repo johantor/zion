@@ -591,6 +591,7 @@ GUARD_RE_GIT_ENV='^(GIT_DIR|GIT_WORK_TREE)=(.*)$'
 # candidates rather than replacing them.
 guard_collect_commit_dirs() {
   local cur='' sure=1 cond='' in_pipe='' next_cond='' list_cur='' opaque commit
+  local cur_checked_branch='' seg_checkout_seen='' seg_checkout_branch=''
   local dir dirsure target extra masked opens closes did_cd pre_cur w i n sep_norm
   local cd_phys
   local -a stack=()
@@ -616,6 +617,7 @@ guard_collect_commit_dirs() {
     done
     guard_wrest="$guard_seg"
     pre_cur="$cur"; did_cd=''; commit=''; opaque=''; dir="$cur"; dirsure="$sure"; ext=''
+    seg_checkout_seen=''; seg_checkout_branch=''
 
     # The command word, past any prefix word. An assignment that points git at
     # another repository is a candidate of its own, not a harmless prefix.
@@ -683,6 +685,7 @@ guard_collect_commit_dirs() {
             fi
             if guard_dir_usable "$guard_dir"; then
               did_cd=1; cur="$guard_dir"
+              cur_checked_branch=''
               # A `cd` the shell may skip: after `||` it runs only when the left
               # side failed, and the commands after it run either way.
               if [ "$next_cond" = 'or' ]; then sure=''; elif [ -n "$next_cond" ]; then cond=1; fi
@@ -701,6 +704,21 @@ guard_collect_commit_dirs() {
             fi
             case "$guard_word" in
               commit) commit=1; break ;;
+              checkout|switch)
+                seg_checkout_seen=1; seg_checkout_branch=''
+                while guard_next_word; do
+                  if [ -z "$guard_word_ok" ]; then dirsure=''; break; fi
+                  case "$guard_word" in
+                    --) break ;;
+                    -*) continue ;;
+                    *)
+                      if [[ $guard_word =~ ^($GUARD_PROTECTED_BRANCHES)$ ]]; then
+                        seg_checkout_branch="$guard_word"
+                      fi
+                      break ;;
+                  esac
+                done
+                break ;;
               -C) if guard_next_word && [ -n "$guard_word_ok" ]; then
                     # Git resolves its own `-C`, `..` physically included, so
                     # this join stays textual.
@@ -759,7 +777,11 @@ guard_collect_commit_dirs() {
     fi
     if [ -n "$commit" ]; then
       guard_add_dir "$dir"
+      if [ -n "$cur_checked_branch" ]; then guard_add_dir "branch:$cur_checked_branch"; fi
       if [ -z "$dirsure" ] || [ -z "$sure" ]; then guard_add_dir ''; fi
+    fi
+    if [ -n "$seg_checkout_seen" ]; then
+      cur_checked_branch="$seg_checkout_branch"
     fi
 
     # Either side of a pipe runs in a subshell, and `&` backgrounds the whole
@@ -767,10 +789,10 @@ guard_collect_commit_dirs() {
     # case restores the directory from the start of that list, not just this
     # segment's, so a `cd` earlier in the backgrounded list is undone too.
     case "$guard_sep" in
-      '|'|'|&') if [ -n "$did_cd" ]; then cur="$pre_cur"; fi ;;
-      '&')      cur="$list_cur" ;;
+      '|'|'|&') if [ -n "$did_cd" ]; then cur="$pre_cur"; cur_checked_branch=''; fi ;;
+      '&')      cur="$list_cur"; cur_checked_branch='' ;;
     esac
-    if [ -n "$in_pipe" ] && [ -n "$did_cd" ]; then cur="$pre_cur"; fi
+    if [ -n "$in_pipe" ] && [ -n "$did_cd" ]; then cur="$pre_cur"; cur_checked_branch=''; fi
     sep_norm="${guard_sep//$'\n'/}"
     # A `cd` reached through `&&` is safe to carry while that chain continues; a
     # `;` or `&` ends the chain, and with it the certainty.
@@ -793,6 +815,7 @@ guard_collect_commit_dirs() {
     n=${#closes}; i=0
     while [ "$i" -lt "$n" ] && [ "${#stack[@]}" -gt 0 ]; do
       cur="${stack[${#stack[@]} - 1]}"
+      cur_checked_branch=''
       unset "stack[${#stack[@]} - 1]"
       i=$((i + 1))
     done
@@ -805,6 +828,7 @@ guard_collect_commit_dirs() {
 # a commit there lands nowhere this guard protects.
 guard_branch_at() {
   case "$1" in
+    branch:*) guard_branch="${1#branch:}" ;;
     # A `--git-dir`/`GIT_DIR` candidate: its work tree may be anywhere, or be a
     # plain directory with no `.git` of its own, so the repository is asked
     # directly rather than through a directory that may know nothing about it.
@@ -841,6 +865,7 @@ guard_block_protected_branch_commit() {
       where=''
       case "$dir" in
         '') ;;
+        branch:*) where=" after in-command checkout to '${dir#branch:}'" ;;
         gitdir:*) where=" in the repository at '${dir#gitdir:}'" ;;
         *) where=" in '$dir'" ;;
       esac

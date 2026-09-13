@@ -113,6 +113,7 @@ assert_block "--git-dir read from git -C"       "$HOOK" "$(payload_bash 'cd wt &
 assert_block "a substitution under echo"        "$HOOK" "$(payload_bash 'echo "$(git -C . commit -m x)"' morpheus)" "protected branch" "$wt_repo"
 assert_block "a backgrounded && list"           "$HOOK" "$(payload_bash 'cd wt && git commit -m a & git commit -m b' morpheus)" "protected branch" "$wt_repo"
 assert_block "a cd the || may skip"             "$HOOK" "$(payload_bash 'true || cd wt && git commit -m x' morpheus)" "protected branch" "$wt_repo"
+assert_block "checkout to main before commit"    "$HOOK" "$(payload_bash 'git checkout main && git commit -m x' morpheus)" "protected branch" "$wt_repo"
 assert_block "coproc before git commit"         "$HOOK" "$(payload_bash 'coproc git commit -m x' morpheus)" "protected branch" "$wt_repo"
 assert_block "case statement with git commit"   "$HOOK" "$(payload_bash 'case x in x) git commit -m x;; esac' morpheus)" "protected branch" "$wt_repo"
 assert_block "function body with git commit"    "$HOOK" "$(payload_bash 'f() { git commit -m x; }; f' morpheus)" "protected branch" "$wt_repo"

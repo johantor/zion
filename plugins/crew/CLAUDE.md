@@ -66,12 +66,14 @@ anything stated here updates this file in the same commit.** Conventions live in
   reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it, the same
   gap on the read path that the file-write block closes on the write path. The pattern fires only
   where the bytes still reach the context, and reads the simple command as whitespace-separated
-  **tokens** to decide. A token is anything that leaves them there: an operand, a *stderr*
-  redirect (`2>`/`2>>`/`2>|`, spaced target or fd dup), an input redirect (`<`), or stdout duped
-  to another fd (`>&N`, `1>&N`) — stderr is surfaced in the tool result too, so a dup moves
-  nothing out of reach. Anything else ends the token run and falls through: a stdout redirect to a
-  file (`>`, `>>`, `>|`, `1>`, `&>`) or a pipe, and `<<`/`<<<`, which feed text the caller already
-  has. Three boundaries carry it — tokens are whitespace-separated, so the stderr arm cannot
+  **tokens** to decide. A token is anything that leaves them there: an operand, a redirect of any
+  fd but stdout (`2>`/`3>`/`2>>`/`2>|`, spaced target or fd dup), an input redirect (`<`, `3<`),
+  or stdout duped to another fd (`>&N`, `1>&N`) — stderr is surfaced in the tool result too, so a
+  dup moves nothing out of reach. Anything else ends the token run and falls through: a stdout
+  redirect to a file (`>`, `>>`, `>|`, `1>`, `&>`) or a pipe, and `<<`/`<<<`, which feed text the
+  caller already has. All three raw-read patterns take `${_g_pfx}` as well, so `env cat f`,
+  `command cat f` and `FOO=1 cat f` cannot walk a read past them. Three boundaries carry the
+  rest — tokens are whitespace-separated, so the fd arm cannot
   reinterpret an operand's suffix (`cat file2>/tmp` is `file2` plus a stdout redirect); the input
   arm's target cannot start with `<`, which separates `cat < f` from a heredoc; and the end
   alternation takes `&` only where it separates, never where it opens `&>` — which is why

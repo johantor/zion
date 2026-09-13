@@ -84,5 +84,6 @@ anything stated here updates this file in the same commit.** Conventions live in
   "is this big enough?". A changed guard verdict or a reworded refusal is a patch release. Only a
   change no user can observe (a comment inside a shipped file, whitespace) parks a bullet under
   `## [Unreleased]` instead. `scripts/check-changelog.sh` blocks a shipped change with no trace,
-  and a bump that leaves bullets parked. Shipped = everything here except `CLAUDE.md`,
-  `VERIFICATION.md`, and the changelog. Details in the root `AGENTS.md` §"Releasing".
+  and a bump that leaves bullets parked. Shipped = everything here except `tests/` (repo
+  tooling), `CLAUDE.md`, `VERIFICATION.md`, and the changelog. Details in the root `AGENTS.md`
+  §"Releasing".

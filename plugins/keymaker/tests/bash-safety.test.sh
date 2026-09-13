@@ -99,6 +99,21 @@ assert_allow "cat with stdout to /dev/null, stderr duped" "$HOOK" "$(payload_bas
 assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat foo.txt' twin)"  "Use the Read tool"
 assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' twin)"  "reaches no Read hook"
 assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' twin)" "Use the Read tool"
+assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' twin)" "reaches no Read hook"
+# A wrapper the command-position policy already knows must not walk a read past
+# the guard, on any of the three raw-read rules.
+assert_block "env cat"       "$HOOK" "$(payload_bash 'env cat foo.txt' twin)"     "unbounded cat"
+assert_block "command cat"   "$HOOK" "$(payload_bash 'command cat foo.txt' twin)" "unbounded cat"
+assert_block "FOO=1 cat"     "$HOOK" "$(payload_bash 'FOO=1 cat foo.txt' twin)"   "unbounded cat"
+assert_block "env less"      "$HOOK" "$(payload_bash 'env less foo.txt' twin)"    "interactive raw reads"
+assert_block "env tail -f"   "$HOOK" "$(payload_bash 'env tail -f app.log' twin)" "streaming raw output"
+# Only stdout ends the run: a redirect of any other fd leaves the bytes in the
+# context. `1>`/`>` stay stdout -- asserted without an agent_type, since the
+# file-write guard answers a redirect into the checkout first.
+assert_block "cat with fd 3 redirected"  "$HOOK" "$(payload_bash 'cat big.txt 3>/tmp/err')"  "unbounded cat"
+assert_block "cat with fd 10 redirected" "$HOOK" "$(payload_bash 'cat big.txt 10>/tmp/err')" "unbounded cat"
+assert_block "cat with fd 3 input"       "$HOOK" "$(payload_bash 'cat big.txt 3<other.txt' twin)" "unbounded cat"
+assert_allow "cat with fd 1 redirected"  "$HOOK" "$(payload_bash 'cat foo.txt 1>out.txt')"
 
 # --- Twins never run git ------------------------------------------------------
 assert_block "twin blocked from git"         "$HOOK" "$(payload_bash 'git status' twin)" "never runs git"

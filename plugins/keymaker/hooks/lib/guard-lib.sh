@@ -153,10 +153,11 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 # operand run. A token is anything that leaves them there:
 #
 #   operand              the file being read
-#   `2>` `2>>` `2>|`     a stderr redirect, spaced target or fd dup -- stdout is
-#                        untouched, so `cat f 2>/dev/null` and `cat 2>/dev/null f`
-#                        dump the file exactly as the bare form does
-#   `<`                  an input redirect: `cat < f` reads f and prints it
+#   `2>` `3>` `2>>` `2>|`  a redirect of any fd but stdout, spaced target or fd
+#                        dup -- stdout is untouched, so `cat f 2>/dev/null` and
+#                        `cat 2>/dev/null f` dump the file exactly as the bare
+#                        form does. Bare `>` and `1>` are stdout and are not here
+#   `<` `3<`             an input redirect: `cat < f` reads f and prints it
 #   `>&N` `1>&N`         stdout duped to another fd -- stderr is surfaced in the
 #                        tool result too, so this moves nothing out of reach
 #
@@ -173,14 +174,21 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 # never where it opens the `&>` that redirects stdout -- `cat f 2>&1` ends at the
 # context, while `cat f 2>&1 | grep x` does not.
 #
+# All three take ${_g_pfx}, so a wrapper the shared command-position policy
+# already knows -- `env cat f`, `command cat f`, `FOO=1 cat f` -- cannot walk the
+# read past the guard any more than it can the git block.
+#
 # A floor, not a sandbox, as on the write path: `cat f >&2 | grep x` still reads
 # as filtered, since the pipe ends the run before the dup can say otherwise.
-GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'
-GUARD_RE_STREAM="${_g_cmdpos}"'tail[[:space:]]+-f([[:space:]]|$)'
+GUARD_RE_PAGER="${_g_cmdpos}${_g_pfx}"'(less|more)[[:space:]]+'
+GUARD_RE_STREAM="${_g_cmdpos}${_g_pfx}"'tail[[:space:]]+-f([[:space:]]|$)'
+# Any fd but stdout: a lone `1` and the empty fd of a bare `>` are excluded, so
+# `1>out` and `>out` stay stdout redirects and end the run.
+_g_cat_fd='([02-9]|[0-9][0-9]+)'
 _g_cat_tgt='[[:space:]]*[^[:space:];|&<>]+'
-_g_cat_tok='([^|><;&[:space:]]+|2(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|<'"${_g_cat_tgt}"'|1?>&[0-9-]+)'
+_g_cat_tok='([^|><;&[:space:]]+|'"${_g_cat_fd}"'(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|[0-9]*<'"${_g_cat_tgt}"'|1?>&[0-9-]+)'
 _g_cat_end='[[:space:]]*($|;|\|\||&($|[^>]))'
-GUARD_RE_CAT="${_g_cmdpos}"'cat([[:space:]]+'"${_g_cat_tok}"')+'"${_g_cat_end}"
+GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat([[:space:]]+'"${_g_cat_tok}"')+'"${_g_cat_end}"
 
 # Bash can mutate a file without any Edit|Write hook seeing it: a redirect, a
 # `tee`, an in-place stream edit, a copy into the tree. Such a write skips every
@@ -227,7 +235,7 @@ guard_block_watch_commands() {
 
 guard_block_raw_reads() {
   if [[ $guard_cmd =~ $GUARD_RE_PAGER ]]; then
-    echo "Blocked: interactive raw reads are disallowed. Use the Read tool for a file in the checkout, or targeted grep/rg/jq/scripted summaries." >&2
+    echo "Blocked: interactive raw reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or targeted grep/rg/jq/scripted summaries." >&2
     exit 2
   fi
   if [[ $guard_cmd =~ $GUARD_RE_STREAM ]]; then

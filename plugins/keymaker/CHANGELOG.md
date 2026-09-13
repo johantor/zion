@@ -12,8 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Shared guard library: the raw-read block follows where the bytes go now, so `cat < f`,
-  `cat f 2>/dev/null`, `cat f 2>|log`, `cat f 3>err` and `cat f >&2` block with a bare `cat`,
-  while a pipe, a stdout redirect, `cat file2>/tmp` and `<<`/`<<<` fall through (#226).
+  `cat f 2>/dev/null`, `cat f 2>|log`, `cat f 3>err`, `cat f >&2` and `cat f <<EOF` block with a
+  bare `cat`, while a pipe, a stdout redirect, `cat f >&-`, `cat <<EOF` and `cat file2>/tmp`
+  fall through (#226).
 - The three raw-read rules take the same wrapper prefixes as the rest of the guard, so
   `env cat f`, `command cat f` and `FOO=1 cat f` no longer walk a read past them (#226).
 

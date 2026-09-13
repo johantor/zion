@@ -98,18 +98,21 @@ assert_block "cat with stderr spaced"     "$HOOK" "$(payload_bash 'cat foo.txt 2
 assert_block "cat with stderr appended"   "$HOOK" "$(payload_bash 'cat foo.txt 2>> err.log' tank)"  "unbounded cat"
 assert_block "cat with stderr duped"      "$HOOK" "$(payload_bash 'cat foo.txt 2>&1' tank)"         "unbounded cat"
 assert_block "cat with redirect first"    "$HOOK" "$(payload_bash 'cat 2>/dev/null foo.txt' tank)"  "unbounded cat"
-# A stdout redirect or a pipe does move it, so each falls through. `> out.txt` is
-# asserted without an agent_type: for an agent the file-write guard answers first
-# and the read side would go untested.
+# A stdout redirect or a pipe does move it, so each falls through. The allow cases
+# carry no agent_type: the read guard runs first and passes them, and the
+# file-write guard -- which is agent-only -- would then answer the redirect, so
+# the allow would go untested.
 assert_allow "cat with fd dup, then piped"  "$HOOK" "$(payload_bash 'cat foo.txt 2>&1 | grep x' tank)"
 assert_allow "cat with stdout to /dev/null" "$HOOK" "$(payload_bash 'cat foo.txt &>/dev/null' tank)"
 assert_allow "cat redirected into a file"   "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
 # `file2>/tmp/out` is the operand `file2` plus a stdout redirect. The stderr arm
 # must not reinterpret an operand's own suffix as its `2>`.
 assert_allow "operand ending in 2 before a redirect" "$HOOK" "$(payload_bash 'cat file2>/tmp/out' tank)"
-# An input redirect reads the file and prints it; `<<`/`<<<` feed text the caller
-# already has. The noclobber stderr spelling is a stderr redirect like the rest --
-# asserted without an agent_type, since the file-write guard answers `2>|` first.
+# An input redirect reads the file and prints it; `<<`/`<<<` replace stdin, which
+# `cat` ignores once it has an operand. The noclobber stderr spelling is a
+# redirect like the rest; it carries no agent_type only to keep the agent-only
+# file-write guard out of the case -- the read guard runs first and is what
+# blocks here.
 assert_block "cat with input redirect"        "$HOOK" "$(payload_bash 'cat < foo.txt' tank)"  "unbounded cat"
 assert_block "cat with glued input redirect"  "$HOOK" "$(payload_bash 'cat <foo.txt' tank)"   "unbounded cat"
 assert_block "cat with noclobber stderr"      "$HOOK" "$(payload_bash 'cat foo.txt 2>|err.log')" "unbounded cat"
@@ -142,6 +145,18 @@ assert_block "cat with fd 3 redirected"  "$HOOK" "$(payload_bash 'cat big.txt 3>
 assert_block "cat with fd 10 redirected" "$HOOK" "$(payload_bash 'cat big.txt 10>/tmp/err')" "unbounded cat"
 assert_block "cat with fd 3 input"       "$HOOK" "$(payload_bash 'cat big.txt 3<other.txt' tank)" "unbounded cat"
 assert_allow "cat with fd 1 redirected"  "$HOOK" "$(payload_bash 'cat foo.txt 1>out.txt')"
+# A heredoc replaces stdin, which `cat` ignores once it has an operand, so it
+# never makes a read safe on its own -- but a `cat` with no operand reads no file
+# and stays out of the rule entirely.
+assert_block "heredoc with a file operand"    "$HOOK" "$(payload_bash 'cat foo.txt <<EOF')"    "unbounded cat"
+assert_block "quoted heredoc with an operand" "$HOOK" "$(payload_bash "cat foo.txt <<'EOF'")" "unbounded cat"
+assert_block "dash heredoc with an operand"   "$HOOK" "$(payload_bash 'cat foo.txt <<-EOF')"   "unbounded cat"
+assert_block "herestring with a file operand" "$HOOK" "$(payload_bash 'cat foo.txt <<<somestring')" "unbounded cat"
+assert_block "herestring before the operand"  "$HOOK" "$(payload_bash 'cat <<<somestring foo.txt')" "unbounded cat"
+assert_allow "cat reading stdin only"         "$HOOK" "$(payload_bash 'cat 2>/dev/null' tank)"
+# `>&-` closes stdout rather than duping it, so nothing is read into the context.
+assert_allow "stdout closed"      "$HOOK" "$(payload_bash 'cat secret >&-')"
+assert_block "stderr closed"      "$HOOK" "$(payload_bash 'cat secret 2>&-')" "unbounded cat"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

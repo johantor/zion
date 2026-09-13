@@ -153,13 +153,23 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 # operand run. A token is anything that leaves them there:
 #
 #   operand              the file being read
-#   `2>` `3>` `2>>` `2>|`  a redirect of any fd but stdout, spaced target or fd
-#                        dup -- stdout is untouched, so `cat f 2>/dev/null` and
-#                        `cat 2>/dev/null f` dump the file exactly as the bare
-#                        form does. Bare `>` and `1>` are stdout and are not here
 #   `<` `3<`             an input redirect: `cat < f` reads f and prints it
+#
+# Those two are the *reading* tokens, and the match requires at least one: they
+# are what puts a file on stdout. The rest neither read a file nor move stdout,
+# so they ride along without changing the verdict:
+#
+#   `2>` `3>` `2>>` `2>|`  a redirect of any fd but stdout, spaced target or fd
+#                        dup, so `cat f 2>/dev/null` and `cat 2>/dev/null f` dump
+#                        the file exactly as the bare form does. Bare `>` and
+#                        `1>` are stdout and are not here
 #   `>&N` `1>&N`         stdout duped to another fd -- stderr is surfaced in the
-#                        tool result too, so this moves nothing out of reach
+#                        tool result too, so this moves nothing out of reach.
+#                        `>&-` is not here: it closes stdout, and nothing is read
+#   `<<` `<<-` `<<<`     a heredoc replaces stdin, which `cat` ignores once it
+#                        has an operand -- `cat f <<EOF` still prints f. So these
+#                        never make a command safe on their own; a `cat` with no
+#                        reading token (`cat <<EOF`) simply never matches
 #
 # Anything else ends the token run and falls through to allowed: a stdout
 # redirect to a file (`>`, `>>`, `>|`, `1>`, `&>`) or a pipe sends the bytes
@@ -178,17 +188,26 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 # already knows -- `env cat f`, `command cat f`, `FOO=1 cat f` -- cannot walk the
 # read past the guard any more than it can the git block.
 #
-# A floor, not a sandbox, as on the write path: `cat f >&2 | grep x` still reads
-# as filtered, since the pipe ends the run before the dup can say otherwise.
+# A floor, not a sandbox, as on the write path, and the two residuals sit on
+# opposite sides. A pipe ends the run before a dup can say otherwise, so
+# `cat f >&2 | grep x` reads as filtered. And redirections apply left to right
+# while a token match has no fd state, so `cat f 2>/dev/null 1>&2` -- stdout
+# landing in the sink stderr already points at -- is refused. Following that
+# needs an interpreter, not a pattern; the refusal is the safe direction, and
+# `>/dev/null 2>&1` is the spelling that reads correctly.
 GUARD_RE_PAGER="${_g_cmdpos}${_g_pfx}"'(less|more)[[:space:]]+'
 GUARD_RE_STREAM="${_g_cmdpos}${_g_pfx}"'tail[[:space:]]+-f([[:space:]]|$)'
 # Any fd but stdout: a lone `1` and the empty fd of a bare `>` are excluded, so
 # `1>out` and `>out` stay stdout redirects and end the run.
 _g_cat_fd='([02-9]|[0-9][0-9]+)'
 _g_cat_tgt='[[:space:]]*[^[:space:];|&<>]+'
-_g_cat_tok='([^|><;&[:space:]]+|'"${_g_cat_fd}"'(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|[0-9]*<'"${_g_cat_tgt}"'|1?>&[0-9-]+)'
+# A reading token: an operand, or an input redirect. At least one is required.
+_g_cat_rd='([^|><;&[:space:]]+|[0-9]*<'"${_g_cat_tgt}"')'
+# A token that rides along: reads no file and leaves stdout where it was.
+_g_cat_ride='('"${_g_cat_fd}"'(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|1?>&[0-9]+|(<<<|<<-?)[[:space:]]*[^[:space:];|&<>]*)'
+_g_cat_tok='('"${_g_cat_ride}"'|'"${_g_cat_rd}"')'
 _g_cat_end='[[:space:]]*($|;|\|\||&($|[^>]))'
-GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat([[:space:]]+'"${_g_cat_tok}"')+'"${_g_cat_end}"
+GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat([[:space:]]+'"${_g_cat_tok}"')*[[:space:]]+'"${_g_cat_rd}"'([[:space:]]+'"${_g_cat_tok}"')*'"${_g_cat_end}"
 
 # Bash can mutate a file without any Edit|Write hook seeing it: a redirect, a
 # `tee`, an in-place stream edit, a copy into the tree. Such a write skips every

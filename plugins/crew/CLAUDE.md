@@ -66,19 +66,23 @@ anything stated here updates this file in the same commit.** Conventions live in
   reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it, the same
   gap on the read path that the file-write block closes on the write path. The pattern fires only
   where the bytes still reach the context, and reads the simple command as whitespace-separated
-  **tokens** to decide. A token is anything that leaves them there: an operand, a redirect of any
-  fd but stdout (`2>`/`3>`/`2>>`/`2>|`, spaced target or fd dup), an input redirect (`<`, `3<`),
-  or stdout duped to another fd (`>&N`, `1>&N`) — stderr is surfaced in the tool result too, so a
-  dup moves nothing out of reach. Anything else ends the token run and falls through: a stdout
-  redirect to a file (`>`, `>>`, `>|`, `1>`, `&>`) or a pipe, and `<<`/`<<<`, which feed text the
-  caller already has. All three raw-read patterns take `${_g_pfx}` as well, so `env cat f`,
-  `command cat f` and `FOO=1 cat f` cannot walk a read past them. Three boundaries carry the
-  rest — tokens are whitespace-separated, so the fd arm cannot
+  **tokens** to decide, in two kinds. A **reading** token puts a file on stdout — an operand, or
+  an input redirect (`<`, `3<`) — and the match requires at least one, which is why `cat <<EOF`
+  never matches at all. The rest **ride along**, reading no file and leaving stdout where it was:
+  a redirect of any fd but stdout (`2>`/`3>`/`2>>`/`2>|`, spaced target or fd dup), stdout duped
+  to another fd (`>&N`, `1>&N` — stderr is surfaced in the tool result too), and `<<`/`<<-`/`<<<`,
+  which replace stdin, and so never make a read safe on their own: `cat f <<EOF` still prints `f`.
+  Anything else ends the token run and falls through: a stdout redirect to a file (`>`, `>>`,
+  `>|`, `1>`, `&>`), a pipe, and `>&-`, which closes stdout. All three raw-read patterns take
+  `${_g_pfx}` as well, so `env cat f`, `command cat f` and `FOO=1 cat f` cannot walk a read past
+  them. Three boundaries carry the rest — tokens are whitespace-separated, so the fd arm cannot
   reinterpret an operand's suffix (`cat file2>/tmp` is `file2` plus a stdout redirect); the input
   arm's target cannot start with `<`, which separates `cat < f` from a heredoc; and the end
   alternation takes `&` only where it separates, never where it opens `&>` — which is why
-  `cat f 2>&1` blocks but `cat f 2>&1 | grep x` does not. A floor, not a sandbox: a dup followed
-  by a pipe (`cat f >&2 | grep x`) still reads as filtered), `read-guard.sh` (>64 KiB raw
+  `cat f 2>&1` blocks but `cat f 2>&1 | grep x` does not. A floor, not a sandbox, with a residual
+  each way: a dup behind a pipe (`cat f >&2 | grep x`) reads as filtered, and a token match keeps
+  no fd state, so the left-to-right `cat f 2>/dev/null 1>&2` is refused though its stdout reaches
+  the sink), `read-guard.sh` (>64 KiB raw
   reads; an explicit
   `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes; the **only** hook that reads
   crew configuration — `.claude/crew.md` frontmatter by key, falling back to a legacy

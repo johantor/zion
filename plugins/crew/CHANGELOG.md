@@ -9,10 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The Bash guard's raw-read rule let `cat <file> 2>/dev/null` through: the stderr redirect ended
-  the end-of-command match, so a file that dumps into the context exactly like a bare `cat` got
-  the opposite verdict. A trailing `2>`/`2>>` is now consumed before that match, and both
-  spellings block. A `>` redirect still falls through, since it moves stdout out of the context.
+- The Bash guard's raw-read rule gave a file that dumps into the context the opposite verdict of a
+  bare `cat` whenever a stderr redirect followed it: `cat <file> 2>/dev/null` ended the
+  end-of-command match and slipped through. The rule now reads the command as whitespace-separated
+  tokens and follows stdout, so every stderr spelling and position blocks with the bare form —
+  `2>`, `2>>`, a spaced target, an fd dup, and a redirect written before the operand. A stdout
+  redirect (`>`, `1>`, `&>`) and a pipe still fall through, since each moves stdout out of the
+  context; `cat f 2>&1 | grep x` and `cat file2>/tmp` are now on that side rather than blocked.
 
 ### Changed
 

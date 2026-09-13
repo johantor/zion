@@ -148,17 +148,26 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 # applies to it -- the same gap on the read path that guard_block_file_writes
 # closes on the write path.
 #
-# The cat pattern fires only where stdout still lands in the context: a pipe or a
-# `>` redirect sends the bytes elsewhere and falls through, which is what makes
-# filtering the documented way out. A *stderr* redirect sends nothing elsewhere
-# -- `cat f 2>/dev/null` dumps the file exactly as the bare form does -- so a
-# trailing `2>`/`2>>` is consumed here instead of ending the match, and the two
-# spellings get the same verdict. The target excludes `&`, so `2>&1` leaves it
-# empty and the `&` is read by the alternation below.
+# The cat pattern fires only where stdout still lands in the context, so it reads
+# the simple command as whitespace-separated tokens rather than as one operand
+# run. A token is an operand or a *stderr* redirect (`2>`/`2>>`, spaced target or
+# fd dup): neither moves stdout, so `cat f 2>/dev/null`, `cat f 2> /dev/null` and
+# `cat 2>/dev/null f` all dump the file exactly as the bare form does and get the
+# same verdict. Anything else ends the token run and falls through to allowed --
+# a stdout redirect (`>`, `1>`, `&>`) or a pipe sends the bytes elsewhere, which
+# is what makes filtering the documented way out, and a heredoc reads no file.
+#
+# Two boundaries carry the difference. Tokens are whitespace-separated, so the
+# stderr arm cannot reinterpret an operand's own suffix: `cat file2>/tmp` is the
+# operand `file2` plus a stdout redirect, not `file` plus `2>/tmp`. And the end
+# alternation takes `&` only where it separates, never where it opens the `&>`
+# that redirects stdout -- `cat f 2>&1` ends at the context, while
+# `cat f 2>&1 | grep x` does not.
 GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'
 GUARD_RE_STREAM="${_g_cmdpos}"'tail[[:space:]]+-f([[:space:]]|$)'
-_g_cat_err='(2>>?[^[:space:];|&<>]*[[:space:]]*)*'
-GUARD_RE_CAT="${_g_cmdpos}"'cat[[:space:]]+[^|><;&]+'"${_g_cat_err}"'([[:space:]]*($|[;&]|&&|\|\|))'
+_g_cat_tok='([^|><;&[:space:]]+|2>>?[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+))'
+_g_cat_end='[[:space:]]*($|;|\|\||&($|[^>]))'
+GUARD_RE_CAT="${_g_cmdpos}"'cat([[:space:]]+'"${_g_cat_tok}"')+'"${_g_cat_end}"
 
 # Bash can mutate a file without any Edit|Write hook seeing it: a redirect, a
 # `tee`, an in-place stream edit, a copy into the tree. Such a write skips every

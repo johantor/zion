@@ -65,9 +65,15 @@ anything stated here updates this file in the same commit.** Conventions live in
   refusal). **Raw reads are refused for every session**, agent or not — a `cat` of a whole file
   reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it, the same
   gap on the read path that the file-write block closes on the write path. The pattern fires only
-  where stdout still reaches the context: a pipe or a `>` redirect moves the bytes elsewhere and
-  falls through, but a trailing `2>`/`2>>` does not, so `cat f 2>/dev/null` is blocked like the
-  bare form rather than slipping past the end-of-command match), `read-guard.sh` (>64 KiB raw
+  where stdout still reaches the context, and reads the simple command as whitespace-separated
+  **tokens** to decide: an operand or a *stderr* redirect (`2>`/`2>>`, spaced target or fd dup) is
+  a token, because neither moves stdout, so `cat f 2>/dev/null`, `cat f 2> /dev/null` and
+  `cat 2>/dev/null f` all block with the bare form. Anything else ends the token run and falls
+  through — a stdout redirect (`>`, `1>`, `&>`) or a pipe moves the bytes elsewhere, a heredoc
+  reads no file. Two boundaries carry it: tokens are whitespace-separated, so the stderr arm
+  cannot reinterpret an operand's suffix (`cat file2>/tmp` is `file2` plus a stdout redirect), and
+  the end alternation takes `&` only where it separates, never where it opens `&>` — which is why
+  `cat f 2>&1` blocks but `cat f 2>&1 | grep x` does not), `read-guard.sh` (>64 KiB raw
   reads; an explicit
   `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes; the **only** hook that reads
   crew configuration — `.claude/crew.md` frontmatter by key, falling back to a legacy

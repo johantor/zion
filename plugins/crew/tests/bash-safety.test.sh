@@ -91,101 +91,37 @@ assert_block "watch on a second line" "$HOOK" "$(payload_bash 'echo ok
 npm run dev' tank)" "never terminate"
 
 # --- Raw / streaming reads -----------------------------------------------------
+# A habit redirect, not a boundary: the rule catches the spelling a session
+# reaches for and names the tool instead. `grep . f` dumps the same file and is
+# deliberately allowed, so the cases below pin the habit and the escapes, not
+# redirect spellings -- see guard-lib.sh for why chasing those is out of scope.
 assert_block "cat a file"     "$HOOK" "$(payload_bash 'cat foo.txt' tank)"      "unbounded cat"
+assert_block "cat then another command" "$HOOK" "$(payload_bash 'cat foo.txt; ls' tank)" "unbounded cat"
 assert_block "less a file"    "$HOOK" "$(payload_bash 'less foo.txt' tank)"     "interactive raw reads"
 assert_block "tail -f a log"  "$HOOK" "$(payload_bash 'tail -f app.log' tank)"  "streaming raw output"
-assert_allow "cat piped into grep" "$HOOK" "$(payload_bash 'cat foo.txt | grep x' tank)"
-# The verdict follows stdout. A stderr redirect moves none of it, in any of its
-# spellings or positions, so the file lands in the context exactly as the bare
-# form does and blocks with it.
-assert_block "cat with stderr discarded"  "$HOOK" "$(payload_bash 'cat foo.txt 2>/dev/null' tank)"  "unbounded cat"
-assert_block "cat with stderr spaced"     "$HOOK" "$(payload_bash 'cat foo.txt 2> /dev/null' tank)" "unbounded cat"
-assert_block "cat with stderr appended"   "$HOOK" "$(payload_bash 'cat foo.txt 2>> err.log' tank)"  "unbounded cat"
-assert_block "cat with stderr duped"      "$HOOK" "$(payload_bash 'cat foo.txt 2>&1' tank)"         "unbounded cat"
-assert_block "cat with redirect first"    "$HOOK" "$(payload_bash 'cat 2>/dev/null foo.txt' tank)"  "unbounded cat"
-# A stdout redirect or a pipe does move it, so each falls through. The allow cases
-# carry no agent_type: the read guard runs first and passes them, and the
-# file-write guard -- which is agent-only -- would then answer the redirect, so
-# the allow would go untested.
-assert_allow "cat with fd dup, then piped"  "$HOOK" "$(payload_bash 'cat foo.txt 2>&1 | grep x' tank)"
-assert_allow "cat with stdout to /dev/null" "$HOOK" "$(payload_bash 'cat foo.txt &>/dev/null' tank)"
-assert_allow "cat redirected into a file"   "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
-# `file2>/tmp/out` is the operand `file2` plus a stdout redirect. The stderr arm
-# must not reinterpret an operand's own suffix as its `2>`.
-assert_allow "operand ending in 2 before a redirect" "$HOOK" "$(payload_bash 'cat file2>/tmp/out' tank)"
-# An input redirect reads the file and prints it; `<<`/`<<<` replace stdin, which
-# `cat` ignores once it has an operand. The noclobber stderr spelling is a
-# redirect like the rest; it carries no agent_type only to keep the agent-only
-# file-write guard out of the case -- the read guard runs first and is what
-# blocks here.
-assert_block "cat with input redirect"        "$HOOK" "$(payload_bash 'cat < foo.txt' tank)"  "unbounded cat"
-assert_block "cat with glued input redirect"  "$HOOK" "$(payload_bash 'cat <foo.txt' tank)"   "unbounded cat"
-assert_block "cat with noclobber stderr"      "$HOOK" "$(payload_bash 'cat foo.txt 2>|err.log')" "unbounded cat"
-assert_allow "heredoc"    "$HOOK" "$(payload_bash 'cat <<EOF' tank)"
-assert_allow "herestring" "$HOOK" "$(payload_bash 'cat <<<somestring' tank)"
-# Duping stdout to stderr moves nothing out of reach: stderr is surfaced in the
-# tool result too. A noclobber *stdout* redirect does move it.
-assert_block "cat duped to stderr"         "$HOOK" "$(payload_bash 'cat foo.txt >&2' tank)"  "unbounded cat"
-assert_block "cat fd 1 duped to stderr"    "$HOOK" "$(payload_bash 'cat foo.txt 1>&2' tank)" "unbounded cat"
-assert_allow "cat with noclobber stdout"   "$HOOK" "$(payload_bash 'cat foo.txt >|out.txt')"
-assert_allow "cat with stdout to /dev/null, stderr duped" "$HOOK" "$(payload_bash 'cat foo.txt >/dev/null 2>&1' tank)"
-# The refusals are a user-facing contract: they name the tool to use and say why
-# the shell read is refused. Asserted apart from the category substrings above,
-# which would still pass if the guidance were dropped.
 # Raw reads are refused in EVERY session: guard_block_raw_reads is called
-# unconditionally, unlike the agent-only write and watch blocks. Asserted on the
-# bare form with no agent_type, so restoring an agent-only condition fails here.
+# unconditionally, unlike the agent-only write and watch blocks.
 assert_block "bare cat with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
-assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "Use the Read tool"
-assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "reaches no Read hook"
-assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' tank)" "Use the Read tool"
-assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' tank)" "reaches no Read hook"
 # A wrapper the command-position policy already knows must not walk a read past
-# the guard, on any of the three raw-read rules.
+# the guard, on any of the three rules.
 assert_block "env cat"       "$HOOK" "$(payload_bash 'env cat foo.txt' tank)"     "unbounded cat"
 assert_block "command cat"   "$HOOK" "$(payload_bash 'command cat foo.txt' tank)" "unbounded cat"
 assert_block "FOO=1 cat"     "$HOOK" "$(payload_bash 'FOO=1 cat foo.txt' tank)"   "unbounded cat"
 assert_block "env less"      "$HOOK" "$(payload_bash 'env less foo.txt' tank)"    "interactive raw reads"
 assert_block "env tail -f"   "$HOOK" "$(payload_bash 'env tail -f app.log' tank)" "streaming raw output"
-# Only stdout ends the run: a redirect of any other fd leaves the bytes in the
-# context. `1>`/`>` stay stdout -- asserted without an agent_type, since the
-# file-write guard answers a redirect into the checkout first.
-assert_block "cat with fd 3 redirected"  "$HOOK" "$(payload_bash 'cat big.txt 3>/tmp/err')"  "unbounded cat"
-assert_block "cat with fd 10 redirected" "$HOOK" "$(payload_bash 'cat big.txt 10>/tmp/err')" "unbounded cat"
-assert_block "cat with fd 3 input"       "$HOOK" "$(payload_bash 'cat big.txt 3<other.txt' tank)" "unbounded cat"
-assert_allow "cat with fd 1 redirected"  "$HOOK" "$(payload_bash 'cat foo.txt 1>out.txt')"
-# A heredoc replaces stdin, which `cat` ignores once it has an operand, so it
-# never makes a read safe on its own -- but a `cat` with no operand reads no file
-# and stays out of the rule entirely.
-assert_block "heredoc with a file operand"    "$HOOK" "$(payload_bash 'cat foo.txt <<EOF')"    "unbounded cat"
-assert_block "quoted heredoc with an operand" "$HOOK" "$(payload_bash "cat foo.txt <<'EOF'")" "unbounded cat"
-assert_block "dash heredoc with an operand"   "$HOOK" "$(payload_bash 'cat foo.txt <<-EOF')"   "unbounded cat"
-assert_block "herestring with a file operand" "$HOOK" "$(payload_bash 'cat foo.txt <<<somestring')" "unbounded cat"
-assert_block "herestring before the operand"  "$HOOK" "$(payload_bash 'cat <<<somestring foo.txt')" "unbounded cat"
-assert_allow "cat reading stdin only"         "$HOOK" "$(payload_bash 'cat 2>/dev/null' tank)"
-# `>&-` closes stdout rather than duping it, so nothing is read into the context.
-# `>&N-` is the move form: stderr becomes stdout, and stderr is surfaced too.
-assert_allow "stdout closed"      "$HOOK" "$(payload_bash 'cat secret >&-')"
-assert_allow "fd 1 closed"        "$HOOK" "$(payload_bash 'cat secret 1>&-')"
-assert_block "stdout moved onto fd 2"      "$HOOK" "$(payload_bash 'cat secret >&2-')"  "unbounded cat"
-assert_block "fd 1 moved onto fd 2"        "$HOOK" "$(payload_bash 'cat secret 1>&2-')" "unbounded cat"
-assert_block "stderr closed"      "$HOOK" "$(payload_bash 'cat secret 2>&-')" "unbounded cat"
-# A redirect whose destination the tool result surfaces anyway is not an escape;
-# `/dev/null` still is.
-assert_block "stdout to /dev/stderr" "$HOOK" "$(payload_bash 'cat f >/dev/stderr')" "unbounded cat"
-assert_block "stdout to /dev/stdout" "$HOOK" "$(payload_bash 'cat f >/dev/stdout')" "unbounded cat"
-assert_block "stdout to /dev/fd/2"   "$HOOK" "$(payload_bash 'cat f >/dev/fd/2')"   "unbounded cat"
-assert_block "both streams to /dev/stderr" "$HOOK" "$(payload_bash 'cat f &>/dev/stderr')" "unbounded cat"
-assert_allow "stdout to /dev/null"   "$HOOK" "$(payload_bash 'cat f >/dev/null')"
-# A metacharacter inside a quoted filename is not a redirect: the scan reads the
-# quote-masked copy, as the write path does.
-assert_block "quoted operand with >" "$HOOK" "$(payload_bash "cat 'report>2026'")" "unbounded cat"
-assert_allow "quoted operand, quoted redirect target" "$HOOK" "$(payload_bash "cat 'a' > 'out.txt'")"
-# `<>` opens the file read-write and still prints it.
-assert_block "read-write redirect"       "$HOOK" "$(payload_bash 'cat f <>tmp')" "unbounded cat"
-assert_block "fd-qualified read-write"   "$HOOK" "$(payload_bash 'cat f 3<>tmp')" "unbounded cat"
-# guard_normalize turns a newline into `;`, so a later line is its own command at
-# every anchored guard -- not welded onto the previous line's operands.
+# Filtering is the documented way out, and any redirect ends the match too.
+assert_allow "cat piped into grep"        "$HOOK" "$(payload_bash 'cat foo.txt | grep x' tank)"
+assert_allow "cat redirected into a file" "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
+assert_allow "bounded reads stay available" "$HOOK" "$(payload_bash 'head -40 foo.txt' tank)"
+# The refusals are a user-facing contract: they name the tool to use and say why
+# the shell read is refused. Asserted apart from the category substrings above,
+# which would still pass if the guidance were dropped.
+assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "Use the Read tool"
+assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "reaches no Read hook"
+assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' tank)" "Use the Read tool"
+assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' tank)" "reaches no Read hook"
+# guard_normalize turns an unquoted newline into `;`, so a later line is its own
+# command at every anchored guard -- not welded onto the previous line's operands.
 assert_block "raw read on a second line" "$HOOK" "$(payload_bash 'echo ok
 cat foo.txt' tank)" "unbounded cat"
 assert_block "pager on a second line"    "$HOOK" "$(payload_bash 'echo ok

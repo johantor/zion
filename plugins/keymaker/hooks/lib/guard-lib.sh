@@ -201,85 +201,35 @@ _g_watch_any='(watch|watchexec|entr|fswatch|nodemon)([[:space:]]|$)'
 _g_watch="${_g_watch_web}|${_g_watch_py}|${_g_watch_gors}|${_g_watch_jvm}|${_g_watch_any}"
 GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*|([^[:space:]]*/)?python[0-9.]*[[:space:]]+-m|([^[:space:]]*/)?python[0-9.]*)[[:space:]]+)*(([^[:space:]]*/)?('"${_g_watch}"'))|--watch([[:space:]]|$)'
 
-# Raw/streaming reads that dump a whole file or an endless stream into context.
-# Such a read reaches no PreToolUse(Read) hook, so read-guard's size bound never
-# applies to it -- the same gap on the read path that guard_block_file_writes
-# closes on the write path.
+# Raw/streaming reads: a `cat` of a whole file, a pager, a `tail -f`. Such a read
+# reaches no PreToolUse(Read) hook, so read-guard's size bound never applies.
 #
-# The cat pattern fires only where the bytes still land in the context, so it
-# reads the simple command as whitespace-separated tokens rather than as one
-# operand run. A token is anything that leaves them there:
+# This is a HABIT REDIRECT, not a boundary, and that distinction decides what
+# belongs here. It catches the spelling a session actually reaches for and names
+# the tool to use instead. It does NOT bound what can reach the context and does
+# not try to: `grep . f`, `awk '{print}' f`, `tail -n 999999 f`, `od -c f`,
+# `base64 f` and `python3 -c 'print(open("f").read())'` each dump the same file
+# whole, each is allowed, and each is deliberately out of scope. Anything meaning
+# to route around this rule has a dozen shorter ways than respelling a redirect.
 #
-#   operand              the file being read
-#   `<` `3<`             an input redirect: `cat < f` reads f and prints it
+# So the costs are asymmetric, and the pattern is tuned to them. A read this rule
+# misses costs nothing, because a shorter bypass always sat beside it. A read it
+# refuses wrongly costs a turn and makes the rule look arbitrary -- which is the
+# complaint it exists to remove. In doubt, let the command through.
 #
-# Those two are the *reading* tokens, and the match requires at least one: they
-# are what puts a file on stdout. The rest neither read a file nor move stdout,
-# so they ride along without changing the verdict:
+# Hence one line, and no attempt to follow a redirect. `cat f` and `cat f; ls`
+# block; a pipe or ANY redirect ends the match and falls through, so filtering
+# stays the documented way out. Chasing redirect spellings needs bash's own
+# tokenizer -- fd prefixes, quoting and redirection order, modelled in order and
+# with state -- which is an interpreter, not a pattern. #226 tried: six review
+# rounds, and two regressions that refused ordinary commands. Don't reopen it
+# without first changing the premise above.
 #
-#   `2>` `3>` `2>>` `2>|`  a redirect of any fd but stdout, spaced target or fd
-#                        dup, so `cat f 2>/dev/null` and `cat 2>/dev/null f` dump
-#                        the file exactly as the bare form does. Bare `>` and
-#                        `1>` are stdout and are not here
-#   `>&N` `1>&N` `>&N-`  stdout duped to another fd, or moved onto it -- stderr
-#                        is surfaced in the tool result too, so this moves
-#                        nothing out of reach. The fd is required, which keeps
-#                        `>&-` out: that closes stdout, and nothing is read
-#   `<<` `<<-` `<<<`     a heredoc replaces stdin, which `cat` ignores once it
-#                        has an operand -- `cat f <<EOF` still prints f. So these
-#                        never make a command safe on their own; a `cat` with no
-#                        reading token (`cat <<EOF`) simply never matches
-#
-# Anything else ends the token run and falls through to allowed: a stdout
-# redirect to a file (`>`, `>>`, `>|`, `1>`, `&>`) or a pipe sends the bytes
-# somewhere the context never sees, which is what makes filtering the documented
-# way out, and `<<`/`<<<` feed text the caller already has rather than a file.
-#
-# Three boundaries carry the cases. Tokens are whitespace-separated, so the
-# stderr arm cannot reinterpret an operand's own suffix: `cat file2>/tmp` is the
-# operand `file2` plus a stdout redirect, not `file` plus `2>/tmp`. The input arm
-# takes a target that cannot start with `<`, which is what separates `cat < f`
-# from a heredoc. And the end alternation takes `&` only where it separates,
-# never where it opens the `&>` that redirects stdout -- `cat f 2>&1` ends at the
-# context, while `cat f 2>&1 | grep x` does not.
-#
-# All three take ${_g_pfx}, so a wrapper the shared command-position policy
-# already knows -- `env cat f`, `command cat f`, `FOO=1 cat f` -- cannot walk the
-# read past the guard any more than it can the git block.
-#
-# A floor, not a sandbox, as on the write path. What it does not model is fd
-# state and redirection order, and the residuals follow from that, both ways:
-#
-#   cat f >&2 | grep x       allowed -- the pipe ends the run before the dup
-#   cat f >/dev/null >&2     allowed -- stdout is reopened onto the context
-#   cat f 2>/dev/null 1>&2   refused -- stdout does reach the sink, in order
-#
-# Nor does it reach a redirect welded to the command name or an operand
-# (`cat<f`, `cat foo2>&2`), a dup whose target is a separate word (`>& 2`), a
-# zero-padded stdout fd (`01>`), or an input redirect on a non-stdin fd, which
-# reads nothing yet counts here as a read (`cat 3<f`).
-#
-# Every one of those needs bash's own tokenizer: the fd-prefix rule that makes
-# `file2>` an operand plus a stdout redirect, applied in order, with state. That
-# is an interpreter, not a pattern. This rule exists to correct the routine path
-# -- a plain `cat` where `Read` belongs -- not to withstand an agent spelling its
-# way around it, which anything that means to can do by calling an interpreter.
+# ${_g_pfx} stops `env cat f`, `command cat f` and `FOO=1 cat f` walking a read
+# past the anchor -- the same wrappers the git block already refuses.
 GUARD_RE_PAGER="${_g_cmdpos}${_g_pfx}"'(less|more)[[:space:]]+'
 GUARD_RE_STREAM="${_g_cmdpos}${_g_pfx}"'tail[[:space:]]+-f([[:space:]]|$)'
-# Any fd but stdout: a lone `1` and the empty fd of a bare `>` are excluded, so
-# `1>out` and `>out` stay stdout redirects and end the run.
-_g_cat_fd='([02-9]|[0-9][0-9]+)'
-_g_cat_tgt='[[:space:]]*[^[:space:];|&<>]+'
-# A reading token: an operand, or an input redirect. At least one is required.
-_g_cat_rd='([^|><;&[:space:]]+|[0-9]*<>?'"${_g_cat_tgt}"')'
-# A stdout redirect whose destination the tool result surfaces anyway. `/dev/null`
-# is deliberately absent: that one really does end the read.
-_g_cat_ctx='([0-9]*|&)>>?[|]?[[:space:]]*/dev/(stderr|stdout|tty|fd/[0-9]+)'
-# A token that rides along: reads no file and leaves stdout where it was.
-_g_cat_ride='('"${_g_cat_fd}"'(>>|>[|]?)[[:space:]]*(&[0-9-]+|[^[:space:];|&<>]+)|1?>&[0-9]+-?|(<<<|<<-?)[[:space:]]*[^[:space:];|&<>]*|'"${_g_cat_ctx}"')'
-_g_cat_tok='('"${_g_cat_ride}"'|'"${_g_cat_rd}"')'
-_g_cat_end='[[:space:]]*($|;|\|\||&($|[^>]))'
-GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat([[:space:]]+'"${_g_cat_tok}"')*[[:space:]]+'"${_g_cat_rd}"'([[:space:]]+'"${_g_cat_tok}"')*'"${_g_cat_end}"
+GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&]|&&|\|\|))'
 
 # Bash can mutate a file without any Edit|Write hook seeing it: a redirect, a
 # `tee`, an in-place stream edit, a copy into the tree. Such a write skips every
@@ -325,19 +275,15 @@ guard_block_watch_commands() {
 }
 
 guard_block_raw_reads() {
-  # Scan the quote-masked copy, as the write path does: a metacharacter inside a
-  # filename (`cat 'report>2026'`) is not a redirect, and masking it leaves a
-  # plain operand behind rather than a scan that stops at the `>`.
-  guard_mask_quotes "$guard_cmd"
-  if [[ $guard_masked =~ $GUARD_RE_PAGER ]]; then
+  if [[ $guard_cmd =~ $GUARD_RE_PAGER ]]; then
     echo "Blocked: interactive raw reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or targeted grep/rg/jq/scripted summaries." >&2
     exit 2
   fi
-  if [[ $guard_masked =~ $GUARD_RE_STREAM ]]; then
+  if [[ $guard_cmd =~ $GUARD_RE_STREAM ]]; then
     echo "Blocked: streaming raw output is disallowed. Capture/filter and surface only the needed result." >&2
     exit 2
   fi
-  if [[ $guard_masked =~ $GUARD_RE_CAT ]]; then
+  if [[ $guard_cmd =~ $GUARD_RE_CAT ]]; then
     echo "Blocked: unbounded cat reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or pipe/filter with grep/rg/jq." >&2
     exit 2
   fi

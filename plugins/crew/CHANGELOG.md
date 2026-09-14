@@ -11,21 +11,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- Bash guard: the raw-read block follows where the bytes go now, so `cat < f`, `cat f 2>/dev/null`,
-  `cat f 2>|log`, `cat f 3>err`, `cat f >&2` and `cat f <<EOF` block with a bare `cat`, while a
-  pipe, a stdout redirect, `cat f >&-`, `cat <<EOF` and `cat file2>/tmp` fall through (#226).
-- The three raw-read rules take the same wrapper prefixes as the rest of the guard, so
-  `env cat f`, `command cat f` and `FOO=1 cat f` no longer walk a read past them (#226).
-- **A newline now separates commands.** `guard_normalize` flattened it to a space, welding a
-  later line onto the previous command's operands, so every guard anchored at a command position
-  saw only the first line: a worker could run `git` on line 2, and a watch command or raw read on
-  a later line went unrefused. Only a newline bash itself reads as a separator becomes one: a
-  newline inside a quoted word stays part of the word (a multi-line commit message or printf
-  template is not two commands), and a backslash-newline joins the halves with nothing between
-  them, for an odd backslash run only (#226).
-- Raw reads: a redirect to a stream the tool result surfaces (`/dev/stderr`, `/dev/stdout`,
-  `/dev/fd/N`) no longer reads as an escape, a metacharacter inside a quoted filename is no longer
-  read as a redirect, and `<>` counts as the read it is (#226).
+- **A newline now separates commands.** `guard_normalize` flattened it to a space, welding a later
+  line onto the previous command's operands, so every guard anchored at a command position saw
+  only the first line: a worker could run `git` on line 2, and a watch command or raw read on a
+  later line went unrefused. Only a newline bash itself reads as a separator becomes one — one
+  inside a quoted word stays part of the word, and a backslash-newline joins the halves with
+  nothing between them, for an odd backslash run only (#226).
+- The three raw-read rules take the same wrapper prefixes as the rest of the guard, so a leading
+  `env`, `command` or `VAR=1` no longer walks a read past them (#226).
 
 ### Changed
 

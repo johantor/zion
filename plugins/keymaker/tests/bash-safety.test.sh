@@ -58,115 +58,31 @@ assert_block "keymaker git mv -f"        "$HOOK" "$(payload_bash 'git mv -f src/
 assert_block "keymaker bare mv"          "$HOOK" "$(payload_bash 'mv src/a.ts src/b.ts' keymaker)"        "reaches no Edit|Write hook"
 assert_block "twin git mv names the owner" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' twin)"      "keymaker owns git"
 
+# Raw/streaming reads. A habit redirect, not a boundary: `grep . f` dumps the
+# same file and is deliberately allowed, so these pin the habit and the escapes,
+# not redirect spellings -- see guard-lib.sh for why chasing those is out of scope.
 assert_block "cat a file"    "$HOOK" "$(payload_bash 'cat foo.txt' twin)"     "unbounded cat"
 assert_block "less a file"   "$HOOK" "$(payload_bash 'less foo.txt' twin)"    "interactive raw reads"
 assert_block "tail -f a log" "$HOOK" "$(payload_bash 'tail -f app.log' twin)" "streaming raw output"
-assert_allow "cat piped into grep" "$HOOK" "$(payload_bash 'cat foo.txt | grep x' twin)"
-# The verdict follows stdout. A stderr redirect moves none of it, in any of its
-# spellings or positions, so the file lands in the context exactly as the bare
-# form does and blocks with it.
-assert_block "cat with stderr discarded"  "$HOOK" "$(payload_bash 'cat foo.txt 2>/dev/null' twin)"  "unbounded cat"
-assert_block "cat with stderr spaced"     "$HOOK" "$(payload_bash 'cat foo.txt 2> /dev/null' twin)" "unbounded cat"
-assert_block "cat with stderr appended"   "$HOOK" "$(payload_bash 'cat foo.txt 2>> err.log' twin)"  "unbounded cat"
-assert_block "cat with stderr duped"      "$HOOK" "$(payload_bash 'cat foo.txt 2>&1' twin)"         "unbounded cat"
-assert_block "cat with redirect first"    "$HOOK" "$(payload_bash 'cat 2>/dev/null foo.txt' twin)"  "unbounded cat"
-# A stdout redirect or a pipe does move it, so each falls through. The allow cases
-# carry no agent_type: the read guard runs first and passes them, and the
-# file-write guard -- which is agent-only -- would then answer the redirect, so
-# the allow would go untested.
-assert_allow "cat with fd dup, then piped"  "$HOOK" "$(payload_bash 'cat foo.txt 2>&1 | grep x' twin)"
-assert_allow "cat with stdout to /dev/null" "$HOOK" "$(payload_bash 'cat foo.txt &>/dev/null' twin)"
-assert_allow "cat redirected into a file"   "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
-# `file2>/tmp/out` is the operand `file2` plus a stdout redirect. The stderr arm
-# must not reinterpret an operand's own suffix as its `2>`.
-assert_allow "operand ending in 2 before a redirect" "$HOOK" "$(payload_bash 'cat file2>/tmp/out' twin)"
-# An input redirect reads the file and prints it; `<<`/`<<<` replace stdin, which
-# `cat` ignores once it has an operand. The noclobber stderr spelling is a
-# redirect like the rest; it carries no agent_type only to keep the agent-only
-# file-write guard out of the case -- the read guard runs first and is what
-# blocks here.
-assert_block "cat with input redirect"        "$HOOK" "$(payload_bash 'cat < foo.txt' twin)"  "unbounded cat"
-assert_block "cat with glued input redirect"  "$HOOK" "$(payload_bash 'cat <foo.txt' twin)"   "unbounded cat"
-assert_block "cat with noclobber stderr"      "$HOOK" "$(payload_bash 'cat foo.txt 2>|err.log')" "unbounded cat"
-assert_allow "heredoc"    "$HOOK" "$(payload_bash 'cat <<EOF' twin)"
-assert_allow "herestring" "$HOOK" "$(payload_bash 'cat <<<somestring' twin)"
-# Duping stdout to stderr moves nothing out of reach: stderr is surfaced in the
-# tool result too. A noclobber *stdout* redirect does move it.
-assert_block "cat duped to stderr"         "$HOOK" "$(payload_bash 'cat foo.txt >&2' twin)"  "unbounded cat"
-assert_block "cat fd 1 duped to stderr"    "$HOOK" "$(payload_bash 'cat foo.txt 1>&2' twin)" "unbounded cat"
-assert_allow "cat with noclobber stdout"   "$HOOK" "$(payload_bash 'cat foo.txt >|out.txt')"
-assert_allow "cat with stdout to /dev/null, stderr duped" "$HOOK" "$(payload_bash 'cat foo.txt >/dev/null 2>&1' twin)"
-# The refusals are a user-facing contract: they name the tool to use and say why
-# the shell read is refused. Asserted apart from the category substrings above,
-# which would still pass if the guidance were dropped.
-# Raw reads are refused in EVERY session: guard_block_raw_reads is called
-# unconditionally, unlike the agent-only write and watch blocks. Asserted on the
-# bare form with no agent_type, so restoring an agent-only condition fails here.
-assert_block "bare cat with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
-assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat foo.txt' twin)"  "Use the Read tool"
-assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' twin)"  "reaches no Read hook"
-assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' twin)" "Use the Read tool"
-assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' twin)" "reaches no Read hook"
-# A wrapper the command-position policy already knows must not walk a read past
-# the guard, on any of the three raw-read rules.
-assert_block "env cat"       "$HOOK" "$(payload_bash 'env cat foo.txt' twin)"     "unbounded cat"
-assert_block "command cat"   "$HOOK" "$(payload_bash 'command cat foo.txt' twin)" "unbounded cat"
-assert_block "FOO=1 cat"     "$HOOK" "$(payload_bash 'FOO=1 cat foo.txt' twin)"   "unbounded cat"
-assert_block "env less"      "$HOOK" "$(payload_bash 'env less foo.txt' twin)"    "interactive raw reads"
-assert_block "env tail -f"   "$HOOK" "$(payload_bash 'env tail -f app.log' twin)" "streaming raw output"
-# Only stdout ends the run: a redirect of any other fd leaves the bytes in the
-# context. `1>`/`>` stay stdout -- asserted without an agent_type, since the
-# file-write guard answers a redirect into the checkout first.
-assert_block "cat with fd 3 redirected"  "$HOOK" "$(payload_bash 'cat big.txt 3>/tmp/err')"  "unbounded cat"
-assert_block "cat with fd 10 redirected" "$HOOK" "$(payload_bash 'cat big.txt 10>/tmp/err')" "unbounded cat"
-assert_block "cat with fd 3 input"       "$HOOK" "$(payload_bash 'cat big.txt 3<other.txt' twin)" "unbounded cat"
-assert_allow "cat with fd 1 redirected"  "$HOOK" "$(payload_bash 'cat foo.txt 1>out.txt')"
-# A heredoc replaces stdin, which `cat` ignores once it has an operand, so it
-# never makes a read safe on its own -- but a `cat` with no operand reads no file
-# and stays out of the rule entirely.
-assert_block "heredoc with a file operand"    "$HOOK" "$(payload_bash 'cat foo.txt <<EOF')"    "unbounded cat"
-assert_block "quoted heredoc with an operand" "$HOOK" "$(payload_bash "cat foo.txt <<'EOF'")" "unbounded cat"
-assert_block "dash heredoc with an operand"   "$HOOK" "$(payload_bash 'cat foo.txt <<-EOF')"   "unbounded cat"
-assert_block "herestring with a file operand" "$HOOK" "$(payload_bash 'cat foo.txt <<<somestring')" "unbounded cat"
-assert_block "herestring before the operand"  "$HOOK" "$(payload_bash 'cat <<<somestring foo.txt')" "unbounded cat"
-assert_allow "cat reading stdin only"         "$HOOK" "$(payload_bash 'cat 2>/dev/null' twin)"
-# `>&-` closes stdout rather than duping it, so nothing is read into the context.
-# `>&N-` is the move form: stderr becomes stdout, and stderr is surfaced too.
-assert_allow "stdout closed"      "$HOOK" "$(payload_bash 'cat secret >&-')"
-assert_allow "fd 1 closed"        "$HOOK" "$(payload_bash 'cat secret 1>&-')"
-assert_block "stdout moved onto fd 2"      "$HOOK" "$(payload_bash 'cat secret >&2-')"  "unbounded cat"
-assert_block "fd 1 moved onto fd 2"        "$HOOK" "$(payload_bash 'cat secret 1>&2-')" "unbounded cat"
-assert_block "stderr closed"      "$HOOK" "$(payload_bash 'cat secret 2>&-')" "unbounded cat"
-# A redirect whose destination the tool result surfaces anyway is not an escape;
-# `/dev/null` still is.
-assert_block "stdout to /dev/stderr" "$HOOK" "$(payload_bash 'cat f >/dev/stderr')" "unbounded cat"
-assert_block "stdout to /dev/stdout" "$HOOK" "$(payload_bash 'cat f >/dev/stdout')" "unbounded cat"
-assert_block "stdout to /dev/fd/2"   "$HOOK" "$(payload_bash 'cat f >/dev/fd/2')"   "unbounded cat"
-assert_block "both streams to /dev/stderr" "$HOOK" "$(payload_bash 'cat f &>/dev/stderr')" "unbounded cat"
-assert_allow "stdout to /dev/null"   "$HOOK" "$(payload_bash 'cat f >/dev/null')"
-# A metacharacter inside a quoted filename is not a redirect: the scan reads the
-# quote-masked copy, as the write path does.
-assert_block "quoted operand with >" "$HOOK" "$(payload_bash "cat 'report>2026'")" "unbounded cat"
-assert_allow "quoted operand, quoted redirect target" "$HOOK" "$(payload_bash "cat 'a' > 'out.txt'")"
-# `<>` opens the file read-write and still prints it.
-assert_block "read-write redirect"       "$HOOK" "$(payload_bash 'cat f <>tmp')" "unbounded cat"
-assert_block "fd-qualified read-write"   "$HOOK" "$(payload_bash 'cat f 3<>tmp')" "unbounded cat"
-# guard_normalize turns a newline into `;`, so a later line is its own command at
-# every anchored guard -- not welded onto the previous line's operands.
+assert_block "bare read with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
+assert_block "env wrapper"        "$HOOK" "$(payload_bash 'env cat foo.txt' twin)"     "unbounded cat"
+assert_block "command wrapper"    "$HOOK" "$(payload_bash 'command cat foo.txt' twin)" "unbounded cat"
+assert_block "assignment wrapper" "$HOOK" "$(payload_bash 'FOO=1 cat foo.txt' twin)"   "unbounded cat"
+assert_allow "piped into grep"        "$HOOK" "$(payload_bash 'cat foo.txt | grep x' twin)"
+assert_allow "redirected into a file" "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
+# The refusals name the tool to use and say why the shell read is refused.
+assert_block "refusal names the Read tool" "$HOOK" "$(payload_bash 'cat foo.txt' twin)" "Use the Read tool"
+assert_block "refusal gives the reason"    "$HOOK" "$(payload_bash 'cat foo.txt' twin)" "reaches no Read hook"
+# guard_normalize: an unquoted newline separates commands; a quoted one does not,
+# and a backslash-newline joins with nothing for an odd backslash run only.
 assert_block "raw read on a second line" "$HOOK" "$(payload_bash 'echo ok
 cat foo.txt' twin)" "unbounded cat"
-assert_block "pager on a second line"    "$HOOK" "$(payload_bash 'echo ok
-less foo.txt' twin)" "interactive raw reads"
-assert_allow "a backslash-newline is a continuation, not a separator" "$HOOK" "$(payload_bash 'echo one \
+assert_allow "a backslash-newline is a continuation" "$HOOK" "$(payload_bash 'echo one \
 two' twin)"
 assert_block "an even backslash run keeps newline as a separator" "$HOOK" "$(payload_bash 'echo one \\
 git status' twin)" "never runs git"
-# Bash joins a continuation with NOTHING, so one can split a command name.
 assert_block "continuation splitting a command name" "$HOOK" "$(payload_bash 'g\
 it status' twin)" "never runs git"
-# A newline inside a quoted word belongs to the word. Separating it would invent
-# a command that never runs -- a multi-line commit message or printf template is
-# ordinary, and its second line is not a command position.
 assert_allow "newline inside a double-quoted argument" "$HOOK" "$(payload_bash 'echo "line one
 git status"' twin)"
 assert_allow "newline inside a single-quoted argument" "$HOOK" "$(payload_bash "printf '%s' 'echo

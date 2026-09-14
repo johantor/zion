@@ -6,7 +6,11 @@ anything stated here updates this file in the same commit.** Conventions live in
 
 ## Map
 
-- `agents/` — `morpheus` (orchestrator, `model: opus`, sole git owner) + workers `tank`
+- `agents/` — `morpheus` (orchestrator, `model: opus`, sole git owner; its `Agent(...)` allowlist
+  names the seven workers plus the built-in `Explore`/`Plan` research agents, and it carries
+  `ExitPlanMode` — both matter only as the main thread of `claude --agent crew:morpheus`: a
+  subagent's type list is ignored by the harness and its `ExitPlanMode` stripped, so via
+  `/crew:feature` neither grant does anything) + workers `tank`
   (the resolved stack's core implementation — not "server-side": in a CLI, library or script pack
   it is the commands, domain logic and I/O), `trinity` (the client-facing layer), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual —
   no Bash; measures computed styles/geometry through the browser MCP's script evaluation
@@ -130,6 +134,14 @@ anything stated here updates this file in the same commit.** Conventions live in
   roster — §9 only checks `bash-safety.sh`/`lane-guard.sh` rosters, so a third one here would
   drift unwatched. That also makes it inert under this repo's dev wiring, where nothing dispatches
   namespaced agents.
+  `plan-guard.sh` (`PreToolUse`, matcher `Agent|Task`) acts only on a `crew:<worker>` dispatch
+  while `permission_mode` is `plan`, and decides from the **worker's own frontmatter** rather than
+  a roster (`CREW_AGENTS_DIR` is the test override for the agents dir): `owns-git: true` passes —
+  the orchestrator plans in plan mode — and so does a `tools:` with no `Edit`/`Write`/
+  `NotebookEdit`; an editing worker is refused (exit 2) before it spends its turns on edits plan
+  mode would refuse. Both YAML shapes of `tools:` are read, frontmatter only. **Fails open** on
+  every can't-read path — plan mode itself is the boundary, this is the fast-fail. Inert under this
+  repo's dev wiring for the same reason `dispatch-denied` is.
 - No `scripts/` dir: the validator is repo tooling at the repo root
   (`scripts/validate-plugin.sh`) — it validates **all** plugins (manifests + marketplace
   description sync §2f, agent `skills:` resolution §2g, cross-plugin skill sync §4,
@@ -158,7 +170,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   shortened for the hang case). `dispatch-denied.sh` is a third: its decision is JSON on
   `_stdout` (the harness captures both streams), so its cases assert with `jq` on
   `retry`/`systemMessage` — the load-bearing asymmetry being that only attempt 1 may ask for a
-  retry. A change to a hook's logic **must add/adjust a case** here,
+  retry. `plan-guard.test.sh` runs the shipped agents through the real `agents/` dir for the
+  verdicts users see, then points `CREW_AGENTS_DIR` at fixture agents to exercise the frontmatter
+  parser (block-list `tools:`, a `tools:` line in the prose body, `owns-git: true`). A change to a hook's logic **must add/adjust a case** here,
   on both the allow and block sides. Also self-tests the
   validator: **every** section (§1 · §2a–§2i · §3 · §4 · §5 · §6 · §7 · §8 · §9 · §10 · §11 · §12 · §13) has at least one
   negative fixture plus a silent control, and a new section lands with its fixture in the same
@@ -188,9 +202,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   (§2g's awk parser reads the `  - name` items; it stops at the next key, so the last-key rule
   is convention, not a parser constraint).
 - Always-loaded footprint: validator §12 reports every agent's agent-file + preloaded-skill line
-  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 541 —
-  raised from 526 for the gate build-strictness rule and the build-contention rules that landed
-  beside it, itself raised from 496 for `operator-voice` and from 480 for the steer contract,
+  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 575 —
+  raised from 541 for the plan-mode section, itself raised from 526 for the gate build-strictness
+  rule and the build-contention rules that landed
+  beside it, from 496 for `operator-voice` and from 480 for the steer contract,
   keeping ~10 lines of slack, since the figure counts preloaded
   shared skills and a keymaker-side edit to one would otherwise fail crew's cap).
   Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —

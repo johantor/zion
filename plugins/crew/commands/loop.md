@@ -16,6 +16,11 @@ unset) is the only cross-tick state — no new files, no background daemon.
 
 Run this **foreground** so tick 1's plan checkpoint can prompt.
 
+**Not in plan mode.** Every tick writes the plan file and dispatches editing workers, and plan
+mode refuses both (the `plan-guard` hook blocks the dispatch). If the session is in plan mode,
+stop and say so — approve a plan through `/crew:feature`, or leave plan mode (Shift+Tab), then
+start the loop. No tick ran, so write nothing.
+
 **Start a native `/loop` in dynamic (self-paced) mode wrapping the per-tick logic below** — that
 harness loop is what re-fires each tick and lets the work span `morpheus` runs. Without it you'd
 run a single tick and exit, defeating the command. The per-tick logic decides, each firing,

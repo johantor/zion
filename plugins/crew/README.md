@@ -99,6 +99,31 @@ entering auto mode.
 
 </details>
 
+### Plan mode
+
+Plan mode (Shift+Tab, `/plan`, or `claude --permission-mode plan`) works with the crew, and its
+approval replaces `morpheus`'s own plan checkpoint, so you get one gate, not two. What changes
+underneath:
+
+- **In a `claude --agent crew:morpheus` session**, `morpheus` explores (itself, or through the
+  built-in `Explore`/`Plan` research agents, which its agent allowlist includes), presents the
+  plan through plan mode's approval prompt, and only then writes `<plan-dir>/plan-<feature>.md`,
+  branches, and delegates.
+- **From `/crew:feature` in a normal session**, `morpheus` runs as a subagent, and a subagent
+  can neither approve a plan nor write during plan mode. The command launches it twice: once to
+  explore and return the plan, which you approve through the normal prompt, and once more with the
+  approved plan to build it. The plan travels between the two as text.
+- **Editing workers wait.** The `plan-guard` hook refuses a dispatch of `tank`, `trinity`,
+  `oracle`, `dozer`, or `neo` while the session is in plan mode, before the worker burns its turns
+  on edits plan mode would refuse. `sentinel` and `seraph` (read-only) still run, so triage before
+  planning works as usual.
+- **`/crew:loop` and `/crew:address` don't run in plan mode.** Both write on every tick. They say
+  so and stop; approve a plan or leave plan mode first.
+
+The catch: a plugin agent cannot declare its own permission mode, so a worker launched from a
+plan-mode session is in plan mode whatever its definition says. That is why the guard exists
+rather than a per-worker setting.
+
 ## Commands
 
 | Command | What it does |
@@ -133,8 +158,10 @@ another plugin's command of the same short name.
 
 ## Safety guarantees
 
-Three `PreToolUse` guards enforce the boundaries and **fail closed**; three advisory hooks
-(formatting, turn budget, denied dispatches) fail open and never block work.
+Three `PreToolUse` guards enforce the boundaries and **fail closed**; four advisory hooks
+(formatting, turn budget, denied dispatches, plan-mode dispatches) fail open — `plan-guard` does
+block a dispatch, but only one plan mode would have refused anyway, and on any path it can't read
+it allows.
 
 - **Workers can't touch git.** Blocked outright for `tank`/`trinity`/`oracle`/`dozer`/`neo`.
   `morpheus` is the sole git owner, enforced in code. Every agent, `morpheus` included, is refused
@@ -196,6 +223,12 @@ intercepted**.
   reports the fixes instead, so a repeatedly-blocked step is handed back rather than retried in a
   loop. It matches on the `crew:` namespace rather than a name roster, so it can't drift as
   agents are added. Advisory: it never retries on a path where it couldn't count the attempts.
+- **plan-guard** runs on `PreToolUse` for `Agent`/`Task` calls and acts only when the payload's
+  `permission_mode` is `plan` and the target is a `crew:<worker>`. It reads that worker's own
+  frontmatter: `owns-git: true` (the orchestrator) passes, and so does any worker whose `tools:`
+  carry no `Edit`/`Write`; an editing worker is refused with a message naming plan mode and what
+  to do first. No roster, so nothing to keep in lockstep. Fails open: no `jq`, an unreadable
+  payload, an agent file it can't find, all allow — plan mode itself still blocks the edits.
 
 Hooks are registered in `.claude/settings.json` for local development and `hooks/hooks.json` when
 installed as a plugin.

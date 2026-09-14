@@ -43,7 +43,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     truncating; validator §8 keeps its budget table in lockstep with agent frontmatter),
     `dispatch-denied.sh` (`PermissionDenied`: auto mode can't allowlist an `Agent` call, so a
     worker dispatch is classified per call and can be refused mid-run — this retries the first
-    denial once and reports the real fixes after that), wired via `hooks/hooks.json`.
+    denial once and reports the real fixes after that), `plan-guard.sh` (`PreToolUse` on
+    `Agent|Task`: in plan mode, refuses a crew worker whose own frontmatter grants `Edit`/`Write`,
+    since plan mode would refuse every edit it makes; the orchestrator and read-only workers pass;
+    fails open), wired via `hooks/hooks.json`.
     A `hooks/` directory holds two kinds of file and the distinction is enforced, not
     conventional: the top-level `*.sh` are **entry points** the harness executes (must be `+x`,
     must be wired), while `hooks/lib/*.sh` are **sourced libraries** (must not be `+x`, must not
@@ -244,6 +247,23 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 - **Plan checkpoint.** The cheapest place to catch a misunderstood task is before any code is
   written, which is why the single gate sits before the branch and the first delegation rather
   than at the review stage.
+- **Plan mode — the approval is the checkpoint.** The harness's plan mode already has a gate
+  (`ExitPlanMode`), a read-only phase, and a rule that nothing is written before approval — the
+  same shape as the plan checkpoint, so running both would ask the user the same question twice.
+  The two session shapes get different rules because the harness treats them differently: the
+  `Agent(...)` type list and `ExitPlanMode` reach only a `claude --agent` main thread, while a
+  subagent loses `ExitPlanMode` and inherits plan mode with no `permissionMode` of its own (the
+  field is ignored for plugin agents). Hence the main thread presents its own plan, and a
+  subagent returns it for `/crew:feature` to present and then re-launch with — the "delegation
+  can only pass what the callee accepts" lens: the plan has to travel as text, and the second
+  launch has to be told it was approved, or `morpheus` would checkpoint again. `Explore`/`Plan`
+  are in the allowlist because plan mode's own workflow reaches for them and an allowlist that
+  excludes them turns "research" into a "cannot delegate — STOP" for an agent whose top rule says
+  exactly that; the STOP rule is for worker steps, and the section says so. `general-purpose` is
+  deliberately absent: it is an unguarded implementer, and the lane workers exist so that no
+  such thing runs. The `plan-guard` hook reads the worker's frontmatter rather than a roster so
+  §9 has nothing new to pin, and fails open because plan mode is the real boundary — the hook
+  only saves the worker's turns.
 - **Stay responsive.** A foreground call freezes the orchestrator's turn for the worker's entire
   run — often minutes — and queues the user's messages unheard, so backgrounding is the default
   rather than a tuning choice. The status pulse exists because a background run otherwise reads

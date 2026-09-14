@@ -7,8 +7,9 @@
 # whichever tag comes next, described nowhere. Both escapes are checked, in both
 # directions:
 #
-#   1. shipped files changed  -> bump the version, or park a bullet under
-#      `## [Unreleased]` for the next bump to fold in.
+#   1. shipped files changed  -> bump the version by default; park a bullet
+#      under `## [Unreleased]` only when no user could observe the change
+#      (AGENTS.md, "Releasing").
 #   2. version bumped         -> `## [Unreleased]` must be empty, because
 #      auto-release only reads the version's own section and would drop
 #      whatever was still parked.

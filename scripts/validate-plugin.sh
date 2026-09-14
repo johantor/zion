@@ -215,9 +215,10 @@ while IFS= read -r manifest; do
   fi
 
   # 2i. Every changelog carries an `## [Unreleased]` heading above its newest
-  #     version entry: the slot where a shipped change too small to justify its
-  #     own release is parked until the next bump folds it in (AGENTS.md,
-  #     "Releasing"). Without the heading there is nowhere to write such a note,
+  #     version entry: the slot where a shipped change no user can observe is
+  #     parked until the next bump folds it in — everything a user WOULD notice
+  #     bumps instead (AGENTS.md, "Releasing"). Without the heading there is
+  #     nowhere to write such a note,
   #     and it goes unrecorded — the leak this section exists to prevent.
   #     Position matters: below the newest version it would read as belonging to
   #     an already-released version. §2h's `grep -m1` keys on the numeric heading

@@ -22,8 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The raw-read refusals name the `Read` tool and say why a shell read is refused: it reaches no
-  `Read` hook, so `read-guard`'s size bound never applies (#226).
+- The `cat` and pager refusals name the `Read` tool, and all three raw-read refusals say why a
+  shell read is refused: it reaches no `Read` hook, so `read-guard`'s size bound never applies.
+  Nothing replaces a `tail -f`, so that one points at capture/filter instead (#226).
 
 ## [3.25.0] - 2026-09-10
 

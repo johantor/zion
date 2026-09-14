@@ -280,7 +280,7 @@ guard_block_raw_reads() {
     exit 2
   fi
   if [[ $guard_cmd =~ $GUARD_RE_STREAM ]]; then
-    echo "Blocked: streaming raw output is disallowed. Capture/filter and surface only the needed result." >&2
+    echo "Blocked: streaming raw output is disallowed — it never ends, and a raw Bash read reaches no Read hook either. Capture/filter and surface only the needed result." >&2
     exit 2
   fi
   if [[ $guard_cmd =~ $GUARD_RE_CAT ]]; then

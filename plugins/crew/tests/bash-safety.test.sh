@@ -194,6 +194,16 @@ assert_allow "a backslash-newline is a continuation, not a separator" "$HOOK" "$
 two' tank)"
 assert_block "an even backslash run keeps newline as a separator" "$HOOK" "$(payload_bash 'echo one \\
 git status' tank)" "never runs git"
+# Bash joins a continuation with NOTHING, so one can split a command name.
+assert_block "continuation splitting a command name" "$HOOK" "$(payload_bash 'g\
+it status' tank)" "never runs git"
+# A newline inside a quoted word belongs to the word. Separating it would invent
+# a command that never runs -- a multi-line commit message or printf template is
+# ordinary, and its second line is not a command position.
+assert_allow "newline inside a double-quoted argument" "$HOOK" "$(payload_bash 'echo "line one
+git status"' tank)"
+assert_allow "newline inside a single-quoted argument" "$HOOK" "$(payload_bash "printf '%s' 'echo
+git status'" tank)"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

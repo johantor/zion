@@ -19,8 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A newline now separates commands.** `guard_normalize` flattened it to a space, welding a
   later line onto the previous command's operands, so every guard anchored at a command position
   saw only the first line: a worker could run `git` on line 2, and a watch command or raw read on
-  a later line went unrefused. A backslash-newline is still joined as the line continuation it is
-  (#226).
+  a later line went unrefused. Only a newline bash itself reads as a separator becomes one: a
+  newline inside a quoted word stays part of the word (a multi-line commit message or printf
+  template is not two commands), and a backslash-newline joins the halves with nothing between
+  them, for an odd backslash run only (#226).
 - Raw reads: a redirect to a stream the tool result surfaces (`/dev/stderr`, `/dev/stdout`,
   `/dev/fd/N`) no longer reads as an escape, a metacharacter inside a quoted filename is no longer
   read as a redirect, and `<>` counts as the read it is (#226).

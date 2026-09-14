@@ -81,25 +81,55 @@ guard_jq2() {
 # `echo ok\ncat f` read as `echo ok cat f`, and the raw-read, watch and
 # workers-never-run-git blocks all missed the second line.
 #
-# A backslash-newline is the exception -- there the newline is a line
-# continuation, and bash joins the two halves into one command, so it collapses
-# to a space before the rest are separated.
+# Only a newline bash itself reads as a separator becomes one. Two exceptions:
+#
+#   A newline inside a quoted word is part of the word, not a separator. A
+#   multi-line string is ordinary -- a commit message body, a printf template --
+#   and separating it invents commands that never run: `echo "a\ngit status"` is
+#   one `echo`, but read as `echo "a; git status"` the git block refuses it.
+#   Quoted newlines collapse to a space instead, which keeps the one-line
+#   contract and reaches no command-position anchor.
+#
+#   A backslash-newline is a line continuation, and bash joins the halves with
+#   NOTHING between them: `g\<newline>it status` runs `git status`. Only an ODD
+#   run of backslashes escapes the newline; an even run ends in an escaped
+#   backslash and the newline still separates.
+#
+# An unterminated quote falls back to treating the remainder as unquoted, so its
+# newlines separate: the mis-parse over-detects, as guard_mask_quotes does.
 guard_normalize() {
-  local _rest="$1"
-  local _line _trail _n
-  guard_cmd=''
-  while [[ $_rest == *$'\n'* ]]; do
-    _line="${_rest%%$'\n'*}"
-    _rest="${_rest#*$'\n'}"
-    _trail="${_line##*[^\\]}"
-    _n=${#_trail}
-    if ((_n % 2 == 1)); then
-      guard_cmd+="${_line%\\} "
-    else
-      guard_cmd+="${_line}; "
+  local _rest="$1" _out='' _pre _q _seg _trail _pnl _psq _pdq
+  while :; do
+    case "$_rest" in
+      *$'\n'*|*\'*|*\"*) ;;
+      *) _out+="$_rest"; break ;;
+    esac
+    # The shortest prefix marks whichever comes first; an absent delimiter
+    # yields the whole string, so it always loses the comparison.
+    _pnl="${_rest%%$'\n'*}"; _psq="${_rest%%\'*}"; _pdq="${_rest%%\"*}"
+    _pre="$_pnl"; _q=''
+    if [ "${#_psq}" -lt "${#_pre}" ]; then _pre="$_psq"; _q=\'; fi
+    if [ "${#_pdq}" -lt "${#_pre}" ]; then _pre="$_pdq"; _q='"'; fi
+    if [ -n "$_q" ]; then
+      _out+="$_pre$_q"
+      _rest="${_rest#"$_pre$_q"}"
+      case "$_rest" in
+        *"$_q"*)
+          _seg="${_rest%%"$_q"*}"
+          _out+="${_seg//$'\n'/ }$_q"
+          _rest="${_rest#"$_seg$_q"}" ;;
+      esac
+      continue
     fi
+    _trail="${_pre##*[^\\]}"
+    if (( ${#_trail} % 2 == 1 )); then
+      _out+="${_pre%\\}"
+    else
+      _out+="$_pre; "
+    fi
+    _rest="${_rest#*$'\n'}"
   done
-  guard_cmd+="${_rest}"
+  guard_cmd="$_out"
 }
 
 # ------------------------------------------------- command-shape patterns

@@ -54,28 +54,41 @@ esac
 agent_file="${CREW_AGENTS_DIR:-${BASH_SOURCE[0]%/*}/../agents}/$worker.md"
 [ -f "$agent_file" ] || exit 0
 
-# Frontmatter only: a `tools:` in the prose body is documentation, not a grant.
-# Both YAML shapes of `tools:` are read — the inline comma list the agents here
-# use and a `  - name` block list — as validator §13 does.
-tools='' owns_git='' in_fm=0 in_list=0
+# strip_yaml_comment <value> -- sets $stripped to <value> minus a trailing
+# `  # comment`, the same `[[:space:]]+#.*$` validator §13 drops. Without it a
+# comment after the last entry hides that entry, and `owns-git: true  # …`
+# reads as not-true, which would refuse the one agent this guard must let through.
+strip_yaml_comment() {
+  stripped="$1"
+  if [[ $stripped =~ [[:space:]]+#.*$ ]]; then stripped="${stripped%"${BASH_REMATCH[0]}"}"; fi
+}
+
+# Frontmatter only, and only when the file opens with it on line 1: a `---`
+# rule later in a body is markdown, and a `tools:` in prose is documentation,
+# not a grant. Both YAML shapes of `tools:` are read — the inline comma list the
+# agents here use and a `  - name` block list, blank lines inside it kept —
+# matching validator §13's reader.
+tools='' owns_git='' in_list=0 lineno=0 fm_re='^---[[:space:]]*$'
 while IFS= read -r line || [ -n "$line" ]; do
-  case "$line" in
-    ---*)
-      if [ "$in_fm" -eq 0 ]; then in_fm=1; continue; else break; fi ;;
-  esac
-  [ "$in_fm" -eq 1 ] || continue
+  lineno=$((lineno + 1))
+  if [ "$lineno" -eq 1 ]; then
+    [[ $line =~ $fm_re ]] || break   # no frontmatter: nothing is granted
+    continue
+  fi
+  [[ $line =~ $fm_re ]] && break     # closing delimiter
   if [ "$in_list" -eq 1 ]; then
-    case "$line" in
-      [[:space:]]*-[[:space:]]*) tools="$tools,${line#*-}"; continue ;;
-      *) in_list=0 ;;
-    esac
+    if [[ $line =~ ^[[:space:]]*$ ]]; then continue; fi
+    if [[ $line =~ ^[[:space:]]+-[[:space:]]+ ]]; then
+      strip_yaml_comment "${line#*-}"; tools="$tools,$stripped"; continue
+    fi
+    in_list=0
   fi
   case "$line" in
     tools:*)
-      tools="${line#tools:}"
+      strip_yaml_comment "${line#tools:}"; tools="$stripped"
       [ -z "${tools//[[:space:]]/}" ] && in_list=1 ;;
     owns-git:*)
-      owns_git="${line#owns-git:}"; owns_git="${owns_git//[[:space:]]/}" ;;
+      strip_yaml_comment "${line#owns-git:}"; owns_git="${stripped//[[:space:]]/}" ;;
   esac
 done < "$agent_file"
 
@@ -83,9 +96,11 @@ done < "$agent_file"
 # through with an editing tool set.
 [ "$owns_git" = "true" ] && exit 0
 
+# A scoped grant (`Edit(src/**)`, the same shape as `Agent(crew:tank, …)`) is
+# still the editing tool, so the token before `(` decides too.
 tools=",${tools//[[:space:]]/},"
 case "$tools" in
-  *,Edit,*|*,Write,*|*,NotebookEdit,*|*,MultiEdit,*) ;;
+  *,Edit,*|*,Edit\(*|*,Write,*|*,Write\(*|*,NotebookEdit,*|*,NotebookEdit\(*|*,MultiEdit,*|*,MultiEdit\(*) ;;
   *) exit 0 ;;
 esac
 

@@ -81,6 +81,54 @@ No frontmatter at all.' \
 name: spaced
 tools:   Read ,  Edit  , Bash   # trailing comment
 owns-git:   false
+---' \
+  'agents/lastcomment.md:---
+name: lastcomment
+tools: Read, Bash, Edit  # scoped later
+owns-git: false
+---' \
+  'agents/ownercomment.md:---
+name: ownercomment
+tools: Read, Edit, Write, Bash
+owns-git: true  # sole git owner
+---' \
+  'agents/blockcomment.md:---
+name: blockcomment
+tools:  # granted below
+  - Read
+  - Write
+owns-git: false
+---' \
+  'agents/blockblank.md:---
+name: blockblank
+tools:
+  - Read
+
+  - Edit
+owns-git: false
+---' \
+  'agents/blockitemcomment.md:---
+name: blockitemcomment
+tools:
+  - Read
+  - Edit  # trailing
+owns-git: false
+---' \
+  'agents/hrbody.md:Prose first, so this file has no frontmatter.
+
+---
+
+tools: Edit' \
+  'agents/editscoped.md:---
+name: editscoped
+tools: Read, Edit(src/**), Bash
+owns-git: false
+---' \
+  'agents/notfirst.md:
+---
+name: notfirst
+tools: Read, Edit
+owns-git: false
 ---')"
 export CREW_AGENTS_DIR="$fx/agents"
 assert_block "block-list tools: with Write is refused" "$hook" "$(payload_dispatch crew:blocklist plan)" "$msg"
@@ -89,6 +137,17 @@ assert_allow "an entry merely containing 'Edit' (mcp__editor) is not Edit" "$hoo
 assert_allow "owns-git: true passes with editing tools" "$hook" "$(payload_dispatch crew:owner plan)"
 assert_allow "a file with no frontmatter grants nothing" "$hook" "$(payload_dispatch crew:nofm plan)"
 assert_block "spacing and a trailing comment don't hide Edit" "$hook" "$(payload_dispatch crew:spaced plan)" "$msg"
+# YAML comments: validator §13 strips them, so this reader must too, on both sides.
+assert_block "a comment after the LAST entry doesn't hide Edit" "$hook" "$(payload_dispatch crew:lastcomment plan)" "$msg"
+assert_allow "a comment on owns-git: true still reads as the owner (must not fail closed)" "$hook" "$(payload_dispatch crew:ownercomment plan)"
+assert_block "a comment on the bare tools: line still opens the block list" "$hook" "$(payload_dispatch crew:blockcomment plan)" "$msg"
+assert_block "a blank line inside a block list doesn't end it" "$hook" "$(payload_dispatch crew:blockblank plan)" "$msg"
+assert_block "a comment on a block-list item doesn't hide Edit" "$hook" "$(payload_dispatch crew:blockitemcomment plan)" "$msg"
+# Frontmatter opens on line 1 or not at all: a later `---` is a markdown rule.
+assert_allow "a --- rule in a body with no frontmatter grants nothing" "$hook" "$(payload_dispatch crew:hrbody plan)"
+assert_allow "a --- that is not on line 1 does not open frontmatter" "$hook" "$(payload_dispatch crew:notfirst plan)"
+# A scoped grant is still the editing tool.
+assert_block "Edit(src/**) is still Edit" "$hook" "$(payload_dispatch crew:editscoped plan)" "$msg"
 unset CREW_AGENTS_DIR
 
 finish

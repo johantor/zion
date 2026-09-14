@@ -113,10 +113,10 @@ underneath:
   can neither approve a plan nor write during plan mode. The command launches it twice: once to
   explore and return the plan, which you approve through the normal prompt, and once more with the
   approved plan to build it. The plan travels between the two as text.
-- **Editing workers wait.** The `plan-guard` hook refuses a dispatch of `tank`, `trinity`,
-  `oracle`, `dozer`, or `neo` while the session is in plan mode, before the worker burns its turns
-  on edits plan mode would refuse. `sentinel` and `seraph` (read-only) still run, so triage before
-  planning works as usual.
+- **Editing workers wait.** The `plan-guard` hook refuses a dispatch of any crew worker whose
+  tools carry `Edit`/`Write` while the session is in plan mode, before the worker burns its turns
+  on edits plan mode would refuse. A read-only worker still runs, so triage before planning works
+  as usual. The decision comes from each worker's own definition, not a list kept here.
 - **`/crew:loop` and `/crew:address` don't run in plan mode.** Both write on every tick. They say
   so and stop; approve a plan or leave plan mode first.
 

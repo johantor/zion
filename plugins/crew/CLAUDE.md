@@ -206,7 +206,7 @@ anything stated here updates this file in the same commit.** Conventions live in
   raised from 541 for the plan-mode section, itself raised from 526 for the gate build-strictness
   rule and the build-contention rules that landed
   beside it, from 496 for `operator-voice` and from 480 for the steer contract,
-  keeping ~10 lines of slack, since the figure counts preloaded
+  keeping a few lines of slack (7 today), since the figure counts preloaded
   shared skills and a keymaker-side edit to one would otherwise fail crew's cap).
   Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —
   agent prompts carry instruction, not justification; each trimmed prompt points there once.

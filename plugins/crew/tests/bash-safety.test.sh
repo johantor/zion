@@ -89,7 +89,7 @@ assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm ru
 # A habit redirect, not a boundary: the rule catches the spelling a session
 # reaches for and names the tool instead. `grep . f` dumps the same file and is
 # deliberately allowed, so the cases below pin the habit and the escapes, not
-# redirect spellings -- see guard-lib.sh for why chasing those is out of scope.
+# redirect spellings -- see AGENTS.md, "The Bash guards are floors, not sandboxes".
 assert_block "cat a file"     "$HOOK" "$(payload_bash 'cat foo.txt' tank)"      "unbounded cat"
 assert_block "cat then another command" "$HOOK" "$(payload_bash 'cat foo.txt; ls' tank)" "unbounded cat"
 assert_block "less a file"    "$HOOK" "$(payload_bash 'less foo.txt' tank)"     "interactive raw reads"
@@ -115,6 +115,10 @@ assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat fo
 assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "reaches no Read hook"
 assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' tank)" "Use the Read tool"
 assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' tank)" "reaches no Read hook"
+# Nothing replaces a `tail -f`, so the stream refusal points at capture/filter --
+# but it carries the same reason, and the category substring alone was in the old
+# message too, so a revert to that wording would have passed.
+assert_block "stream refusal gives the reason"   "$HOOK" "$(payload_bash 'tail -f app.log' tank)" "reaches no Read hook"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

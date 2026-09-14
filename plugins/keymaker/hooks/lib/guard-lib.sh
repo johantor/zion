@@ -76,24 +76,11 @@ guard_jq2() {
 # to a space, so a multi-line command cannot slip a clause past the single-line
 # patterns below.
 #
-# KNOWN GAP, deliberately left open. Flattening welds a later line onto the
-# previous command's operands, so a pattern anchored at a command position sees
-# only the first command: `cd sub<newline>git status` reads as `cd sub git
-# status`, and the workers-never-run-git block misses it.
-#
-# Separating on the newline instead looks obvious and is not. A newline inside a
-# quoted word or a heredoc body is data, not syntax, and turning those into
-# separators refuses ordinary work -- a heredoc commit message whose body line
-# begins `cat ...` or `npm run dev ...`. Telling data from syntax is bash's own
-# tokenizer. #226 tried three shapes (unconditional, quote-aware, quote-aware
-# plus an odd/even backslash rule) and each traded one routine failure for
-# another; the quote-aware one still let `echo "$(echo ok<newline>git status)"`
-# through, which is the case it existed to stop.
-#
-# These guards are a floor, not a sandbox. A worker reaching git on a second
-# line is one spelling among several -- a `$(...)`, an interpreter -- and the
-# worker's own prompt is what keeps it out of git. Close this with a tokenizer
-# or not at all; a pattern cannot.
+# KNOWN GAP, deliberately left open: flattening welds a later line onto the
+# previous command's operands, so a command-position anchor sees only the first
+# command. Separating on the newline instead needs to tell data from syntax and
+# was tried three ways in #226. See AGENTS.md, "The Bash guards are floors, not
+# sandboxes".
 guard_normalize() { guard_cmd="${1//$'\n'/ }"; }
 
 # ------------------------------------------------- command-shape patterns
@@ -123,8 +110,9 @@ _g_dotgit='\.git/'
 GUARD_RE_DESTRUCTIVE="${_g_rm_rf}"'|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|$)|-[A-Za-z]*f)|>>?\|?[[:space:]]*\.env|>>?\|?[^|;&]*'"${_g_dotgit}"'|(^|[[:space:];|&(])rm[[:space:]][^|;&]*'"${_g_dotgit}"
 
 # A command position: start of line, or just after a separator. guard_normalize
-# turns a newline into `;`, so a later line reaches this anchor as its own
-# command.
+# flattens a newline to a space rather than a separator, so a later line does NOT
+# reach this anchor -- see its comment, and AGENTS.md "The Bash guards are floors,
+# not sandboxes".
 _g_cmdpos='(^|[;&|][&|]?[[:space:]]*)'
 # Prefixes that must not smuggle a command past that anchor: leading env
 # assignments, `env`, `command`.
@@ -168,29 +156,15 @@ GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:spac
 # Raw/streaming reads: a `cat` of a whole file, a pager, a `tail -f`. Such a read
 # reaches no PreToolUse(Read) hook, so read-guard's size bound never applies.
 #
-# This is a HABIT REDIRECT, not a boundary, and that distinction decides what
-# belongs here. It catches the spelling a session actually reaches for and names
-# the tool to use instead. It does NOT bound what can reach the context and does
-# not try to: `grep . f`, `awk '{print}' f`, `tail -n 999999 f`, `od -c f`,
-# `base64 f` and `python3 -c 'print(open("f").read())'` each dump the same file
-# whole, each is allowed, and each is deliberately out of scope. Anything meaning
-# to route around this rule has a dozen shorter ways than respelling a redirect.
-#
-# So the costs are asymmetric, and the pattern is tuned to them. A read this rule
-# misses costs nothing, because a shorter bypass always sat beside it. A read it
-# refuses wrongly costs a turn and makes the rule look arbitrary -- which is the
-# complaint it exists to remove. In doubt, let the command through.
-#
-# Hence one line, and no attempt to follow a redirect. `cat f` and `cat f; ls`
-# block; a pipe or ANY redirect ends the match and falls through, so filtering
-# stays the documented way out. Chasing redirect spellings needs bash's own
-# tokenizer -- fd prefixes, quoting and redirection order, modelled in order and
-# with state -- which is an interpreter, not a pattern. #226 tried: six review
-# rounds, and two regressions that refused ordinary commands. Don't reopen it
-# without first changing the premise above.
+# A HABIT REDIRECT, not a boundary: it catches the spelling a session reaches for
+# and names `Read` instead. `grep . f` and a dozen others dump the same file and
+# are deliberately allowed, so a missed read costs nothing while a wrongly
+# refused one costs a turn. Hence one line, and a pipe or ANY redirect ends the
+# match. Before widening this, read AGENTS.md, "The Bash guards are floors, not
+# sandboxes" -- #226 widened it and reverted.
 #
 # ${_g_pfx} stops `env cat f`, `command cat f` and `FOO=1 cat f` walking a read
-# past the anchor -- the same wrappers the git block already refuses.
+# past the anchor, as the git block already does.
 GUARD_RE_PAGER="${_g_cmdpos}${_g_pfx}"'(less|more)[[:space:]]+'
 GUARD_RE_STREAM="${_g_cmdpos}${_g_pfx}"'tail[[:space:]]+-f([[:space:]]|$)'
 GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&]|&&|\|\|))'

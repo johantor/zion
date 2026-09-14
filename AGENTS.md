@@ -691,6 +691,40 @@ that let a claim slide through without evidence behind it.
 
 Changelog entries have their own rule; see *Releasing*.
 
+### The Bash guards are floors, not sandboxes
+
+`bash-safety.sh` refuses a few command shapes. Two of its rules have a scope that is easy to
+misread as "enforcement", and both have been widened once already and reverted; the reasoning
+lives here so it is not rediscovered at the cost of another review cycle. The hooks carry a
+one-line pointer to this section.
+
+**The raw-read rule is a habit redirect.** It blocks `cat f` and names `Read` instead. It does
+not bound what can reach the context and does not try to — `grep . f`, `awk '{print}' f`,
+`tail -n 999999 f`, `od -c f`, `base64 f`, `tr a a < f` and a one-line `python3 -c` each dump the
+same file whole, and each is allowed. So the costs are asymmetric: a read the rule misses costs
+nothing, because a shorter bypass always sat beside it, while a read it refuses wrongly costs a
+turn and makes the rule look arbitrary — which is the friction it exists to remove. The pattern
+is therefore one line, and a pipe or **any** redirect ends the match. Following where bytes go
+through redirects means bash's own tokenizer: fd prefixes, quoting and redirection order, applied
+in order and with state. #226 tried, over six review rounds, and produced two regressions that
+refused ordinary commands (`cat f > out.txt`, then a commit message) before being reverted.
+
+**`guard_normalize` flattens newlines to a space, and that leaves a gap.** Flattening welds a
+later line onto the previous command's operands, so a pattern anchored at a command position sees
+only the first command: `cd sub` + newline + `git status` reads as `cd sub git status`, and the
+workers-never-run-git block misses it. Separating on the newline instead looks obvious and is not.
+A newline inside a quoted word, a heredoc body or a nested `$(...)` is data, not syntax, and
+turning those into separators refuses ordinary work — a heredoc commit message whose body line
+begins `cat ...` or `npm run dev ...`. #226 tried three shapes (unconditional, quote-aware, and
+quote-aware plus an odd/even backslash rule); each traded one routine failure for another, and the
+quote-aware one still let `echo "$(echo ok<newline>git status)"` through, which is the case it
+existed to stop.
+
+Both gaps stay open deliberately. A worker reaching `git` on a second line is one spelling among
+several — a `$(...)`, an interpreter — and the worker's own prompt is what keeps it out of git.
+Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
+size than the rule it would replace, and belongs in its own PR.
+
 ## Recurring review findings — apply proactively
 
 Patterns that showed up more than once in review feedback on this repo. Apply these up front

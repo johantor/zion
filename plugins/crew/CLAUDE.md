@@ -64,17 +64,11 @@ anything stated here updates this file in the same commit.** Conventions live in
   a command position only — `find -exec git mv` and `(git mv …)` fall through to the generic
   refusal. **Raw reads are refused for every session**, agent or not — a `cat` of a whole file
   reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it. It is a
-  **habit redirect, not a boundary**, and the distinction governs what may be added: it catches
-  the spelling a session reaches for and names the tool instead. `grep . f`, `awk '{print}' f`,
-  `tail -n 999999 f`, `base64 f` and a one-line `python3 -c` each dump the same file whole, each
-  is allowed, and each is deliberately out of scope. The costs are asymmetric — a missed read
-  costs nothing, since a shorter bypass always sat beside it, while a wrongly refused one costs a
-  turn and makes the rule look arbitrary — so the pattern stays **one line** and lets a command
-  through when in doubt: a pipe or **any** redirect ends the match. `${_g_pfx}` is the one
-  addition, so `env cat f`, `command cat f` and `FOO=1 cat f` cannot walk a read past the anchor.
-  Chasing redirect spellings needs bash's own tokenizer (fd prefixes, quoting and redirection
-  order, in order and with state); #226 tried, at six review rounds and two regressions that
-  refused ordinary commands, and the reasoning is recorded above the pattern), `read-guard.sh` (>64 KiB raw
+  **habit redirect, not a boundary**: `grep . f` dumps the same file and is deliberately allowed,
+  so the pattern stays one line and a pipe or any redirect ends the match. `${_g_pfx}` is the one
+  addition, keeping `env cat f`, `command cat f` and `FOO=1 cat f` from walking a read past the
+  anchor. Before widening it, read AGENTS.md, "The Bash guards are floors, not sandboxes" — that
+  section carries the scope, the two open gaps and what #226 already tried and reverted), `read-guard.sh` (>64 KiB raw
   reads; an explicit
   `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes; the **only** hook that reads
   crew configuration — `.claude/crew.md` frontmatter by key, falling back to a legacy
@@ -95,13 +89,8 @@ anything stated here updates this file in the same commit.** Conventions live in
   `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
   `hooks/lib/guard-lib.sh` is the **sourced library** every entry point above loads: payload
   plumbing (`guard_read_payload`, `guard_jq2`, and `guard_normalize`, which flattens the command
-  to one line, every newline becoming a space — with a **known gap recorded beside it**: that
-  welds a later line onto the previous command's operands, so a pattern anchored at a command
-  position sees only the first command and a worker can reach `git` on line 2. Separating on the
-  newline instead needs to tell data from syntax — a newline inside a quoted word or a heredoc
-  body is data — and #226 tried three shapes, each of which refused ordinary work (a heredoc
-  commit message whose body line starts `cat …`) or leaked anyway. Close it with a tokenizer or
-  not at all), the command-shape patterns
+  to one line, every newline becoming a space — which leaves a known gap, recorded in AGENTS.md
+  alongside the raw-read scope), the command-shape patterns
   (`GUARD_RE_*`), the shared block helpers (`guard_block_destructive` /
   `_watch_commands` / `_raw_reads` / `_file_writes` / `_protected_branch_commit`), the
   quote masking `_file_writes` scans through (a `>` inside a string is not a redirect, a quoted

@@ -73,28 +73,11 @@ assert_allow "redirected into a file" "$HOOK" "$(payload_bash 'cat foo.txt > out
 # The refusals name the tool to use and say why the shell read is refused.
 assert_block "refusal names the Read tool" "$HOOK" "$(payload_bash 'cat foo.txt' twin)" "Use the Read tool"
 assert_block "refusal gives the reason"    "$HOOK" "$(payload_bash 'cat foo.txt' twin)" "reaches no Read hook"
-# guard_normalize: an unquoted newline separates commands; a quoted one does not,
-# and a backslash-newline joins with nothing for an odd backslash run only.
-assert_block "raw read on a second line" "$HOOK" "$(payload_bash 'echo ok
-cat foo.txt' twin)" "unbounded cat"
-assert_allow "a backslash-newline is a continuation" "$HOOK" "$(payload_bash 'echo one \
-two' twin)"
-assert_block "an even backslash run keeps newline as a separator" "$HOOK" "$(payload_bash 'echo one \\
-git status' twin)" "never runs git"
-assert_block "continuation splitting a command name" "$HOOK" "$(payload_bash 'g\
-it status' twin)" "never runs git"
-assert_allow "newline inside a double-quoted argument" "$HOOK" "$(payload_bash 'echo "line one
-git status"' twin)"
-assert_allow "newline inside a single-quoted argument" "$HOOK" "$(payload_bash "printf '%s' 'echo
-git status'" twin)"
 
 # --- Twins never run git ------------------------------------------------------
 assert_block "twin blocked from git"         "$HOOK" "$(payload_bash 'git status' twin)" "never runs git"
 assert_block "smuggled env git (twin)"       "$HOOK" "$(payload_bash 'env git push' twin)" "never runs git"
 assert_block "smuggled FOO=1 git (twin)"     "$HOOK" "$(payload_bash 'FOO=1 git status' twin)" "never runs git"
-# A newline separates commands, so a twin cannot reach git on a later line.
-assert_block "twin git on a second line"     "$HOOK" "$(payload_bash 'echo ok
-git status' twin)" "never runs git"
 assert_block "smuggled command git (twin)"   "$HOOK" "$(payload_bash 'command git log' twin)" "never runs git"
 # keymaker owns branching and commits, so the git block is scoped to twins only.
 assert_allow "keymaker itself may run git"   "$HOOK" "$(payload_bash 'git status' keymaker)"

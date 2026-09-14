@@ -12,9 +12,6 @@ done
 assert_allow "git in a no-agent session" "$HOOK" "$(payload_bash 'git status')"
 assert_block "smuggled env git push (tank)" "$HOOK" "$(payload_bash 'env git push' tank)" "never runs git"
 assert_block "smuggled FOO=1 git (tank)" "$HOOK" "$(payload_bash 'FOO=1 git status' tank)" "never runs git"
-# A newline separates commands, so a worker cannot reach git on a later line.
-assert_block "worker git on a second line" "$HOOK" "$(payload_bash 'echo ok
-git status' tank)" "never runs git"
 
 # --- Protected-branch commit backstop -----------------------------------------
 main_repo="$(make_git_branch main)"
@@ -87,8 +84,6 @@ for cmd in 'pytest -q' 'mypy .' 'ruff check .' 'python -m pytest tests/' \
 done
 assert_allow "npm run build"                  "$HOOK" "$(payload_bash 'npm run build' tank)"
 assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm run dev')"
-assert_block "watch on a second line" "$HOOK" "$(payload_bash 'echo ok
-npm run dev' tank)" "never terminate"
 
 # --- Raw / streaming reads -----------------------------------------------------
 # A habit redirect, not a boundary: the rule catches the spelling a session
@@ -120,26 +115,6 @@ assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat fo
 assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "reaches no Read hook"
 assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' tank)" "Use the Read tool"
 assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' tank)" "reaches no Read hook"
-# guard_normalize turns an unquoted newline into `;`, so a later line is its own
-# command at every anchored guard -- not welded onto the previous line's operands.
-assert_block "raw read on a second line" "$HOOK" "$(payload_bash 'echo ok
-cat foo.txt' tank)" "unbounded cat"
-assert_block "pager on a second line"    "$HOOK" "$(payload_bash 'echo ok
-less foo.txt' tank)" "interactive raw reads"
-assert_allow "a backslash-newline is a continuation, not a separator" "$HOOK" "$(payload_bash 'echo one \
-two' tank)"
-assert_block "an even backslash run keeps newline as a separator" "$HOOK" "$(payload_bash 'echo one \\
-git status' tank)" "never runs git"
-# Bash joins a continuation with NOTHING, so one can split a command name.
-assert_block "continuation splitting a command name" "$HOOK" "$(payload_bash 'g\
-it status' tank)" "never runs git"
-# A newline inside a quoted word belongs to the word. Separating it would invent
-# a command that never runs -- a multi-line commit message or printf template is
-# ordinary, and its second line is not a command position.
-assert_allow "newline inside a double-quoted argument" "$HOOK" "$(payload_bash 'echo "line one
-git status"' tank)"
-assert_allow "newline inside a single-quoted argument" "$HOOK" "$(payload_bash "printf '%s' 'echo
-git status'" tank)"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

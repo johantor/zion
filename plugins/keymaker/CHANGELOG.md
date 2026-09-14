@@ -11,12 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **A newline now separates commands.** The shared guard library's `guard_normalize` flattened it to a space, welding a later
-  line onto the previous command's operands, so every guard anchored at a command position saw
-  only the first line: a worker could run `git` on line 2, and a watch command or raw read on a
-  later line went unrefused. Only a newline bash itself reads as a separator becomes one — one
-  inside a quoted word stays part of the word, and a backslash-newline joins the halves with
-  nothing between them, for an odd backslash run only (#226).
 - The three raw-read rules take the same wrapper prefixes as the rest of the guard, so a leading
   `env`, `command` or `VAR=1` no longer walks a read past them (#226).
 

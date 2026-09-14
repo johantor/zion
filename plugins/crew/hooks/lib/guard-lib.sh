@@ -72,65 +72,29 @@ guard_jq2() {
   guard_trusted="${_fields##*"$GUARD_RS"}"
 }
 
-# guard_normalize <cmd> -- sets $guard_cmd as one line, so a multi-line command
-# cannot slip a clause past the single-line patterns below.
+# guard_normalize <cmd> -- sets $guard_cmd as one line, every newline flattened
+# to a space, so a multi-line command cannot slip a clause past the single-line
+# patterns below.
 #
-# A newline becomes `;`, not a space. It separates two commands exactly as `;`
-# does, and flattening it to a space welded the next command onto the previous
-# one's operands, where no pattern anchored at a command position could see it:
-# `echo ok\ncat f` read as `echo ok cat f`, and the raw-read, watch and
-# workers-never-run-git blocks all missed the second line.
+# KNOWN GAP, deliberately left open. Flattening welds a later line onto the
+# previous command's operands, so a pattern anchored at a command position sees
+# only the first command: `cd sub<newline>git status` reads as `cd sub git
+# status`, and the workers-never-run-git block misses it.
 #
-# Only a newline bash itself reads as a separator becomes one. Two exceptions:
+# Separating on the newline instead looks obvious and is not. A newline inside a
+# quoted word or a heredoc body is data, not syntax, and turning those into
+# separators refuses ordinary work -- a heredoc commit message whose body line
+# begins `cat ...` or `npm run dev ...`. Telling data from syntax is bash's own
+# tokenizer. #226 tried three shapes (unconditional, quote-aware, quote-aware
+# plus an odd/even backslash rule) and each traded one routine failure for
+# another; the quote-aware one still let `echo "$(echo ok<newline>git status)"`
+# through, which is the case it existed to stop.
 #
-#   A newline inside a quoted word is part of the word, not a separator. A
-#   multi-line string is ordinary -- a commit message body, a printf template --
-#   and separating it invents commands that never run: `echo "a\ngit status"` is
-#   one `echo`, but read as `echo "a; git status"` the git block refuses it.
-#   Quoted newlines collapse to a space instead, which keeps the one-line
-#   contract and reaches no command-position anchor.
-#
-#   A backslash-newline is a line continuation, and bash joins the halves with
-#   NOTHING between them: `g\<newline>it status` runs `git status`. Only an ODD
-#   run of backslashes escapes the newline; an even run ends in an escaped
-#   backslash and the newline still separates.
-#
-# An unterminated quote falls back to treating the remainder as unquoted, so its
-# newlines separate: the mis-parse over-detects, as guard_mask_quotes does.
-guard_normalize() {
-  local _rest="$1" _out='' _pre _q _seg _trail _pnl _psq _pdq
-  while :; do
-    case "$_rest" in
-      *$'\n'*|*\'*|*\"*) ;;
-      *) _out+="$_rest"; break ;;
-    esac
-    # The shortest prefix marks whichever comes first; an absent delimiter
-    # yields the whole string, so it always loses the comparison.
-    _pnl="${_rest%%$'\n'*}"; _psq="${_rest%%\'*}"; _pdq="${_rest%%\"*}"
-    _pre="$_pnl"; _q=''
-    if [ "${#_psq}" -lt "${#_pre}" ]; then _pre="$_psq"; _q=\'; fi
-    if [ "${#_pdq}" -lt "${#_pre}" ]; then _pre="$_pdq"; _q='"'; fi
-    if [ -n "$_q" ]; then
-      _out+="$_pre$_q"
-      _rest="${_rest#"$_pre$_q"}"
-      case "$_rest" in
-        *"$_q"*)
-          _seg="${_rest%%"$_q"*}"
-          _out+="${_seg//$'\n'/ }$_q"
-          _rest="${_rest#"$_seg$_q"}" ;;
-      esac
-      continue
-    fi
-    _trail="${_pre##*[^\\]}"
-    if (( ${#_trail} % 2 == 1 )); then
-      _out+="${_pre%\\}"
-    else
-      _out+="$_pre; "
-    fi
-    _rest="${_rest#*$'\n'}"
-  done
-  guard_cmd="$_out"
-}
+# These guards are a floor, not a sandbox. A worker reaching git on a second
+# line is one spelling among several -- a `$(...)`, an interpreter -- and the
+# worker's own prompt is what keeps it out of git. Close this with a tokenizer
+# or not at all; a pattern cannot.
+guard_normalize() { guard_cmd="${1//$'\n'/ }"; }
 
 # ------------------------------------------------- command-shape patterns
 

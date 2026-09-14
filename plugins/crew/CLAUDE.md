@@ -95,15 +95,13 @@ anything stated here updates this file in the same commit.** Conventions live in
   `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
   `hooks/lib/guard-lib.sh` is the **sourced library** every entry point above loads: payload
   plumbing (`guard_read_payload`, `guard_jq2`, and `guard_normalize`, which flattens the command
-  to one line — only a newline **bash itself reads as a separator** becomes `;`, never a space,
-  so a later line reaches the command-position anchor as its own command; flattening it to a
-  space welded it onto the previous command's operands and hid it from every anchored guard, the
-  workers' git block included. Two newlines are not separators: one inside a quoted word is part
-  of the word and collapses to a space, so a multi-line commit message or printf template is not
-  read as two commands, and a backslash-newline is a continuation that joins the halves with
-  **nothing** between them — for an *odd* backslash run only, since an even one ends in an
-  escaped backslash and the newline still separates. An unterminated quote falls back to
-  unquoted, over-detecting as `guard_mask_quotes` does), the command-shape patterns
+  to one line, every newline becoming a space — with a **known gap recorded beside it**: that
+  welds a later line onto the previous command's operands, so a pattern anchored at a command
+  position sees only the first command and a worker can reach `git` on line 2. Separating on the
+  newline instead needs to tell data from syntax — a newline inside a quoted word or a heredoc
+  body is data — and #226 tried three shapes, each of which refused ordinary work (a heredoc
+  commit message whose body line starts `cat …`) or leaked anyway. Close it with a tokenizer or
+  not at all), the command-shape patterns
   (`GUARD_RE_*`), the shared block helpers (`guard_block_destructive` /
   `_watch_commands` / `_raw_reads` / `_file_writes` / `_protected_branch_commit`), the
   quote masking `_file_writes` scans through (a `>` inside a string is not a redirect, a quoted

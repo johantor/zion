@@ -56,9 +56,11 @@ changes via `claude plugin update`, which keys on `version`, so an unbumped vers
 silently. Flag a missing bump/changelog entry as a **Warning** (or **Blocking** if it would
 prevent users from receiving a fix).
 
-A change to a shipped file that is too small to justify a release of its own still needs a
-record: it parks a bullet under `## [Unreleased]` in that plugin's changelog, for the next bump
-to fold in. Shipped covers everything under `plugins/<name>/` except `tests/`, `CLAUDE.md`,
+Bump by default: the test is whether a user who runs `claude plugin update` would notice, not
+whether the change is big. A changed guard verdict, a reworded message, an edited prompt or
+README all qualify, however few lines they took. Only a change a user cannot observe from the
+outside — a comment inside a shipped file, whitespace, an internal cross-reference — parks a
+bullet under `## [Unreleased]` in that plugin's changelog instead, for the next bump to fold in. Shipped covers everything under `plugins/<name>/` except `tests/`, `CLAUDE.md`,
 `VERIFICATION.md`, and the changelog — a README edit counts. `scripts/check-changelog.sh` blocks
 in CI either way: a shipped change with neither a bump nor a parked bullet, and a bump that
 leaves bullets parked (auto-release reads only the version's own section, so they would ship

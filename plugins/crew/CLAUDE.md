@@ -62,7 +62,14 @@ anything stated here updates this file in the same commit.** Conventions live in
   back. The hook names the owner in a `git_owner=morpheus` line above the shared region and
   passes it into the floor; validator §9 pins that line to the `owns-git: true` agent. Matched at
   a command position only — `find -exec git mv` and `(git mv …)` fall through to the generic
-  refusal), `read-guard.sh` (>64 KiB raw reads; an explicit
+  refusal. **Raw reads are refused for every session**, agent or not — a `cat` of a whole file
+  reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it. It is a
+  **habit redirect, not a boundary**: `grep . f` dumps the same file and is deliberately allowed,
+  so the pattern stays one line and a pipe or any redirect ends the match. `${_g_pfx}` is the one
+  addition, keeping `env cat f`, `command cat f` and `FOO=1 cat f` from walking a read past the
+  anchor. Before widening it, read AGENTS.md, "The Bash guards are floors, not sandboxes" — that
+  section carries the scope, the two open gaps and what #226 already tried and reverted), `read-guard.sh` (>64 KiB raw
+  reads; an explicit
   `limit` ≤ 2000 lines passes), `lane-guard.sh` (Edit/Write lanes; the **only** hook that reads
   crew configuration — `.claude/crew.md` frontmatter by key, falling back to a legacy
   **Crew configuration** block in `CLAUDE.md` when that file is absent, so `config_slot` takes
@@ -81,10 +88,12 @@ anything stated here updates this file in the same commit.** Conventions live in
   with agent `maxTurns`, both directions). Wiring in
   `hooks/hooks.json` must mirror the repo's `.claude/settings.json` (validator §7).
   `hooks/lib/guard-lib.sh` is the **sourced library** every entry point above loads: payload
-  plumbing (`guard_read_payload`, `guard_jq2`), the command-shape patterns
+  plumbing (`guard_read_payload`, `guard_jq2`, and `guard_normalize`, which flattens the command
+  to one line, every newline becoming a space — which leaves a known gap, recorded in AGENTS.md
+  alongside the raw-read scope), the command-shape patterns
   (`GUARD_RE_*`), the shared block helpers (`guard_block_destructive` /
   `_watch_commands` / `_raw_reads` / `_file_writes` / `_protected_branch_commit`), the
-  quote masking `_file_writes` needs (a `>` inside a string is not a redirect, a quoted
+  quote masking `_file_writes` scans through (a `>` inside a string is not a redirect, a quoted
   target still is a write), the protected-branch list,
   read-guard's limits, and the TTL-swept state-file helper. It is the one file in `hooks/`
   that must **not** be executable and must **not** be wired (validator §3/§6) — it has no
@@ -237,7 +246,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   folding in anything parked under `## [Unreleased]`. On merge to main, auto-release tags
   `crew/vX.Y.Z` and builds notes with `scripts/release-notes.sh` — that section plus the
   commits since the previous tag that have no entry of their own.
-- A shipped change too small for its own release parks a bullet under `## [Unreleased]` rather
-  than skipping the changelog: `scripts/check-changelog.sh` blocks a shipped change with no
-  trace, and a bump that leaves bullets parked. Shipped = everything here except `tests/`,
+- **Bump by default** — the bar is "would a user who runs `claude plugin update` notice?", not
+  "is this big enough?". A changed guard verdict or a reworded refusal is a patch release. Only a
+  change no user can observe (a comment inside a shipped file, whitespace) parks a bullet under
+  `## [Unreleased]` instead. `scripts/check-changelog.sh` blocks a shipped change with no trace,
+  and a bump that leaves bullets parked. Shipped = everything here except `tests/`,
   `CLAUDE.md`, `VERIFICATION.md`, and the changelog. Root `AGENTS.md` §"Releasing" has the rest.

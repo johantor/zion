@@ -86,10 +86,39 @@ assert_allow "npm run build"                  "$HOOK" "$(payload_bash 'npm run b
 assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm run dev')"
 
 # --- Raw / streaming reads -----------------------------------------------------
+# A habit redirect, not a boundary: the rule catches the spelling a session
+# reaches for and names the tool instead. `grep . f` dumps the same file and is
+# deliberately allowed, so the cases below pin the habit and the escapes, not
+# redirect spellings -- see AGENTS.md, "The Bash guards are floors, not sandboxes".
 assert_block "cat a file"     "$HOOK" "$(payload_bash 'cat foo.txt' tank)"      "unbounded cat"
+assert_block "cat then another command" "$HOOK" "$(payload_bash 'cat foo.txt; ls' tank)" "unbounded cat"
 assert_block "less a file"    "$HOOK" "$(payload_bash 'less foo.txt' tank)"     "interactive raw reads"
 assert_block "tail -f a log"  "$HOOK" "$(payload_bash 'tail -f app.log' tank)"  "streaming raw output"
-assert_allow "cat piped into grep" "$HOOK" "$(payload_bash 'cat foo.txt | grep x' tank)"
+# Raw reads are refused in EVERY session: guard_block_raw_reads is called
+# unconditionally, unlike the agent-only write and watch blocks.
+assert_block "bare cat with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
+# A wrapper the command-position policy already knows must not walk a read past
+# the guard, on any of the three rules.
+assert_block "env cat"       "$HOOK" "$(payload_bash 'env cat foo.txt' tank)"     "unbounded cat"
+assert_block "command cat"   "$HOOK" "$(payload_bash 'command cat foo.txt' tank)" "unbounded cat"
+assert_block "FOO=1 cat"     "$HOOK" "$(payload_bash 'FOO=1 cat foo.txt' tank)"   "unbounded cat"
+assert_block "env less"      "$HOOK" "$(payload_bash 'env less foo.txt' tank)"    "interactive raw reads"
+assert_block "env tail -f"   "$HOOK" "$(payload_bash 'env tail -f app.log' tank)" "streaming raw output"
+# Filtering is the documented way out, and any redirect ends the match too.
+assert_allow "cat piped into grep"        "$HOOK" "$(payload_bash 'cat foo.txt | grep x' tank)"
+assert_allow "cat redirected into a file" "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
+assert_allow "bounded reads stay available" "$HOOK" "$(payload_bash 'head -40 foo.txt' tank)"
+# The refusals are a user-facing contract: they name the tool to use and say why
+# the shell read is refused. Asserted apart from the category substrings above,
+# which would still pass if the guidance were dropped.
+assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "Use the Read tool"
+assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "reaches no Read hook"
+assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' tank)" "Use the Read tool"
+assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' tank)" "reaches no Read hook"
+# Nothing replaces a `tail -f`, so the stream refusal points at capture/filter --
+# but it carries the same reason, and the category substring alone was in the old
+# message too, so a revert to that wording would have passed.
+assert_block "stream refusal gives the reason"   "$HOOK" "$(payload_bash 'tail -f app.log' tank)" "reaches no Read hook"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land

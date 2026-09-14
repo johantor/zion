@@ -539,15 +539,26 @@ Versions are per-plugin. To cut a release:
    matching changelog entry → it skips with a warning. No manual tagging is needed
    (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
 
-### Small changes park under `## [Unreleased]`
+### Release by default; park only what a user cannot observe
 
 A tag carries **everything** merged since the previous tag, not just the bump — so a change that
 skips the bump/changelog step doesn't wait for a release of its own, it ships inside the next one,
 described nowhere. That is how a README rewrite and a pass over the shipped hooks' comments both
 went out in `crew/v3.15.0` without appearing in any notes.
 
-So every changelog keeps an `## [Unreleased]` heading at the top (§2i requires it), and a change
-too small to justify its own release parks a bullet there instead of skipping the step:
+**So bump by default.** The question is not "is this big enough for a release?" but:
+
+> **Would a user who runs `claude plugin update` notice?**
+
+If yes, it earns a version bump in the same PR — patch for a fix, minor for an addition. A guard
+that blocks a command it used to allow, a reworded refusal, a changed agent prompt, a README
+users read: every one of those is a release, however few lines it took. Releasing often is the
+cheap side of the trade. Auto-release does the tagging, versions are per-plugin, and a small
+release that names its change beats a large one that buries it. Several in a day is fine.
+
+Park only when the answer is no — a comment inside a shipped file, whitespace, an internal
+cross-reference, anything a user cannot observe from the outside. Every changelog keeps an
+`## [Unreleased]` heading at the top (§2i requires it) for those:
 
 ```
 ## [Unreleased]
@@ -679,6 +690,40 @@ that let a claim slide through without evidence behind it.
   not worth a review comment on its own.
 
 Changelog entries have their own rule; see *Releasing*.
+
+### The Bash guards are floors, not sandboxes
+
+`bash-safety.sh` refuses a few command shapes. Two of its rules have a scope that is easy to
+misread as "enforcement", and both have been widened once already and reverted; the reasoning
+lives here so it is not rediscovered at the cost of another review cycle. The hooks carry a
+one-line pointer to this section.
+
+**The raw-read rule is a habit redirect.** It blocks `cat f` and names `Read` instead. It does
+not bound what can reach the context and does not try to — `grep . f`, `awk '{print}' f`,
+`tail -n 999999 f`, `od -c f`, `base64 f`, `tr a a < f` and a one-line `python3 -c` each dump the
+same file whole, and each is allowed. So the costs are asymmetric: a read the rule misses costs
+nothing, because a shorter bypass always sat beside it, while a read it refuses wrongly costs a
+turn and makes the rule look arbitrary — which is the friction it exists to remove. The pattern
+is therefore one line, and a pipe or **any** redirect ends the match. Following where bytes go
+through redirects means bash's own tokenizer: fd prefixes, quoting and redirection order, applied
+in order and with state. #226 tried, over six review rounds, and produced two regressions that
+refused ordinary commands (`cat f > out.txt`, then a commit message) before being reverted.
+
+**`guard_normalize` flattens newlines to a space, and that leaves a gap.** Flattening welds a
+later line onto the previous command's operands, so a pattern anchored at a command position sees
+only the first command: `cd sub` + newline + `git status` reads as `cd sub git status`, and the
+workers-never-run-git block misses it. Separating on the newline instead looks obvious and is not.
+A newline inside a quoted word, a heredoc body or a nested `$(...)` is data, not syntax, and
+turning those into separators refuses ordinary work — a heredoc commit message whose body line
+begins `cat ...` or `npm run dev ...`. #226 tried three shapes (unconditional, quote-aware, and
+quote-aware plus an odd/even backslash rule); each traded one routine failure for another, and the
+quote-aware one still let `echo "$(echo ok<newline>git status)"` through, which is the case it
+existed to stop.
+
+Both gaps stay open deliberately. A worker reaching `git` on a second line is one spelling among
+several — a `$(...)`, an interpreter — and the worker's own prompt is what keeps it out of git.
+Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
+size than the rule it would replace, and belongs in its own PR.
 
 ## Recurring review findings — apply proactively
 

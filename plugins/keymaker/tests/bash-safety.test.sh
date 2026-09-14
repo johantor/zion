@@ -58,10 +58,32 @@ assert_block "keymaker git mv -f"        "$HOOK" "$(payload_bash 'git mv -f src/
 assert_block "keymaker bare mv"          "$HOOK" "$(payload_bash 'mv src/a.ts src/b.ts' keymaker)"        "reaches no Edit|Write hook"
 assert_block "twin git mv names the owner" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' twin)"      "keymaker owns git"
 
+# Raw/streaming reads. A habit redirect, not a boundary: `grep . f` dumps the
+# same file and is deliberately allowed, so these pin the habit and the escapes,
+# not redirect spellings -- see AGENTS.md, "The Bash guards are floors, not sandboxes".
 assert_block "cat a file"    "$HOOK" "$(payload_bash 'cat foo.txt' twin)"     "unbounded cat"
 assert_block "less a file"   "$HOOK" "$(payload_bash 'less foo.txt' twin)"    "interactive raw reads"
 assert_block "tail -f a log" "$HOOK" "$(payload_bash 'tail -f app.log' twin)" "streaming raw output"
-assert_allow "cat piped into grep" "$HOOK" "$(payload_bash 'cat foo.txt | grep x' twin)"
+assert_block "bare read with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
+assert_block "env wrapper"        "$HOOK" "$(payload_bash 'env cat foo.txt' twin)"     "unbounded cat"
+assert_block "command wrapper"    "$HOOK" "$(payload_bash 'command cat foo.txt' twin)" "unbounded cat"
+assert_block "assignment wrapper" "$HOOK" "$(payload_bash 'FOO=1 cat foo.txt' twin)"   "unbounded cat"
+# `_g_pfx` is on the pager and stream patterns too, and this suite runs against
+# keymaker's own vendored copy -- so those branches need exercising here, not
+# only in crew's.
+assert_block "env wrapper on the pager"  "$HOOK" "$(payload_bash 'env less foo.txt' twin)"    "interactive raw reads"
+assert_block "env wrapper on the stream" "$HOOK" "$(payload_bash 'env tail -f app.log' twin)" "streaming raw output"
+assert_allow "piped into grep"        "$HOOK" "$(payload_bash 'cat foo.txt | grep x' twin)"
+assert_allow "redirected into a file" "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
+# The refusals name the tool to use and say why the shell read is refused.
+assert_block "refusal names the Read tool" "$HOOK" "$(payload_bash 'cat foo.txt' twin)" "Use the Read tool"
+assert_block "refusal gives the reason"    "$HOOK" "$(payload_bash 'cat foo.txt' twin)" "reaches no Read hook"
+assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' twin)" "Use the Read tool"
+assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' twin)" "reaches no Read hook"
+# Nothing replaces a `tail -f`, so the stream refusal points at capture/filter --
+# but it carries the same reason, and only asserting the category would let a
+# revert to the old wording pass.
+assert_block "stream refusal gives the reason"   "$HOOK" "$(payload_bash 'tail -f app.log' twin)" "reaches no Read hook"
 
 # --- Twins never run git ------------------------------------------------------
 assert_block "twin blocked from git"         "$HOOK" "$(payload_bash 'git status' twin)" "never runs git"

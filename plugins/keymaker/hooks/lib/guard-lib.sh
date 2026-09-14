@@ -72,8 +72,15 @@ guard_jq2() {
   guard_trusted="${_fields##*"$GUARD_RS"}"
 }
 
-# guard_normalize <cmd> -- sets $guard_cmd with newlines flattened to spaces, so
-# a multi-line command cannot slip a clause past the single-line patterns below.
+# guard_normalize <cmd> -- sets $guard_cmd as one line, every newline flattened
+# to a space, so a multi-line command cannot slip a clause past the single-line
+# patterns below.
+#
+# KNOWN GAP, deliberately left open: flattening welds a later line onto the
+# previous command's operands, so a command-position anchor sees only the first
+# command. Separating on the newline instead needs to tell data from syntax and
+# was tried three ways in #226. See AGENTS.md, "The Bash guards are floors, not
+# sandboxes".
 guard_normalize() { guard_cmd="${1//$'\n'/ }"; }
 
 # ------------------------------------------------- command-shape patterns
@@ -102,7 +109,10 @@ _g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]
 _g_dotgit='\.git/'
 GUARD_RE_DESTRUCTIVE="${_g_rm_rf}"'|git[[:space:]]+push[^;&|]*[[:space:]](--force([^-]|$)|-[A-Za-z]*f)|>>?\|?[[:space:]]*\.env|>>?\|?[^|;&]*'"${_g_dotgit}"'|(^|[[:space:];|&(])rm[[:space:]][^|;&]*'"${_g_dotgit}"
 
-# A command position: start of line, or just after a separator.
+# A command position: start of line, or just after a separator. guard_normalize
+# flattens a newline to a space rather than a separator, so a later line does NOT
+# reach this anchor -- see its comment, and AGENTS.md "The Bash guards are floors,
+# not sandboxes".
 _g_cmdpos='(^|[;&|][&|]?[[:space:]]*)'
 # Prefixes that must not smuggle a command past that anchor: leading env
 # assignments, `env`, `command`.
@@ -143,10 +153,21 @@ _g_watch_any='(watch|watchexec|entr|fswatch|nodemon)([[:space:]]|$)'
 _g_watch="${_g_watch_web}|${_g_watch_py}|${_g_watch_gors}|${_g_watch_jvm}|${_g_watch_any}"
 GUARD_RE_WATCH="${_g_cmdpos}${_g_pfx}"'((npx|bunx|(uv|poetry|pdm|pipenv)([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*[[:space:]]+run([[:space:]]+-[^[:space:]]+([[:space:]]+[^-[:space:]][^[:space:]]*)?)*|([^[:space:]]*/)?python[0-9.]*[[:space:]]+-m|([^[:space:]]*/)?python[0-9.]*)[[:space:]]+)*(([^[:space:]]*/)?('"${_g_watch}"'))|--watch([[:space:]]|$)'
 
-# Raw/streaming reads that dump a whole file or an endless stream into context.
-GUARD_RE_PAGER="${_g_cmdpos}"'(less|more)[[:space:]]+'
-GUARD_RE_STREAM="${_g_cmdpos}"'tail[[:space:]]+-f([[:space:]]|$)'
-GUARD_RE_CAT="${_g_cmdpos}"'cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&]|&&|\|\|))'
+# Raw/streaming reads: a `cat` of a whole file, a pager, a `tail -f`. Such a read
+# reaches no PreToolUse(Read) hook, so read-guard's size bound never applies.
+#
+# A HABIT REDIRECT, not a boundary: it catches the spelling a session reaches for
+# and names `Read` instead. `grep . f` and a dozen others dump the same file and
+# are deliberately allowed, so a missed read costs nothing while a wrongly
+# refused one costs a turn. Hence one line, and a pipe or ANY redirect ends the
+# match. Before widening this, read AGENTS.md, "The Bash guards are floors, not
+# sandboxes" -- #226 widened it and reverted.
+#
+# ${_g_pfx} stops `env cat f`, `command cat f` and `FOO=1 cat f` walking a read
+# past the anchor, as the git block already does.
+GUARD_RE_PAGER="${_g_cmdpos}${_g_pfx}"'(less|more)[[:space:]]+'
+GUARD_RE_STREAM="${_g_cmdpos}${_g_pfx}"'tail[[:space:]]+-f([[:space:]]|$)'
+GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&]|&&|\|\|))'
 
 # Bash can mutate a file without any Edit|Write hook seeing it: a redirect, a
 # `tee`, an in-place stream edit, a copy into the tree. Such a write skips every
@@ -193,15 +214,15 @@ guard_block_watch_commands() {
 
 guard_block_raw_reads() {
   if [[ $guard_cmd =~ $GUARD_RE_PAGER ]]; then
-    echo "Blocked: interactive raw reads are disallowed. Use targeted grep/rg/jq/scripted summaries instead." >&2
+    echo "Blocked: interactive raw reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or targeted grep/rg/jq/scripted summaries." >&2
     exit 2
   fi
   if [[ $guard_cmd =~ $GUARD_RE_STREAM ]]; then
-    echo "Blocked: streaming raw output is disallowed. Capture/filter and surface only the needed result." >&2
+    echo "Blocked: streaming raw output is disallowed — it never ends, and a raw Bash read reaches no Read hook either. Capture/filter and surface only the needed result." >&2
     exit 2
   fi
   if [[ $guard_cmd =~ $GUARD_RE_CAT ]]; then
-    echo "Blocked: unbounded cat reads are disallowed. Pipe/filter with grep/rg/jq or script the analysis." >&2
+    echo "Blocked: unbounded cat reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or pipe/filter with grep/rg/jq." >&2
     exit 2
   fi
 }

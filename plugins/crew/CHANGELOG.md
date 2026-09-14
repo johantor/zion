@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.25.1] - 2026-09-13
+
+### Fixed
+
+- The three raw-read rules take the same wrapper prefixes as the rest of the guard, so a leading
+  `env`, `command` or `VAR=1` no longer walks a read past them (#226).
+
+### Changed
+
+- The `cat` and pager refusals name the `Read` tool, and all three raw-read refusals say why a
+  shell read is refused: it reaches no `Read` hook, so `read-guard`'s size bound never applies.
+  Nothing replaces a `tail -f`, so that one points at capture/filter instead (#226).
+
 ## [3.25.0] - 2026-09-10
 
 ### Changed

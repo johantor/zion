@@ -80,7 +80,10 @@ anything stated here updates this file in the same commit.** Conventions live in
   `plugins/keymaker/CHANGELOG.md` (every plugin keeps its own changelog next to its
   manifest), folding in anything parked under `## [Unreleased]`. Auto-release tags
   `keymaker/vX.Y.Z` on merge, with notes covering the whole range since the previous tag.
-- A shipped change too small for its own release parks a bullet under `## [Unreleased]` rather
-  than skipping the changelog: `scripts/check-changelog.sh` blocks a shipped change with no
-  trace, and a bump that leaves bullets parked. Shipped = everything here except `CLAUDE.md`,
-  `VERIFICATION.md`, and the changelog. Details in the root `AGENTS.md` §"Releasing".
+- **Bump by default** — the bar is "would a user who runs `claude plugin update` notice?", not
+  "is this big enough?". A changed guard verdict or a reworded refusal is a patch release. Only a
+  change no user can observe (a comment inside a shipped file, whitespace) parks a bullet under
+  `## [Unreleased]` instead. `scripts/check-changelog.sh` blocks a shipped change with no trace,
+  and a bump that leaves bullets parked. Shipped = everything here except `tests/` (repo
+  tooling), `CLAUDE.md`, `VERIFICATION.md`, and the changelog. Details in the root `AGENTS.md`
+  §"Releasing".

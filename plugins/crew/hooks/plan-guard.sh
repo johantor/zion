@@ -66,8 +66,9 @@ strip_yaml_comment() {
 # Frontmatter only, and only when the file opens with it on line 1: a `---`
 # rule later in a body is markdown, and a `tools:` in prose is documentation,
 # not a grant. Both YAML shapes of `tools:` are read — the inline comma list the
-# agents here use and a `  - name` block list, blank lines inside it kept —
-# matching validator §13's reader.
+# agents here use and a `  - name` block list, as validator §13 reads them, plus
+# the blank and comment-only lines YAML allows inside a sequence: a reader that
+# ended the list there would drop every entry after them.
 tools='' owns_git='' in_list=0 lineno=0 fm_re='^---[[:space:]]*$'
 while IFS= read -r line || [ -n "$line" ]; do
   lineno=$((lineno + 1))
@@ -77,7 +78,7 @@ while IFS= read -r line || [ -n "$line" ]; do
   fi
   [[ $line =~ $fm_re ]] && break     # closing delimiter
   if [ "$in_list" -eq 1 ]; then
-    if [[ $line =~ ^[[:space:]]*$ ]]; then continue; fi
+    if [[ $line =~ ^[[:space:]]*(#.*)?$ ]]; then continue; fi
     if [[ $line =~ ^[[:space:]]+-[[:space:]]+ ]]; then
       strip_yaml_comment "${line#*-}"; tools="$tools,$stripped"; continue
     fi

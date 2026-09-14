@@ -114,6 +114,14 @@ tools:
   - Edit  # trailing
 owns-git: false
 ---' \
+  'agents/blockcommentline.md:---
+name: blockcommentline
+tools:
+  - Read
+  # note between the items
+  - Edit
+owns-git: false
+---' \
   'agents/hrbody.md:Prose first, so this file has no frontmatter.
 
 ---
@@ -143,6 +151,7 @@ assert_allow "a comment on owns-git: true still reads as the owner (must not fai
 assert_block "a comment on the bare tools: line still opens the block list" "$hook" "$(payload_dispatch crew:blockcomment plan)" "$msg"
 assert_block "a blank line inside a block list doesn't end it" "$hook" "$(payload_dispatch crew:blockblank plan)" "$msg"
 assert_block "a comment on a block-list item doesn't hide Edit" "$hook" "$(payload_dispatch crew:blockitemcomment plan)" "$msg"
+assert_block "a comment-only line inside a block list doesn't end it" "$hook" "$(payload_dispatch crew:blockcommentline plan)" "$msg"
 # Frontmatter opens on line 1 or not at all: a later `---` is a markdown rule.
 assert_allow "a --- rule in a body with no frontmatter grants nothing" "$hook" "$(payload_dispatch crew:hrbody plan)"
 assert_allow "a --- that is not on line 1 does not open frontmatter" "$hook" "$(payload_dispatch crew:notfirst plan)"

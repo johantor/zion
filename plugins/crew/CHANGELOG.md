@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.0] - 2026-09-14
+
+### Added
+
+- Plan mode: `morpheus` treats plan mode's approval as its plan checkpoint — one gate, not two.
+  As the main thread it presents the plan through `ExitPlanMode` and writes the plan file after
+  approval; as a subagent it returns the plan, and `/crew:feature` runs the two launches around
+  the approval, passing the plan between them as text. `/crew:loop` and `/crew:address` say they
+  don't run in plan mode instead of failing mid-tick.
+- `plan-guard` hook (`PreToolUse` on `Agent`/`Task`): in plan mode, a dispatch of a crew worker
+  whose tools carry Edit/Write is refused before it spends its turns on refused edits; read-only
+  workers and the orchestrator pass. Decided from the worker's own frontmatter, not a roster.
+  Fails open.
+
+### Changed
+
+- `morpheus` may launch the built-in `Explore` and `Plan` research agents in a `claude --agent
+  crew:morpheus` session, and carries `ExitPlanMode` so such a session can present its plan in
+  plan mode.
+
 ## [3.25.1] - 2026-09-13
 
 ### Fixed

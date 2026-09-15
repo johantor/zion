@@ -22,3 +22,6 @@ addresses, re-run the diff-scoped `/crew:review` gate, then — after confirming
 push and resolve the addressed threads. Return your consolidated status and run summary.
 
 When `morpheus` returns, relay its consolidated status to the user verbatim.
+
+**Not in plan mode.** This loop edits, commits and pushes, all of which plan mode refuses. If the
+session is in plan mode, stop and say so — leave it (Shift+Tab) and re-run.

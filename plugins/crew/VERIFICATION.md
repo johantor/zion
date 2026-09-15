@@ -24,6 +24,22 @@ small task.
 - [ ] **`in-progress` reset on crash** — a step left `in-progress` by a lost round-trip is
   re-verified against the tree and reset to `pending` if unmet, not trusted as `done`.
 
+### Plan mode
+
+- [ ] **Main thread, one gate** — `claude --agent crew:morpheus --permission-mode plan`, ask for a
+  feature → `morpheus` explores (itself, or through `Explore`/`Plan`, which appear in its agent
+  list), presents the plan through `ExitPlanMode`, and after approval writes
+  `<plan-dir>/plan-<feature>.md` and branches without asking a second time. **Interactive
+  session only**: a headless `-p` run strips `ExitPlanMode` from every session, plain or
+  `--agent`, so it can show the agent list (checked: `Explore`/`Plan` appear) but not the approval.
+- [ ] **Subagent returns the plan** — Shift+Tab into plan mode in a normal session, `/crew:feature
+  <task>` → the first launch returns the plan and `git status` is unchanged; approve; the second
+  launch writes the plan file and builds without re-asking.
+- [ ] **Editing worker refused** — in plan mode, a `crew:tank` dispatch is refused by `plan-guard`
+  with a message naming plan mode; a `crew:sentinel` dispatch in the same session launches.
+- [ ] **Loop and address refuse** — `/crew:loop <goal>` and `/crew:address` in plan mode → one line
+  saying so, no plan file written, no `in-flight:` set.
+
 ### Stack resolution
 
 These are prompt behavior, so they need a scratch repo and an observed run — a structural check

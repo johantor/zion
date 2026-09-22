@@ -66,9 +66,10 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
 - [ ] **Lane-scoped** — a backend-only diff skips the design-conformance (`seraph`) gate, reported
   as *lane untouched*; `/crew:review full` forces every gate.
 - [ ] **.NET gates in parallel on split paths** — a .NET diff that triggers backend tests, build,
-  and lint → the three are dispatched together, each handoff (`oracle`'s too) names its own
-  `<location>/backend/<gate>` path and the `backend-dotnet` recipe flags, and no `bin/`/`obj/`
-  appears in the source tree.
+  and lint → the session's first run is serial and passes the tree check; the next run dispatches
+  the three together, each handoff (`oracle`'s too) naming its own `<location>/backend/<gate>`
+  path. A repo whose `Directory.Build.props` sets `UseArtifactsOutput=false` fails the check and
+  stays serial.
 - [ ] **One build writer at a time elsewhere** — a Node or Java diff that triggers build, tests
   and lint → the three run one after another (no Parallel gates recipe for that stack).
 - [ ] **A collision is not the operator's environment** — a lock/corrupt-`obj/` failure while two

@@ -54,8 +54,11 @@ session and the second run is incremental.
 Use the recipe only when **all** of these hold; otherwise run the gates one at a time:
 
 - The SDK is 8.0 or newer.
-- No `Directory.Build.props` or project file sets `ArtifactsPath`, `BaseIntermediateOutputPath` or
-  `BaseOutputPath` (the lint gate's environment value loses to a value set in a project file).
+- This session's **tree check** passed. A repo property (`UseArtifactsOutput=false`,
+  `BaseIntermediateOutputPath`, `MSBuildProjectExtensionsPath`, …) can send outputs back into
+  the tree, and no list of such properties is complete, so check the result instead: the first
+  time, run the gates one at a time on their paths, touching a marker file before the first.
+  The check passes when no file in the repo outside `.git` is newer than the marker.
 - Each configured gate command is exactly `dotnet build`, `dotnet test` or
   `dotnet format --verify-no-changes`, optionally followed by one solution or project path, and
   nothing else. Any other flag (`--no-build`, `--no-restore`, `-c Release`, …) or a wrapper script

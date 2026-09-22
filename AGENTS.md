@@ -84,6 +84,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   justification filter's two exemptions). Prints the repo path on stdout so it composes into a
   headless `claude --plugin-dir …` run.
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
+- `.github/skills/code-review/SKILL.md` — the one review rubric for this repo, read by Copilot directly. `.claude/skills/zion-review/` is the Claude Code wrapper: it loads the rubric, runs the checks, and reproduces each finding.
 - `biome.json` / `package.json` — repo tooling: [Biome](https://biomejs.dev) lints the repo's
   web assets and JavaScript (`docs/*.html`, `docs/*.css`, `tests/scenarios/mocks/*.js`) and its
   JSON. **Linter only** — the formatter and the assist actions are off on purpose: enabling the
@@ -166,7 +167,8 @@ Reviews — whether by `/crew:review`, the crew, or GitHub Copilot — judge cod
 the `engineering-principles` skill and classify every finding as **Blocking**,
 **Warning**, or **Passed**. The same three pillars apply: code quality, security,
 and design conformance. See `plugins/crew/skills/engineering-principles/SKILL.md` for the
-full rules and `.github/copilot-instructions.md` for the review contract.
+full rules and `.github/copilot-instructions.md` for the review contract. The repo-specific
+checklist is `.github/skills/code-review/SKILL.md`; edit it there, once.
 
 Core principles (defaults, not dogma — the repo's established patterns win on conflict):
 YAGNI, KISS, pragmatic DRY (rule of three), small single-purpose units, intention-revealing
@@ -431,8 +433,8 @@ git and no write lane. So each agent declares `owns-git: true|false` and
 `lane-guarded: true|false` in its frontmatter, each roster carries a `# crew-roster: <name>`
 marker, and §9 checks both directions: every agent classified, every roster entry real, and
 exactly one git owner per plugin — who must also be the agent `bash-safety.sh` names in its
-`git_owner=` line, the one the shared floor lets run `git mv`. Adding an agent without those two
-fields fails CI.
+`git_owner=` line, the one a worker's refused `git mv` is told to hand the rename to. Adding an
+agent without those two fields fails CI.
 The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
 
 Two more checks cover prose that names something the harness has to resolve. §10 requires every
@@ -756,6 +758,25 @@ Both gaps stay open deliberately. A worker reaching `git` on a second line is on
 several — a `$(...)`, an interpreter — and the worker's own prompt is what keeps it out of git.
 Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
 size than the rule it would replace, and belongs in its own PR.
+
+**The one pattern that does read line starts is an allowance, which is why it may.** The
+`git mv` carve-out matches the raw command, newlines intact, and treats a line start as a command
+position. The asymmetry above runs the other way for it: a match *masks* the token so the generic
+write check does not read it as a bare `mv`, so a newline mistaken for a separator can at worst
+wave through a `git mv` that sits inside a string — it cannot refuse anything. Before it did so,
+two renames typed on two lines were refused, the second read as `mv` welded onto the first's
+operands. The blocking patterns do not get the same anchor; the paragraph above is why.
+
+**The floor decides *what* a `git mv` is, not *whose*.** It once refused every agent but the
+plugin's own git owner, and the two plugins name different owners, so with both installed each
+hook refused the other's: `morpheus` was told keymaker owns git. Now the floor lets any agent run
+a plain `git mv` and each plugin refuses its own non-owners' below the shared region
+(`guard_block_git_mv_handback`), naming the agent to hand the rename to. A rule about a plugin's
+roster belongs beside that roster, never in the region both plugins share.
+
+The hand-back is a *refusal*, so it reads the flattened command like the other refusals: a
+worker's `git mv` on a later line is the newline gap above, not handed back. Masking heredocs and
+quotes to close that gap was tried in #231 and reverted: each parse rule opened a new edge case.
 
 ## Recurring review findings — apply proactively
 

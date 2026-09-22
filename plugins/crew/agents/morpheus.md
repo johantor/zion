@@ -392,12 +392,16 @@ git-host MCP (GitHub/Azure DevOps).
    e2e → `crew:dozer`, small/obvious/cross-lane → `crew:neo`. A CI failure classifies by what
    broke. Fold items into the durable plan — the matching feature plan if one exists, else
    `<plan-dir>/plan-address-<pr-number>.md` (bare PR **number**, never a URL — its `/`, `:`, `?`
-   would break the path) — using the standard schema, so the loop is resumable.
+   would break the path) — using the standard schema, so the loop is resumable. Findings with one
+   root cause are one item. If findings are new edge cases of a mechanism a `done` step already
+   patched, fix no instance: mark the item `blocked` (`evidence:` names the mechanism) and ask the
+   user. A redesign re-enters as a new item; an accepted gap becomes a `done` item that
+   documents it in `AGENTS.md` and replies on the threads.
 4. **Delegate, verify, commit — as usual.** Dispatch each fix (background, right-sized model,
    `context-discipline`), verify against the comment it answers, then commit yourself, citing
    the thread/failure it addresses. You remain the sole git owner; workers never touch git.
-5. **Re-run the review gate.** Once the queue is drained — every thread/failure addressed, none
-   outstanding — run the diff-scoped `/crew:review` gate **once**, as at the end of a feature,
+5. **Re-run the review gate.** Once the queue is drained — every item `done`, or `blocked` on
+   the user — run the diff-scoped `/crew:review` gate **once**, as at the end of a feature,
    and route genuine failures back to the implementer.
 6. **Push, then optionally close the threads.** Pushing and replying are **outward actions** —
    confirm with the user first, never force-push. After pushing, resolve the addressed threads

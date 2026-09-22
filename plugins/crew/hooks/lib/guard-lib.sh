@@ -127,6 +127,11 @@ GUARD_RE_GIT_AT_CMD="${_g_cmdpos}${_g_pfx}"'git([[:space:]]|$)'
 # flag token, optionally followed by its value token.
 _g_gitopt='(-[^[:space:]]+[[:space:]]+([^-[:space:]][^[:space:]]*[[:space:]]+)?)*'
 GUARD_RE_GIT_COMMIT="${_g_cmdpos}${_g_pfx}"'git[[:space:]]+'"${_g_gitopt}"'commit([[:space:]]|$)'
+# The whole command is `git -C <dir> commit …` or `cd <dir> && git commit …`, with a
+# plain <dir> and no separator, substitution, redirect, escape or newline after
+# it. Matched against $guard_cmd_raw; <dir> is group 2 or 3.
+_g_litdir='([A-Za-z0-9._/-]+)'
+GUARD_RE_COMMIT_IN_DIR='^[[:blank:]]*(git[[:blank:]]+-C[[:blank:]]+'"$_g_litdir"'[[:blank:]]+commit|cd[[:blank:]]+'"$_g_litdir"'[[:blank:]]*&&[[:blank:]]*git[[:blank:]]+commit)([[:blank:]][^;&|`$()<>\\'$'\n'']*)?$'
 # `git mv` at a command position, with at least one operand after it. Alone among
 # the patterns it is matched against $guard_cmd_raw, and a line start counts as a
 # command position. It can afford to: the match is an ALLOWANCE (the token is
@@ -403,13 +408,25 @@ guard_block_git_mv_handback() {
 # guard_block_protected_branch_commit <agent_type> <advice>
 #   Backstop for any agent that reaches a `git commit`: refuse it on a protected
 #   branch. Scoped by the caller to agent sessions, so a normal user session is
-#   never intercepted. The branch lookup is the one fork here, and only for a
-#   command that already looks like a commit.
+#   never intercepted. Forks only for a command that already looks like a commit.
+#
+#   The branch is read where the commit runs: the payload's `cwd`, not the hook's
+#   own directory, so a worktree commits on its own branch (#224). Two whole-command
+#   shapes name their directory literally and use it; anything else stays on
+#   `cwd`, the strict reading. See AGENTS.md, "The Bash guards are floors, not
+#   sandboxes".
 guard_block_protected_branch_commit() {
-  local agent_type="$1" advice="$2" branch
+  local agent_type="$1" advice="$2" branch dir
   [ -n "$agent_type" ] || return 0
   [[ $guard_cmd =~ $GUARD_RE_GIT_COMMIT ]] || return 0
-  branch="$(git branch --show-current 2>/dev/null || true)"
+  dir="$(jq -r '.cwd // ""' <<<"$guard_payload" 2>/dev/null || true)"
+  if [[ $guard_cmd_raw =~ $GUARD_RE_COMMIT_IN_DIR ]]; then
+    case "${BASH_REMATCH[2]}${BASH_REMATCH[3]}" in
+      /*) dir="${BASH_REMATCH[2]}${BASH_REMATCH[3]}" ;;
+      *)  dir="${dir:-.}/${BASH_REMATCH[2]}${BASH_REMATCH[3]}" ;;
+    esac
+  fi
+  branch="$(git -C "${dir:-.}" branch --show-current 2>/dev/null || true)"
   if [[ $branch =~ ^($GUARD_PROTECTED_BRANCHES)$ ]]; then
     echo "Blocked: ${agent_type} may not commit on protected branch '$branch'. ${advice}" >&2
     exit 2

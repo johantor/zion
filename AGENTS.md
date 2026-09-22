@@ -747,6 +747,12 @@ several — a `$(...)`, an interpreter — and the worker's own prompt is what k
 Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
 size than the rule it would replace, and belongs in its own PR.
 
+**The protected-branch backstop reads the branch where the commit runs, not where it is typed.**
+That is the payload's `cwd`, or the literal directory of a whole command shaped
+`git -C <dir> commit …` or `cd <dir> && git commit …`. Any other shape (`pushd`, a `$VAR`, a second
+clause) stays on `cwd`, which can refuse a worktree commit but never admit a protected one. #224
+first tried a shell walk to cover every shape; it drew 100+ review threads and was replaced.
+
 **The one pattern that does read line starts is an allowance, which is why it may.** The
 `git mv` carve-out matches the raw command, newlines intact, and treats a line start as a command
 position. The asymmetry above runs the other way for it: a match *masks* the token so the generic

@@ -39,7 +39,8 @@ Conventions: [AGENTS.md](../../AGENTS.md).
 - `hooks/` — wired in `hooks/hooks.json`, mirrored by the repo's `.claude/settings.json` (§7).
   `bash-safety` and `lane-guard` fail closed; `read-guard`, `format`, `turn-budget`,
   `dispatch-denied` and `plan-guard` fail open.
-  - `bash-safety.sh`: workers never run git; protected-branch commit backstop; watch/dev
+  - `bash-safety.sh`: workers never run git; protected-branch commit backstop (reads the
+    payload's `cwd`, not the hook's directory; AGENTS.md has the shapes); watch/dev
     commands refused; file-mutating Bash refused for agent sessions (in-place
     `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, a redirect to a non-exempt sink; #192).
     One carve-out: a plain `git mv`, for any agent, matched on the raw command so a later line

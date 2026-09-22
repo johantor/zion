@@ -50,10 +50,9 @@ Plugin `CLAUDE.md` files hold only what differs per plugin. The `§` numbers are
 mirror §7, turn-budget §8, rosters §9, prose refs §10, `crew.md` keys §11, footprint §12, MCP
 pairs §13. Beside it: `check-changelog.sh` (needs a base ref) and `release-notes.sh`.
 
-- **Validate** as CI does: `bash scripts/validate-plugin.sh`, `bash scripts/check-changelog.sh`,
-  `bash tests/hooks/run.sh`, and `shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh
-  plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh` (CI covers it if missing locally). Stage
-  new or renamed skill files first: §2g/§4 index through `git ls-files`.
+- **Validate** as CI does: run each `run:` step in `.github/workflows/validate.yml` (CI covers
+  `shellcheck` or `npm` if missing locally). Stage new or renamed skill files first: §2g/§4
+  index through `git ls-files`.
 - **Crew is canonical for shared files.** Shared skills (`context-discipline`,
   `loop-engineering`, `operator-voice`) are byte-identical (§4). `hooks/read-guard.sh` and
   `hooks/lib/guard-lib.sh` are byte-identical, and the marked `bash-safety.sh` region matches

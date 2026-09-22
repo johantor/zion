@@ -58,7 +58,8 @@ has a behavior; changed terms agree across the agent, command, README, `CLAUDE.m
 - **Shipped change without a bump** (anything under `plugins/<name>/` except `tests/`,
   `CLAUDE.md`, `VERIFICATION.md`, the changelog): Warning; Blocking if users miss a fix. A shared
   skill edit ships in every plugin that carries it.
-- **Hook behavior change**: allow and block cases, asserting on stderr, in both plugins' suites.
+- **Hook behavior change**: allow and block cases in the suite of every plugin that ships the
+  hook, asserting its output contract (stderr for a guard, stdout JSON for `dispatch-denied`).
   A new case must fail on the base code.
 - **Plugin `CLAUDE.md`** must match the code in the same PR.
 

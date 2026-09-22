@@ -86,7 +86,8 @@ every permission mode.
 - **`/crew:init` writes a `## Crew orchestration` section** into `CLAUDE.md`. The classifier reads
   `CLAUDE.md`, so this is the lever that ships with the plugin: it describes what a worker dispatch
   is, instead of leaving the classifier a bare label to judge. It is the one thing the command puts
-  there by default — the configuration slots live in `.claude/crew.md`.
+  there by default — the configuration slots live in `.claude/crew.md`. `/crew:init --local`
+  writes the section to `~/.claude/CLAUDE.md` instead, which the classifier also reads.
 - **Describe your project in `autoMode.environment`** in `~/.claude/settings.json`, keeping the
   `"$defaults"` entry. It has to be user-level — the classifier deliberately ignores `autoMode` in
   project `.claude/settings.json`.
@@ -128,7 +129,7 @@ rather than a per-worker setting.
 
 | Command | What it does |
 |---|---|
-| `/crew:init` | Detect this project's build/test/lint commands, base branch, frontend mode, and stacks, and record them in `.claude/crew.md` (committed, so teammates inherit them). It proposes for `CLAUDE.md` only what a glance at `package.json` would get wrong. Idempotent: re-run to pick up slots a newer version added, and to migrate a legacy `CLAUDE.md` block. |
+| `/crew:init` | Detect this project's build/test/lint commands, base branch, frontend mode, and stacks, and record them in `.claude/crew.md` (committed, so teammates inherit them). `--local` writes them to an uncommitted `crew.md` in the shared git dir instead, read by every worktree, and leaves the repo untouched. It proposes for `CLAUDE.md` only what a glance at `package.json` would get wrong. Idempotent: re-run to pick up slots a newer version added, and to migrate a legacy `CLAUDE.md` block. |
 | `/crew:feature <task>` | Plan, delegate, and build the feature, stopping at the review gate. |
 | `/crew:review` | Pre-PR **GO / NO-GO**: consolidated code + security + design review plus diff-scoped build/test/lint. `quick` for a read-only pass with no suites; `full` to force every gate. |
 | `/crew:pr` | Push the branch and open the pull request. Outward action: it confirms first. |
@@ -324,7 +325,8 @@ resolve relative to the project directory — memory at `.claude/agent-memory-lo
 `git worktree remove` deletes those copies. Memory is git-ignored by design, so it goes for good:
 the next worktree starts cold and asks you again for settings the last one resolved, where the same
 session in the main checkout would have kept them. Keep what must persist in git: run `/crew:init`
-so the configuration slots live in `.claude/crew.md`, and point **Plan directory** at a tracked path
+so the configuration slots live in `.claude/crew.md` (or `/crew:init --local`, whose file every
+worktree shares), and point **Plan directory** at a tracked path
 (e.g. `docs/plans/`) so a plan you commit lands on the branch instead of in the untracked
 `.claude/` fallback.
 

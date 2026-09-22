@@ -29,7 +29,7 @@ Determine mode from the instruction you receive. If it is ambiguous, ask before 
 
 ## Resolving project configuration
 
-Read crew configuration for build/test/lint commands and base branch: **`.claude/crew.md`** — YAML frontmatter, one key per slot (`backendBuildCommand`, `backendTestCommand`, `frontendLintCommand`, `baseBranch`, …) — or a legacy **Crew configuration** block in `CLAUDE.md` when that file is absent. A key set to `none` means the project has no such tooling: skip what needs it, don't ask. If a key is absent or still `unset`, check your local memory for this project; if still unset, ask the user once and save to memory. Never guess.
+Read crew configuration for build/test/lint commands and base branch: **`.claude/crew.md`** — YAML frontmatter, one key per slot (`backendBuildCommand`, `backendTestCommand`, `frontendLintCommand`, `baseBranch`, …); when that file is absent, `crew.md` in `git rev-parse --git-common-dir` (crew's local file), then a legacy **Crew configuration** block in `CLAUDE.md`. A key set to `none` means the project has no such tooling: skip what needs it, don't ask. If a key is absent or still `unset`, check your local memory for this project; if still unset, ask the user once and save to memory. Never guess.
 
 ## Detecting the stack
 

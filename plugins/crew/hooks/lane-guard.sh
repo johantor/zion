@@ -60,10 +60,34 @@ esac
 # happen in a subshell and be discarded before the next call.
 _cfg_text=""
 _cfg_kind=""
+_cfg_file=""
 if [ -f .claude/crew.md ]; then
+  _cfg_file=.claude/crew.md
+else
+  # `/crew:init --local` writes `crew.md` to the shared git dir, so every worktree of
+  # a clone reads one uncommitted file. A linked worktree's `.git` is a file naming
+  # its gitdir, whose `commondir` names the shared one; both may be relative.
+  _cfg_git=""
+  if [ -d .git ]; then
+    _cfg_git=.git
+  elif [ -f .git ]; then
+    IFS= read -r _cfg_git < .git || :
+    _cfg_git="${_cfg_git#gitdir: }"
+    if [ -n "$_cfg_git" ] && [ -f "$_cfg_git/commondir" ]; then
+      IFS= read -r _cfg_common < "$_cfg_git/commondir" || :
+      if [[ "$_cfg_common" == /* || "$_cfg_common" == [A-Za-z]:* ]]; then
+        _cfg_git="$_cfg_common"
+      else
+        _cfg_git="$_cfg_git/$_cfg_common"
+      fi
+    fi
+  fi
+  [ -n "$_cfg_git" ] && [ -f "$_cfg_git/crew.md" ] && _cfg_file="$_cfg_git/crew.md"
+fi
+if [ -n "$_cfg_file" ]; then
   _cfg_kind=frontmatter
   _cfg_raw=""
-  IFS= read -r -d '' _cfg_raw < .claude/crew.md || :
+  IFS= read -r -d '' _cfg_raw < "$_cfg_file" || :
   # Narrow to the frontmatter here, once, rather than per slot: the body below it
   # is free prose and may quote an example block (as /crew:init's own §1 does), and
   # a key read from there is not a value anyone configured.

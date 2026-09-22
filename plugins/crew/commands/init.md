@@ -1,5 +1,6 @@
 ---
-description: Detect the project's crew configuration and write it to .claude/crew.md (idempotent — re-run to reconcile new settings, and to migrate a legacy CLAUDE.md block)
+description: Detect the project's crew configuration and write it to .claude/crew.md, or with --local to an uncommitted file every worktree shares (idempotent — re-run to reconcile new settings, and to migrate a legacy CLAUDE.md block)
+argument-hint: "[--local]"
 ---
 
 Set up (or reconcile) the **crew configuration** the orchestrator reads. This command
@@ -17,6 +18,13 @@ Two destinations, split by **audience** — not by tool:
 - **`CLAUDE.md`** — the `## Crew orchestration` prose (§3, which has a reader that sees only
   `CLAUDE.md`) plus the few repo conventions a careful reader would get **wrong** (§3's bar),
   in tool-neutral wording. Slot values never go here.
+
+**Local mode** (`$ARGUMENTS` contains `--local`, or the user picks it in §4) changes nothing in
+the repo: the slots go to `crew.md` in the shared git dir (`git rev-parse --git-common-dir`,
+so every worktree of the clone reads it and git never commits it), and the §3 orchestration prose
+goes to `~/.claude/CLAUDE.md` once, reading "in this repo" as "in any repo where crew runs".
+Propose no convention lines; report them instead. A committed `.claude/crew.md` wins over the
+local file, so when one exists, say so and stop.
 
 Do the detection read-only first, then confirm with the user before writing anything.
 
@@ -259,10 +267,8 @@ Show two tables — the §1 slots (slot · proposed value · source) and any pro
 (line · why a glance misleads) — and let the user confirm or edit each before anything is written.
 Say plainly that `.claude/crew.md` is committed and shared with the repo.
 
-If the user would rather keep crew configuration out of the repo, write no config file:
-`morpheus` already resolves any unset slot per session (its memory → ask) and remembers the answer
-locally. Report the detected values for reference, still ensure the `## Crew orchestration` prose
-(§3) is present, and stop.
+If the user would rather keep crew configuration out of the repo, use local mode. It writes to
+protected paths (`.git/`, `~/.claude/`), so expect a permission prompt for each write.
 
 ## 5. Write, reconcile, migrate
 
@@ -283,7 +289,10 @@ locally. Report the detected values for reference, still ensure the `## Crew orc
      §3's bar: keep what earns a line — reworded tool-neutral — and name what you are dropping as
      deducible.
   4. Remove the **Crew configuration** section from `CLAUDE.md`. Leave `## Crew orchestration`
-     in place — it belongs there (§3).
+     in place — it belongs there (§3). In local mode, skip steps 3–4 and leave `CLAUDE.md`
+     untouched: the local file wins over the legacy block.
+
+In local mode, every bullet above targets the local file in place of `.claude/crew.md`.
 
 Before writing, show the exact set of additions and removals — a short diff of slots, plus the
 `CLAUDE.md` lines kept, reworded, and dropped — and apply only after the user confirms. Migration

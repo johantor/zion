@@ -163,6 +163,11 @@ Configuration does **not** live in a project's `CLAUDE.md`. What stays there is 
 Earlier versions wrote the slots into `CLAUDE.md` as a **Crew configuration** block; every reader
 still falls back to that block when `.claude/crew.md` is absent, and `/crew:init` migrates it.
 
+`/crew:init --local` keeps both out of the repo: the slots go to `crew.md` in the shared git dir
+(`git rev-parse --git-common-dir`), which every worktree of a clone reads and git never commits,
+and the prose goes to `~/.claude/CLAUDE.md`, which the classifier also reads. Readers take the
+committed file first, then the local one, then the legacy block.
+
 ## How we review code (the crew reviewer)
 
 Reviews of **this repo** — by Copilot, the `zion-review` skill, or `/crew:review` run here — judge
@@ -661,7 +666,8 @@ over a multi-sentence paragraph restating each principle's contents.
   gitignored, so it is lost outright and the next worktree starts cold, re-asking what the last one
   already answered; a plan survives only if it was committed, which is what pointing
   `planDirectory` at a tracked path (e.g. `docs/plans/`) is for, rather than the untracked
-  `.claude/` fallback. Crew configuration is unaffected — `.claude/crew.md` is committed. Nothing
+  `.claude/` fallback. Crew configuration is unaffected — `.claude/crew.md` is committed, and the `--local`
+  file lives in the shared git dir. Nothing
   in this repo computes either path (`memory: local` is agent frontmatter the harness resolves), so
   this is a property to work around, not a setting to change.
 - Keep diffs minimal-scope; list unrelated improvements rather than bundling them.

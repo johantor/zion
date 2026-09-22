@@ -16,7 +16,8 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     measures computed styles through the browser MCP), `neo` (express generalist), `sentinel`
     (post-merge triage; no Write/Edit/Bash, history via the git-host MCP).
 - `commands/` — namespaced `crew:*` when installed.
-  - `init` writes `.claude/crew.md`, one frontmatter key per slot. Its §1 slot keys are validator
+  - `init` writes `.claude/crew.md`, one frontmatter key per slot; `--local` writes the same
+    file to the shared git dir and the orchestration prose to `~/.claude/CLAUDE.md`. Its §1 slot keys are validator
     §11's source of truth; §3 owns what may go in `CLAUDE.md` (auto mode's classifier reads only
     that file); §5 migrates a legacy `## Crew configuration` block; §6 reports MCP namespaces.
   - `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path), `address`.
@@ -52,7 +53,8 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
   - `lane-guard.sh`: Edit/Write lanes. The only hook that reads crew config: `.claude/crew.md`
-    frontmatter by key, else the legacy `CLAUDE.md` block. Loaded once in the parent shell, since
+    frontmatter by key, else `crew.md` in the shared git dir (`/crew:init --local`; found by
+    reading `.git` and `commondir`, no fork), else the legacy `CLAUDE.md` block. Loaded once in the parent shell, since
     `config_slot` runs in `$(...)`.
   - Roster shape: `# crew-roster: <name>` then an `a|b|c)` arm, in `bash-safety.sh` and
     `lane-guard.sh`; §9 keeps both in lockstep with `owns-git`/`lane-guarded` frontmatter.

@@ -21,3 +21,6 @@ the **e2e** command — don't use it for unit tests.
   `getByText`) over implementation-detail selectors (`getByTestId`, CSS class).
 - On re-verify, run only the failing test(s) — pass the test file path or `--testPathPattern` —
   not the whole suite.
+- Confirm a new test file is discovered with `npx jest --listTests` (files only). A file the
+  list misses has a `testMatch` problem — fix the name or report the config, never dig through
+  build output.

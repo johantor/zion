@@ -52,7 +52,9 @@ A targeted rerun:
 Notes on reading a run:
 
 - **A harness that reports "0 tests" is a failure to report**, not a pass — usually a discovery
-  glob that no longer matches.
+  glob that no longer matches. Confirm a new test is discovered with `bats --count tests/foo.bats`
+  (bats) or by reading the runner's glob (a plain harness) — the answer is in the file name and
+  the glob, never in anything compiled.
 - A test that runs the shell under test through `bash -c` loses `set -e` semantics from the outer
   script; assert on the child's exit code, not the parent's.
 - Keep the suite offline and build-free: no network, no package install, no LLM. A shell suite

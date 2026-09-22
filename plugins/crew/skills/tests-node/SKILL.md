@@ -15,3 +15,9 @@ Detect the test framework from its config file before writing or running tests â
 
 Run tests using the repository's backend test command from crew config, whichever framework
 it resolves to.
+
+Confirm a new test is discovered with the runner, not by reading build output: Vitest lists test
+cases with `npx vitest list <file>`; Jest lists the files it would run with `npx jest --listTests`
+(files only â€” a listed file whose tests don't appear in the run summary has a `describe`/`it`
+problem, not a discovery one). A run that reports no tests is a config problem (`include` /
+`testMatch` pattern, a file name the pattern misses) to report, not a pass.

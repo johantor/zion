@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.2] - 2026-09-22
+
+### Changed
+
+- `oracle` checks that a new test is discovered with the runner's list command, never by reading
+  a compiled DLL or class file. Zero tests found is a project-wiring problem to report.
+- Each unit-test skill names its tool's list command. `tests-xunit` gains a Running section.
+
 ## [3.26.1] - 2026-09-22
 
 ### Changed

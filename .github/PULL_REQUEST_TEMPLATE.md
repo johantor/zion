@@ -22,9 +22,11 @@ the affected plugin's `.claude-plugin/plugin.json` and add a matching `CHANGELOG
 Park a bullet under `## [Unreleased]` only for a change no user can observe (a comment inside a
 shipped file, whitespace). CI (`scripts/check-changelog.sh`) blocks a shipped change with
 neither, and a bump that leaves bullets parked. Only changes that reach no user through
-`claude plugin update` are N/A. -->
+`claude plugin update` are N/A. Entries are one line, two at most: what changed, not why —
+the why is in the commit message. -->
 
 - [ ] Bumped `plugins/<name>/.claude-plugin/plugin.json` version + matching `CHANGELOG.md` entry
+- [ ] Each changelog bullet is one line, two at most
 - [ ] Parked a bullet under `## [Unreleased]` instead (nothing a user can observe)
 - [ ] Folded any previously parked `## [Unreleased]` bullets into this bump
 - [ ] N/A — nothing shipped changed (CI, root docs, tests)

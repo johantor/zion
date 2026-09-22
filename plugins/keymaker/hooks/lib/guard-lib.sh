@@ -87,8 +87,8 @@ guard_normalize() { guard_cmd_raw="$1"; guard_cmd="${1//$'\n'/ }"; }
 
 # ------------------------------------------------- command-shape patterns
 
-# Assembled once at source time. Every pattern expects the normalized command in
-# $guard_cmd.
+# Assembled once at source time. Patterns expect the normalized command in
+# $guard_cmd unless noted otherwise; GUARD_RE_GIT_MV reads $guard_cmd_raw.
 
 _g_flag='-[^[:space:]]*'                                     # any single flag token
 _g_word='[^[:space:];|&<>]+'                                 # any token within one command

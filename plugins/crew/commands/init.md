@@ -265,7 +265,8 @@ anyone working in the repo, including teammates who have never installed this pl
 
 Show two tables — the §1 slots (slot · proposed value · source) and any proposed `CLAUDE.md` lines
 (line · why a glance misleads) — and let the user confirm or edit each before anything is written.
-Say plainly that `.claude/crew.md` is committed and shared with the repo.
+Say plainly where the slots go: `.claude/crew.md` is committed and shared with the repo; in local
+mode, the file in the shared git dir stays on this machine and is never committed.
 
 If the user would rather keep crew configuration out of the repo, use local mode. It writes to
 protected paths (`.git/`, `~/.claude/`), so expect a permission prompt for each write.

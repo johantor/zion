@@ -35,9 +35,13 @@ in — source code, tests, configuration, and git history. All of that processin
 happens locally, in your working tree, under Claude Code's own permission
 system and the plugins' guard hooks.
 
-The plugins write only inside your repository:
+The plugins write only inside your repository, plus your own Claude settings when you ask
+for local mode:
 
 - `.claude/crew.md` — the configuration `/crew:init` detects and records.
+- With `/crew:init --local`: that configuration as `crew.md` in the repository's shared git
+  directory (never committed), and the crew's orchestration description in
+  `~/.claude/CLAUDE.md`.
 - `<plan-dir>/plan-<feature>.md` — the orchestrator's working plan, in `.claude/`
   unless you configure another directory.
 - Ordinary git commits on the feature branch the orchestrator creates.

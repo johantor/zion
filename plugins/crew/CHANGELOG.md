@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.4] - 2026-09-22
+
+### Changed
+
+- **`/crew:address` stops patching a mechanism that keeps breaking.** Findings with one root cause
+  become one item, and new edge cases of an already-patched mechanism go to the user instead.
+
 ## [3.26.3] - 2026-09-22
 
 ### Fixed

@@ -1,8 +1,8 @@
 # keymaker — quick reference for agents working on this plugin
 
-Distilled repo knowledge so sessions don't re-explore. **Keep it accurate: a PR that changes
-anything stated here updates this file in the same commit.** Conventions live in the root
-[AGENTS.md](../../AGENTS.md); this file is the keymaker-specific map.
+Keymaker-specific map. **Keep it accurate: a PR that changes anything stated here updates this
+file in the same commit.** Rules shared by every plugin: the root [CLAUDE.md](../../CLAUDE.md).
+Conventions: [AGENTS.md](../../AGENTS.md).
 
 ## Map
 
@@ -13,33 +13,15 @@ anything stated here updates this file in the same commit.** Conventions live in
   multi-pick that hands each pick to open) and `open` (fix one pointer; runs foreground so
   gates can prompt). There is **no push/PR command — the flow ends at commit.**
 - `skills/` — `debt-taxonomy` (stack-neutral core: rubric, blast-radius gate, commit shapes)
-  + `debt-taxonomy-dotnet`/`-typescript` (per-stack), plus shared synced copies of
-  `context-discipline`, `loop-engineering` and `operator-voice` (crew's copies are canonical —
-  edit there and copy byte-for-byte, or CI's drift check fails). `operator-voice` is preloaded by
-  the `keymaker` agent, not by `twin`, which reports to `keymaker` rather than to the operator.
-- `hooks/` — `bash-safety.sh`, `read-guard.sh`, `write-guard.sh` (keymaker's Write/Edit are
-  confined to `.claude/` — ledger/outlines/notes only), plus `hooks/lib/guard-lib.sh`, the
-  **sourced library** those three load: payload plumbing, the command-shape patterns, the
-  shared block helpers, and the protected-branch list. It is the one file in `hooks/` that must
-  not be executable and must not be wired (validator §3/§6) — it has no main. Vendoring it here
-  rather than reaching into crew is what lets a standalone keymaker install enforce the same
-  floor. `read-guard.sh` and `lib/guard-lib.sh` (byte-identical) and `bash-safety.sh`'s marked
-  shared-guard region are synced with crew's copies (crew is canonical — edit there and mirror
-  here, or validator §5 fails CI). Shared logic belongs in `guard-lib.sh`, not in a widened
-  marker region. The floor refuses file-mutating Bash for agent sessions, with one carve-out: a
-  plain `git mv`, for any agent (a rename changes no bytes and lands in a commit; `-f`/`--force`
-  and bare `mv`/`cp` stay refused; a `git mv` on a later line of the call counts, the pattern
-  reading the raw command). Whose rename it is stays this plugin's rule, below the region: the
-  twin block calls `guard_block_git_mv_handback "$git_owner"`, with `git_owner=keymaker` named
-  above the region, so a twin's `git mv` is told to hand the rename back (first line
-  only, like every refusal) — and crew's `morpheus`,
-  which this hook also sees when both plugins are installed, is not refused. No `scripts/`
-  dir: the validator is repo tooling at `scripts/validate-plugin.sh` and covers this plugin too.
-- `tests/` — this plugin's hook test cases (`bash-safety`, `read-guard`, `write-guard`), run by
-  the repo-level runner `tests/hooks/run.sh`, which fails if a plugin ships `hooks/` with no
-  suite beside it. They exercise keymaker's *own* copies, so a vendored library that stopped
-  loading here would fail a test rather than silently disarming the guards in a standalone
-  install. Not shipped with the plugin — repo tooling.
+  + `debt-taxonomy-dotnet`/`-typescript`, plus crew's shared `context-discipline`,
+  `loop-engineering` and `operator-voice` (preloaded by `keymaker`, not `twin`).
+- `hooks/` — `bash-safety.sh`, `read-guard.sh`, `write-guard.sh` (keymaker's Write/Edit confined
+  to `.claude/`), and `lib/guard-lib.sh`, vendored so a standalone install enforces the same
+  floor. The floor lets any agent run a plain `git mv`; below the shared region the twin block
+  calls `guard_block_git_mv_handback "$git_owner"` (`git_owner=keymaker`, first line only), so
+  crew's `morpheus` is not refused when both plugins are installed.
+- `tests/` — `bash-safety`, `read-guard`, `write-guard` cases. They test keymaker's own copies,
+  so a vendored library that stops loading fails here.
 
 ## Schemas & conventions
 
@@ -51,46 +33,19 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Retry cap: 3 fix→verify round-trips per batch (keymaker.md step 8), recorded in `attempts:`
   as each rejection happens; third failure → `status: blocked` with attempt history in
   `evidence:`.
-- Loop mode: generic contract in the shared `loop-engineering` skill; keymaker bindings
-  (unit = batch/pointer, terminal gate = verify + commit, gates that stop the loop) in
-  `agents/keymaker.md` §"Loop-mode bindings".
+- Loop mode: keymaker bindings (unit = batch/pointer, terminal gate = verify + commit, gates
+  that stop the loop) in `agents/keymaker.md` §"Loop-mode bindings".
 - Acknowledgement gates (stop-and-ask): no-test warning on behavior-sensitive/upgrade
   batches, >40-findings slice choice, tier-2 offer, transitive/peer package conflicts.
-- Justified suppressions (0.8.0, was #52): keymaker **reads** the mechanism's native
-  justification slot and excludes those sites from the audit report (counted in totals) and from
-  `open`'s working set / blast radius; `--force` overrides. No ack command, no custom token — the
-  slots are declared per mechanism in each `debt-taxonomy-<stack>` skill, the rules in core
-  `debt-taxonomy` §"Justified suppressions". Exemptions that are load-bearing: `stale` scope
-  ignores the filter, and skipped tests are never excluded. Twins must never *add* a
-  justification (it would hide the finding) — keymaker.md step 8 checks for it against the
-  dispatch snapshot.
-- Agent `tools:` MCP grants come in pairs — `mcp__context7` (keyed in `.mcp.json`) and
-  `mcp__plugin_context7_context7` (installed as a plugin, whose tools are named
-  `mcp__plugin_<plugin>_<server>__<tool>`). Validator §13 enforces the pairing for both agents.
-- Always-loaded footprint: `keymaker` declares `loaded-lines-cap: 670` (validator §12 reports
-  every agent's agent-file + preloaded-skill lines and fails CI past the cap; `debt-taxonomy`'s
-  203 lines dominate it). Rationale for the prompt's rules lives in the root `AGENTS.md`
-  §"Prompt design rationale" — the prompt carries instruction and points there once.
+- Justified suppressions (0.8.0, #52): sites with a native justification are excluded from the
+  audit report (still counted) and from `open`'s working set; `--force` overrides. Slots are
+  declared per stack in `debt-taxonomy-<stack>`, rules in core `debt-taxonomy`. `stale` scope
+  ignores the filter; skipped tests are never excluded. Twins must never *add* a justification
+  (keymaker.md step 8 checks against the dispatch snapshot).
+- MCP grants: `mcp__context7` and `mcp__plugin_context7_context7`.
+- `keymaker` has `loaded-lines-cap: 670`; `debt-taxonomy`'s 203 lines dominate it.
 
-## Gotchas & release
+## Gotchas
 
-- Stage new/renamed skill files before running the validator (`git ls-files`-based indexes).
-- Status: **Beta** until v1.0. Graduation criteria live in the README's *Graduation to Stable*
-  section; the scenarios and their run logs are in `VERIFICATION.md` — v1.0 = that matrix green
-  end-to-end for **one** supported stack (TS is in flight; .NET follows post-v1.0), covering the
-  full pipeline, not just the read-only rows.
-  Flipping to Stable is the `1.0.0` release.
-- Release: bump `version` in `.claude-plugin/plugin.json` + matching `## [X.Y.Z]` entry in
-  `plugins/keymaker/CHANGELOG.md` (every plugin keeps its own changelog next to its
-  manifest), folding in anything parked under `## [Unreleased]`. Auto-release tags
-  `keymaker/vX.Y.Z` on merge, with notes covering the whole range since the previous tag.
-- **Bump by default** — the bar is "would a user who runs `claude plugin update` notice?", not
-  "is this big enough?". A changed guard verdict or a reworded refusal is a patch release. Only a
-  change no user can observe (a comment inside a shipped file, whitespace) parks a bullet under
-  `## [Unreleased]` instead. `scripts/check-changelog.sh` blocks a shipped change with no trace,
-  and a bump that leaves bullets parked. Shipped = everything here except `tests/` (repo
-  tooling), `CLAUDE.md`, `VERIFICATION.md`, and the changelog. Details in the root `AGENTS.md`
-  §"Releasing".
-- **Changelog entries are one line, two at most.** What changed, in plain terms. The why and the
-  mechanics go in the commit message and the PR; the entry becomes the release notes and is
-  read as a list.
+- Status: **Beta**. `1.0.0` = the `VERIFICATION.md` matrix green end-to-end for one stack (TS in
+  flight), full pipeline included. Criteria: README, "Graduation to Stable".

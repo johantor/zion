@@ -26,10 +26,13 @@ anything stated here updates this file in the same commit.** Conventions live in
   floor. `read-guard.sh` and `lib/guard-lib.sh` (byte-identical) and `bash-safety.sh`'s marked
   shared-guard region are synced with crew's copies (crew is canonical — edit there and mirror
   here, or validator §5 fails CI). Shared logic belongs in `guard-lib.sh`, not in a widened
-  marker region. The floor refuses file-mutating Bash for agent sessions, with one carve-out:
-  `git mv` for the agent `bash-safety.sh` names in its `git_owner=keymaker` line above the region
-  (a rename changes no bytes and lands in the git owner's commit; `-f`/`--force` and bare
-  `mv`/`cp` stay refused, and a twin's `git mv` is told to hand the rename back). No `scripts/`
+  marker region. The floor refuses file-mutating Bash for agent sessions, with one carve-out: a
+  plain `git mv`, for any agent (a rename changes no bytes and lands in a commit; `-f`/`--force`
+  and bare `mv`/`cp` stay refused; a `git mv` on a later line of the call counts, the pattern
+  reading the raw command). Whose rename it is stays this plugin's rule, below the region: the
+  twin block calls `guard_block_git_mv_handback "$git_owner"`, with `git_owner=keymaker` named
+  above the region, so a twin's `git mv` is told to hand the rename back — and crew's `morpheus`,
+  which this hook also sees when both plugins are installed, is not refused. No `scripts/`
   dir: the validator is repo tooling at `scripts/validate-plugin.sh` and covers this plugin too.
 - `tests/` — this plugin's hook test cases (`bash-safety`, `read-guard`, `write-guard`), run by
   the repo-level runner `tests/hooks/run.sh`, which fails if a plugin ships `hooks/` with no

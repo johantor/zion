@@ -74,14 +74,16 @@ guard_jq2() {
 
 # guard_normalize <cmd> -- sets $guard_cmd as one line, every newline flattened
 # to a space, so a multi-line command cannot slip a clause past the single-line
-# patterns below.
+# patterns below. The text as typed is kept in $guard_cmd_raw for the one pattern
+# that must see a line start, GUARD_RE_GIT_MV -- an allowance, where a newline
+# read as a separator cannot refuse anything.
 #
 # KNOWN GAP, deliberately left open: flattening welds a later line onto the
 # previous command's operands, so a command-position anchor sees only the first
 # command. Separating on the newline instead needs to tell data from syntax and
 # was tried three ways in #226. See AGENTS.md, "The Bash guards are floors, not
 # sandboxes".
-guard_normalize() { guard_cmd="${1//$'\n'/ }"; }
+guard_normalize() { guard_cmd_raw="$1"; guard_cmd="${1//$'\n'/ }"; }
 
 # ------------------------------------------------- command-shape patterns
 
@@ -124,11 +126,22 @@ GUARD_RE_GIT_AT_CMD="${_g_cmdpos}${_g_pfx}"'git([[:space:]]|$)'
 # flag token, optionally followed by its value token.
 _g_gitopt='(-[^[:space:]]+[[:space:]]+([^-[:space:]][^[:space:]]*[[:space:]]+)?)*'
 GUARD_RE_GIT_COMMIT="${_g_cmdpos}${_g_pfx}"'git[[:space:]]+'"${_g_gitopt}"'commit([[:space:]]|$)'
-# `git mv` at a command position, with at least one operand after it. Matched
-# ONLY here, never at an arbitrary word boundary: `find -exec git mv` and a
-# subshell `(git mv ...)` fall through to the generic write check and are
-# refused, which is the failure direction a guard wants.
-GUARD_RE_GIT_MV="${_g_cmdpos}${_g_pfx}"'git[[:space:]]+'"${_g_gitopt}"'mv[[:space:]]'
+# `git mv` at a command position, with at least one operand after it. Alone among
+# the patterns it is matched against $guard_cmd_raw, and a line start counts as a
+# command position. It can afford to: the match is an ALLOWANCE (the token is
+# masked so the generic write check does not read it as `mv`), so a newline that
+# is data rather than syntax can at worst wave through a `git mv` sitting inside
+# a string -- never refuse ordinary work, which is what the blocking patterns
+# risk if they separate on newlines (see guard_normalize). Only blanks may sit
+# between `git`, its global flags and `mv`: `git` on one line and `mv a b` on the
+# next is two commands, the second a bare `mv`, and stays refused. Matched ONLY
+# here, never at an arbitrary word boundary: `find -exec git mv` and a subshell
+# `(git mv ...)` fall through to the generic write check and are refused, which
+# is the failure direction a guard wants.
+_g_nl=$'\n'
+_g_linepos="(^|[;&|][&|]?[[:space:]]*|${_g_nl}[[:blank:]]*)"
+_g_gitopt_bl='(-[^[:space:]]+[[:blank:]]+([^-[:space:]][^[:space:]]*[[:blank:]]+)?)*'
+GUARD_RE_GIT_MV="${_g_linepos}${_g_pfx}"'git[[:blank:]]+'"${_g_gitopt_bl}"'mv[[:blank:]]'
 # A force flag among `git mv`'s operands: `-f`, bundled (`-kf`, `-fk`) or long.
 GUARD_RE_GIT_MV_FORCE="(^|[[:space:]])${_g_frc}"'([[:space:]]|$)'
 
@@ -297,57 +310,58 @@ guard_write_refuse() {
 }
 
 # Placeholder for a permitted `git mv` subcommand token. `mv` followed by `@`
-# matches neither GUARD_RE_GIT_MV (which wants whitespace after it) nor the
-# generic write pattern, so the loop below terminates and the masked command
-# keeps every other token where it was.
+# matches neither GUARD_RE_GIT_MV (which wants a blank after it) nor the generic
+# write pattern, so the loop below terminates and the masked command keeps every
+# other token where it was.
 GUARD_GIT_MV_MASK='@gitmv@'
 
-# guard_block_file_writes <agent_type> <git_owner> -- refuse a Bash command that
-# edits a file in the checkout. Callers scope it to agent sessions: the operator's
-# own session is not lane-guarded, so it has no guard to route around.
+# guard_block_file_writes -- refuse a Bash command that edits a file in the
+# checkout. Callers scope it to agent sessions: the operator's own session is not
+# lane-guarded, so it has no guard to route around.
 #
-# `git mv` is the one carve-out, for <git_owner> alone. It renames a tracked path
-# and records the rename in the index; no bytes change, so there is nothing for a
-# lane guard or a formatter to inspect, and the rename lands in the git owner's
-# own commit, where it is reviewed. Every other agent is told to hand the rename
-# back rather than reach for a synonym. `-f`/`--force` stays refused for everyone:
-# it can clobber an existing destination, which IS a write.
+# `git mv` is the one carve-out, for every agent. It renames a tracked path and
+# records the rename in the index; no bytes change, so there is nothing for a
+# lane guard or a formatter to inspect, and the rename lands in a commit, where
+# it is reviewed. WHOSE commit is each plugin's policy, not the floor's: the
+# floor once refused every agent but the plugin's own git owner, and with two
+# plugins installed each hook then refused the other plugin's owner -- crew's
+# morpheus was told keymaker owns git. So a plugin refuses its own non-owners'
+# `git mv` below the shared region, with guard_block_git_mv_handback, and an
+# agent no plugin rosters answers to its own plugin's guard. `-f`/`--force` stays
+# refused for everyone: it can clobber an existing destination, which IS a write.
 #
-# Each permitted `git mv` is masked out and the generic check then runs on the
-# masked copy, so an allowed `git mv a b` cannot carry a bare `mv c d` behind it.
-# `${cmd/"$m"/...}` replaces the FIRST literal occurrence of the match, which is
-# the match itself: a regex match is leftmost, and an identical earlier
-# occurrence would itself have matched (the pattern reads no context beyond the
-# separator it consumes), so at worst two identical `git mv`s swap places.
+# The loop reads $guard_cmd_raw, so a `git mv` on a later line is recognised (see
+# GUARD_RE_GIT_MV). Each `git mv` is masked out, the masked text is flattened,
+# and the generic check runs on that: an allowed `git mv a b` cannot carry a bare
+# `mv c d` behind it, on the same line or the next. `${cmd/"$m"/...}` replaces
+# the FIRST literal occurrence of the match, which is the match itself: a regex
+# match is leftmost, and an identical earlier occurrence would itself have
+# matched (the pattern reads no context beyond the separator it consumes), so at
+# worst two identical `git mv`s swap places.
 #
 # The command check reads the raw command, so a quoted argument cannot hide a
 # `sed -i`; the redirect scan reads the quote-masked copy, where a quoted `>` is
 # no longer an operator.
 guard_block_file_writes() {
-  local agent_type="${1:-}" git_owner="${2:-}" cmd rest target what m ops
-  cmd="$guard_cmd"
+  local cmd rest target what m ops
+  cmd="$guard_cmd_raw"
   while [[ $cmd =~ $GUARD_RE_GIT_MV ]]; do
     m="${BASH_REMATCH[0]}"
-    if [ -z "$git_owner" ]; then
-      break   # no owner named: `git mv` is an `mv` like any other, refused below
-    fi
-    if [ "$agent_type" != "$git_owner" ]; then
-      echo "Blocked: git mv is a git operation — ${git_owner} owns git, and a rename is recorded in its commit. Hand the rename back: name the exact \`git mv <from> <to>\` in your result and stop; do not recreate the file under the new path." >&2
-      exit 2
-    fi
-    # Operands up to the next separator, quotes stripped so `'-f'` still reads as
-    # the flag git would see. A filename that merely looks like a force flag is
-    # refused too: the failure direction is a refused rename, never a clobber.
-    # `$m` stays QUOTED inside every expansion below, as in the redirect scan:
-    # unquoted it would be a glob, and a `*` or `[` in a flag value (`git -C
-    # "*" mv`) or an operand would widen the match and mask what follows.
-    ops="${cmd#*"$m"}"; ops="${ops%%[;|&]*}"; ops="${ops//[\'\"]/}"
+    # Operands up to the next separator or line end, quotes stripped so `'-f'`
+    # still reads as the flag git would see. A filename that merely looks like a
+    # force flag is refused too: the failure direction is a refused rename, never
+    # a clobber. `$m` stays QUOTED inside every expansion below, as in the
+    # redirect scan: unquoted it would be a glob, and a `*` or `[` in a flag
+    # value (`git -C "*" mv`) or an operand would widen the match and mask what
+    # follows.
+    ops="${cmd#*"$m"}"; ops="${ops%%[;|&$'\n']*}"; ops="${ops//[\'\"]/}"
     if [[ $ops =~ $GUARD_RE_GIT_MV_FORCE ]]; then
       echo "Blocked: git mv -f/--force can overwrite an existing path, which is a write. Rename without it; if the destination exists, move or remove it as its own step first." >&2
       exit 2
     fi
     cmd="${cmd/"$m"/"${m%mv*}${GUARD_GIT_MV_MASK}${m##*mv}"}"
   done
+  cmd="${cmd//$'\n'/ }"
   if [[ $cmd =~ $GUARD_RE_WRITE_CMD ]]; then
     what="${BASH_REMATCH[0]#[[:space:];|\&(]}"   # drop the separator it matched
     guard_write_refuse "${what%%[[:space:]]*}"
@@ -369,6 +383,19 @@ guard_block_file_writes() {
     # forever. Every match is at least one character, so this terminates.
     rest="${rest#*"${BASH_REMATCH[0]}"}"
   done
+}
+
+# guard_block_git_mv_handback <git_owner> -- for a plugin's own agent that does
+# not own git: refuse a `git mv` naming whose rename it is and what to hand back,
+# rather than the generic write message that sends the agent looking for a
+# synonym. Reads $guard_cmd_raw with the pattern the floor masks with, so the
+# shapes the owner may run are exactly the ones refused here. Called below the
+# shared region, so a plugin only ever answers for its own roster; a forced
+# `git mv` never reaches it, the floor having refused that already.
+guard_block_git_mv_handback() {
+  [[ $guard_cmd_raw =~ $GUARD_RE_GIT_MV ]] || return 0
+  echo "Blocked: git mv is a git operation — ${1} owns git, and a rename is recorded in its commit. Hand the rename back: name the exact \`git mv <from> <to>\` in your result and stop; do not recreate the file under the new path." >&2
+  exit 2
 }
 
 # guard_block_protected_branch_commit <agent_type> <advice>

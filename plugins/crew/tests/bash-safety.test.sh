@@ -152,9 +152,10 @@ assert_block "cp into the tree"       "$HOOK" "$(payload_bash 'cp /tmp/x src/Foo
 assert_block "mv inside the tree"     "$HOOK" "$(payload_bash 'mv src/a.cs src/b.cs' tank)"  "$gap"
 assert_block "patch"                  "$HOOK" "$(payload_bash 'patch -p1 < fix.diff' tank)"  "$gap"
 # `git mv` is a rename recorded in the index, not a write: no bytes change, so no
-# lane guard or formatter has anything to inspect. The git owner alone may run it
-# -- the rename lands in its commit, where it is reviewed. Bare `mv`/`cp` stay
-# refused for everyone, and so does a forced `git mv`, which can clobber.
+# lane guard or formatter has anything to inspect, and the rename lands in a
+# commit, where it is reviewed. The floor lets any agent run it; crew's own
+# no-git arm refuses its workers' below. Bare `mv`/`cp` stay refused for
+# everyone, and so does a forced `git mv`, which can clobber.
 force="git mv -f/--force can overwrite"
 assert_allow "morpheus git mv"                 "$HOOK" "$(payload_bash 'git mv BishopsArms.Members src/BishopsArms.Members' morpheus)"
 assert_allow "morpheus git -C dir mv"          "$HOOK" "$(payload_bash 'git -C . mv src/a.cs src/b.cs' morpheus)"
@@ -181,10 +182,28 @@ assert_block "bare mv behind a glob-carrying git mv" "$HOOK" "$(payload_bash 'gi
 assert_block "forced glob-carrying git mv"          "$HOOK" "$(payload_bash 'git -C "*" mv -f a b' morpheus)"       "$force"
 # Only a `git mv` at a command position is recognised; `-exec git mv` is not.
 assert_block "git mv under find -exec"          "$HOOK" "$(payload_bash 'find . -name "*.cs" -exec git mv {} old/ \;' morpheus)" "$gap"
+# A line start is a command position for this one allowance: the pattern reads
+# the raw command, so two renames typed on two lines pass, where the flattened
+# copy would have shown the generic check a bare `mv` on the second. What follows
+# a `git mv` is still checked, on the same line or the next, and `git` on one
+# line with `mv a b` on the next is two commands, not a rename.
+nl=$'\n'
+assert_allow "morpheus git mv on a second line"    "$HOOK" "$(payload_bash "cd src${nl}git mv a.cs b.cs" morpheus)"
+assert_allow "morpheus two git mvs on two lines"   "$HOOK" "$(payload_bash "git mv a b${nl}git mv c d" morpheus)"
+assert_allow "morpheus git mv on an indented line" "$HOOK" "$(payload_bash "cd src${nl}  git -C . mv a b" morpheus)"
+assert_block "forced git mv on a second line"      "$HOOK" "$(payload_bash "git mv a b${nl}git mv -f c d" morpheus)" "$force"
+assert_block "bare mv on a second line"            "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" morpheus)"        "$gap"
+assert_block "git and mv on separate lines"        "$HOOK" "$(payload_bash "git${nl}mv a b" morpheus)"                "$gap"
+assert_block "git -C dir and mv on separate lines" "$HOOK" "$(payload_bash "git -C src${nl}mv a b" morpheus)"         "$gap"
+# The floor does not decide WHOSE rename it is: with keymaker installed too, both
+# guards fire on every Bash call, and this one must not refuse keymaker's owner.
+assert_allow "another plugin's git owner may git mv" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' keymaker)"
 # A worker is told whose the rename is and what to hand back, rather than the
-# generic write message that sends it looking for a synonym.
+# generic write message that sends it looking for a synonym -- on any line.
 assert_block "tank git mv names the owner"      "$HOOK" "$(payload_bash 'git mv a b' tank)" "morpheus owns git"
 assert_block "tank git mv says hand it back"    "$HOOK" "$(payload_bash 'git mv a b' tank)" "Hand the rename back"
+assert_block "tank git mv on a second line"     "$HOOK" "$(payload_bash "cd src${nl}git mv a b" tank)" "morpheus owns git"
+assert_block "tank git mv -f is a write first"  "$HOOK" "$(payload_bash 'git mv -f a b' tank)" "$force"
 # Exempt sinks and read-only uses of the same tools stay allowed: a guard that
 # blocked `> /dev/null` would just be routed around.
 assert_allow "redirect to /dev/null"  "$HOOK" "$(payload_bash 'dotnet build > /dev/null' tank)"

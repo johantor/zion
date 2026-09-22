@@ -59,14 +59,21 @@ anything stated here updates this file in the same commit.** Conventions live in
   backstop; watch/dev commands refused; **file-mutating Bash refused for agent sessions** — an
   in-place `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, and a redirect to anything but an
   exempt sink — so a Bash write can't route around `lane-guard`/`format.sh`, which are
-  `Edit|Write`-only; #192. The one carve-out is **`git mv` for `morpheus`**: a rename changes no
-  bytes, so no lane guard or formatter has anything to inspect, and it lands in the git owner's
-  commit; `git mv -f`/`--force` stays refused because it can clobber, bare `mv`/`cp` stay refused
-  for everyone, and a worker's `git mv` is answered with *whose* the rename is and what to hand
-  back. The hook names the owner in a `git_owner=morpheus` line above the shared region and
-  passes it into the floor; validator §9 pins that line to the `owns-git: true` agent. Matched at
-  a command position only — `find -exec git mv` and `(git mv …)` fall through to the generic
-  refusal. **Raw reads are refused for every session**, agent or not — a `cat` of a whole file
+  `Edit|Write`-only; #192. The one carve-out is **a plain `git mv`**: a rename changes no bytes,
+  so no lane guard or formatter has anything to inspect, and it lands in a commit; `git mv
+  -f`/`--force` stays refused because it can clobber, and bare `mv`/`cp` stay refused for
+  everyone. The floor lets *any* agent run it — *whose* rename it is belongs to each plugin, below
+  the shared region: crew's no-git arm calls `guard_block_git_mv_handback "$git_owner"`, so a
+  worker's `git mv` is answered with whose the rename is and what to hand back. The floor used to
+  refuse every agent but the plugin's own owner, and with keymaker installed too its hook then
+  refused `morpheus` (keymaker owns git, it said). The hook names the owner in a
+  `git_owner=morpheus` line above the shared region; validator §9 pins that line to the
+  `owns-git: true` agent. Matched at a command position only — `find -exec git mv` and
+  `(git mv …)` fall through to the generic refusal — but on the *raw* command, where a line
+  start is a command position too: two renames typed on two lines pass, where the flattened copy
+  showed the generic check a bare `mv` on the second. Safe because it is an allowance (see the
+  library comment on `GUARD_RE_GIT_MV`); the blocking patterns keep the newline gap `AGENTS.md`
+  documents. **Raw reads are refused for every session**, agent or not — a `cat` of a whole file
   reaches no `PreToolUse(Read)` hook, so `read-guard`'s size bound never applies to it. It is a
   **habit redirect, not a boundary**: `grep . f` dumps the same file and is deliberately allowed,
   so the pattern stays one line and a pipe or any redirect ends the match. `${_g_pfx}` is the one
@@ -230,8 +237,8 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Agent write-access declarations, checked by validator §9 (see below): every crew agent
   carries `owns-git: true|false` and `lane-guarded: true|false` before `skills:`. Exactly one
   agent (`morpheus`) owns git, and `bash-safety.sh`'s `git_owner=` line must name that same
-  agent — it is what the shared floor's `git mv` allowance keys on, and a stale name there fails
-  closed for the one agent that may rename. These are the declarative half of what the guard hooks
+  agent — it is the name a worker's refused `git mv` is told to hand the rename to, and a stale
+  name there sends the rename to nobody. These are the declarative half of what the guard hooks
   enforce — a new agent that omits them fails CI instead of silently getting unguarded git and no
   lane.
 

@@ -419,8 +419,8 @@ git and no write lane. So each agent declares `owns-git: true|false` and
 `lane-guarded: true|false` in its frontmatter, each roster carries a `# crew-roster: <name>`
 marker, and §9 checks both directions: every agent classified, every roster entry real, and
 exactly one git owner per plugin — who must also be the agent `bash-safety.sh` names in its
-`git_owner=` line, the one the shared floor lets run `git mv`. Adding an agent without those two
-fields fails CI.
+`git_owner=` line, the one a worker's refused `git mv` is told to hand the rename to. Adding an
+agent without those two fields fails CI.
 The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
 
 Two more checks cover prose that names something the harness has to resolve. §10 requires every
@@ -744,6 +744,21 @@ Both gaps stay open deliberately. A worker reaching `git` on a second line is on
 several — a `$(...)`, an interpreter — and the worker's own prompt is what keeps it out of git.
 Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
 size than the rule it would replace, and belongs in its own PR.
+
+**The one pattern that does read line starts is an allowance, which is why it may.** The
+`git mv` carve-out matches the raw command, newlines intact, and treats a line start as a command
+position. The asymmetry above runs the other way for it: a match *masks* the token so the generic
+write check does not read it as a bare `mv`, so a newline mistaken for a separator can at worst
+wave through a `git mv` that sits inside a string — it cannot refuse anything. Before it did so,
+two renames typed on two lines were refused, the second read as `mv` welded onto the first's
+operands. The blocking patterns do not get the same anchor; the paragraph above is why.
+
+**The floor decides *what* a `git mv` is, not *whose*.** It once refused every agent but the
+plugin's own git owner, and the two plugins name different owners, so with both installed each
+hook refused the other's: `morpheus` was told keymaker owns git. Now the floor lets any agent run
+a plain `git mv` and each plugin refuses its own non-owners' below the shared region
+(`guard_block_git_mv_handback`), naming the agent to hand the rename to. A rule about a plugin's
+roster belongs beside that roster, never in the region both plugins share.
 
 ## Recurring review findings — apply proactively
 

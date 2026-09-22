@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-09-22
+
+### Fixed
+
+- **This plugin's guard no longer refuses another plugin's git owner.** With crew installed too,
+  both Bash guards fire on every call, and this one refused crew's `morpheus` running `git mv`
+  ("keymaker owns git"). The shared floor now lets any agent run a plain `git mv`; a twin's is
+  still told to hand the rename to `keymaker`, by this plugin's own twin rule. `-f`/`--force` and
+  bare `mv`/`cp` stay refused for everyone.
+- **A `git mv` on a second line of one Bash call is allowed** — previously refused as a bare `mv`
+  once the call was flattened. What follows a rename is still checked, on any line.
+
 ## [0.9.2] - 2026-09-13
 
 ### Fixed

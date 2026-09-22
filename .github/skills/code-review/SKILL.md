@@ -1,0 +1,72 @@
+---
+name: code-review
+description: Review a pull request or diff in the Zion plugin marketplace — Bash guard hooks, Markdown agent/command/skill prompts, plugin manifests and changelogs. Use when asked to review code, a PR, or a diff in this repository.
+---
+
+# Reviewing a Zion change
+
+Zion ships Bash hooks, Markdown prompts that agents execute, and JSON manifests. `AGENTS.md` is
+the contributor guide and wins on conflict. Output format: `.github/copilot-instructions.md`.
+This file is the one rubric; Claude Code's `zion-review` skill loads it too.
+
+## Scope: one full pass, then only what changed
+
+- **First review: every changed hunk ends as a finding or a Passed line.** Also read what the
+  diff makes newly reachable: a new caller, a pattern now matched against a different input.
+- **Re-review after a push: review the new commits.** Raise an old, unchanged hunk only if it is
+  Blocking. Never reopen a resolved thread with the same point reworded.
+- **Mirrored files are one finding.** `hooks/lib/guard-lib.sh` and `read-guard.sh` are
+  byte-identical across plugins; name every copy in one bullet.
+
+## Severity: earn it with an input
+
+- **Blocking** needs a concrete command, payload or file state, and the wrong verdict it gives
+  that the base branch did not. No input, no Blocking.
+- **A bypass through a documented gap is not a finding.** The Bash guards are floors, not
+  sandboxes: newline flattening, `bash -c`, interpreters, `$(...)` and the raw-read scope are
+  open on purpose (`AGENTS.md`, "The Bash guards are floors, not sandboxes"). Flag only a change
+  that widens a gap or tries to close one with a pattern.
+- **Prefer less code.** When a fix grows a parser (quotes, heredocs, escapes) to close an edge
+  case, say so and suggest removing the rule or accepting the documented gap. A partial tokenizer
+  always has a next edge case; #226 and #231 both reverted one.
+- Style-only notes are not findings unless they break a written convention.
+
+## Guard hooks (`plugins/*/hooks/**/*.sh`)
+
+- **Name each pattern's failure direction.** An allowance (match lets it through) may
+  over-match. A refusal (match exits 2) must not refuse ordinary work. A refusal that reads line
+  starts or quoted text is Blocking.
+- Probe changed patterns with: a second line, a backslash-newline, a quoted string, a heredoc,
+  `;`/`&&`/`|`, an env prefix (`FOO=1`, `env`, `command`), `find -exec`, and `*` or `[` in a value.
+- Enforcing hooks fail closed (exit 2 on an unparsable payload); `turn-budget`,
+  `dispatch-denied` and `plan-guard` fail open.
+- Match with `[[ =~ ]]` and parameter expansion, no fork per pattern. Quote expansions used as
+  patterns (`${x#*"$m"}`). POSIX classes, no `\s` or `\b`, no GNU-only flags.
+- Crew is canonical. A plugin's roster rule lives below the shared `bash-safety.sh` region. Do
+  not reshape `# crew-roster:` arms (validator §9).
+
+## Prompts (`agents/`, `commands/`, `skills/`)
+
+Apply `AGENTS.md`, "Reviewing a prompt change": cross-run state lives in the declared store;
+a wrapper passes only what its callee accepts; every threshold is a number; every failure path
+has a behavior; changed terms agree across the agent, command, README, `CLAUDE.md` and changelog.
+
+## Release, tests, docs
+
+- **Shipped change without a bump** (anything under `plugins/<name>/` except `tests/`,
+  `CLAUDE.md`, `VERIFICATION.md`, the changelog): Warning; Blocking if users miss a fix. A shared
+  skill edit ships in every plugin that carries it.
+- **Hook behavior change**: allow and block cases, asserting on stderr, in both plugins' suites.
+  A new case must fail on the base code.
+- **Plugin `CLAUDE.md`** must match the code in the same PR.
+
+## Verbosity is a finding
+
+- **One rationale, one place.** The reason lives in `AGENTS.md`; code comments say what, in one
+  or two lines, and point there. The same explanation in three files is a Warning.
+- Comments that restate the code, and PR bodies over the template's budget, are nits.
+
+## Output
+
+`## Blocking`, `## Warnings`, `## Passed`. One bullet per finding: `path:line` — defect —
+failing input — smallest fix. Under Passed, one line per lens applied.

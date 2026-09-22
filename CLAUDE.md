@@ -24,6 +24,16 @@ the active voice, one instruction per sentence, and the same word for the same t
 This applies to what you say to the operator, not to what you write into the repository — files,
 docs, and commit messages keep the repo's own voice.
 
+## Brevity
+
+- **Replies**: the result first, then what the operator must decide. No recap of work they saw,
+  no option you will not take.
+- **Code comments**: what the code does, in one or two lines. The *why* lives once, in
+  `AGENTS.md`, and a comment points there. Never the same rationale in several files.
+- **Docs and PR bodies**: facts, not history. Before you add a paragraph, cut one.
+- **Fixes**: prefer removing code to adding a parser. A fix that grows a new edge case each round
+  is the wrong fix; stop and say so.
+
 ## Reading and editing files
 
 Reads and writes in this repository go through the `Read`, `Edit` and `Write` tools, not

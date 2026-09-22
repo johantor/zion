@@ -84,6 +84,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   justification filter's two exemptions). Prints the repo path on stdout so it composes into a
   headless `claude --plugin-dir …` run.
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
+- `.github/skills/code-review/SKILL.md` — the one review rubric for this repo, read by Copilot directly. `.claude/skills/zion-review/` is the Claude Code wrapper: it loads the rubric, runs the checks, and reproduces each finding.
 - `biome.json` / `package.json` — repo tooling: [Biome](https://biomejs.dev) lints the repo's
   web assets and JavaScript (`docs/*.html`, `docs/*.css`, `tests/scenarios/mocks/*.js`) and its
   JSON. **Linter only** — the formatter and the assist actions are off on purpose: enabling the
@@ -166,7 +167,8 @@ Reviews — whether by `/crew:review`, the crew, or GitHub Copilot — judge cod
 the `engineering-principles` skill and classify every finding as **Blocking**,
 **Warning**, or **Passed**. The same three pillars apply: code quality, security,
 and design conformance. See `plugins/crew/skills/engineering-principles/SKILL.md` for the
-full rules and `.github/copilot-instructions.md` for the review contract.
+full rules and `.github/copilot-instructions.md` for the review contract. The repo-specific
+checklist is `.github/skills/code-review/SKILL.md`; edit it there, once.
 
 Core principles (defaults, not dogma — the repo's established patterns win on conflict):
 YAGNI, KISS, pragmatic DRY (rule of three), small single-purpose units, intention-revealing

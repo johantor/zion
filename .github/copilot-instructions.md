@@ -4,6 +4,9 @@ These instructions mirror how the Zion crew reviews code (`/crew:review` plus th
 `engineering-principles` skill). Reviews look at three pillars — **code quality**,
 **security**, and **design conformance** — and classify every finding by severity.
 
+The repo-specific checklist (coverage, guard hooks, prompts, release, tests) is the
+`code-review` skill in `.github/skills/code-review/SKILL.md`. Apply it together with this file.
+
 When asked to review changes in this repository, use this sequence:
 
 1. Review only changed files first, then expand to impacted neighbors when needed.

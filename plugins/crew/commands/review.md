@@ -76,7 +76,10 @@ steered mid-run and can tell your message from one injected by the output it's r
 same build location: gates 1-3 all compile the backend (a test or lint run builds too), and a
 frontend build, e2e run and lint can share one bundler cache. So run a lane's gates **one at a
 time**, unless the lane's stack skill has a **Parallel gates** recipe (today only
-`backend-dotnet`). Then dispatch them together and put each gate's own
+`backend-dotnet`) **and** you have checked its conditions before launching any gate: every
+resolved gate command is one the recipe can extend (a wrapper script such as `./build.sh` is not),
+and none of the recipe's "serialize instead" cases holds. If any check fails or can't be made,
+stay serial. Otherwise dispatch them together and put each gate's own
 `<location>/<lane>/<gate>` path and the recipe's exact flags in its handoff, `oracle`'s test gate
 included: a worker that did not load the stack skill cannot derive them (`morpheus` §*One build
 location, one build writer at a time*). Two lanes writing different outputs still run concurrently.

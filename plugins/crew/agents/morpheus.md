@@ -335,10 +335,11 @@ Before triggering that gate:
    reuse it in **every** build delegation so caches stay warm. Inside it the intermediates are a
    **shared artifact** (*One writer per file; one owner per shared artifact*), and a test or lint
    run that compiles is a writer too: never dispatch two writers of one project's outputs at once.
-   Run a lane's gates **one at a time**, unless its stack skill has a **Parallel gates** recipe:
-   then dispatch them together, each handed its own `<location>/<lane>/<gate>` path in the
-   dispatch, `oracle`'s included. Require the location **isolated from any running app/dev
-   process** so builds can't contend on locked `bin`/`obj`, `dist`, bundler caches.
+   Run a lane's gates **one at a time**, unless its stack skill has a **Parallel gates** recipe
+   whose conditions you checked first: then dispatch them together, each with its own
+   `<location>/<lane>/<gate>` path, `oracle`'s included. Require the location **isolated from any
+   running app/dev process** so builds can't contend on locked `bin`/`obj`, `dist`, bundler
+   caches.
 4. **One-shot build, bounded.** Use the project's **build** command, never a watch/dev/serve
    command (`dotnet watch`, `npm run dev`, `vite`, `tsc --watch`) — those never terminate and
    hang the worker. Give the build a wall-clock timeout so a hang fails fast.

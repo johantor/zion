@@ -51,9 +51,11 @@ session and the second run is incremental.
 - Lint: `UseArtifactsOutput=true ArtifactsPath=<path> dotnet format <sln> --verify-no-changes`
   (`dotnet format` has no `--artifacts-path`; MSBuild reads the environment instead)
 
-Serialize instead when the SDK is older than 8.0, or when the repo's `Directory.Build.props` or
-project files set `ArtifactsPath`, `BaseIntermediateOutputPath` or `BaseOutputPath`: the lint
-gate's environment value loses to a value set in a project file.
+Serialize instead when the SDK is older than 8.0; when the repo's `Directory.Build.props` or
+project files set `ArtifactsPath`, `BaseIntermediateOutputPath` or `BaseOutputPath` (the lint
+gate's environment value loses to a value set in a project file); or when a configured gate
+command is not a plain `dotnet build`/`test`/`format` the flags above can be added to, such as a
+wrapper script.
 
 ### A lock error is not automatically the user's environment
 

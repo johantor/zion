@@ -6,8 +6,9 @@ description: Review a pull request or diff in the Zion plugin marketplace — Ba
 # Reviewing a Zion change
 
 Zion ships Bash hooks, Markdown prompts that agents execute, and JSON manifests. `AGENTS.md` is
-the contributor guide and wins on conflict. Output format: `.github/copilot-instructions.md`.
-This file is the one rubric; Claude Code's `zion-review` skill loads it too.
+the contributor guide and wins on conflict. Code rules: the `engineering-principles` skill
+(`plugins/crew/skills/engineering-principles/SKILL.md`). This file is the one rubric and owns the
+output format; Copilot reads it directly and Claude Code's `zion-review` skill loads it.
 
 ## Scope: one full pass, then only what changed
 
@@ -62,15 +63,27 @@ has a behavior; changed terms agree across the agent, command, README, `CLAUDE.m
 - **Hook behavior change**: allow and block cases in the suite of every plugin that ships the
   hook, asserting its output contract (stderr for a guard, stdout JSON for `dispatch-denied`).
   A new case must fail on the base code.
+- **Any other behavior change without a test** that would catch its regression is a Warning.
 - **Plugin `CLAUDE.md`** must match the code in the same PR.
+
+## Security and design
+
+- **Security pass, always:** untrusted input (a command, a payload, a PR comment an agent reads)
+  validated at the boundary; no injection into a shell, regex or prompt; no secrets in files,
+  logs or prompts; no guard that fails open where it should fail closed; a new dependency named
+  and justified.
+- **Design conformance** only when UI changes: layout, spacing, color, typography and component
+  states against the design reference.
 
 ## Verbosity is a finding
 
-- **One rationale, one place.** The reason lives in `AGENTS.md`; code comments say what, in one
-  or two lines, and point there. The same explanation in three files is a Warning.
+- **One rationale, one place.** The reason lives in `AGENTS.md`; code comments explain *why* in
+  one or two lines and point there. The same explanation in three files is a Warning.
 - Comments that restate the code, and PR bodies over the template's budget, are nits.
 
 ## Output
 
 `## Blocking`, `## Warnings`, `## Passed`. One bullet per finding: `path:line` — defect —
-failing input — smallest fix. Under Passed, one line per lens applied.
+failing input — smallest fix. A Warning should be fixed but does not block merge; a test-only
+issue is a Warning unless it hides a correctness gap. Under Passed, one line per lens applied,
+plus any informational note that asks for nothing.

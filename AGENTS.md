@@ -1,13 +1,15 @@
 # Contributing to Zion
 
-Zion is a Claude Code plugin pack ("crew") of orchestrated agents, commands, hooks, and
-skills for feature delivery. **This repository *is* the plugin** — there is no application
+Zion is a Claude Code plugin marketplace: `crew` (orchestrated feature delivery) and `keymaker`
+(tech-debt and upgrade fixes). **This repository *is* the plugins** — there is no application
 code to build or ship. Work here means editing agent/command/skill definitions, hooks, and
 docs.
 
-This is the contributor guide for anyone — human or agent — changing this repo, and it is
-tool-neutral. Claude Code reads `CLAUDE.md`, which points here and adds only its own runtime
-configuration (the values the `crew` orchestrator reads).
+This is the contributor guide for anyone — human or agent — changing this repo, it is
+tool-neutral, and it is the one place each rule is written. Tool-specific entry points point
+here: `CLAUDE.md` for Claude Code (plus how Claude should talk and edit), the `code-review` skill
+in `.github/skills/` for reviewers, and each plugin's `CLAUDE.md` for its own map. Crew's
+configuration lives in `.claude/crew.md`.
 
 ## Repository layout
 
@@ -83,7 +85,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   matrix by hand (`keymaker-scratch.sh` plants same-rule suppressions, justified and not, plus the
   justification filter's two exemptions). Prints the repo path on stdout so it composes into a
   headless `claude --plugin-dir …` run.
-- `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
+- `.github/copilot-instructions.md` — Copilot's entry point; it points to the `code-review` skill.
 - `.github/skills/code-review/SKILL.md` — the one review rubric for this repo, read by Copilot directly. `.claude/skills/zion-review/` is the Claude Code wrapper: it loads the rubric, runs the checks, and reproduces each finding.
 - `biome.json` / `package.json` — repo tooling: [Biome](https://biomejs.dev) lints the repo's
   web assets and JavaScript (`docs/*.html`, `docs/*.css`, `tests/scenarios/mocks/*.js`) and its
@@ -163,16 +165,12 @@ still falls back to that block when `.claude/crew.md` is absent, and `/crew:init
 
 ## How we review code (the crew reviewer)
 
-Reviews — whether by `/crew:review`, the crew, or GitHub Copilot — judge code against
-the `engineering-principles` skill and classify every finding as **Blocking**,
-**Warning**, or **Passed**. The same three pillars apply: code quality, security,
-and design conformance. See `plugins/crew/skills/engineering-principles/SKILL.md` for the
-full rules and `.github/copilot-instructions.md` for the review contract. The repo-specific
-checklist is `.github/skills/code-review/SKILL.md`; edit it there, once.
-
-Core principles (defaults, not dogma — the repo's established patterns win on conflict):
-YAGNI, KISS, pragmatic DRY (rule of three), small single-purpose units, intention-revealing
-names, fail-fast error handling, and minimal-scope diffs.
+Reviews of **this repo** — by Copilot, the `zion-review` skill, or `/crew:review` run here — judge
+code against the `engineering-principles` skill (`plugins/crew/skills/engineering-principles/SKILL.md`,
+the code rules) and this repo's rubric, the `code-review` skill (`.github/skills/code-review/SKILL.md`:
+what to check here, severity, and the **Blocking** / **Warning** / **Passed** output). In a user's
+project, `/crew:review` applies `engineering-principles` only; the `code-review` skill is Zion's
+own. Each is written once, in its own file; everything else points to them.
 
 Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
 today that's `context-discipline`, `loop-engineering`, and `operator-voice` (all crew's
@@ -394,6 +392,13 @@ base branch, which is why it takes a ref and why it lives outside `validate-plug
 is deliberately tree-only, so it runs anywhere with no base to resolve). See *Releasing* for
 what it enforces.
 
+`validate-plugin.sh`'s sections, cited as `§N` across the docs: manifests §2, marketplace sync
+§2f, `skills:` resolution §2g, version ↔ changelog §2h, `[Unreleased]` slot §2i, hook file modes
+§3, skill sync §4, hook sync §5, wiring §6, dev-wiring mirror §7, turn-budget §8, rosters §9,
+prose refs §10, `crew.md` keys §11, footprint §12, MCP pairs §13, YAML frontmatter §14.
+§2g and §4 index skills through `git ls-files`, so stage a new or renamed skill file before
+running the validator.
+
 `plugins/<plugin>/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
 and `git` (the same tools the hooks and validator already require) — that exercises a plugin's
 hooks' *behavior*: each guard is a pure `stdin JSON → allow (exit 0) / block (exit 2)` function,
@@ -555,7 +560,7 @@ regression signal over time, not proof. Adding a scenario is one new `s<N>-*.sh`
 Versions are per-plugin. To cut a release:
 
 1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a matching `CHANGELOG.md`
-   entry (a PR that changes plugin behavior must do this — see `.github/copilot-instructions.md`).
+   entry (a PR that changes plugin behavior must do this — see *Release by default* below).
    `validate-plugin.sh` §2h fails CI unless the manifest version equals the newest `## [X.Y.Z]`
    entry in that plugin's changelog, so the two always move together. **A change to a skill
    shipped by more than one plugin bumps *every* plugin that ships it** — the §4 sync check keeps
@@ -580,7 +585,8 @@ went out in `crew/v3.15.0` without appearing in any notes.
 
 > **Would a user who runs `claude plugin update` notice?**
 
-If yes, it earns a version bump in the same PR — patch for a fix, minor for an addition. A guard
+If yes, it earns a version bump in the same PR — patch for a fix, minor for an addition, major for
+a breaking change. A guard
 that blocks a command it used to allow, a reworded refusal, a changed agent prompt, a README
 users read: every one of those is a release, however few lines it took. Releasing often is the
 cheap side of the trade. Auto-release does the tagging, versions are per-plugin, and a small
@@ -643,8 +649,10 @@ over a multi-sentence paragraph restating each principle's contents.
   them there too, not just on CI's Linux. Avoid GNU-only constructs: give `mktemp` an explicit
   `XXXXXX` template (never bare `mktemp` or the GNU `-p` flag), use POSIX `[[:space:]]` rather
   than `\s`, and prefer flags/behavior common to both GNU and BSD implementations.
+- Guards run before every tool call, so they match with `[[ =~ ]]` and parameter expansion, never
+  a fork per pattern (`echo | grep`, `sed`).
 - Agent/command/skill definitions are Markdown with YAML frontmatter — match the field
-  shape of existing files in the same directory.
+  shape of existing files in the same directory. In an agent, `skills:` is the last key (§2g).
 - Local agent memory lives in `.claude/agent-memory-local/` and is gitignored. Don't commit it.
   It resolves relative to the project directory, as the plan directory does (`<plan-dir>`,
   `.claude/` when the slot is unset), so in a **git worktree** both sit inside that worktree and

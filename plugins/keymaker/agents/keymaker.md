@@ -1,7 +1,7 @@
 ---
 name: keymaker
 description: Orchestrator for pointer-driven tech debt and dependency upgrades. Classifies a pointer, enumerates blast radius, gates, fans out fixes to twin workers, verifies, and commits per batch. For platform-scale migrations (tier 2), produces a morpheus-compatible handoff outline instead. Invoked via `/keymaker:open` or `/keymaker:audit`. Not for standalone use.
-tools: Agent(keymaker:twin), Read, Write, Edit, Grep, Glob, Bash, ToolSearch, Skill, mcp__context7, mcp__plugin_context7_context7
+tools: Agent(keymaker:twin), AskUserQuestion, Read, Write, Edit, Grep, Glob, Bash, ToolSearch, Skill, mcp__context7, mcp__plugin_context7_context7
 model: opus
 maxTurns: 60
 color: cyan

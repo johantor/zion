@@ -51,11 +51,15 @@ session and the second run is incremental.
 - Lint: `UseArtifactsOutput=true ArtifactsPath=<path> dotnet format <sln> --verify-no-changes`
   (`dotnet format` has no `--artifacts-path`; MSBuild reads the environment instead)
 
-Serialize instead when the SDK is older than 8.0; when the repo's `Directory.Build.props` or
-project files set `ArtifactsPath`, `BaseIntermediateOutputPath` or `BaseOutputPath` (the lint
-gate's environment value loses to a value set in a project file); or when a configured gate
-command is not a plain `dotnet build`/`test`/`format` the flags above can be added to, such as a
-wrapper script.
+Use the recipe only when **all** of these hold; otherwise run the gates one at a time:
+
+- The SDK is 8.0 or newer.
+- No `Directory.Build.props` or project file sets `ArtifactsPath`, `BaseIntermediateOutputPath` or
+  `BaseOutputPath` (the lint gate's environment value loses to a value set in a project file).
+- Each configured gate command is exactly `dotnet build`, `dotnet test` or
+  `dotnet format --verify-no-changes`, optionally followed by one solution or project path, and
+  nothing else. Any other flag (`--no-build`, `--no-restore`, `-c Release`, …) or a wrapper script
+  means serial. The list is closed on purpose: a flag it does not name is never judged safe.
 
 ### A lock error is not automatically the user's environment
 

@@ -38,8 +38,9 @@ re-read your diff against it before you finish. Review with the `zion-review` sk
 - **Code comments**: explain *why*, in one or two lines. A longer rationale lives once, in
   `AGENTS.md`, and the comment points there. Never the same rationale in several files.
 - **Docs and PR bodies**: facts, not history. Before you add a paragraph, cut one.
-- **Fixes**: prefer removing code to adding a parser. A fix that grows a new edge case each round
-  is the wrong fix; stop and say so.
+- **Fixes**: prefer removing code to adding a parser. If a second review round finds new edge
+  cases of the mechanism you already patched, stop fixing instances and ask the operator: redesign,
+  or accept the gap and document it in AGENTS.md. (#224 went 100+ threads without this.)
 
 ## Rules for every plugin
 

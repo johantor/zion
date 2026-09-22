@@ -6,6 +6,13 @@ These instructions mirror how the Zion crew reviews code (`/crew:review` plus th
 
 The repo-specific checklist (coverage, guard hooks, prompts, release, tests) is the
 `code-review` skill in `.github/skills/code-review/SKILL.md`. Apply it together with this file.
+Three rules from it apply even if you cannot load it:
+
+- A bypass through a gap `AGENTS.md` documents ("The Bash guards are floors, not sandboxes") is
+  not a finding.
+- Findings with one root cause are one finding: report the cause, not each instance. A file
+  mirrored across plugins is one finding too.
+- On a re-review, review the new commits; raise an unchanged hunk only if it is Blocking.
 
 When asked to review changes in this repository, use this sequence:
 

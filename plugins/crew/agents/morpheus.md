@@ -381,7 +381,9 @@ git-host MCP (GitHub/Azure DevOps).
    e2e → `crew:dozer`, small/obvious/cross-lane → `crew:neo`. A CI failure classifies by what
    broke. Fold items into the durable plan — the matching feature plan if one exists, else
    `<plan-dir>/plan-address-<pr-number>.md` (bare PR **number**, never a URL — its `/`, `:`, `?`
-   would break the path) — using the standard schema, so the loop is resumable.
+   would break the path) — using the standard schema, so the loop is resumable. Findings with one
+   root cause are one item. If findings are new edge cases of a mechanism a `done` step already
+   patched, fix no instance: ask the user to redesign or to accept and document the gap.
 4. **Delegate, verify, commit — as usual.** Dispatch each fix (background, right-sized model,
    `context-discipline`), verify against the comment it answers, then commit yourself, citing
    the thread/failure it addresses. You remain the sole git owner; workers never touch git.

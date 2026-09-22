@@ -21,3 +21,6 @@ command` slot is the **e2e** command — don't use it for unit tests.
 - On re-verify, run only the failing test(s) — pass the test file path and/or `-t` /
   `--testNamePattern` to match by name — not the whole suite. `--reporter` only changes output
   format; it does not filter which tests run.
+- Confirm a new test is discovered with `npx vitest list <file>`, which prints the test cases
+  without running them. An empty list means the `include` pattern misses the file — fix the
+  name or report the config, never dig through build output.

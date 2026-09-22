@@ -78,6 +78,12 @@ Notes on reading a run:
   before any test runs — report it as a build failure.
 - Read the surefire/failsafe summary, not just the exit code, and report skipped counts rather
   than folding them into "green".
+- **There is no list-tests command.** Confirm a new test is discovered by running it targeted
+  (`-Dtest=FooTest` / `--tests 'com.example.FooTest'`) and reading its `Tests run:` line, or the
+  per-class report under `target/surefire-reports/` or `build/test-results/test/`. A class the
+  runner never mentions has a naming problem (the Surefire/Failsafe patterns above), a module
+  problem, or a missing engine dependency — check the build file; never inspect `target/classes`
+  or `build/classes` to look for it.
 
 Never make a test pass with `@Disabled`/`@Ignore`, and never weaken an assertion to whatever the
 code currently returns. If the production code is wrong, say so and hand it back.

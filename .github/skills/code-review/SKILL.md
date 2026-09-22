@@ -40,8 +40,9 @@ This file is the one rubric; Claude Code's `zion-review` skill loads it too.
   starts or quoted text is Blocking.
 - Probe changed patterns with: a second line, a backslash-newline, a quoted string, a heredoc,
   `;`/`&&`/`|`, an env prefix (`FOO=1`, `env`, `command`), `find -exec`, and `*` or `[` in a value.
-- Enforcing hooks fail closed (exit 2 on an unparsable payload); `turn-budget`,
-  `dispatch-denied` and `plan-guard` fail open.
+- `bash-safety`, `lane-guard` and `write-guard` fail closed (exit 2 without their library or
+  `jq`); `read-guard`, `format`, `turn-budget`, `dispatch-denied` and `plan-guard` fail open. A
+  change that flips a hook's direction is Blocking.
 - Match with `[[ =~ ]]` and parameter expansion, no fork per pattern. Quote expansions used as
   patterns (`${x#*"$m"}`). POSIX classes, no `\s` or `\b`, no GNU-only flags.
 - Crew is canonical. A plugin's roster rule lives below the shared `bash-safety.sh` region. Do

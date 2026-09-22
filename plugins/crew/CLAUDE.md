@@ -37,7 +37,8 @@ Conventions: [AGENTS.md](../../AGENTS.md).
     `frontendStack: none` is a stated absence: `morpheus` skips frontend, e2e and unit-tool
     resolution and dispatches only `tank`/`oracle`. That gate sits above the resolution table.
 - `hooks/` — wired in `hooks/hooks.json`, mirrored by the repo's `.claude/settings.json` (§7).
-  Enforcing guards fail closed; `turn-budget`, `dispatch-denied` and `plan-guard` fail open.
+  `bash-safety` and `lane-guard` fail closed; `read-guard`, `format`, `turn-budget`,
+  `dispatch-denied` and `plan-guard` fail open.
   - `bash-safety.sh`: workers never run git; protected-branch commit backstop; watch/dev
     commands refused; file-mutating Bash refused for agent sessions (in-place
     `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, a redirect to a non-exempt sink; #192).

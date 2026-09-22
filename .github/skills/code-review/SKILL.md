@@ -15,8 +15,8 @@ This file is the one rubric; Claude Code's `zion-review` skill loads it too.
   diff makes newly reachable: a new caller, a pattern now matched against a different input.
 - **Re-review after a push: review the new commits.** Raise an old, unchanged hunk only if it is
   Blocking. Never reopen a resolved thread with the same point reworded.
-- **One root cause, one finding.** When three or more findings share a cause (the same parser,
-  the same missing case), report the cause once as a design finding and stop listing instances.
+- **One root cause, one finding.** When findings share a cause (the same parser, the same
+  missing case), report the cause once as a design finding and stop listing instances.
 - **Mirrored files are one finding.** `hooks/lib/guard-lib.sh` and `read-guard.sh` are
   byte-identical across plugins; name every copy in one bullet.
 

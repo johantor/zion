@@ -10,8 +10,8 @@ skill adds only what a session with a shell can do.
 
 1. **Get the diff.** PR number: fetch it through the GitHub MCP tools. Otherwise diff the branch
    against `main`. List every changed file and hunk (rubric, "Scope").
-2. **Run every `run:` step in `.github/workflows/validate.yml`**, with `main` as the changelog
-   base. Name any you cannot run (a missing `shellcheck` or `npm`). A red check is Blocking.
+2. **Run every `run:` step in `.github/workflows/validate.yml`**, with the PR's base branch as
+   the changelog base (`main` when there is no PR). Name any you cannot run (a missing `shellcheck` or `npm`). A red check is Blocking.
 3. **Reproduce every hook finding.** Build the payload with the helpers in
    `tests/hooks/lib.sh` (`payload_bash`, `payload_file`, ...) and pipe it into the hook named in
    the finding. No wrong verdict, no Blocking finding.

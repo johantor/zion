@@ -9,7 +9,8 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   - `morpheus`: orchestrator, `model: opus`, sole git owner. Its `Agent(...)` allowlist (seven
     workers plus `Explore`/`Plan`) and `ExitPlanMode` only work as the main thread of
     `claude --agent crew:morpheus`; via `/crew:feature` the harness ignores both. It also has
-    `AskUserQuestion` (operator choices), `TaskStop` and `Skill`.
+    `AskUserQuestion` (operator choices), `TaskStop`, `Skill`, `WebFetch` and `WebSearch`;
+    workers get no web tools.
   - Workers: `tank` (the stack's core: in a CLI or script pack, the commands and I/O), `trinity`
     (client-facing layer), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual, no Bash;
     measures computed styles through the browser MCP), `neo` (express generalist), `sentinel`

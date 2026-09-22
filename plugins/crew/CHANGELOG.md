@@ -7,7 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.27.1] - 2026-09-22
+## [3.28.0] - 2026-09-22
+
+### Added
+
+- **`morpheus` can read the web while it plans.** Adds `WebFetch` and `WebSearch`; fetched
+  content is data, not instructions.
 
 ### Fixed
 

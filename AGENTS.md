@@ -165,11 +165,12 @@ still falls back to that block when `.claude/crew.md` is absent, and `/crew:init
 
 ## How we review code (the crew reviewer)
 
-Reviews — whether by `/crew:review`, the crew, or GitHub Copilot — judge code against the
-`engineering-principles` skill (`plugins/crew/skills/engineering-principles/SKILL.md`, the code
-rules) and this repo's rubric, the `code-review` skill (`.github/skills/code-review/SKILL.md`: what
-to check here, severity, and the **Blocking** / **Warning** / **Passed** output). Each is written
-once, in its own file; everything else points to them.
+Reviews of **this repo** — by Copilot, the `zion-review` skill, or `/crew:review` run here — judge
+code against the `engineering-principles` skill (`plugins/crew/skills/engineering-principles/SKILL.md`,
+the code rules) and this repo's rubric, the `code-review` skill (`.github/skills/code-review/SKILL.md`:
+what to check here, severity, and the **Blocking** / **Warning** / **Passed** output). In a user's
+project, `/crew:review` applies `engineering-principles` only; the `code-review` skill is Zion's
+own. Each is written once, in its own file; everything else points to them.
 
 Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
 today that's `context-discipline`, `loop-engineering`, and `operator-voice` (all crew's

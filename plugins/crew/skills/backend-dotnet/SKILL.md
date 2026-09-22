@@ -54,11 +54,14 @@ session and the second run is incremental.
 Use the recipe only when **all** of these hold; otherwise run the gates one at a time:
 
 - The SDK is 8.0 or newer.
-- This session's **tree check** passed. A repo property (`UseArtifactsOutput=false`,
-  `BaseIntermediateOutputPath`, `MSBuildProjectExtensionsPath`, …) can send outputs back into
-  the tree, and no list of such properties is complete, so check the result instead: the first
-  time, run the gates one at a time on their paths, touching a marker file before the first.
-  The check passes when no file in the repo outside `.git` is newer than the marker.
+- The **tree check** has passed this session and not failed since. A repo property
+  (`UseArtifactsOutput=false`, `BaseIntermediateOutputPath`, `MSBuildProjectExtensionsPath`, …)
+  can send outputs back into the tree, and no list of such properties is complete, so check the
+  result on **every** run: touch a marker file first, and afterwards confirm that no file in the
+  repo outside `.git` is newer than it. The session's first run is serial. A parallel run that
+  fails the check proves nothing: discard its results, rerun the gates one at a time, stay serial
+  for the rest of the session, and report the new files without deleting them (they may be the
+  developer's).
 - Each configured gate command is exactly `dotnet build`, `dotnet test` or
   `dotnet format --verify-no-changes`, optionally followed by one solution or project path, and
   nothing else. Any other flag (`--no-build`, `--no-restore`, `-c Release`, …) or a wrapper script

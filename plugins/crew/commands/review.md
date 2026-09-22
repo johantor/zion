@@ -78,9 +78,11 @@ frontend build, e2e run and lint can share one bundler cache. So run a lane's ga
 time**, unless the lane's stack skill has a **Parallel gates** recipe (today only
 `backend-dotnet`) **and** you have checked, before launching any gate, that every resolved gate
 command is on the recipe's allow-list (for .NET: a plain `dotnet build`, `dotnet test` or
-`dotnet format --verify-no-changes`, no other flags) **and** the recipe's tree check passed
-earlier this session. The first run in a session is that check: gates one at a time on their
-paths; record the result beside the gate's SHA. If any check fails or can't be made, stay serial. Otherwise dispatch them together and put each gate's own
+`dotnet format --verify-no-changes`, no other flags) **and** the recipe's tree check has passed
+this session and not failed since. The first run in a session is serial; every run, serial or
+parallel, carries the check, and a parallel run that fails it is discarded and rerun serially,
+leaving the lane serial for the session. Record the result beside the gate's SHA. If any check
+fails or can't be made, stay serial. Otherwise dispatch them together and put each gate's own
 `<location>/<lane>/<gate>` path and the recipe's exact flags in its handoff, `oracle`'s test gate
 included: a worker that did not load the stack skill cannot derive them (`morpheus` §*One build
 location, one build writer at a time*). Two lanes writing different outputs still run concurrently.

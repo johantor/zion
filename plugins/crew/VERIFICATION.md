@@ -69,7 +69,8 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   and lint → the session's first run is serial and passes the tree check; the next run dispatches
   the three together, each handoff (`oracle`'s too) naming its own `<location>/backend/<gate>`
   path. A repo whose `Directory.Build.props` sets `UseArtifactsOutput=false` fails the check and
-  stays serial.
+  stays serial; adding that file after a passing first run makes the next parallel run fail the
+  check, get discarded and rerun serially.
 - [ ] **One build writer at a time elsewhere** — a Node or Java diff that triggers build, tests
   and lint → the three run one after another (no Parallel gates recipe for that stack).
 - [ ] **A collision is not the operator's environment** — a lock/corrupt-`obj/` failure while two

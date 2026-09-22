@@ -75,9 +75,17 @@ steered mid-run and can tell your message from one injected by the output it's r
 **Independent of each other is not independent of the build outputs.** Same-lane gates write the
 same build location: gates 1-3 all compile the backend (a test or lint run builds too), and a
 frontend build, e2e run and lint can share one bundler cache. So run a lane's gates **one at a
-time**, or give each its own intermediate/output path (`morpheus` §*One build location, one build
-writer at a time*; `backend-dotnet` names the .NET knobs). Two lanes writing different outputs
-still run concurrently.
+time**, unless the lane's stack skill has a **Parallel gates** recipe (today only
+`backend-dotnet`) **and** you have checked, before launching any gate, that every resolved gate
+command is on the recipe's allow-list (for .NET: a plain `dotnet build`, `dotnet test` or
+`dotnet format --verify-no-changes`, no other flags) **and** the recipe's tree check has passed
+this session and not failed since. The first run in a session is serial; every run, serial or
+parallel, carries the check, and a parallel run that fails it is discarded and rerun serially,
+leaving the lane serial for the session. Record the result beside the gate's SHA. If any check
+fails or can't be made, stay serial. Otherwise dispatch them together and put each gate's own
+`<location>/<lane>/<gate>` path and the recipe's exact flags in its handoff, `oracle`'s test gate
+included: a worker that did not load the stack skill cannot derive them (`morpheus` §*One build
+location, one build writer at a time*). Two lanes writing different outputs still run concurrently.
 
 1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
 2. **Build** — delegate each changed lane's build to its owner, both isolated from any running app/dev process and in the session's dedicated build location, surfacing errors with file:line (not the raw log):

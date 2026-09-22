@@ -94,7 +94,7 @@ Conventions: [AGENTS.md](../../AGENTS.md).
   (`morpheus`) owns git, and `bash-safety.sh`'s `git_owner=` names it.
 - `omitClaudeMd: true` only on `sentinel` and `seraph` (read-only, fully briefed). Never on an
   implementer: the project's `CLAUDE.md` holds its conventions.
-- `morpheus` has `loaded-lines-cap: 575`, 3 lines of slack; a keymaker edit to a shared skill
+- `morpheus` has `loaded-lines-cap: 575`, 1 line of slack; a keymaker edit to a shared skill
   counts against it too.
 
 ## Gotchas

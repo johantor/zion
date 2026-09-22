@@ -242,6 +242,14 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 
 ### crew:morpheus
 
+- **Gates run serially unless a stack proves a split.** Parallel gates need every writer on its
+  own path, and each tool splits differently (per-project `obj/` in .NET, `.tsbuildinfo` and
+  `.eslintcache` in Node, no knob in Maven/Gradle). A generic "split the path" rule drew a review
+  finding per tool in #232, so a stack earns parallel gates only with a **Parallel gates** recipe in
+  its skill that was run for real. .NET has one (`--artifacts-path`, checked on SDK 8.0). Its
+  guards are closed checks, not lists: an allow-list of gate commands, and a tree check on every
+  run (no file newer than a marker), because any repo property can move outputs and the repo can
+  change mid-session. A failed parallel run is discarded and rerun serially.
 - **Right-size the process.** A one-line fix shouldn't have to pay for a plan file, a
   checkpoint, and a full review gate — hence the express lane. The reverse bias matters just as
   much: a wrong small fix costs more than the escalation would have, which is why the rule is

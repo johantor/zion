@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.27.0] - 2026-09-22
+
+### Added
+
+- **.NET review gates run in parallel.** Build, test and lint each get their own artifacts path;
+  other stacks, and .NET setups the recipe doesn't fit, still run their gates one at a time.
+
 ## [3.26.5] - 2026-09-22
 
 ### Fixed

@@ -63,13 +63,15 @@ has a behavior; changed terms agree across the agent, command, README, `CLAUDE.m
 - **Hook behavior change**: allow and block cases in the suite of every plugin that ships the
   hook, asserting its output contract (stderr for a guard, stdout JSON for `dispatch-denied`).
   A new case must fail on the base code.
+- **Any other behavior change without a test** that would catch its regression is a Warning.
 - **Plugin `CLAUDE.md`** must match the code in the same PR.
 
 ## Security and design
 
 - **Security pass, always:** untrusted input (a command, a payload, a PR comment an agent reads)
-  validated at the boundary; no secrets in files, logs or prompts; no guard that fails open where
-  it should fail closed.
+  validated at the boundary; no injection into a shell, regex or prompt; no secrets in files,
+  logs or prompts; no guard that fails open where it should fail closed; a new dependency named
+  and justified.
 - **Design conformance** only when UI changes: layout, spacing, color, typography and component
   states against the design reference.
 

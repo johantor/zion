@@ -26,10 +26,10 @@ docs, and commit messages keep the repo's own voice.
 
 ## Engineering rules
 
-Every change here follows the crew's own rubric,
-[`engineering-principles`](plugins/crew/skills/engineering-principles/SKILL.md): match the repo,
-YAGNI, KISS, minimal-scope diffs, reach for new code last. Read it before you write code, and
-re-read your diff against it before you finish. Review with the `zion-review` skill.
+Every change here follows
+[`engineering-principles`](plugins/crew/skills/engineering-principles/SKILL.md). Read it before
+you write code, and re-read your diff against it before you finish. Review with the `zion-review`
+skill.
 
 ## Brevity
 

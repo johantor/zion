@@ -28,7 +28,8 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   - Shared with keymaker: `context-discipline`, `loop-engineering`, `operator-voice`
     (ASD-STE-100, preloaded by the two orchestrators; operator messages only, never plans,
     ledgers or commits).
-  - Crew-only: `engineering-principles` (the review rubric), and the preloads
+  - Crew-only: `engineering-principles` (the code rules `/crew:review` grades a user's project
+    against; this repo's own review rubric is `.github/skills/code-review`), and the preloads
     `mid-run-direction` (all seven workers, not `morpheus`) and `design-tokens` (`seraph`).
   - Loaded once resolved: frontend mode, stack and test-tool skills. Backends `backend-dotnet`
     (+ `cms-optimizely`), `-node`, `-python`, `-go`, `-rust`, `-java`, `-shell`, each paired with

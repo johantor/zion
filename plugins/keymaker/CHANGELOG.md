@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-09-22
+
+### Fixed
+
+- `git mv` now stops reading operands at a real line break, so a second-line `--force` command no
+  longer looks like a forced rename.
+
 ## [0.9.3] - 2026-09-22
 
 ### Fixed

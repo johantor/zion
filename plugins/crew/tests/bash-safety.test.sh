@@ -193,6 +193,7 @@ assert_allow "morpheus two git mvs on two lines"   "$HOOK" "$(payload_bash "git 
 assert_allow "morpheus git mv on an indented line" "$HOOK" "$(payload_bash "cd src${nl}  git -C . mv a b" morpheus)"
 assert_block "forced git mv on a second line"      "$HOOK" "$(payload_bash "git mv a b${nl}git mv -f c d" morpheus)" "$force"
 assert_block "bare mv on a second line"            "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" morpheus)"        "$gap"
+assert_allow "second-line echo --force after git mv" "$HOOK" "$(payload_bash "git mv a b${nl}echo --force" morpheus)"
 assert_block "git and mv on separate lines"        "$HOOK" "$(payload_bash "git${nl}mv a b" morpheus)"                "$gap"
 assert_block "git -C dir and mv on separate lines" "$HOOK" "$(payload_bash "git -C src${nl}mv a b" morpheus)"         "$gap"
 # The floor does not decide WHOSE rename it is: with keymaker installed too, both

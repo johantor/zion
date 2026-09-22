@@ -344,7 +344,8 @@ GUARD_GIT_MV_MASK='@gitmv@'
 # `sed -i`; the redirect scan reads the quote-masked copy, where a quoted `>` is
 # no longer an operator.
 guard_block_file_writes() {
-  local cmd rest target what m ops
+  local cmd rest target what m ops line_end
+  line_end=$'\n'
   cmd="$guard_cmd_raw"
   while [[ $cmd =~ $GUARD_RE_GIT_MV ]]; do
     m="${BASH_REMATCH[0]}"
@@ -355,7 +356,7 @@ guard_block_file_writes() {
     # redirect scan: unquoted it would be a glob, and a `*` or `[` in a flag
     # value (`git -C "*" mv`) or an operand would widen the match and mask what
     # follows.
-    ops="${cmd#*"$m"}"; ops="${ops%%[;|&$'\n']*}"; ops="${ops//[\'\"]/}"
+    ops="${cmd#*"$m"}"; ops="${ops%%[;|&"$line_end"]*}"; ops="${ops//[\'\"]/}"
     if [[ $ops =~ $GUARD_RE_GIT_MV_FORCE ]]; then
       echo "Blocked: git mv -f/--force can overwrite an existing path, which is a write. Rename without it; if the destination exists, move or remove it as its own step first." >&2
       exit 2

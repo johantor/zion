@@ -62,6 +62,7 @@ assert_allow "another plugin's git owner may git mv" "$HOOK" "$(payload_bash 'gi
 assert_block "keymaker git mv -f"        "$HOOK" "$(payload_bash 'git mv -f src/a.ts src/b.ts' keymaker)" "git mv -f/--force can overwrite"
 assert_block "keymaker bare mv"          "$HOOK" "$(payload_bash 'mv src/a.ts src/b.ts' keymaker)"        "reaches no Edit|Write hook"
 assert_block "bare mv on a second line"  "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" keymaker)"       "reaches no Edit|Write hook"
+assert_allow "second-line echo --force after git mv" "$HOOK" "$(payload_bash "git mv a b${nl}echo --force" keymaker)"
 assert_block "twin git mv names the owner" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' twin)"      "keymaker owns git"
 # The hand-back reads the flattened command, so a line of data is never refused.
 assert_allow "twin prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" twin)"

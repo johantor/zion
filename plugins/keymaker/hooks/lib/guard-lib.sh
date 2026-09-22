@@ -76,14 +76,15 @@ guard_jq2() {
 # to a space, so a multi-line command cannot slip a clause past the single-line
 # patterns below. The text as typed is kept in $guard_cmd_raw for the one pattern
 # that must see a line start, GUARD_RE_GIT_MV -- an allowance, where a newline
-# read as a separator cannot refuse anything.
+# read as a separator cannot refuse anything. A backslash-newline is joined there
+# as bash joins it, so `git mv \` + newline + `-f a b` still shows its `-f`.
 #
 # KNOWN GAP, deliberately left open: flattening welds a later line onto the
 # previous command's operands, so a command-position anchor sees only the first
 # command. Separating on the newline instead needs to tell data from syntax and
 # was tried three ways in #226. See AGENTS.md, "The Bash guards are floors, not
 # sandboxes".
-guard_normalize() { guard_cmd_raw="$1"; guard_cmd="${1//$'\n'/ }"; }
+guard_normalize() { guard_cmd_raw="${1//\\$'\n'/ }"; guard_cmd="${1//$'\n'/ }"; }
 
 # ------------------------------------------------- command-shape patterns
 
@@ -303,34 +304,6 @@ guard_mask_quotes() {
   done
 }
 
-# A heredoc operator and its delimiter word; not `<<<`, not `$((1<<2))`.
-GUARD_RE_HEREDOC='(^|[^<])<<(-?)[[:blank:]]*\\?['\''"]?([A-Za-z_][A-Za-z0-9_.-]*)'
-
-# guard_mask_data <cmd> -- sets $guard_masked to <cmd> with heredoc bodies blanked
-# and quoted spans masked. Not a tokenizer: a mis-parse masks more, never less.
-guard_mask_data() {
-  local line cmp out='' nl=$'\n' tab=$'\t' rest
-  local -a delims=() strips=()
-  while IFS= read -r line; do
-    if [ "${#delims[@]}" -gt 0 ]; then
-      cmp="$line"
-      [ "${strips[0]}" = - ] && cmp="${cmp#"${cmp%%[!"$tab"]*}"}"
-      if [ "$cmp" = "${delims[0]}" ]; then
-        delims=("${delims[@]:1}"); strips=("${strips[@]:1}")
-      fi
-      out+="$nl"
-      continue
-    fi
-    out+="$line$nl"
-    rest="$line"
-    while [[ $rest =~ $GUARD_RE_HEREDOC ]]; do
-      strips+=("${BASH_REMATCH[2]}"); delims+=("${BASH_REMATCH[3]}")
-      rest="${rest#*"${BASH_REMATCH[0]}"}"
-    done
-  done <<<"$1"
-  guard_mask_quotes "${out%"$nl"}"
-}
-
 # guard_write_refuse <what> -- the one message both halves below report with.
 guard_write_refuse() {
   echo "Blocked: $1 writes a file from Bash, which reaches no Edit|Write hook — write lanes and formatting are wired to Edit/Write, so the write would land unguarded. Use Edit/Write for files in the checkout; send scratch output under /tmp." >&2
@@ -416,13 +389,13 @@ guard_block_file_writes() {
 # guard_block_git_mv_handback <git_owner> -- for a plugin's own agent that does
 # not own git: refuse a `git mv` naming whose rename it is and what to hand back,
 # rather than the generic write message that sends the agent looking for a
-# synonym. Uses the pattern the floor masks with, on $guard_cmd_raw with its data
-# masked (see AGENTS.md). Called below the shared region, so a plugin only ever
-# answers for its own roster; a forced `git mv` never reaches it, the floor having
-# refused that already.
+# synonym. A refusal, so it reads the flattened $guard_cmd like every other
+# refusal: a `git mv` on a later line is the newline gap in guard_normalize, not
+# caught here. Called below the shared region, so a plugin only ever answers for
+# its own roster; a forced `git mv` never reaches it, the floor having refused
+# that already.
 guard_block_git_mv_handback() {
-  guard_mask_data "$guard_cmd_raw"
-  [[ $guard_masked =~ $GUARD_RE_GIT_MV ]] || return 0
+  [[ $guard_cmd =~ $GUARD_RE_GIT_MV ]] || return 0
   echo "Blocked: git mv is a git operation — ${1} owns git, and a rename is recorded in its commit. Hand the rename back: name the exact \`git mv <from> <to>\` in your result and stop; do not recreate the file under the new path." >&2
   exit 2
 }

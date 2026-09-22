@@ -760,9 +760,9 @@ a plain `git mv` and each plugin refuses its own non-owners' below the shared re
 (`guard_block_git_mv_handback`), naming the agent to hand the rename to. A rule about a plugin's
 roster belongs beside that roster, never in the region both plugins share.
 
-The hand-back is a *refusal* on the same line starts, so it matches only after
-`guard_mask_data` masks heredoc bodies and quoted spans: a `git mv` written as text is not a rename.
-A mis-parse masks too much, so it can miss a rename but never refuse data.
+The hand-back is a *refusal*, so it reads the flattened command like the other refusals: a
+worker's `git mv` on a later line is the newline gap above, not handed back. Masking heredocs and
+quotes to close that gap was tried in #231 and reverted: each parse rule opened a new edge case.
 
 ## Recurring review findings — apply proactively
 

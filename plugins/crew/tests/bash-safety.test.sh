@@ -199,18 +199,15 @@ assert_block "git -C dir and mv on separate lines" "$HOOK" "$(payload_bash "git 
 # guards fire on every Bash call, and this one must not refuse keymaker's owner.
 assert_allow "another plugin's git owner may git mv" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' keymaker)"
 # A worker is told whose the rename is and what to hand back, rather than the
-# generic write message that sends it looking for a synonym -- on any line.
+# generic write message that sends it looking for a synonym.
 assert_block "tank git mv names the owner"      "$HOOK" "$(payload_bash 'git mv a b' tank)" "morpheus owns git"
 assert_block "tank git mv says hand it back"    "$HOOK" "$(payload_bash 'git mv a b' tank)" "Hand the rename back"
-assert_block "tank git mv on a second line"     "$HOOK" "$(payload_bash "cd src${nl}git mv a b" tank)" "morpheus owns git"
 assert_block "tank git mv -f is a write first"  "$HOOK" "$(payload_bash 'git mv -f a b' tank)" "$force"
-# A `git mv` in a quoted string or heredoc body is data; one after it is not.
+# The hand-back reads the flattened command, so a line of data is never refused.
 assert_allow "tank prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" tank)"
 assert_allow "tank writes a git mv in a heredoc"       "$HOOK" "$(payload_bash "cat > /tmp/notes <<EOF${nl}git mv a b${nl}EOF" tank)"
-assert_block "tank git mv after a heredoc"             "$HOOK" "$(payload_bash "cat > /tmp/notes <<'EOF'${nl}don't${nl}EOF${nl}git mv a b" tank)" "morpheus owns git"
-assert_block "tank git mv after a tab-stripped heredoc" "$HOOK" "$(payload_bash "cat > /tmp/notes <<-EOF${nl}	git mv a b${nl}	EOF${nl}git mv c d" tank)" "morpheus owns git"
-assert_block "tank git mv after a here-string"         "$HOOK" "$(payload_bash "cat <<< x${nl}git mv a b" tank)" "morpheus owns git"
-assert_block "tank git mv after an arithmetic shift"   "$HOOK" "$(payload_bash "echo \$((1<<2))${nl}git mv a b" tank)" "morpheus owns git"
+# A backslash-newline is joined before the force check, as bash joins it.
+assert_block "git mv -f after a line continuation" "$HOOK" "$(payload_bash "git mv \\${nl}-f a b" morpheus)" "$force"
 # Exempt sinks and read-only uses of the same tools stay allowed: a guard that
 # blocked `> /dev/null` would just be routed around.
 assert_allow "redirect to /dev/null"  "$HOOK" "$(payload_bash 'dotnet build > /dev/null' tank)"

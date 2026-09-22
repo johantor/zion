@@ -131,7 +131,8 @@ GUARD_RE_GIT_COMMIT="${_g_cmdpos}${_g_pfx}"'git[[:space:]]+'"${_g_gitopt}"'commi
 # plain <dir> and no separator, substitution, redirect, escape or newline after
 # it. Matched against $guard_cmd_raw; <dir> is group 2 or 3.
 _g_litdir='([A-Za-z0-9._/-]+)'
-GUARD_RE_COMMIT_IN_DIR='^[[:blank:]]*(git[[:blank:]]+-C[[:blank:]]+'"$_g_litdir"'[[:blank:]]+commit|cd[[:blank:]]+'"$_g_litdir"'[[:blank:]]*&&[[:blank:]]*git[[:blank:]]+commit)([[:blank:]][^;&|`$()<>\\'$'\n'']*)?$'
+_g_plain_tail=$'([[:blank:]][^;&|`$()<>\\\\\n]*)?$'
+GUARD_RE_COMMIT_IN_DIR='^[[:blank:]]*(git[[:blank:]]+-C[[:blank:]]+'"$_g_litdir"'[[:blank:]]+commit|cd[[:blank:]]+'"$_g_litdir"'[[:blank:]]*&&[[:blank:]]*git[[:blank:]]+commit)'"$_g_plain_tail"
 # `git mv` at a command position, with at least one operand after it. Alone among
 # the patterns it is matched against $guard_cmd_raw, and a line start counts as a
 # command position. It can afford to: the match is an ALLOWANCE (the token is

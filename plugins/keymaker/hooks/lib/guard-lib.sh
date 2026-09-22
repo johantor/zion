@@ -195,7 +195,7 @@ GUARD_RE_CAT="${_g_cmdpos}${_g_pfx}"'cat[[:space:]]+[^|><;&]+([[:space:]]*($|[;&
 # and `--expression` cannot match the short form because [A-Za-z] does not cross
 # the second dash. Destinations are deliberately not analysed: `cp`/`mv` are
 # refused outright, one rule instead of an operand table per command. The one
-# carve-out is `git mv` for the plugin's git owner -- a rename, not a write; see
+# carve-out is a plain `git mv`, for any agent -- a rename, not a write; see
 # guard_block_file_writes.
 _g_anypos='(^|[[:space:];|&(])'
 GUARD_RE_WRITE_CMD="${_g_anypos}"'(tee|patch|cp|mv)([[:space:]]|$)'"|${_g_anypos}"'(sed|perl|ruby|awk|gawk)[[:space:]]+([^;|&]*[[:space:]])?(-[A-Za-z]*i([[:space:]]|[.=]|$)|--in-place)'
@@ -303,6 +303,44 @@ guard_mask_quotes() {
   done
 }
 
+# A heredoc operator and its delimiter word: `<<EOF`, `<<-EOF`, `<< 'EOF'`,
+# `<<"EOF"`, `<<\EOF`. The character before must not be `<`, so a `<<<` here-string
+# is not read as one; the word must start with a letter or `_`, so a shift in
+# arithmetic (`$((1<<2))`) is not either.
+GUARD_RE_HEREDOC='(^|[^<])<<(-?)[[:blank:]]*\\?['\''"]?([A-Za-z_][A-Za-z0-9_.-]*)'
+
+# guard_mask_data <cmd> -- sets $guard_masked to <cmd> with its data taken out:
+# every heredoc body blanked line for line, then every quoted span masked as in
+# guard_mask_quotes. For a REFUSAL that reads line starts, where a newline that is
+# data must not count as a separator (see guard_block_git_mv_handback).
+#
+# Not a tokenizer, and it errs the other way from guard_mask_quotes' callers: a
+# `<<` inside a quoted string still opens a heredoc here, and a heredoc with no
+# closing line runs to the end, as bash reads it. Each mis-parse masks MORE, so a
+# refusal fed the result can miss a command, never refuse data.
+guard_mask_data() {
+  local line cmp out='' nl=$'\n' tab=$'\t' rest
+  local -a delims=() strips=()
+  while IFS= read -r line; do
+    if [ "${#delims[@]}" -gt 0 ]; then
+      cmp="$line"
+      [ "${strips[0]}" = - ] && cmp="${cmp#"${cmp%%[!"$tab"]*}"}"
+      if [ "$cmp" = "${delims[0]}" ]; then
+        delims=("${delims[@]:1}"); strips=("${strips[@]:1}")
+      fi
+      out+="$nl"
+      continue
+    fi
+    out+="$line$nl"
+    rest="$line"
+    while [[ $rest =~ $GUARD_RE_HEREDOC ]]; do
+      strips+=("${BASH_REMATCH[2]}"); delims+=("${BASH_REMATCH[3]}")
+      rest="${rest#*"${BASH_REMATCH[0]}"}"
+    done
+  done <<<"$1"
+  guard_mask_quotes "${out%"$nl"}"
+}
+
 # guard_write_refuse <what> -- the one message both halves below report with.
 guard_write_refuse() {
   echo "Blocked: $1 writes a file from Bash, which reaches no Edit|Write hook — write lanes and formatting are wired to Edit/Write, so the write would land unguarded. Use Edit/Write for files in the checkout; send scratch output under /tmp." >&2
@@ -388,12 +426,16 @@ guard_block_file_writes() {
 # guard_block_git_mv_handback <git_owner> -- for a plugin's own agent that does
 # not own git: refuse a `git mv` naming whose rename it is and what to hand back,
 # rather than the generic write message that sends the agent looking for a
-# synonym. Reads $guard_cmd_raw with the pattern the floor masks with, so the
-# shapes the owner may run are exactly the ones refused here. Called below the
-# shared region, so a plugin only ever answers for its own roster; a forced
-# `git mv` never reaches it, the floor having refused that already.
+# synonym. Uses the pattern the floor masks with, so the shapes the owner may run
+# are the ones refused here -- but matched against $guard_cmd_raw with its data
+# masked (guard_mask_data). This is a refusal that reads line starts, so a newline
+# inside a quoted string or a heredoc body must not count: a worker that prints
+# `git mv a b` as text, or writes it to a scratch file, is not renaming anything.
+# Called below the shared region, so a plugin only ever answers for its own
+# roster; a forced `git mv` never reaches it, the floor having refused that already.
 guard_block_git_mv_handback() {
-  [[ $guard_cmd_raw =~ $GUARD_RE_GIT_MV ]] || return 0
+  guard_mask_data "$guard_cmd_raw"
+  [[ $guard_masked =~ $GUARD_RE_GIT_MV ]] || return 0
   echo "Blocked: git mv is a git operation — ${1} owns git, and a rename is recorded in its commit. Hand the rename back: name the exact \`git mv <from> <to>\` in your result and stop; do not recreate the file under the new path." >&2
   exit 2
 }

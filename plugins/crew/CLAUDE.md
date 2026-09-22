@@ -64,7 +64,9 @@ anything stated here updates this file in the same commit.** Conventions live in
   -f`/`--force` stays refused because it can clobber, and bare `mv`/`cp` stay refused for
   everyone. The floor lets *any* agent run it — *whose* rename it is belongs to each plugin, below
   the shared region: crew's no-git arm calls `guard_block_git_mv_handback "$git_owner"`, so a
-  worker's `git mv` is answered with whose the rename is and what to hand back. The floor used to
+  worker's `git mv` is answered with whose the rename is and what to hand back — matched with
+  heredoc bodies and quoted spans masked (`guard_mask_data`), since a refusal must not read a
+  line of data as a command. The floor used to
   refuse every agent but the plugin's own owner, and with keymaker installed too its hook then
   refused `morpheus` (keymaker owns git, it said). The hook names the owner in a
   `git_owner=morpheus` line above the shared region; validator §9 pins that line to the

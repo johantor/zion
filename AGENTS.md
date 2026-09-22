@@ -760,6 +760,12 @@ a plain `git mv` and each plugin refuses its own non-owners' below the shared re
 (`guard_block_git_mv_handback`), naming the agent to hand the rename to. A rule about a plugin's
 roster belongs beside that roster, never in the region both plugins share.
 
+That hand-back is a *refusal* reading the same line starts, so the asymmetry turns on it: it
+matches the raw command with its data masked first (`guard_mask_data` blanks heredoc bodies, then
+masks quoted spans), or a worker writing `git mv a b` into a scratch-file heredoc would be told to
+hand back a rename it never ran. The masking is no tokenizer, and it errs toward masking too much,
+so a mis-parse can let a worker's rename pass, never refuse data.
+
 ## Recurring review findings — apply proactively
 
 Patterns that showed up more than once in review feedback on this repo. Apply these up front

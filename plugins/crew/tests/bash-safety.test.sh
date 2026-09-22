@@ -204,6 +204,16 @@ assert_block "tank git mv names the owner"      "$HOOK" "$(payload_bash 'git mv 
 assert_block "tank git mv says hand it back"    "$HOOK" "$(payload_bash 'git mv a b' tank)" "Hand the rename back"
 assert_block "tank git mv on a second line"     "$HOOK" "$(payload_bash "cd src${nl}git mv a b" tank)" "morpheus owns git"
 assert_block "tank git mv -f is a write first"  "$HOOK" "$(payload_bash 'git mv -f a b' tank)" "$force"
+# The hand-back is a refusal that reads line starts, so a line inside a quoted
+# string or a heredoc body is data, not a command: printing a rename as text, or
+# writing it to a scratch file, renames nothing. A real `git mv` after the body,
+# or after a `<<<` here-string or an arithmetic shift, is still handed back.
+assert_allow "tank prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" tank)"
+assert_allow "tank writes a git mv in a heredoc"       "$HOOK" "$(payload_bash "cat > /tmp/notes <<EOF${nl}git mv a b${nl}EOF" tank)"
+assert_block "tank git mv after a heredoc"             "$HOOK" "$(payload_bash "cat > /tmp/notes <<'EOF'${nl}don't${nl}EOF${nl}git mv a b" tank)" "morpheus owns git"
+assert_block "tank git mv after a tab-stripped heredoc" "$HOOK" "$(payload_bash "cat > /tmp/notes <<-EOF${nl}	git mv a b${nl}	EOF${nl}git mv c d" tank)" "morpheus owns git"
+assert_block "tank git mv after a here-string"         "$HOOK" "$(payload_bash "cat <<< x${nl}git mv a b" tank)" "morpheus owns git"
+assert_block "tank git mv after an arithmetic shift"   "$HOOK" "$(payload_bash "echo \$((1<<2))${nl}git mv a b" tank)" "morpheus owns git"
 # Exempt sinks and read-only uses of the same tools stay allowed: a guard that
 # blocked `> /dev/null` would just be routed around.
 assert_allow "redirect to /dev/null"  "$HOOK" "$(payload_bash 'dotnet build > /dev/null' tank)"

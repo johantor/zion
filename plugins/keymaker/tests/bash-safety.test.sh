@@ -64,6 +64,10 @@ assert_block "keymaker bare mv"          "$HOOK" "$(payload_bash 'mv src/a.ts sr
 assert_block "bare mv on a second line"  "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" keymaker)"       "reaches no Edit|Write hook"
 assert_block "twin git mv names the owner" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' twin)"      "keymaker owns git"
 assert_block "twin git mv on a second line" "$HOOK" "$(payload_bash "cd src${nl}git mv a.ts b.ts" twin)"   "keymaker owns git"
+# A line inside a quoted string or a heredoc body is data, not a command.
+assert_allow "twin prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" twin)"
+assert_allow "twin writes a git mv in a heredoc"       "$HOOK" "$(payload_bash "cat > /tmp/notes <<EOF${nl}git mv a b${nl}EOF" twin)"
+assert_block "twin git mv after a heredoc"             "$HOOK" "$(payload_bash "cat > /tmp/notes <<EOF${nl}x${nl}EOF${nl}git mv a b" twin)" "keymaker owns git"
 
 # Raw/streaming reads. A habit redirect, not a boundary: `grep . f` dumps the
 # same file and is deliberately allowed, so these pin the habit and the escapes,

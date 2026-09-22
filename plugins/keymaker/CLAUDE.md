@@ -31,7 +31,8 @@ anything stated here updates this file in the same commit.** Conventions live in
   and bare `mv`/`cp` stay refused; a `git mv` on a later line of the call counts, the pattern
   reading the raw command). Whose rename it is stays this plugin's rule, below the region: the
   twin block calls `guard_block_git_mv_handback "$git_owner"`, with `git_owner=keymaker` named
-  above the region, so a twin's `git mv` is told to hand the rename back — and crew's `morpheus`,
+  above the region, so a twin's `git mv` is told to hand the rename back (a `git mv` inside a
+  quoted string or a heredoc body is data and is not refused) — and crew's `morpheus`,
   which this hook also sees when both plugins are installed, is not refused. No `scripts/`
   dir: the validator is repo tooling at `scripts/validate-plugin.sh` and covers this plugin too.
 - `tests/` — this plugin's hook test cases (`bash-safety`, `read-guard`, `write-guard`), run by

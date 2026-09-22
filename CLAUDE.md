@@ -44,35 +44,17 @@ re-read your diff against it before you finish. Review with the `zion-review` sk
 
 ## Rules for every plugin
 
-Plugin `CLAUDE.md` files hold only what differs per plugin. The `§` numbers are sections of
-`scripts/validate-plugin.sh`, repo tooling that checks every plugin: marketplace sync §2f,
-`skills:` resolution §2g, `[Unreleased]` slot §2i, skill sync §4, hook sync §5, wiring §6, hook
-mirror §7, turn-budget §8, rosters §9, prose refs §10, `crew.md` keys §11, footprint §12, MCP
-pairs §13. Beside it: `check-changelog.sh` (needs a base ref) and `release-notes.sh`.
+The rules live once, in [AGENTS.md](AGENTS.md); plugin `CLAUDE.md` files hold only what differs
+per plugin. Read the section before you touch its area:
 
-- **Validate** as CI does: run each `run:` step in `.github/workflows/validate.yml` (CI covers
-  `shellcheck` or `npm` if missing locally). Stage new or renamed skill files first: §2g/§4
-  index through `git ls-files`.
-- **Crew is canonical for shared files.** Shared skills (`context-discipline`,
-  `loop-engineering`, `operator-voice`) are byte-identical (§4). `hooks/read-guard.sh` and
-  `hooks/lib/guard-lib.sh` are byte-identical, and the marked `bash-safety.sh` region matches
-  (§5). Edit crew, then mirror. Shared logic goes in `guard-lib.sh`, not a wider region.
-- **Hooks**: top-level `hooks/*.sh` are executable and wired; `hooks/lib/*.sh` are neither
-  (§3/§6). Match with `=~` and parameter expansion, no fork per pattern; POSIX patterns. Guard
-  scope and open gaps: AGENTS.md, "The Bash guards are floors, not sandboxes".
-- **Tests** live in `plugins/<name>/tests/`, run by `tests/hooks/run.sh`, which fails if a plugin
-  has `hooks/` and no suite. A hook logic change adds allow and block cases. Not shipped.
-- **Agents**: `skills:` is the last frontmatter key (§2g). MCP grants come in pairs,
-  `mcp__<key>` and `mcp__plugin_<plugin>_<key>`, paired by server suffix (§13); hosted
-  connectors are exempt via `mcp_connector_only`. `loaded-lines-cap` bounds agent file +
-  preloaded skills (§12). Prompts carry instruction; rationale lives in AGENTS.md, "Prompt design
-  rationale".
-- **Release**: bump `.claude-plugin/plugin.json` and add a matching `## [X.Y.Z]` in the plugin's
-  `CHANGELOG.md`, folding in `## [Unreleased]`. Bump by default: a changed verdict or reworded
-  refusal is a patch. Only an unobservable change parks under `[Unreleased]`. Shipped = all of
-  `plugins/<name>/` except `tests/`, `CLAUDE.md`, `VERIFICATION.md` and the changelog.
-  Auto-release tags `<name>/vX.Y.Z` on merge. Changelog bullets: one line, two at most.
-  Details: AGENTS.md, "Releasing".
+- **Validating** (every `run:` step in `.github/workflows/validate.yml`, the `§N` section map,
+  staging new skill files): *Validating changes*.
+- **Shared files** (crew is canonical; byte-identical skills and hooks): *How we review code*.
+- **Hooks and shell** (portability, no fork per pattern, the open gaps): *Conventions* and *The
+  Bash guards are floors, not sandboxes*.
+- **Agents and prompts** (frontmatter, MCP pairs, footprint cap): *Validating changes* and
+  *Prompt design rationale*.
+- **Release** (bump by default, changelog bullets): *Releasing*.
 
 ## Reading and editing files
 

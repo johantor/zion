@@ -1,8 +1,7 @@
 # crew — quick reference for agents working on this plugin
 
 Crew-specific map. **Keep it accurate: a PR that changes anything stated here updates this file
-in the same commit.** Rules shared by every plugin: the root [CLAUDE.md](../../CLAUDE.md).
-Conventions: [AGENTS.md](../../AGENTS.md).
+in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md).
 
 ## Map
 

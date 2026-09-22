@@ -7,6 +7,7 @@ maxTurns: 60
 color: yellow
 owns-git: false
 lane-guarded: false
+omitClaudeMd: true
 skills:
   - context-discipline
   - mid-run-direction

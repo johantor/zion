@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.3] - 2026-09-22
+
+### Fixed
+
+- **`morpheus`'s `git mv` is no longer refused when keymaker is installed too.** The shared floor
+  let only the plugin's own git owner rename, and the two plugins name different owners, so with
+  both installed keymaker's copy of the guard refused `morpheus` ("keymaker owns git"). The floor
+  now lets any agent run a plain `git mv`; whose rename it is stays crew's own rule, below the
+  shared region, so a worker's `git mv` is still told to hand it to `morpheus`. `-f`/`--force` and
+  bare `mv`/`cp` stay refused for everyone.
+- **A `git mv` on a second line of one Bash call is allowed.** The allowance saw only the first
+  command of a multi-line call, so two renames typed on two lines were refused as a bare `mv`,
+  with a message pointing at Edit/Write. It now reads the command as typed and takes a line start
+  as a command position; what follows a rename is checked as before, on any line, and `git` on
+  one line with `mv a b` on the next is still two commands, the second refused.
+
 ## [3.26.2] - 2026-09-22
 
 ### Changed

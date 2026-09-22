@@ -33,10 +33,10 @@ fi
 agent_type="$guard_trusted"
 guard_normalize "$guard_untrusted"
 
-# The one agent that owns git. The floor's file-write block lets this agent, and
-# only this agent, run `git mv`: a rename is a git operation and lands in its
-# commit, so it needs no lane or formatting guard. Validator §9 keeps this line
-# in lockstep with the agents' `owns-git` frontmatter.
+# The one agent that owns git. A rename is a git operation and lands in its
+# commit, so a worker's `git mv` is refused below naming this agent as the one to
+# hand it to. Validator §9 keeps this line in lockstep with the agents'
+# `owns-git` frontmatter.
 git_owner=morpheus
 
 # --- BEGIN shared guard: floor ---
@@ -44,21 +44,26 @@ git_owner=morpheus
 # are refused for everyone; the watch/dev/serve and file-write blocks are scoped
 # to agent sessions, since the user's own session may legitimately run a dev
 # server, and is not write-guarded on the Edit|Write path either. The file-write
-# block takes the plugin's git owner, the one agent it lets run `git mv`.
+# block lets any agent run a plain `git mv`: which agents may NOT is each
+# plugin's own policy, below the region, so that a plugin never refuses another
+# plugin's git owner.
 guard_block_destructive
 [ -n "$agent_type" ] && guard_block_watch_commands
 guard_block_raw_reads
-[ -n "$agent_type" ] && guard_block_file_writes "$agent_type" "$git_owner"
+[ -n "$agent_type" ] && guard_block_file_writes
 # --- END shared guard: floor ---
 
 # Workers never touch git -- morpheus is the sole git owner (see AGENTS.md, "How
-# the crew works"). seraph carries no Bash tool, so it needs no entry.
+# the crew works"). A worker's `git mv` is answered first, with whose the rename
+# is and what to hand back; any other git gets the generic refusal. seraph
+# carries no Bash tool, so it needs no entry.
 # crew-roster: no-git -- every Bash-capable agent that doesn't own git belongs in
 # the arm below; validator §9 keeps it in lockstep with the agents' frontmatter
 # `owns-git`, and parses exactly this shape: the marker, the `case` header, then
 # the `a|b|c)` arm on the very next line.
 case "$agent_type" in
   tank|trinity|oracle|dozer|neo)
+    guard_block_git_mv_handback "$git_owner"
     if [[ $guard_cmd =~ $GUARD_RE_GIT_AT_CMD ]]; then
       echo "Blocked: ${agent_type} never runs git — morpheus owns branching and commits. Return your result; morpheus commits verified steps." >&2
       exit 2

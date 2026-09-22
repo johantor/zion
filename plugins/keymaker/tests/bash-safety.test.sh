@@ -52,11 +52,21 @@ assert_block "sed -i"                "$HOOK" "$(payload_bash "sed -i 's/a/b/' sr
 assert_block "redirect into a file"  "$HOOK" "$(payload_bash 'echo x > src/Foo.cs' twin)"        "reaches no Edit|Write hook"
 assert_allow "redirect to /dev/null" "$HOOK" "$(payload_bash 'npm run build > /dev/null' twin)"
 assert_allow "Bash write in a no-agent session" "$HOOK" "$(payload_bash 'echo x > src/Foo.cs')"
-# `git mv` is the floor's one carve-out, for the git owner this hook names.
+# `git mv` is the floor's one carve-out. The floor lets any agent run it -- with
+# crew installed too, both guards fire on every Bash call, and this one must not
+# refuse crew's morpheus -- and keymaker's own twin rule refuses a twin's.
+nl=$'\n'
 assert_allow "keymaker git mv"           "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' keymaker)"
+assert_allow "keymaker git mv on a second line" "$HOOK" "$(payload_bash "cd src${nl}git mv a.ts b.ts" keymaker)"
+assert_allow "another plugin's git owner may git mv" "$HOOK" "$(payload_bash 'git mv src/a.cs src/b.cs' morpheus)"
 assert_block "keymaker git mv -f"        "$HOOK" "$(payload_bash 'git mv -f src/a.ts src/b.ts' keymaker)" "git mv -f/--force can overwrite"
 assert_block "keymaker bare mv"          "$HOOK" "$(payload_bash 'mv src/a.ts src/b.ts' keymaker)"        "reaches no Edit|Write hook"
+assert_block "bare mv on a second line"  "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" keymaker)"       "reaches no Edit|Write hook"
 assert_block "twin git mv names the owner" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' twin)"      "keymaker owns git"
+# The hand-back reads the flattened command, so a line of data is never refused.
+assert_allow "twin prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" twin)"
+assert_allow "twin writes a git mv in a heredoc"       "$HOOK" "$(payload_bash "cat > /tmp/notes <<EOF${nl}git mv a b${nl}EOF" twin)"
+assert_block "keymaker git mv -f after a line continuation" "$HOOK" "$(payload_bash "git mv \\${nl}-f a b" keymaker)" "git mv -f/--force can overwrite"
 
 # Raw/streaming reads. A habit redirect, not a boundary: `grep . f` dumps the
 # same file and is deliberately allowed, so these pin the habit and the escapes,

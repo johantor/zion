@@ -29,8 +29,12 @@ assert_allow "git -C a feature worktree"  "$HOOK" "$(at "$(payload_bash "git -C 
 assert_allow "cd a feature worktree &&"   "$HOOK" "$(at "$(payload_bash "cd $feat_repo && git commit -m 'fix it'" morpheus)" "$main_repo")" "$main_repo"
 assert_block "git -C main from a worktree" "$HOOK" "$(at "$(payload_bash "git -C $main_repo commit -m x" morpheus)" "$feat_repo")" "protected branch" "$feat_repo"
 assert_block "a second clause stays on cwd" "$HOOK" "$(at "$(payload_bash "cd $feat_repo && git commit -m x; git commit -m y" morpheus)" "$main_repo")" "protected branch" "$main_repo"
+# Any other shape also checks the hook's own directory, so it is never weaker
+# than before: here cwd is a feature branch and only the hook's directory is main.
 # shellcheck disable=SC2016  # $WT is the literal text under test
-assert_block "an expanded dir stays on cwd" "$HOOK" "$(at "$(payload_bash 'git -C "$WT" commit -m x' morpheus)" "$main_repo")" "protected branch" "$main_repo"
+assert_block "an expanded dir checks the hook's dir" "$HOOK" "$(at "$(payload_bash 'git -C "$WT" commit -m x' morpheus)" "$feat_repo")" "protected branch" "$main_repo"
+assert_block "a GIT_DIR prefix checks the hook's dir" "$HOOK" "$(at "$(payload_bash "GIT_DIR=$main_repo/.git git commit -m x" morpheus)" "$feat_repo")" "protected branch" "$main_repo"
+assert_block "cd - is not a literal dir"  "$HOOK" "$(at "$(payload_bash 'cd - && git commit -m x' morpheus)" "$feat_repo")" "protected branch" "$main_repo"
 
 # --- Destructive commands ------------------------------------------------------
 assert_block "rm -rf /"        "$HOOK" "$(payload_bash 'rm -rf /' tank)"        "unsafe command"

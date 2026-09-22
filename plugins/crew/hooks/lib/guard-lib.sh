@@ -127,12 +127,13 @@ GUARD_RE_GIT_AT_CMD="${_g_cmdpos}${_g_pfx}"'git([[:space:]]|$)'
 # flag token, optionally followed by its value token.
 _g_gitopt='(-[^[:space:]]+[[:space:]]+([^-[:space:]][^[:space:]]*[[:space:]]+)?)*'
 GUARD_RE_GIT_COMMIT="${_g_cmdpos}${_g_pfx}"'git[[:space:]]+'"${_g_gitopt}"'commit([[:space:]]|$)'
-# The whole command is `git -C <dir> commit …` or `cd <dir> && git commit …`, with a
-# plain <dir> and no separator, substitution, redirect, escape or newline after
-# it. Matched against $guard_cmd_raw; <dir> is group 2 or 3.
-_g_litdir='([A-Za-z0-9._/-]+)'
+# The whole command is `git commit …`, `git -C <dir> commit …` or
+# `cd <dir> && git commit …`, with a plain <dir> (no leading `-`) and no
+# separator, substitution, redirect, escape or newline after it. Matched against
+# $guard_cmd_raw; <dir> is group 2 or 3, empty for a plain commit.
+_g_litdir='([A-Za-z0-9._/][A-Za-z0-9._/-]*)'
 _g_plain_tail=$'([[:blank:]][^;&|`$()<>\\\\\n]*)?$'
-GUARD_RE_COMMIT_IN_DIR='^[[:blank:]]*(git[[:blank:]]+-C[[:blank:]]+'"$_g_litdir"'[[:blank:]]+commit|cd[[:blank:]]+'"$_g_litdir"'[[:blank:]]*&&[[:blank:]]*git[[:blank:]]+commit)'"$_g_plain_tail"
+GUARD_RE_COMMIT_IN_DIR='^[[:blank:]]*(git[[:blank:]]+-C[[:blank:]]+'"$_g_litdir"'[[:blank:]]+commit|cd[[:blank:]]+'"$_g_litdir"'[[:blank:]]*&&[[:blank:]]*git[[:blank:]]+commit|git[[:blank:]]+commit)'"$_g_plain_tail"
 # `git mv` at a command position, with at least one operand after it. Alone among
 # the patterns it is matched against $guard_cmd_raw, and a line start counts as a
 # command position. It can afford to: the match is an ALLOWANCE (the token is
@@ -411,23 +412,24 @@ guard_block_git_mv_handback() {
 #   branch. Scoped by the caller to agent sessions, so a normal user session is
 #   never intercepted. Forks only for a command that already looks like a commit.
 #
-#   The branch is read where the commit runs: the payload's `cwd`, not the hook's
-#   own directory, so a worktree commits on its own branch (#224). Two whole-command
-#   shapes name their directory literally and use it; anything else stays on
-#   `cwd`, the strict reading. See AGENTS.md, "The Bash guards are floors, not
-#   sandboxes".
+#   The branch is read where the commit runs (#224): the payload's `cwd`, or the
+#   literal <dir> of GUARD_RE_COMMIT_IN_DIR. Any other shape also checks the hook's
+#   own directory, as before, so it is never weaker than that. See AGENTS.md,
+#   "The Bash guards are floors, not sandboxes".
 guard_block_protected_branch_commit() {
-  local agent_type="$1" advice="$2" branch dir
+  local agent_type="$1" advice="$2" branch dir d also_here=1
   [ -n "$agent_type" ] || return 0
   [[ $guard_cmd =~ $GUARD_RE_GIT_COMMIT ]] || return 0
   dir="$(jq -r '.cwd // ""' <<<"$guard_payload" 2>/dev/null || true)"
   if [[ $guard_cmd_raw =~ $GUARD_RE_COMMIT_IN_DIR ]]; then
-    case "${BASH_REMATCH[2]}${BASH_REMATCH[3]}" in
-      /*) dir="${BASH_REMATCH[2]}${BASH_REMATCH[3]}" ;;
-      *)  dir="${dir:-.}/${BASH_REMATCH[2]}${BASH_REMATCH[3]}" ;;
-    esac
+    also_here=''
+    d="${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
+    case "$d" in '') ;; /*) dir="$d" ;; *) dir="${dir:-.}/$d" ;; esac
   fi
   branch="$(git -C "${dir:-.}" branch --show-current 2>/dev/null || true)"
+  if [ -n "$also_here" ] && ! [[ $branch =~ ^($GUARD_PROTECTED_BRANCHES)$ ]]; then
+    branch="$(git branch --show-current 2>/dev/null || true)"
+  fi
   if [[ $branch =~ ^($GUARD_PROTECTED_BRANCHES)$ ]]; then
     echo "Blocked: ${agent_type} may not commit on protected branch '$branch'. ${advice}" >&2
     exit 2

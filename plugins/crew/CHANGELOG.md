@@ -11,17 +11,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `oracle` verifies that a new test is discovered with the runner's list/collect command, never
-  by inspecting a compiled DLL, class file or `bin/`/`obj/` artifact. A runner that finds zero
-  tests is a project-wiring problem (missing test SDK or runner package, project not in the
-  solution, stale build, non-matching filter) to check in the project file and report to
-  `morpheus`. Seen in the field: `oracle` reading a test assembly to check its classes were in it.
-- Each unit-test skill names its tool's discovery command: `dotnet test --list-tests`,
-  `vitest list`, `jest --listTests`, `pytest --collect-only`, `go test -list`,
-  `cargo test -- --list`, `bats --count`; `tests-junit` says there is none and points at the
-  targeted run's `Tests run:` line and the per-class report instead. `tests-xunit` also gains
-  the `--filter` targeted-rerun form and the "`Total tests: 0` is not a pass" rule the other
-  backend skills already had.
+- `oracle` checks that a new test is discovered with the runner's list command, never by reading
+  a compiled DLL or class file. Zero tests found is a project-wiring problem to report.
+- Each unit-test skill names its tool's list command. `tests-xunit` gains a Running section.
 
 ## [3.26.1] - 2026-09-22
 

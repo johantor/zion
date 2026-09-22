@@ -65,12 +65,16 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   **NO-GO** naming the blocking finding, and `/crew:pr` refuses to push until it's GO.
 - [ ] **Lane-scoped** — a backend-only diff skips the design-conformance (`seraph`) gate, reported
   as *lane untouched*; `/crew:review full` forces every gate.
-- [ ] **One build writer at a time** — a .NET diff that triggers backend tests, build, and lint →
-  the three run one after another (or each with its own intermediate path), never concurrently
-  over one `obj/`.
+- [ ] **Gates run in parallel on split paths** — a .NET diff that triggers backend tests, build,
+  and lint → the three are dispatched in one message, each with its own
+  `BaseIntermediateOutputPath`/`BaseOutputPath` under the session's build location, never two
+  over one `obj/`; the dispatch names the choice.
+- [ ] **Serial only where the stack has no knob** — the same diff on a Maven/Gradle project →
+  the lane's gates run one after another, with the reason (no per-writer output knob) stated;
+  a Go or Python diff → the gates run concurrently over the shared cache with no split at all.
 - [ ] **A collision is not the operator's environment** — a lock/corrupt-`obj/` failure while two
-  crew runs shared the build location → `morpheus` names its own overlapping dispatch and
-  re-runs serialized, instead of asking the user to stop their dev server.
+  crew runs shared one intermediate path → `morpheus` names its own overlapping dispatch and
+  re-runs on split paths, instead of asking the user to stop their dev server.
 
 ### Loop mode (inner — `loop-engineering`)
 

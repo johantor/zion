@@ -206,11 +206,12 @@ anything stated here updates this file in the same commit.** Conventions live in
   `CLAUDE.md` is where its coding conventions live. The §12 footprint figure counts agent file +
   preloaded skills only, so this key changes the real spawn cost but not the reported number.
 - Always-loaded footprint: validator §12 reports every agent's agent-file + preloaded-skill line
-  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 575 —
-  raised from 541 for the plan-mode section, itself raised from 526 for the gate build-strictness
-  rule and the build-contention rules that landed
+  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 585 —
+  raised from 575 for the parallel-gates rule (§*One build location; one intermediate path per
+  writer; gates in parallel by default*), from 541 for the plan-mode section, itself raised from
+  526 for the gate build-strictness rule and the build-contention rules that landed
   beside it, from 496 for `operator-voice` and from 480 for the steer contract,
-  keeping a few lines of slack (7 today), since the figure counts preloaded
+  keeping a few lines of slack (6 today), since the figure counts preloaded
   shared skills and a keymaker-side edit to one would otherwise fail crew's cap).
   Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —
   agent prompts carry instruction, not justification; each trimmed prompt points there once.

@@ -53,6 +53,12 @@ build clean — name the weakening as your first finding.
 `ruff check`, `flake8`, `black --check`, and `isort --check-only` are report/verify mode; the
 `--fix`/write forms are not a gate. Use the configured verify command.
 
+## No shared intermediates
+
+There is no `obj/` here. Each gate writes its own tool's cache — `.mypy_cache`, `.pytest_cache`,
+`.ruff_cache` — and no two gates write the same one, so the type check, the test suite and the
+lint run side by side with no per-writer split. A gate on this stack never needs its own path.
+
 ## Docs
 
 When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API docs

@@ -314,6 +314,18 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 - **Builds and full test suites.** Builds and full suites are expensive and verbose, which is
   why they are a single delegated final gate rather than a per-step check. Delegating a
   standalone build before the review gate builds the same tree twice.
+- **Gates in parallel on split paths, serial as the exception.** The one-writer rule (#194, #205)
+  exists because two compiles racing over one `obj/` corrupt it silently; the first fix listed
+  "serialize" before "split", and an orchestrator that reads two options with no rule for
+  choosing picks the safe-sounding one, which serialized every lane's gates. Both options are
+  collision-safe, so the choice is a wall-clock question, and the prompt now makes it one:
+  parallel over per-gate paths by default, because the paths are reused across the session (the
+  extra compile is paid once per gate, not per run) and the suites behind a compile usually
+  outlast it; serial where the stack offers no path knob (Maven/Gradle) or where a cold dependency
+  compile per path costs more than it saves (Rust). Go and Python are called out because they need
+  neither — their caches are concurrency-safe — and a rule that made them split would pay for a
+  collision that cannot happen. The stack skills carry the knobs and costs, not `morpheus`,
+  because they are per-tool facts and the orchestrator's footprint is capped.
 - **Address review feedback.** The lifecycle doesn't stop at `/crew:pr` — the same lane routing,
   git ownership, and gate that built the feature also close the review loop, so the post-PR
   flow is the same machinery rather than a second, looser one.

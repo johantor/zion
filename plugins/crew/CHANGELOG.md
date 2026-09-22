@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.27.0] - 2026-09-22
+
+### Changed
+
+- Same-lane review gates run **in parallel by default**, each on its own intermediate/output path;
+  `morpheus` serializes only where the stack has no knob (Maven/Gradle) or a cold compile dominates.
+- Each backend stack skill states its knobs and costs: .NET the `-p:`/environment forms, Rust the
+  dependency-compile cost, Go and Python that no split is needed, Node that `dist` is the shared write.
+
 ## [3.26.2] - 2026-09-22
 
 ### Changed

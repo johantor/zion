@@ -51,6 +51,11 @@ Run it as strict as the project configures:
 If the command **you were given** already narrows the pattern or drops `vet`, don't rewrite it and
 don't report the build clean: name the weakening as your first finding.
 
+**The build cache is safe to share.** `GOCACHE` and the module cache are designed for concurrent
+`go` invocations — they lock and publish entries atomically — so `go build`, `go vet` and `go test`
+run side by side over one cache with no per-writer split and no contention to report. A gate on
+this stack never needs its own output path.
+
 Report failures as the compiler emits them — `file:line:col: message`, deduplicated with a count
 per message — not the raw log (`context-discipline`).
 

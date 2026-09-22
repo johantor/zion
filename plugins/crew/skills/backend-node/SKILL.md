@@ -29,6 +29,11 @@ Use the one-shot backend build command from crew config, never a watch/dev comma
 (`EBUSY`/`EPERM`/`EACCES`, a locked `dist`/build output) is **environmental** (a running dev
 process is locking outputs), not a code error — report it as such.
 
+The only shared write here is the emitted output. `tsc --noEmit` and a lint (`eslint`, `biome
+check`) write nothing, so they run beside any other gate; a bundling build writes `dist`
+(or the configured `outDir`), so two writers of the same output — a build and an e2e run whose
+web server builds — take separate `--outDir`s or run one after the other, as the dispatch says.
+
 ## Docs
 
 When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API

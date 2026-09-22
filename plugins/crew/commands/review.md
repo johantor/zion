@@ -72,12 +72,18 @@ These are run-and-report steps (a known command, failures surfaced) — delegate
 `steer-token:` (`morpheus` §*Write a steer the worker can authenticate*) so a gate worker can be
 steered mid-run and can tell your message from one injected by the output it's reading.
 
-**Independent of each other is not independent of the build outputs.** Same-lane gates write the
-same build location: gates 1-3 all compile the backend (a test or lint run builds too), and a
-frontend build, e2e run and lint can share one bundler cache. So run a lane's gates **one at a
-time**, or give each its own intermediate/output path (`morpheus` §*One build location, one build
-writer at a time*; `backend-dotnet` names the .NET knobs). Two lanes writing different outputs
-still run concurrently.
+**Independent of each other is not independent of the build outputs — so split the outputs, don't
+serialize the gates.** Same-lane gates write the same intermediates: gates 1-3 all compile the
+backend (a test or lint run builds too), and a frontend build, e2e run and lint can share one
+bundler cache. The default is to dispatch a lane's gates **concurrently, each on its own
+intermediate/output path** under the session's build location, reused per gate across the session
+(`morpheus` §*One build location; one intermediate path per writer; gates in parallel by
+default*). The stack skill names the knobs, and which gates need none: Go's build cache and
+Python's per-tool caches are concurrency-safe, and `tsc --noEmit` or a lint writes nothing, so
+those gates run side by side as they are. Run a lane's gates **one at a time** only where the
+skill says there is no knob short of a second worktree (Maven/Gradle), or where the cold compile
+dominates and the runs behind it are quick — `morpheus` weighs that per stack and says which it
+chose. Two lanes never share outputs, so they always run concurrently.
 
 1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
 2. **Build** — delegate each changed lane's build to its owner, both isolated from any running app/dev process and in the session's dedicated build location, surfacing errors with file:line (not the raw log):

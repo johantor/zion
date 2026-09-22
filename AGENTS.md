@@ -43,7 +43,10 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     truncating; validator §8 keeps its budget table in lockstep with agent frontmatter),
     `dispatch-denied.sh` (`PermissionDenied`: auto mode can't allowlist an `Agent` call, so a
     worker dispatch is classified per call and can be refused mid-run — this retries the first
-    denial once and reports the real fixes after that), wired via `hooks/hooks.json`.
+    denial once and reports the real fixes after that), `plan-guard.sh` (`PreToolUse` on
+    `Agent|Task`: in plan mode, refuses a crew worker whose own frontmatter grants `Edit`/`Write`,
+    since plan mode would refuse every edit it makes; the orchestrator and read-only workers pass;
+    fails open), wired via `hooks/hooks.json`.
     A `hooks/` directory holds two kinds of file and the distinction is enforced, not
     conventional: the top-level `*.sh` are **entry points** the harness executes (must be `+x`,
     must be wired), while `hooks/lib/*.sh` are **sourced libraries** (must not be `+x`, must not
@@ -81,6 +84,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   justification filter's two exemptions). Prints the repo path on stdout so it composes into a
   headless `claude --plugin-dir …` run.
 - `.github/copilot-instructions.md` — guided review instructions for GitHub Copilot, aligned with the crew reviewer.
+- `.github/skills/code-review/SKILL.md` — the one review rubric for this repo, read by Copilot directly. `.claude/skills/zion-review/` is the Claude Code wrapper: it loads the rubric, runs the checks, and reproduces each finding.
 - `biome.json` / `package.json` — repo tooling: [Biome](https://biomejs.dev) lints the repo's
   web assets and JavaScript (`docs/*.html`, `docs/*.css`, `tests/scenarios/mocks/*.js`) and its
   JSON. **Linter only** — the formatter and the assist actions are off on purpose: enabling the
@@ -163,7 +167,8 @@ Reviews — whether by `/crew:review`, the crew, or GitHub Copilot — judge cod
 the `engineering-principles` skill and classify every finding as **Blocking**,
 **Warning**, or **Passed**. The same three pillars apply: code quality, security,
 and design conformance. See `plugins/crew/skills/engineering-principles/SKILL.md` for the
-full rules and `.github/copilot-instructions.md` for the review contract.
+full rules and `.github/copilot-instructions.md` for the review contract. The repo-specific
+checklist is `.github/skills/code-review/SKILL.md`; edit it there, once.
 
 Core principles (defaults, not dogma — the repo's established patterns win on conflict):
 YAGNI, KISS, pragmatic DRY (rule of three), small single-purpose units, intention-revealing
@@ -244,6 +249,23 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 - **Plan checkpoint.** The cheapest place to catch a misunderstood task is before any code is
   written, which is why the single gate sits before the branch and the first delegation rather
   than at the review stage.
+- **Plan mode — the approval is the checkpoint.** The harness's plan mode already has a gate
+  (`ExitPlanMode`), a read-only phase, and a rule that nothing is written before approval — the
+  same shape as the plan checkpoint, so running both would ask the user the same question twice.
+  The two session shapes get different rules because the harness treats them differently: the
+  `Agent(...)` type list and `ExitPlanMode` reach only a `claude --agent` main thread, while a
+  subagent loses `ExitPlanMode` and inherits plan mode with no `permissionMode` of its own (the
+  field is ignored for plugin agents). Hence the main thread presents its own plan, and a
+  subagent returns it for `/crew:feature` to present and then re-launch with — the "delegation
+  can only pass what the callee accepts" lens: the plan has to travel as text, and the second
+  launch has to be told it was approved, or `morpheus` would checkpoint again. `Explore`/`Plan`
+  are in the allowlist because plan mode's own workflow reaches for them and an allowlist that
+  excludes them turns "research" into a "cannot delegate — STOP" for an agent whose top rule says
+  exactly that; the STOP rule is for worker steps, and the section says so. `general-purpose` is
+  deliberately absent: it is an unguarded implementer, and the lane workers exist so that no
+  such thing runs. The `plan-guard` hook reads the worker's frontmatter rather than a roster so
+  §9 has nothing new to pin, and fails open because plan mode is the real boundary — the hook
+  only saves the worker's turns.
 - **Stay responsive.** A foreground call freezes the orchestrator's turn for the worker's entire
   run — often minutes — and queues the user's messages unheard, so backgrounding is the default
   rather than a tuning choice. The status pulse exists because a background run otherwise reads
@@ -399,8 +421,8 @@ git and no write lane. So each agent declares `owns-git: true|false` and
 `lane-guarded: true|false` in its frontmatter, each roster carries a `# crew-roster: <name>`
 marker, and §9 checks both directions: every agent classified, every roster entry real, and
 exactly one git owner per plugin — who must also be the agent `bash-safety.sh` names in its
-`git_owner=` line, the one the shared floor lets run `git mv`. Adding an agent without those two
-fields fails CI.
+`git_owner=` line, the one a worker's refused `git mv` is told to hand the rename to. Adding an
+agent without those two fields fails CI.
 The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
 
 Two more checks cover prose that names something the harness has to resolve. §10 requires every
@@ -539,15 +561,26 @@ Versions are per-plugin. To cut a release:
    matching changelog entry → it skips with a warning. No manual tagging is needed
    (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
 
-### Small changes park under `## [Unreleased]`
+### Release by default; park only what a user cannot observe
 
 A tag carries **everything** merged since the previous tag, not just the bump — so a change that
 skips the bump/changelog step doesn't wait for a release of its own, it ships inside the next one,
 described nowhere. That is how a README rewrite and a pass over the shipped hooks' comments both
 went out in `crew/v3.15.0` without appearing in any notes.
 
-So every changelog keeps an `## [Unreleased]` heading at the top (§2i requires it), and a change
-too small to justify its own release parks a bullet there instead of skipping the step:
+**So bump by default.** The question is not "is this big enough for a release?" but:
+
+> **Would a user who runs `claude plugin update` notice?**
+
+If yes, it earns a version bump in the same PR — patch for a fix, minor for an addition. A guard
+that blocks a command it used to allow, a reworded refusal, a changed agent prompt, a README
+users read: every one of those is a release, however few lines it took. Releasing often is the
+cheap side of the trade. Auto-release does the tagging, versions are per-plugin, and a small
+release that names its change beats a large one that buries it. Several in a day is fine.
+
+Park only when the answer is no — a comment inside a shipped file, whitespace, an internal
+cross-reference, anything a user cannot observe from the outside. Every changelog keeps an
+`## [Unreleased]` heading at the top (§2i requires it) for those:
 
 ```
 ## [Unreleased]
@@ -679,6 +712,65 @@ that let a claim slide through without evidence behind it.
   not worth a review comment on its own.
 
 Changelog entries have their own rule; see *Releasing*.
+
+### The Bash guards are floors, not sandboxes
+
+`bash-safety.sh` refuses a few command shapes. Two of its rules have a scope that is easy to
+misread as "enforcement", and both have been widened once already and reverted; the reasoning
+lives here so it is not rediscovered at the cost of another review cycle. The hooks carry a
+one-line pointer to this section.
+
+**The raw-read rule is a habit redirect.** It blocks `cat f` and names `Read` instead. It does
+not bound what can reach the context and does not try to — `grep . f`, `awk '{print}' f`,
+`tail -n 999999 f`, `od -c f`, `base64 f`, `tr a a < f` and a one-line `python3 -c` each dump the
+same file whole, and each is allowed. So the costs are asymmetric: a read the rule misses costs
+nothing, because a shorter bypass always sat beside it, while a read it refuses wrongly costs a
+turn and makes the rule look arbitrary — which is the friction it exists to remove. The pattern
+is therefore one line, and a pipe or **any** redirect ends the match. Following where bytes go
+through redirects means bash's own tokenizer: fd prefixes, quoting and redirection order, applied
+in order and with state. #226 tried, over six review rounds, and produced two regressions that
+refused ordinary commands (`cat f > out.txt`, then a commit message) before being reverted.
+
+**`guard_normalize` flattens newlines to a space, and that leaves a gap.** Flattening welds a
+later line onto the previous command's operands, so a pattern anchored at a command position sees
+only the first command: `cd sub` + newline + `git status` reads as `cd sub git status`, and the
+workers-never-run-git block misses it. Separating on the newline instead looks obvious and is not.
+A newline inside a quoted word, a heredoc body or a nested `$(...)` is data, not syntax, and
+turning those into separators refuses ordinary work — a heredoc commit message whose body line
+begins `cat ...` or `npm run dev ...`. #226 tried three shapes (unconditional, quote-aware, and
+quote-aware plus an odd/even backslash rule); each traded one routine failure for another, and the
+quote-aware one still let `echo "$(echo ok<newline>git status)"` through, which is the case it
+existed to stop.
+
+Both gaps stay open deliberately. A worker reaching `git` on a second line is one spelling among
+several — a `$(...)`, an interpreter — and the worker's own prompt is what keeps it out of git.
+Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
+size than the rule it would replace, and belongs in its own PR.
+
+**The protected-branch backstop reads the branch where the commit runs, not where it is typed.**
+That is the payload's `cwd`, or the literal directory of a whole command shaped
+`git -C <dir> commit …` or `cd <dir> && git commit …`. Any other shape (`pushd`, a `$VAR`, a second
+clause) stays on `cwd`, which can refuse a worktree commit but never admit a protected one. #224
+first tried a shell walk to cover every shape; it drew 100+ review threads and was replaced.
+
+**The one pattern that does read line starts is an allowance, which is why it may.** The
+`git mv` carve-out matches the raw command, newlines intact, and treats a line start as a command
+position. The asymmetry above runs the other way for it: a match *masks* the token so the generic
+write check does not read it as a bare `mv`, so a newline mistaken for a separator can at worst
+wave through a `git mv` that sits inside a string — it cannot refuse anything. Before it did so,
+two renames typed on two lines were refused, the second read as `mv` welded onto the first's
+operands. The blocking patterns do not get the same anchor; the paragraph above is why.
+
+**The floor decides *what* a `git mv` is, not *whose*.** It once refused every agent but the
+plugin's own git owner, and the two plugins name different owners, so with both installed each
+hook refused the other's: `morpheus` was told keymaker owns git. Now the floor lets any agent run
+a plain `git mv` and each plugin refuses its own non-owners' below the shared region
+(`guard_block_git_mv_handback`), naming the agent to hand the rename to. A rule about a plugin's
+roster belongs beside that roster, never in the region both plugins share.
+
+The hand-back is a *refusal*, so it reads the flattened command like the other refusals: a
+worker's `git mv` on a later line is the newline gap above, not handed back. Masking heredocs and
+quotes to close that gap was tried in #231 and reverted: each parse rule opened a new edge case.
 
 ## Recurring review findings — apply proactively
 

@@ -7,16 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-09-22
+
 ### Fixed
 
-- Hardened the shared protected-branch commit parser for opaque shell forms (`coproc`, `case`, function definitions), path-qualified `git`, `&&` continuation newlines, and quoted `com'mit` spellings so these shapes still fail closed.
+- **A commit in a git worktree is judged by the worktree's branch.** The protected-branch
+  backstop read the hook's own directory, so a main checkout on `develop` refused worktree commits.
 
-- The shared guard library's protected-branch commit backstop judged the branch of the directory
-  the hook sat in rather than the ones the commit may run in, refusing work in a git worktree
-  whose main checkout was on a protected branch. It now walks the command as shell words and
-  checks every candidate directory, keeping the hook's own in that set for any construct it
-  cannot model — so a worktree commits on its work branch, and nothing the walk misreads can
-  make the check weaker than it was.
+## [0.9.3] - 2026-09-22
+
+### Fixed
+
+- **This plugin's guard no longer refuses another plugin's git owner.** With crew installed too,
+  both Bash guards fire on every call, and this one refused crew's `morpheus` running `git mv`
+  ("keymaker owns git"). The shared floor now lets any agent run a plain `git mv`; a twin's is
+  still told to hand the rename to `keymaker`, by this plugin's own twin rule. `-f`/`--force` and
+  bare `mv`/`cp` stay refused for everyone.
+- **A `git mv` on a second line of one Bash call is allowed** — previously refused as a bare `mv`
+  once the call was flattened. What follows a rename is still checked, on any line.
+
+## [0.9.2] - 2026-09-13
+
+### Fixed
+
+- The three raw-read rules take the same wrapper prefixes as the rest of the guard, so a leading
+  `env`, `command` or `VAR=1` no longer walks a read past them (#226).
+
+### Changed
+
+- The `cat` and pager refusals name the `Read` tool, and all three raw-read refusals say why a
+  shell read is refused: it reaches no `Read` hook, so `read-guard`'s size bound never applies.
+  Nothing replaces a `tail -f`, so that one points at capture/filter instead (#226).
 
 ## [0.9.1] - 2026-09-04
 

@@ -34,6 +34,15 @@ Rules:
   filter), not the whole suite — the full suite is the **final review gate**, run once when
   the work queue is drained, not after every fix. If you weren't told which tests failed,
   ask `morpheus` for the list rather than defaulting to a full run.
+- **Verify that a new test is discovered with the runner, never with the build output.** The
+  test skill says how for its tool: a list/collect command filtered to the file or class you
+  wrote where the tool has one, a targeted run's own summary line where it doesn't (JUnit).
+  Zero tests found means first check your filter against a run that lists the rest of the
+  suite; if the filter is right, it is a project-wiring problem — a missing test SDK or runner
+  package, a test project not in the solution, a stale build — so check the project/config file
+  and report it to `morpheus`. Never inspect a compiled DLL, class file, or `bin/`/`obj/`
+  artifact to answer "is my test in there": it floods your context and answers the wrong
+  question.
 - Apply `context-discipline`: surface only failing tests and messages.
 - If you couldn't finish — tests written but not run, or the run cut off partway — **say so
   explicitly**. Silence reads as "all green" here, so an unfinished run must be reported as

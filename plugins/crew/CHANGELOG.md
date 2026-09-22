@@ -7,22 +7,87 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.5] - 2026-09-22
+
 ### Fixed
 
-- Hardened the shared protected-branch commit parser for opaque shell forms (`coproc`, `case`, function definitions), path-qualified `git`, `&&` continuation newlines, and quoted `com'mit` spellings so these shapes still fail closed.
+- **A commit in a git worktree is judged by the worktree's branch.** The protected-branch
+  backstop read the hook's own directory, so a main checkout on `develop` refused worktree commits.
 
-- The protected-branch commit backstop read the branch of the directory the *hook* sat in, so a
-  crew session working in a git worktree was refused every commit whenever the main checkout was
-  on `main`/`master`/`develop` — the worktree's own branch, which is what the commit lands on,
-  was never consulted. The guard now walks the command as shell words and judges every directory
-  the commit might run in: `git -C <dir>`, a `cd` ahead of it, `--git-dir`/`--work-tree`, across
-  `&&`/`||` short-circuits, pipe and background subshells, and `( … )` nesting. A directory is
-  only ever added to that set, never substituted for the hook's own, so a construct the walk
-  cannot model — `pushd`, `eval`, a nested `bash -c`, a `cd` target it cannot read literally —
-  keeps the hook's directory among the candidates and the commit is still refused there. The
-  walk also detects the commit, so `(git commit …)` in a subshell, behind a shell keyword, or on
-  the second line of a multi-line command is no longer missed — while a command that only
-  mentions the word (`echo commit`, `git log --grep=commit`) is not judged as one.
+## [3.26.4] - 2026-09-22
+
+### Changed
+
+- **`/crew:address` stops patching a mechanism that keeps breaking.** Findings with one root cause
+  become one item, and new edge cases of an already-patched mechanism go to the user instead.
+
+## [3.26.3] - 2026-09-22
+
+### Fixed
+
+- **`morpheus`'s `git mv` is no longer refused when keymaker is installed too.** The shared floor
+  let only the plugin's own git owner rename, and the two plugins name different owners, so with
+  both installed keymaker's copy of the guard refused `morpheus` ("keymaker owns git"). The floor
+  now lets any agent run a plain `git mv`; whose rename it is stays crew's own rule, below the
+  shared region, so a worker's `git mv` is still told to hand it to `morpheus`. `-f`/`--force` and
+  bare `mv`/`cp` stay refused for everyone.
+- **A `git mv` on a second line of one Bash call is allowed.** The allowance saw only the first
+  command of a multi-line call, so two renames typed on two lines were refused as a bare `mv`,
+  with a message pointing at Edit/Write. It now reads the command as typed and takes a line start
+  as a command position; what follows a rename is checked as before, on any line, and `git` on
+  one line with `mv a b` on the next is still two commands, the second refused.
+
+## [3.26.2] - 2026-09-22
+
+### Changed
+
+- `oracle` checks that a new test is discovered with the runner's list command, never by reading
+  a compiled DLL or class file. Zero tests found is a project-wiring problem to report.
+- Each unit-test skill names its tool's list command. `tests-xunit` gains a Running section.
+
+## [3.26.1] - 2026-09-22
+
+### Changed
+
+- `sentinel` and `seraph` no longer load the project's `CLAUDE.md` files on spawn
+  (`omitClaudeMd: true`). Both are read-only on code and get what they need from the dispatch
+  prompt — a triage signal plus a changeset, or a design reference plus a rendered page — so the
+  project's coding conventions were paid for on every spawn and never used. The implementers
+  (`tank`, `trinity`, `dozer`, `oracle`, `neo`) keep loading it: they edit project code, and that
+  is where its conventions live.
+
+## [3.26.0] - 2026-09-14
+
+### Added
+
+- Plan mode: `morpheus` treats plan mode's approval as its plan checkpoint — one gate, not two.
+  As the main thread it presents the plan through `ExitPlanMode` and writes the plan file after
+  approval; as a subagent it returns the plan, and `/crew:feature` runs the two launches around
+  the approval, passing the plan between them as text. `/crew:loop` and `/crew:address` say they
+  don't run in plan mode instead of failing mid-tick.
+- `plan-guard` hook (`PreToolUse` on `Agent`/`Task`): in plan mode, a dispatch of a crew worker
+  whose tools carry Edit/Write is refused before it spends its turns on refused edits; read-only
+  workers and the orchestrator pass. Decided from the worker's own frontmatter, not a roster.
+  Fails open.
+
+### Changed
+
+- `morpheus` may launch the built-in `Explore` and `Plan` research agents in a `claude --agent
+  crew:morpheus` session, and carries `ExitPlanMode` so such a session can present its plan in
+  plan mode.
+
+## [3.25.1] - 2026-09-13
+
+### Fixed
+
+- The three raw-read rules take the same wrapper prefixes as the rest of the guard, so a leading
+  `env`, `command` or `VAR=1` no longer walks a read past them (#226).
+
+### Changed
+
+- The `cat` and pager refusals name the `Read` tool, and all three raw-read refusals say why a
+  shell read is refused: it reaches no `Read` hook, so `read-guard`'s size bound never applies.
+  Nothing replaces a `tail -f`, so that one points at capture/filter instead (#226).
 
 ## [3.25.0] - 2026-09-10
 

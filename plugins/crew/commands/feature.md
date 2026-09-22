@@ -18,3 +18,21 @@ the plan, run the plan checkpoint, delegate, verify, and run the review gate —
 return your consolidated status and run summary.
 
 When `morpheus` returns, relay its consolidated status to the user verbatim.
+
+**When this session is in plan mode**, `morpheus` runs as a subagent in plan mode too: it can
+explore, but it can neither write its plan file nor present a plan for approval (a subagent has no
+`ExitPlanMode`), and the `plan-guard` hook refuses every editing worker it would dispatch. So run
+the flow in two launches, passing the plan between them as data:
+
+1. Launch `crew:morpheus` with `$ARGUMENTS` and, in place of the instructions above: *this session
+   is in plan mode — explore, run any read-only triage, and return the plan you would present at
+   your checkpoint (scope, the ordered steps with acceptance criteria, the resolved base branch
+   and frontend mode, assumptions). Write nothing and dispatch no writer.*
+2. Present the returned plan for approval through plan mode's own flow (`ExitPlanMode`), verbatim.
+   If the user keeps planning, re-launch `crew:morpheus` with the draft plan and their correction,
+   and present the revision the same way.
+3. Once approved, launch `crew:morpheus` again with `$ARGUMENTS`, the approved plan verbatim, and
+   the note that plan mode approved it: it writes `<plan-dir>/plan-<feature>.md` from it and runs
+   the rest of its standard flow without a second checkpoint.
+
+Never leave plan mode yourself to get around this, and never run the plan checkpoint twice.

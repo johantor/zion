@@ -27,6 +27,16 @@
             "command": "\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/lane-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/plan-guard.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PermissionDenied": [

@@ -19,123 +19,17 @@ feat_repo="$(make_git_branch feature/x)"
 assert_block "morpheus git commit on main" "$HOOK" "$(payload_bash 'git commit -m x' morpheus)" "protected branch" "$main_repo"
 assert_allow "morpheus git commit on feature branch" "$HOOK" "$(payload_bash 'git commit -m x' morpheus)" "$feat_repo"
 assert_allow "no-agent session may commit on main" "$HOOK" "$(payload_bash 'git commit -m x')" "$main_repo"
-
-# --- The commit's own directory decides, not the hook's ------------------------
-# A crew session working in a git worktree commits onto the worktree's branch
-# while the hook sits in the main checkout, which may be on a protected branch.
-# The guard resolves `git -C <dir>` and a preceding `cd`, so it judges the branch
-# the commit actually lands on.
-wt_repo="$(make_git_worktree develop feature/y)"
-assert_allow "git -C <worktree> commit"        "$HOOK" "$(payload_bash 'git -C wt commit -m x' morpheus)"        "$wt_repo"
-assert_allow "cd <worktree> && commit"         "$HOOK" "$(payload_bash 'cd wt && git commit -m x' morpheus)"     "$wt_repo"
-assert_allow "cd <worktree>; commit"           "$HOOK" "$(payload_bash 'cd wt; git commit -m x' morpheus)"       "$wt_repo"
-assert_allow "subshell cd <worktree>"          "$HOOK" "$(payload_bash '(cd wt && git commit -m x)' morpheus)"   "$wt_repo"
-assert_allow "quoted worktree path"            "$HOOK" "$(payload_bash 'git -C "wt" commit -m x' morpheus)"      "$wt_repo"
-assert_allow "git -C with a global flag after" "$HOOK" "$(payload_bash 'git -C wt -c user.name=a commit -m x' morpheus)" "$wt_repo"
-assert_allow "separator inside the message"    "$HOOK" "$(payload_bash 'cd wt && git commit -m "fix: a; b"' morpheus)"   "$wt_repo"
-assert_allow "staging then committing"         "$HOOK" "$(payload_bash 'cd wt && git add -A && git commit -m x' morpheus)" "$wt_repo"
-
-# The same resolution must not become a way around the backstop: every shape the
-# guard cannot read falls back to its own directory, which is the protected one.
-assert_block "commit back in the main checkout" "$HOOK" "$(payload_bash 'cd wt && git commit -m x && cd .. && git commit -m y' morpheus)" "protected branch" "$wt_repo"
-assert_block "git -C back to the main checkout" "$HOOK" "$(payload_bash 'cd wt && git -C .. commit -m x' morpheus)" "protected branch" "$wt_repo"
-# shellcheck disable=SC2016  # `$WT` must reach the guard unexpanded: an
-# expansion is exactly the target shape the guard cannot resolve.
-assert_block "unresolvable cd target"           "$HOOK" "$(payload_bash 'cd $WT && git commit -m x' morpheus)"      "protected branch" "$wt_repo"
-assert_block "cd in its own pipe segment"       "$HOOK" "$(payload_bash 'cd wt | git commit -m x' morpheus)"        "protected branch" "$wt_repo"
-assert_block "subshell cd does not leak out"    "$HOOK" "$(payload_bash '(cd wt && git commit -m a) && git commit -m b' morpheus)" "protected branch" "$wt_repo"
-assert_block "a cd inside the message is text"  "$HOOK" "$(payload_bash 'git commit -m "cd wt"' morpheus)"          "protected branch" "$wt_repo"
-assert_block "a cd another command prints"      "$HOOK" "$(payload_bash 'echo cd wt && git commit -m x' morpheus)"  "protected branch" "$wt_repo"
-assert_block "a cd that would fail"             "$HOOK" "$(payload_bash 'cd nope; git commit -m x' morpheus)"       "protected branch" "$wt_repo"
-assert_allow "no-agent session in a worktree checkout" "$HOOK" "$(payload_bash 'cd wt && git commit -m x')" "$wt_repo"
-
-# Resolving the directory must never weaken the backstop: where the walk cannot
-# model a construct, the hook's own directory stays a candidate and the commit is
-# judged against it too. Each of these reaches a commit in the protected checkout.
-assert_block "quoted path with a suffix"        "$HOOK" "$(payload_bash 'git -C "wt"/.. commit -m x' morpheus)"        "protected branch" "$wt_repo"
-assert_block "cd back out of the worktree"      "$HOOK" "$(payload_bash 'cd wt && cd .. && git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "pushd after a cd"                 "$HOOK" "$(payload_bash 'cd wt && pushd .. > /dev/null && git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "cd on a pipe's right-hand side"   "$HOOK" "$(payload_bash 'true | cd wt && git commit -m x' morpheus)"   "protected branch" "$wt_repo"
-assert_block "cd the shell may skip"            "$HOOK" "$(payload_bash 'false && cd wt; git commit -m x' morpheus)"   "protected branch" "$wt_repo"
-assert_block "cd run in the background"         "$HOOK" "$(payload_bash 'cd wt & git commit -m x' morpheus)"           "protected branch" "$wt_repo"
-assert_block "commit inside a nested shell"     "$HOOK" "$(payload_bash 'cd wt && bash -c "cd .. && git commit -m x"' morpheus)" "protected branch" "$wt_repo"
-assert_block "cd through eval"                  "$HOOK" "$(payload_bash 'cd wt && eval "cd .." && git commit -m x' morpheus)"    "protected branch" "$wt_repo"
-assert_block "another repo via --git-dir"       "$HOOK" "$(payload_bash 'cd wt && git --git-dir=../.git --work-tree=.. commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "-C inside a quoted option value"  "$HOOK" "$(payload_bash "git -c 'user.name=x -C nowhere' commit -m y" morpheus)" "protected branch" "$wt_repo"
-assert_block "cd with a second operand"         "$HOOK" "$(payload_bash 'cd wt nope; git commit -m x' morpheus)"       "protected branch" "$wt_repo"
-assert_block "an escaped separator in a path"   "$HOOK" "$(payload_bash 'git -C wt\;x commit -m x' morpheus)"          "protected branch" "$wt_repo"
-assert_block "commit in a subshell"             "$HOOK" "$(payload_bash '(git commit -m x)' morpheus)"                 "protected branch" "$wt_repo"
-assert_block "subshell cd stays in the subshell" "$HOOK" "$(payload_bash '(cd wt && git commit -m a); git commit -m b' morpheus)" "protected branch" "$wt_repo"
-# shellcheck disable=SC2016  # `$HOME` must reach the guard unexpanded — a target
-# the guard cannot read is exactly what these two assert.
-assert_block "cd to an unreadable target"       "$HOOK" "$(payload_bash 'cd wt && cd "$HOME"; cd ..; git commit -m x' morpheus)" "protected branch" "$wt_repo"
-
-# Shapes the walk does model stay allowed: a quoted `)` or an expansion inside a
-# commit message decides nothing about where the commit runs.
-assert_allow "a closing paren in the message"   "$HOOK" "$(payload_bash 'cd wt && git commit -m "fix )" && git commit -m x' morpheus)" "$wt_repo"
-# shellcheck disable=SC2016  # the substitution is the point: it is in the message,
-# not in anything that decides the directory.
-assert_allow "a substitution in the message"    "$HOOK" "$(payload_bash 'cd wt && git commit -m "done $(date)"' morpheus)" "$wt_repo"
-assert_allow "a guarded cd in an && chain"      "$HOOK" "$(payload_bash 'git fetch origin && cd wt && git commit -m x' morpheus)" "$wt_repo"
-assert_allow "git -C with -c before commit"     "$HOOK" "$(payload_bash 'git -C wt -c user.name=a commit -m x' morpheus)" "$wt_repo"
-assert_allow "quoted path carrying spaces"      "$HOOK" "$(payload_bash 'git -C "wt two words" commit -m x' morpheus)" "$wt_repo"
-assert_allow "cd into a path carrying spaces"   "$HOOK" "$(payload_bash 'cd "wt two words" && git commit -m x' morpheus)" "$wt_repo"
-assert_allow "a separator in the message"       "$HOOK" "$(payload_bash 'cd wt && git commit -m "a; b" && git commit -m c' morpheus)" "$wt_repo"
-
-# A quoted span ends where the shell ends it, and a substitution runs commands of
-# its own: neither may be read as inert text that leaves the carry trusted.
-assert_block "escaped quote inside a message"   "$HOOK" "$(payload_bash 'cd wt && git commit -m "x\"; noop" && cd .. && git commit -m y' morpheus)" "protected branch" "$wt_repo"
-# shellcheck disable=SC2016  # the substitution must reach the guard unexpanded —
-# it is the commit hidden inside it that this asserts on.
-assert_block "commit inside a substitution"     "$HOOK" "$(payload_bash 'cd wt && git commit -m "$(git -C .. commit -m x)"' morpheus)" "protected branch" "$wt_repo"
-# shellcheck disable=SC2016  # the substitution must reach the guard unexpanded.
-assert_block "commit inside a backquoted one"   "$HOOK" "$(payload_bash 'cd wt && git commit -m `git -C .. commit -m x`' morpheus)" "protected branch" "$wt_repo"
-assert_block "a glob as the target"             "$HOOK" "$(payload_bash 'git -C ./[Ww]t commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "cd back through a wrapper"        "$HOOK" "$(payload_bash 'cd wt; command cd .. && git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "a trailing separator"             "$HOOK" "$(payload_bash 'git commit -m x;' morpheus)" "protected branch" "$wt_repo"
-
-# The walk is the detector, so it must find a commit the patterns cannot see —
-# and must not invent one where there is none.
-assert_allow "the word commit in an echo"       "$HOOK" "$(payload_bash 'echo commit' morpheus)" "$wt_repo"
-assert_allow "commit as a log filter"           "$HOOK" "$(payload_bash 'git log --grep=commit -1' morpheus)" "$wt_repo"
-# shellcheck disable=SC1003  # the trailing backslash is the payload: a command
-# ending in one used to spin the word tokenizer forever.
-assert_block "a trailing backslash"             "$HOOK" "$(payload_bash 'git commit\' morpheus)" "protected branch" "$wt_repo"
-assert_block "nested subshell parens"           "$HOOK" "$(payload_bash '( (git -C . commit -m x) )' morpheus)" "protected branch" "$wt_repo"
-assert_block "a redirection before the command" "$HOOK" "$(payload_bash '> /tmp/guard-test-out git -C . commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "GIT_DIR in the environment"       "$HOOK" "$(payload_bash 'GIT_DIR=.git GIT_WORK_TREE=. git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "a wrapper carrying options"       "$HOOK" "$(payload_bash 'env -i git -C . commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "a commit inside an if"            "$HOOK" "$(payload_bash 'if true; then git -C . commit -m x; fi' morpheus)" "protected branch" "$wt_repo"
-assert_block "bare cd leaves the worktree"      "$HOOK" "$(payload_bash 'cd wt && cd; git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "a redirection on the cd"          "$HOOK" "$(payload_bash 'cd wt < /nonexistent; git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "--git-dir read from git -C"       "$HOOK" "$(payload_bash 'cd wt && git -C .. --git-dir=.git --work-tree=. commit -m x' morpheus)" "protected branch" "$wt_repo"
-# shellcheck disable=SC2016  # the substitution must reach the guard unexpanded.
-assert_block "a substitution under echo"        "$HOOK" "$(payload_bash 'echo "$(git -C . commit -m x)"' morpheus)" "protected branch" "$wt_repo"
-assert_block "a backgrounded && list"           "$HOOK" "$(payload_bash 'cd wt && git commit -m a & git commit -m b' morpheus)" "protected branch" "$wt_repo"
-assert_block "a cd the || may skip"             "$HOOK" "$(payload_bash 'true || cd wt && git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "checkout to main before commit"    "$HOOK" "$(payload_bash 'git checkout main && git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "coproc before git commit"         "$HOOK" "$(payload_bash 'coproc git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "case statement with git commit"   "$HOOK" "$(payload_bash 'case x in x) git commit -m x;; esac' morpheus)" "protected branch" "$wt_repo"
-assert_block "function body with git commit"    "$HOOK" "$(payload_bash 'f() { git commit -m x; }; f' morpheus)" "protected branch" "$wt_repo"
-assert_block "brace group piped to git commit"  "$HOOK" "$(payload_bash '{ cd wt; true; } | git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "path-qualified git commit"        "$HOOK" "$(payload_bash '/usr/bin/git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "newline after && keeps short-circuit" "$HOOK" "$(payload_bash $'false &&\ncd wt\ngit commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "quoted commit subcommand spelling" "$HOOK" "$(payload_bash "git com'mit' -m x" morpheus)" "protected branch" "$wt_repo"
-assert_block "the outer subshell's directory"   "$HOOK" "$(payload_bash '(cd . && (cd wt && git commit -m a) && git commit -m b)' morpheus)" "protected branch" "$wt_repo"
-assert_block "cd -P resolves symlinks itself"   "$HOOK" "$(payload_bash 'cd -P wt && cd .. && git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "an external wrapper cannot cd"    "$HOOK" "$(payload_bash 'nohup cd wt; git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "env cannot run the cd builtin"    "$HOOK" "$(payload_bash 'env cd wt; git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "an option cd does not take"       "$HOOK" "$(payload_bash 'cd -Z wt; git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "a cd skipped by an ||"            "$HOOK" "$(payload_bash 'false && cd wt || git commit -m x' morpheus)" "protected branch" "$wt_repo"
-assert_block "a cd inside an if body"           "$HOOK" "$(payload_bash 'cd wt; if true; then cd ..; git commit -m x; fi' morpheus)" "protected branch" "$wt_repo"
-assert_allow "command runs the cd builtin"      "$HOOK" "$(payload_bash 'command cd wt && git commit -m x' morpheus)" "$wt_repo"
-assert_allow "cd -L is the default mode"        "$HOOK" "$(payload_bash 'cd -L wt && git commit -m x' morpheus)" "$wt_repo"
-assert_allow "cd -P without a symlink"          "$HOOK" "$(payload_bash 'cd -P wt && git commit -m x' morpheus)" "$wt_repo"
-
-# A newline is a command separator. The patterns see a one-line command, so the
-# walk reads the payload as it arrived.
-assert_allow "a newline before a worktree commit" "$HOOK" "$(payload_bash $'cd wt\ngit commit -m x' morpheus)" "$wt_repo"
-assert_block "a newline back to the checkout"     "$HOOK" "$(payload_bash $'cd wt\ncd ..\ngit commit -m x' morpheus)" "protected branch" "$wt_repo"
+# The branch is read where the commit runs (#224): the payload's cwd, or a literal
+# `git -C <dir>` / `cd <dir> &&` over the whole command. Any other shape stays on
+# cwd. The hook itself runs in $main_repo throughout.
+at() { jq -c --arg d "$2" '. + {cwd: $d}' <<<"$1"; }
+assert_allow "cwd on a feature worktree"  "$HOOK" "$(at "$(payload_bash 'git commit -m x' morpheus)" "$feat_repo")" "$main_repo"
+assert_block "cwd on main"                "$HOOK" "$(at "$(payload_bash 'git commit -m x' morpheus)" "$main_repo")" "protected branch" "$feat_repo"
+assert_allow "git -C a feature worktree"  "$HOOK" "$(at "$(payload_bash "git -C $feat_repo commit -m x" morpheus)" "$main_repo")" "$main_repo"
+assert_allow "cd a feature worktree &&"   "$HOOK" "$(at "$(payload_bash "cd $feat_repo && git commit -m 'fix it'" morpheus)" "$main_repo")" "$main_repo"
+assert_block "git -C main from a worktree" "$HOOK" "$(at "$(payload_bash "git -C $main_repo commit -m x" morpheus)" "$feat_repo")" "protected branch" "$feat_repo"
+assert_block "a second clause stays on cwd" "$HOOK" "$(at "$(payload_bash "cd $feat_repo && git commit -m x; git commit -m y" morpheus)" "$main_repo")" "protected branch" "$main_repo"
+assert_block "an expanded dir stays on cwd" "$HOOK" "$(at "$(payload_bash 'git -C "$WT" commit -m x' morpheus)" "$main_repo")" "protected branch" "$main_repo"
 
 # --- Destructive commands ------------------------------------------------------
 assert_block "rm -rf /"        "$HOOK" "$(payload_bash 'rm -rf /' tank)"        "unsafe command"
@@ -203,10 +97,39 @@ assert_allow "npm run build"                  "$HOOK" "$(payload_bash 'npm run b
 assert_allow "npm run dev in a no-agent session" "$HOOK" "$(payload_bash 'npm run dev')"
 
 # --- Raw / streaming reads -----------------------------------------------------
+# A habit redirect, not a boundary: the rule catches the spelling a session
+# reaches for and names the tool instead. `grep . f` dumps the same file and is
+# deliberately allowed, so the cases below pin the habit and the escapes, not
+# redirect spellings -- see AGENTS.md, "The Bash guards are floors, not sandboxes".
 assert_block "cat a file"     "$HOOK" "$(payload_bash 'cat foo.txt' tank)"      "unbounded cat"
+assert_block "cat then another command" "$HOOK" "$(payload_bash 'cat foo.txt; ls' tank)" "unbounded cat"
 assert_block "less a file"    "$HOOK" "$(payload_bash 'less foo.txt' tank)"     "interactive raw reads"
 assert_block "tail -f a log"  "$HOOK" "$(payload_bash 'tail -f app.log' tank)"  "streaming raw output"
-assert_allow "cat piped into grep" "$HOOK" "$(payload_bash 'cat foo.txt | grep x' tank)"
+# Raw reads are refused in EVERY session: guard_block_raw_reads is called
+# unconditionally, unlike the agent-only write and watch blocks.
+assert_block "bare cat with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
+# A wrapper the command-position policy already knows must not walk a read past
+# the guard, on any of the three rules.
+assert_block "env cat"       "$HOOK" "$(payload_bash 'env cat foo.txt' tank)"     "unbounded cat"
+assert_block "command cat"   "$HOOK" "$(payload_bash 'command cat foo.txt' tank)" "unbounded cat"
+assert_block "FOO=1 cat"     "$HOOK" "$(payload_bash 'FOO=1 cat foo.txt' tank)"   "unbounded cat"
+assert_block "env less"      "$HOOK" "$(payload_bash 'env less foo.txt' tank)"    "interactive raw reads"
+assert_block "env tail -f"   "$HOOK" "$(payload_bash 'env tail -f app.log' tank)" "streaming raw output"
+# Filtering is the documented way out, and any redirect ends the match too.
+assert_allow "cat piped into grep"        "$HOOK" "$(payload_bash 'cat foo.txt | grep x' tank)"
+assert_allow "cat redirected into a file" "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
+assert_allow "bounded reads stay available" "$HOOK" "$(payload_bash 'head -40 foo.txt' tank)"
+# The refusals are a user-facing contract: they name the tool to use and say why
+# the shell read is refused. Asserted apart from the category substrings above,
+# which would still pass if the guidance were dropped.
+assert_block "cat refusal names the Read tool"   "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "Use the Read tool"
+assert_block "cat refusal gives the reason"      "$HOOK" "$(payload_bash 'cat foo.txt' tank)"  "reaches no Read hook"
+assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' tank)" "Use the Read tool"
+assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' tank)" "reaches no Read hook"
+# Nothing replaces a `tail -f`, so the stream refusal points at capture/filter --
+# but it carries the same reason, and the category substring alone was in the old
+# message too, so a revert to that wording would have passed.
+assert_block "stream refusal gives the reason"   "$HOOK" "$(payload_bash 'tail -f app.log' tank)" "reaches no Read hook"
 
 # --- File writes through Bash (agent sessions only) ---------------------------
 # lane-guard and format.sh are wired to Edit|Write, so a Bash write would land
@@ -240,9 +163,10 @@ assert_block "cp into the tree"       "$HOOK" "$(payload_bash 'cp /tmp/x src/Foo
 assert_block "mv inside the tree"     "$HOOK" "$(payload_bash 'mv src/a.cs src/b.cs' tank)"  "$gap"
 assert_block "patch"                  "$HOOK" "$(payload_bash 'patch -p1 < fix.diff' tank)"  "$gap"
 # `git mv` is a rename recorded in the index, not a write: no bytes change, so no
-# lane guard or formatter has anything to inspect. The git owner alone may run it
-# -- the rename lands in its commit, where it is reviewed. Bare `mv`/`cp` stay
-# refused for everyone, and so does a forced `git mv`, which can clobber.
+# lane guard or formatter has anything to inspect, and the rename lands in a
+# commit, where it is reviewed. The floor lets any agent run it; crew's own
+# no-git arm refuses its workers' below. Bare `mv`/`cp` stay refused for
+# everyone, and so does a forced `git mv`, which can clobber.
 force="git mv -f/--force can overwrite"
 assert_allow "morpheus git mv"                 "$HOOK" "$(payload_bash 'git mv BishopsArms.Members src/BishopsArms.Members' morpheus)"
 assert_allow "morpheus git -C dir mv"          "$HOOK" "$(payload_bash 'git -C . mv src/a.cs src/b.cs' morpheus)"
@@ -269,10 +193,32 @@ assert_block "bare mv behind a glob-carrying git mv" "$HOOK" "$(payload_bash 'gi
 assert_block "forced glob-carrying git mv"          "$HOOK" "$(payload_bash 'git -C "*" mv -f a b' morpheus)"       "$force"
 # Only a `git mv` at a command position is recognised; `-exec git mv` is not.
 assert_block "git mv under find -exec"          "$HOOK" "$(payload_bash 'find . -name "*.cs" -exec git mv {} old/ \;' morpheus)" "$gap"
+# A line start is a command position for this one allowance: the pattern reads
+# the raw command, so two renames typed on two lines pass, where the flattened
+# copy would have shown the generic check a bare `mv` on the second. What follows
+# a `git mv` is still checked, on the same line or the next, and `git` on one
+# line with `mv a b` on the next is two commands, not a rename.
+nl=$'\n'
+assert_allow "morpheus git mv on a second line"    "$HOOK" "$(payload_bash "cd src${nl}git mv a.cs b.cs" morpheus)"
+assert_allow "morpheus two git mvs on two lines"   "$HOOK" "$(payload_bash "git mv a b${nl}git mv c d" morpheus)"
+assert_allow "morpheus git mv on an indented line" "$HOOK" "$(payload_bash "cd src${nl}  git -C . mv a b" morpheus)"
+assert_block "forced git mv on a second line"      "$HOOK" "$(payload_bash "git mv a b${nl}git mv -f c d" morpheus)" "$force"
+assert_block "bare mv on a second line"            "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" morpheus)"        "$gap"
+assert_block "git and mv on separate lines"        "$HOOK" "$(payload_bash "git${nl}mv a b" morpheus)"                "$gap"
+assert_block "git -C dir and mv on separate lines" "$HOOK" "$(payload_bash "git -C src${nl}mv a b" morpheus)"         "$gap"
+# The floor does not decide WHOSE rename it is: with keymaker installed too, both
+# guards fire on every Bash call, and this one must not refuse keymaker's owner.
+assert_allow "another plugin's git owner may git mv" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' keymaker)"
 # A worker is told whose the rename is and what to hand back, rather than the
 # generic write message that sends it looking for a synonym.
 assert_block "tank git mv names the owner"      "$HOOK" "$(payload_bash 'git mv a b' tank)" "morpheus owns git"
 assert_block "tank git mv says hand it back"    "$HOOK" "$(payload_bash 'git mv a b' tank)" "Hand the rename back"
+assert_block "tank git mv -f is a write first"  "$HOOK" "$(payload_bash 'git mv -f a b' tank)" "$force"
+# The hand-back reads the flattened command, so a line of data is never refused.
+assert_allow "tank prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" tank)"
+assert_allow "tank writes a git mv in a heredoc"       "$HOOK" "$(payload_bash "cat > /tmp/notes <<EOF${nl}git mv a b${nl}EOF" tank)"
+# A backslash-newline is joined before the force check, as bash joins it.
+assert_block "git mv -f after a line continuation" "$HOOK" "$(payload_bash "git mv \\${nl}-f a b" morpheus)" "$force"
 # Exempt sinks and read-only uses of the same tools stay allowed: a guard that
 # blocked `> /dev/null` would just be routed around.
 assert_allow "redirect to /dev/null"  "$HOOK" "$(payload_bash 'dotnet build > /dev/null' tank)"

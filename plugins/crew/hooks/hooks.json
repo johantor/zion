@@ -27,6 +27,16 @@
             "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/lane-guard.sh"
           }
         ]
+      },
+      {
+        "matcher": "Agent|Task",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/plan-guard.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PermissionDenied": [

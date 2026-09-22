@@ -52,16 +52,48 @@ assert_block "sed -i"                "$HOOK" "$(payload_bash "sed -i 's/a/b/' sr
 assert_block "redirect into a file"  "$HOOK" "$(payload_bash 'echo x > src/Foo.cs' twin)"        "reaches no Edit|Write hook"
 assert_allow "redirect to /dev/null" "$HOOK" "$(payload_bash 'npm run build > /dev/null' twin)"
 assert_allow "Bash write in a no-agent session" "$HOOK" "$(payload_bash 'echo x > src/Foo.cs')"
-# `git mv` is the floor's one carve-out, for the git owner this hook names.
+# `git mv` is the floor's one carve-out. The floor lets any agent run it -- with
+# crew installed too, both guards fire on every Bash call, and this one must not
+# refuse crew's morpheus -- and keymaker's own twin rule refuses a twin's.
+nl=$'\n'
 assert_allow "keymaker git mv"           "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' keymaker)"
+assert_allow "keymaker git mv on a second line" "$HOOK" "$(payload_bash "cd src${nl}git mv a.ts b.ts" keymaker)"
+assert_allow "another plugin's git owner may git mv" "$HOOK" "$(payload_bash 'git mv src/a.cs src/b.cs' morpheus)"
 assert_block "keymaker git mv -f"        "$HOOK" "$(payload_bash 'git mv -f src/a.ts src/b.ts' keymaker)" "git mv -f/--force can overwrite"
 assert_block "keymaker bare mv"          "$HOOK" "$(payload_bash 'mv src/a.ts src/b.ts' keymaker)"        "reaches no Edit|Write hook"
+assert_block "bare mv on a second line"  "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" keymaker)"       "reaches no Edit|Write hook"
 assert_block "twin git mv names the owner" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' twin)"      "keymaker owns git"
+# The hand-back reads the flattened command, so a line of data is never refused.
+assert_allow "twin prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" twin)"
+assert_allow "twin writes a git mv in a heredoc"       "$HOOK" "$(payload_bash "cat > /tmp/notes <<EOF${nl}git mv a b${nl}EOF" twin)"
+assert_block "keymaker git mv -f after a line continuation" "$HOOK" "$(payload_bash "git mv \\${nl}-f a b" keymaker)" "git mv -f/--force can overwrite"
 
+# Raw/streaming reads. A habit redirect, not a boundary: `grep . f` dumps the
+# same file and is deliberately allowed, so these pin the habit and the escapes,
+# not redirect spellings -- see AGENTS.md, "The Bash guards are floors, not sandboxes".
 assert_block "cat a file"    "$HOOK" "$(payload_bash 'cat foo.txt' twin)"     "unbounded cat"
 assert_block "less a file"   "$HOOK" "$(payload_bash 'less foo.txt' twin)"    "interactive raw reads"
 assert_block "tail -f a log" "$HOOK" "$(payload_bash 'tail -f app.log' twin)" "streaming raw output"
-assert_allow "cat piped into grep" "$HOOK" "$(payload_bash 'cat foo.txt | grep x' twin)"
+assert_block "bare read with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
+assert_block "env wrapper"        "$HOOK" "$(payload_bash 'env cat foo.txt' twin)"     "unbounded cat"
+assert_block "command wrapper"    "$HOOK" "$(payload_bash 'command cat foo.txt' twin)" "unbounded cat"
+assert_block "assignment wrapper" "$HOOK" "$(payload_bash 'FOO=1 cat foo.txt' twin)"   "unbounded cat"
+# `_g_pfx` is on the pager and stream patterns too, and this suite runs against
+# keymaker's own vendored copy -- so those branches need exercising here, not
+# only in crew's.
+assert_block "env wrapper on the pager"  "$HOOK" "$(payload_bash 'env less foo.txt' twin)"    "interactive raw reads"
+assert_block "env wrapper on the stream" "$HOOK" "$(payload_bash 'env tail -f app.log' twin)" "streaming raw output"
+assert_allow "piped into grep"        "$HOOK" "$(payload_bash 'cat foo.txt | grep x' twin)"
+assert_allow "redirected into a file" "$HOOK" "$(payload_bash 'cat foo.txt > out.txt')"
+# The refusals name the tool to use and say why the shell read is refused.
+assert_block "refusal names the Read tool" "$HOOK" "$(payload_bash 'cat foo.txt' twin)" "Use the Read tool"
+assert_block "refusal gives the reason"    "$HOOK" "$(payload_bash 'cat foo.txt' twin)" "reaches no Read hook"
+assert_block "pager refusal names the Read tool" "$HOOK" "$(payload_bash 'less foo.txt' twin)" "Use the Read tool"
+assert_block "pager refusal gives the reason"    "$HOOK" "$(payload_bash 'less foo.txt' twin)" "reaches no Read hook"
+# Nothing replaces a `tail -f`, so the stream refusal points at capture/filter --
+# but it carries the same reason, and only asserting the category would let a
+# revert to the old wording pass.
+assert_block "stream refusal gives the reason"   "$HOOK" "$(payload_bash 'tail -f app.log' twin)" "reaches no Read hook"
 
 # --- Twins never run git ------------------------------------------------------
 assert_block "twin blocked from git"         "$HOOK" "$(payload_bash 'git status' twin)" "never runs git"
@@ -79,23 +111,12 @@ work_repo="$(make_git_branch chore/debt-upgrade-x)"
 assert_block "keymaker commit on main"   "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "protected branch" "$main_repo"
 assert_block "keymaker commit on master" "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "protected branch" "$master_repo"
 assert_block "git -C dir commit on main" "$HOOK" "$(payload_bash 'git -C . commit -m x' keymaker)" "protected branch" "$main_repo"
-# A commit is judged by the directory it runs in: a worktree on a work branch is
-# not the protected branch the hook's own directory sits on.
-wt_repo="$(make_git_worktree main chore/debt-upgrade-x)"
-assert_allow "keymaker commit in a worktree" "$HOOK" "$(payload_bash 'git -C wt commit -m x' keymaker)"    "$wt_repo"
-assert_allow "keymaker cd into a worktree"   "$HOOK" "$(payload_bash 'cd wt && git commit -m x' keymaker)" "$wt_repo"
-assert_block "keymaker cd back to main"      "$HOOK" "$(payload_bash 'cd wt && git -C .. commit -m x' keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker nested shell commit" "$HOOK" "$(payload_bash 'cd wt && bash -c "cd .. && git commit -m x"' keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker subshell commit"     "$HOOK" "$(payload_bash '(git commit -m x)' keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker coproc commit"       "$HOOK" "$(payload_bash 'coproc git commit -m x' keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker case commit"         "$HOOK" "$(payload_bash 'case x in x) git commit -m x;; esac' keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker function commit"     "$HOOK" "$(payload_bash 'f() { git commit -m x; }; f' keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker /usr/bin/git commit" "$HOOK" "$(payload_bash '/usr/bin/git commit -m x' keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker && newline carry"    "$HOOK" "$(payload_bash $'false &&\ncd wt\ngit commit -m x' keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker quoted commit word"  "$HOOK" "$(payload_bash "git com'mit' -m x" keymaker)" "protected branch" "$wt_repo"
-assert_block "keymaker checkout main commit" "$HOOK" "$(payload_bash 'git checkout main && git commit -m x' keymaker)" "protected branch" "$wt_repo"
-assert_allow "keymaker echoes the word"     "$HOOK" "$(payload_bash 'echo commit' keymaker)" "$wt_repo"
-assert_block "keymaker newline separator"   "$HOOK" "$(payload_bash $'cd wt\ncd ..\ngit commit -m x' keymaker)" "protected branch" "$wt_repo"
+# The branch is read where the commit runs (the payload's cwd), not where the hook
+# sits -- keymaker's own vendored copy of that rule.
+at() { jq -c --arg d "$2" '. + {cwd: $d}' <<<"$1"; }
+assert_allow "cwd on the work branch" "$HOOK" "$(at "$(payload_bash 'git commit -m x' keymaker)" "$work_repo")" "$main_repo"
+assert_allow "git -C the work branch" "$HOOK" "$(at "$(payload_bash "git -C $work_repo commit -m x" keymaker)" "$main_repo")" "$main_repo"
+assert_block "cwd on main"            "$HOOK" "$(at "$(payload_bash 'git commit -m x' keymaker)" "$main_repo")" "protected branch" "$work_repo"
 assert_allow "keymaker commit on the work branch" "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "$work_repo"
 assert_allow "no-agent session may commit on main" "$HOOK" "$(payload_bash 'git commit -m x')" "$main_repo"
 

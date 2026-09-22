@@ -48,6 +48,10 @@ A **targeted rerun** uses `-run`, anchored so it matches one test and not its pr
 - `go test ./pkg/foo -run '^TestName$/^case_name$'` — one subtest (spaces in a subtest name become
   underscores in the `-run` path).
 
+Confirm a new test is discovered with `go test ./pkg/foo -list '.*'`, which prints the matching
+test names without running them; a test missing from that list has a name or build-tag problem in
+the source, not in the compiled package.
+
 Notes on reading a run:
 
 - `go test` **caches** passing results. A rerun that prints `(cached)` did not execute the test;

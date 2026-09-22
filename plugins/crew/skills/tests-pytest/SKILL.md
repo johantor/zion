@@ -48,6 +48,10 @@ A **targeted rerun** is a node id or a `-k` expression, not the whole suite:
 - `pytest path/to/test_mod.py::TestClass::test_name` — one method.
 - `pytest -k 'expression'` — by substring/boolean match on the name.
 
+Confirm a new test is discovered with `pytest --collect-only -q path/to/test_mod.py`, which lists
+the node ids pytest would run without running them; a file or function the pattern misses shows up
+here as an empty list, and the fix is the name or the config, not the bytecode.
+
 Read the summary line, not just the exit code: pytest exits non-zero on failures, but a run that
 collected **zero** tests is also a failure to report (exit code 5), not a pass. `xfail`/`xpass` and
 `skip` counts in the summary are results too — report them rather than folding them into "green".

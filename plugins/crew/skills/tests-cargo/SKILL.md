@@ -51,6 +51,10 @@ A **targeted rerun** is a filter, not a full run:
 - `cargo test -p <member>` — one workspace member.
 - Add `-- --exact <full::path>` when a substring would match more than you want.
 
+Confirm a new test is discovered with `cargo test --test <file_stem> -- --list`, which prints the
+test names in that crate without running them; a test missing from the list has a `#[test]`,
+`cfg`, or module-path problem in the source, not in the built binary.
+
 Notes on reading a run:
 
 - The summary is **per test binary**. A workspace prints one `test result:` line per crate, so

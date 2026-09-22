@@ -271,3 +271,6 @@ anything stated here updates this file in the same commit.** Conventions live in
   `## [Unreleased]` instead. `scripts/check-changelog.sh` blocks a shipped change with no trace,
   and a bump that leaves bullets parked. Shipped = everything here except `tests/`,
   `CLAUDE.md`, `VERIFICATION.md`, and the changelog. Root `AGENTS.md` §"Releasing" has the rest.
+- **Changelog entries are one line, two at most.** What changed, in plain terms. The why and the
+  mechanics go in the commit message and the PR; the entry becomes the release notes and is
+  read as a list.

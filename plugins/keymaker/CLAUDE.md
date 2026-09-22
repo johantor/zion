@@ -87,3 +87,6 @@ anything stated here updates this file in the same commit.** Conventions live in
   and a bump that leaves bullets parked. Shipped = everything here except `tests/` (repo
   tooling), `CLAUDE.md`, `VERIFICATION.md`, and the changelog. Details in the root `AGENTS.md`
   §"Releasing".
+- **Changelog entries are one line, two at most.** What changed, in plain terms. The why and the
+  mechanics go in the commit message and the PR; the entry becomes the release notes and is
+  read as a list.

@@ -19,6 +19,22 @@ feat_repo="$(make_git_branch feature/x)"
 assert_block "morpheus git commit on main" "$HOOK" "$(payload_bash 'git commit -m x' morpheus)" "protected branch" "$main_repo"
 assert_allow "morpheus git commit on feature branch" "$HOOK" "$(payload_bash 'git commit -m x' morpheus)" "$feat_repo"
 assert_allow "no-agent session may commit on main" "$HOOK" "$(payload_bash 'git commit -m x')" "$main_repo"
+# The branch is read where the commit runs (#224): the payload's cwd, or a literal
+# `git -C <dir>` / `cd <dir> &&` over the whole command. Any other shape stays on
+# cwd. The hook itself runs in $main_repo throughout.
+at() { jq -c --arg d "$2" '. + {cwd: $d}' <<<"$1"; }
+assert_allow "cwd on a feature worktree"  "$HOOK" "$(at "$(payload_bash 'git commit -m x' morpheus)" "$feat_repo")" "$main_repo"
+assert_block "cwd on main"                "$HOOK" "$(at "$(payload_bash 'git commit -m x' morpheus)" "$main_repo")" "protected branch" "$feat_repo"
+assert_allow "git -C a feature worktree"  "$HOOK" "$(at "$(payload_bash "git -C $feat_repo commit -m x" morpheus)" "$main_repo")" "$main_repo"
+assert_allow "cd a feature worktree &&"   "$HOOK" "$(at "$(payload_bash "cd $feat_repo && git commit -m 'fix it'" morpheus)" "$main_repo")" "$main_repo"
+assert_block "git -C main from a worktree" "$HOOK" "$(at "$(payload_bash "git -C $main_repo commit -m x" morpheus)" "$feat_repo")" "protected branch" "$feat_repo"
+assert_block "a second clause stays on cwd" "$HOOK" "$(at "$(payload_bash "cd $feat_repo && git commit -m x; git commit -m y" morpheus)" "$main_repo")" "protected branch" "$main_repo"
+# Any other shape also checks the hook's own directory, so it is never weaker
+# than before: here cwd is a feature branch and only the hook's directory is main.
+# shellcheck disable=SC2016  # $WT is the literal text under test
+assert_block "an expanded dir checks the hook's dir" "$HOOK" "$(at "$(payload_bash 'git -C "$WT" commit -m x' morpheus)" "$feat_repo")" "protected branch" "$main_repo"
+assert_block "a GIT_DIR prefix checks the hook's dir" "$HOOK" "$(at "$(payload_bash "GIT_DIR=$main_repo/.git git commit -m x" morpheus)" "$feat_repo")" "protected branch" "$main_repo"
+assert_block "cd - is not a literal dir"  "$HOOK" "$(at "$(payload_bash 'cd - && git commit -m x' morpheus)" "$feat_repo")" "protected branch" "$main_repo"
 
 # --- Destructive commands ------------------------------------------------------
 assert_block "rm -rf /"        "$HOOK" "$(payload_bash 'rm -rf /' tank)"        "unsafe command"

@@ -111,6 +111,13 @@ work_repo="$(make_git_branch chore/debt-upgrade-x)"
 assert_block "keymaker commit on main"   "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "protected branch" "$main_repo"
 assert_block "keymaker commit on master" "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "protected branch" "$master_repo"
 assert_block "git -C dir commit on main" "$HOOK" "$(payload_bash 'git -C . commit -m x' keymaker)" "protected branch" "$main_repo"
+# The branch is read where the commit runs (the payload's cwd), not where the hook
+# sits -- keymaker's own vendored copy of that rule.
+at() { jq -c --arg d "$2" '. + {cwd: $d}' <<<"$1"; }
+assert_allow "cwd on the work branch" "$HOOK" "$(at "$(payload_bash 'git commit -m x' keymaker)" "$work_repo")" "$main_repo"
+assert_allow "git -C the work branch" "$HOOK" "$(at "$(payload_bash "git -C $work_repo commit -m x" keymaker)" "$main_repo")" "$main_repo"
+assert_block "cwd on main"            "$HOOK" "$(at "$(payload_bash 'git commit -m x' keymaker)" "$main_repo")" "protected branch" "$work_repo"
+assert_block "cd - checks the hook's dir" "$HOOK" "$(at "$(payload_bash 'cd - && git commit -m x' keymaker)" "$work_repo")" "protected branch" "$main_repo"
 assert_allow "keymaker commit on the work branch" "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "$work_repo"
 assert_allow "no-agent session may commit on main" "$HOOK" "$(payload_bash 'git commit -m x')" "$main_repo"
 

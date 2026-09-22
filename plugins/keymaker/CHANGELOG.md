@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.4] - 2026-09-22
+
+### Fixed
+
+- **A commit in a git worktree is judged by the worktree's branch.** The protected-branch
+  backstop read the hook's own directory, so a main checkout on `develop` refused worktree commits.
+
 ## [0.9.3] - 2026-09-22
 
 ### Fixed

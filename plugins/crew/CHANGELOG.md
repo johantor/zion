@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.26.1] - 2026-09-22
+
+### Changed
+
+- `sentinel` and `seraph` no longer load the project's `CLAUDE.md` files on spawn
+  (`omitClaudeMd: true`). Both are read-only on code and get what they need from the dispatch
+  prompt — a triage signal plus a changeset, or a design reference plus a rendered page — so the
+  project's coding conventions were paid for on every spawn and never used. The implementers
+  (`tank`, `trinity`, `dozer`, `oracle`, `neo`) keep loading it: they edit project code, and that
+  is where its conventions live.
+
 ## [3.26.0] - 2026-09-14
 
 ### Added

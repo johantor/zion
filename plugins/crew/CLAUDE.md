@@ -201,6 +201,10 @@ anything stated here updates this file in the same commit.** Conventions live in
 - Agent frontmatter: `skills:` is the **last** key, unqualified names, `  - name` list items
   (§2g's awk parser reads the `  - name` items; it stops at the next key, so the last-key rule
   is convention, not a parser constraint).
+- `omitClaudeMd: true` is set on the two workers that are read-only on code and fully briefed by
+  their dispatch prompt (`sentinel`, `seraph`). Never on an implementer — the project's
+  `CLAUDE.md` is where its coding conventions live. The §12 footprint figure counts agent file +
+  preloaded skills only, so this key changes the real spawn cost but not the reported number.
 - Always-loaded footprint: validator §12 reports every agent's agent-file + preloaded-skill line
   count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 575 —
   raised from 541 for the plan-mode section, itself raised from 526 for the gate build-strictness

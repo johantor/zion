@@ -303,21 +303,11 @@ guard_mask_quotes() {
   done
 }
 
-# A heredoc operator and its delimiter word: `<<EOF`, `<<-EOF`, `<< 'EOF'`,
-# `<<"EOF"`, `<<\EOF`. The character before must not be `<`, so a `<<<` here-string
-# is not read as one; the word must start with a letter or `_`, so a shift in
-# arithmetic (`$((1<<2))`) is not either.
+# A heredoc operator and its delimiter word; not `<<<`, not `$((1<<2))`.
 GUARD_RE_HEREDOC='(^|[^<])<<(-?)[[:blank:]]*\\?['\''"]?([A-Za-z_][A-Za-z0-9_.-]*)'
 
-# guard_mask_data <cmd> -- sets $guard_masked to <cmd> with its data taken out:
-# every heredoc body blanked line for line, then every quoted span masked as in
-# guard_mask_quotes. For a REFUSAL that reads line starts, where a newline that is
-# data must not count as a separator (see guard_block_git_mv_handback).
-#
-# Not a tokenizer, and it errs the other way from guard_mask_quotes' callers: a
-# `<<` inside a quoted string still opens a heredoc here, and a heredoc with no
-# closing line runs to the end, as bash reads it. Each mis-parse masks MORE, so a
-# refusal fed the result can miss a command, never refuse data.
+# guard_mask_data <cmd> -- sets $guard_masked to <cmd> with heredoc bodies blanked
+# and quoted spans masked. Not a tokenizer: a mis-parse masks more, never less.
 guard_mask_data() {
   local line cmp out='' nl=$'\n' tab=$'\t' rest
   local -a delims=() strips=()
@@ -426,13 +416,10 @@ guard_block_file_writes() {
 # guard_block_git_mv_handback <git_owner> -- for a plugin's own agent that does
 # not own git: refuse a `git mv` naming whose rename it is and what to hand back,
 # rather than the generic write message that sends the agent looking for a
-# synonym. Uses the pattern the floor masks with, so the shapes the owner may run
-# are the ones refused here -- but matched against $guard_cmd_raw with its data
-# masked (guard_mask_data). This is a refusal that reads line starts, so a newline
-# inside a quoted string or a heredoc body must not count: a worker that prints
-# `git mv a b` as text, or writes it to a scratch file, is not renaming anything.
-# Called below the shared region, so a plugin only ever answers for its own
-# roster; a forced `git mv` never reaches it, the floor having refused that already.
+# synonym. Uses the pattern the floor masks with, on $guard_cmd_raw with its data
+# masked (see AGENTS.md). Called below the shared region, so a plugin only ever
+# answers for its own roster; a forced `git mv` never reaches it, the floor having
+# refused that already.
 guard_block_git_mv_handback() {
   guard_mask_data "$guard_cmd_raw"
   [[ $guard_masked =~ $GUARD_RE_GIT_MV ]] || return 0

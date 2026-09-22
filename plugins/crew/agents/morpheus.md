@@ -8,7 +8,7 @@ maxTurns: 144
 memory: local
 owns-git: true
 lane-guarded: false
-loaded-lines-cap: 585
+loaded-lines-cap: 575
 skills:
   - loop-engineering
   - context-discipline
@@ -330,24 +330,15 @@ Before triggering that gate:
 2. Only then run the final verification — the review gate (`/crew:review`), which delegates the
    lane-scoped build/test gates. Run it **once**; don't delegate a standalone build first — the
    gate skips any lane unchanged since it last ran.
-3. **One build location; one intermediate path per writer; gates in parallel by default.** Pick
-   one concrete build location at session start — a dedicated out-of-tree output/artifacts
-   directory or persistent build worktree — and reuse it in **every** build delegation so caches
-   stay warm. Inside it the intermediates are a **shared artifact** (*One writer per file; one
-   owner per shared artifact*), and a test or lint run that compiles is a writer too, so two
-   writers never share one project's outputs. Collision safety is half the call; wall-clock is the
-   other half, and serializing a lane's gates is the slow way to be safe. Default: **dispatch a
-   lane's gates concurrently, each on its own intermediate/output path** under the build location
-   — one per gate role, reused across the session so it stays incremental after its first run —
-   sharing only the read-mostly package cache. The stack skill names the knobs, the gates that
-   need no split (Go's and Python's caches are concurrency-safe; `tsc --noEmit` and a lint write
-   nothing), and the stacks with no knob. **Serialize only** where no knob exists short of a
-   second worktree (Maven/Gradle), where a cold compile dominates quick runs (a Rust workspace
-   whose dependencies take minutes per `target/`), or where the host can't carry parallel
-   compiles. Parallel wins when the suites outlast the compile; serial when the compile *is* the
-   cost. Name the choice in the dispatch. Two lanes never share outputs and always run
-   concurrently. Require the location **isolated from any running app/dev process** so builds
-   can't contend on locked `bin`/`obj`, `dist`, bundler caches.
+3. **One build location, one build writer at a time.** Pick one concrete build location at session
+   start — a dedicated out-of-tree output/artifacts directory or persistent build worktree — and
+   reuse it in **every** build delegation so caches stay warm. Inside it the intermediates are a
+   **shared artifact** (*One writer per file; one owner per shared artifact*), and a test or lint
+   run that compiles is a writer too: never dispatch two writers of one project's outputs at once.
+   Run a lane's gates **one at a time**, unless its stack skill has a **Parallel gates** recipe:
+   then dispatch them together, each handed its own `<location>/<lane>/<gate>` path in the
+   dispatch, `oracle`'s included. Require the location **isolated from any running app/dev
+   process** so builds can't contend on locked `bin`/`obj`, `dist`, bundler caches.
 4. **One-shot build, bounded.** Use the project's **build** command, never a watch/dev/serve
    command (`dotnet watch`, `npm run dev`, `vite`, `tsc --watch`) — those never terminate and
    hang the worker. Give the build a wall-clock timeout so a hang fails fast.
@@ -360,10 +351,9 @@ Before triggering that gate:
 6. **Tell a contention failure from a code failure — and rule out your own dispatch first.** A
    lock/in-use error (`MSB3027`/`MSB3026`, "being used by another process", `EBUSY`/`EPERM`/
    `EACCES`, a locked or corrupted `bin`/`obj`/`dist`) or a build timeout is **contention, not a
-   code defect** — don't route it to the implementer. If two of your delegations shared one
-   intermediate path, the collision is yours: say so, clear the corrupted intermediates, give each
-   writer its own path (serialize only where the stack has no knob), and re-run. Only when none
-   overlapped is it the user's environment — report the
+   code defect** — don't route it to the implementer. If two of your delegations shared the build
+   location, the collision is yours: say so, clear the corrupted intermediates, serialize or split
+   the paths, and re-run. Only when none overlapped is it the user's environment — report the
    likely lock (or hang), ask them to stop the dev server/app or confirm the location, then retry.
 7. Collect the workers' concise findings, synthesize the go/no-go, and route **genuine
    compile/test failures** back to the implementer.

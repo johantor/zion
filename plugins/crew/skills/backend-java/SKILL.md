@@ -81,12 +81,6 @@ either wait for it or get your own output directory before starting, and say whi
 findings. The **shared, read-mostly** part is the dependency cache (`~/.m2/repository`,
 `GRADLE_USER_HOME`) — point every build at one rather than isolating it.
 
-There is **no invocation-level knob** for a per-writer output directory: `target/` and `build/`
-are set in the POM or the build script, so the only split is a second worktree. That is why this
-stack's gates serialize where the others run in parallel — and why it rarely costs much: one
-`mvn verify` or `gradle build` already runs compile, tests and the configured checks as phases of
-a single invocation, so the lane's gates are usually one command, not three.
-
 ## Docs
 
 When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API docs

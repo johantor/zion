@@ -62,7 +62,6 @@ assert_allow "another plugin's git owner may git mv" "$HOOK" "$(payload_bash 'gi
 assert_block "keymaker git mv -f"        "$HOOK" "$(payload_bash 'git mv -f src/a.ts src/b.ts' keymaker)" "git mv -f/--force can overwrite"
 assert_block "keymaker bare mv"          "$HOOK" "$(payload_bash 'mv src/a.ts src/b.ts' keymaker)"        "reaches no Edit|Write hook"
 assert_block "bare mv on a second line"  "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" keymaker)"       "reaches no Edit|Write hook"
-assert_allow "second-line echo --force after git mv" "$HOOK" "$(payload_bash "git mv a b${nl}echo --force" keymaker)"
 assert_block "twin git mv names the owner" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' twin)"      "keymaker owns git"
 # The hand-back reads the flattened command, so a line of data is never refused.
 assert_allow "twin prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" twin)"
@@ -112,6 +111,13 @@ work_repo="$(make_git_branch chore/debt-upgrade-x)"
 assert_block "keymaker commit on main"   "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "protected branch" "$main_repo"
 assert_block "keymaker commit on master" "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "protected branch" "$master_repo"
 assert_block "git -C dir commit on main" "$HOOK" "$(payload_bash 'git -C . commit -m x' keymaker)" "protected branch" "$main_repo"
+# The branch is read where the commit runs (the payload's cwd), not where the hook
+# sits -- keymaker's own vendored copy of that rule.
+at() { jq -c --arg d "$2" '. + {cwd: $d}' <<<"$1"; }
+assert_allow "cwd on the work branch" "$HOOK" "$(at "$(payload_bash 'git commit -m x' keymaker)" "$work_repo")" "$main_repo"
+assert_allow "git -C the work branch" "$HOOK" "$(at "$(payload_bash "git -C $work_repo commit -m x" keymaker)" "$main_repo")" "$main_repo"
+assert_block "cwd on main"            "$HOOK" "$(at "$(payload_bash 'git commit -m x' keymaker)" "$main_repo")" "protected branch" "$work_repo"
+assert_block "cd - checks the hook's dir" "$HOOK" "$(at "$(payload_bash 'cd - && git commit -m x' keymaker)" "$work_repo")" "protected branch" "$main_repo"
 assert_allow "keymaker commit on the work branch" "$HOOK" "$(payload_bash 'git commit -m x' keymaker)" "$work_repo"
 assert_allow "no-agent session may commit on main" "$HOOK" "$(payload_bash 'git commit -m x')" "$main_repo"
 

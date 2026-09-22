@@ -70,12 +70,7 @@ Cargo takes a lock on `target/`, so a second concurrent build **blocks** rather 
 you will see "Blocking waiting for file lock on build directory". That is contention, not a code
 error, and not the user's dev server. If another crew build may be live against the same package,
 either wait for it or set `CARGO_TARGET_DIR` to your own path before you start, and say which you
-did in your findings. The trade-off `morpheus` weighs: a separate `CARGO_TARGET_DIR` compiles the
-whole dependency graph again, cold, so on a workspace whose dependencies take minutes the split
-costs more than the parallelism saves unless the per-gate directories are reused across the
-session; over one shared `target/`, `cargo build`, `cargo test` and `cargo clippy` share the
-compiled dependencies and the lock makes them safe — just serial. Take the path the dispatch
-names; when it names none, share `target/` and let the lock serialize you.
+did in your findings.
 
 ## Docs
 

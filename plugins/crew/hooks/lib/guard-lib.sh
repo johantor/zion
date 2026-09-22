@@ -127,6 +127,13 @@ GUARD_RE_GIT_AT_CMD="${_g_cmdpos}${_g_pfx}"'git([[:space:]]|$)'
 # flag token, optionally followed by its value token.
 _g_gitopt='(-[^[:space:]]+[[:space:]]+([^-[:space:]][^[:space:]]*[[:space:]]+)?)*'
 GUARD_RE_GIT_COMMIT="${_g_cmdpos}${_g_pfx}"'git[[:space:]]+'"${_g_gitopt}"'commit([[:space:]]|$)'
+# The whole command is `git commit …`, `git -C <dir> commit …` or
+# `cd <dir> && git commit …`, with a plain <dir> (no leading `-`) and no
+# separator, substitution, redirect, escape or newline after it. Matched against
+# $guard_cmd_raw; <dir> is group 2 or 3, empty for a plain commit.
+_g_litdir='([A-Za-z0-9._/][A-Za-z0-9._/-]*)'
+_g_plain_tail=$'([[:blank:]][^;&|`$()<>\\\\\n]*)?$'
+GUARD_RE_COMMIT_IN_DIR='^[[:blank:]]*(git[[:blank:]]+-C[[:blank:]]+'"$_g_litdir"'[[:blank:]]+commit|cd[[:blank:]]+'"$_g_litdir"'[[:blank:]]*&&[[:blank:]]*git[[:blank:]]+commit|git[[:blank:]]+commit)'"$_g_plain_tail"
 # `git mv` at a command position, with at least one operand after it. Alone among
 # the patterns it is matched against $guard_cmd_raw, and a line start counts as a
 # command position. It can afford to: the match is an ALLOWANCE (the token is
@@ -344,8 +351,7 @@ GUARD_GIT_MV_MASK='@gitmv@'
 # `sed -i`; the redirect scan reads the quote-masked copy, where a quoted `>` is
 # no longer an operator.
 guard_block_file_writes() {
-  local cmd rest target what m ops line_end
-  line_end=$'\n'
+  local cmd rest target what m ops
   cmd="$guard_cmd_raw"
   while [[ $cmd =~ $GUARD_RE_GIT_MV ]]; do
     m="${BASH_REMATCH[0]}"
@@ -356,7 +362,7 @@ guard_block_file_writes() {
     # redirect scan: unquoted it would be a glob, and a `*` or `[` in a flag
     # value (`git -C "*" mv`) or an operand would widen the match and mask what
     # follows.
-    ops="${cmd#*"$m"}"; ops="${ops%%[;|&"$line_end"]*}"; ops="${ops//[\'\"]/}"
+    ops="${cmd#*"$m"}"; ops="${ops%%[;|&$'\n']*}"; ops="${ops//[\'\"]/}"
     if [[ $ops =~ $GUARD_RE_GIT_MV_FORCE ]]; then
       echo "Blocked: git mv -f/--force can overwrite an existing path, which is a write. Rename without it; if the destination exists, move or remove it as its own step first." >&2
       exit 2
@@ -404,13 +410,26 @@ guard_block_git_mv_handback() {
 # guard_block_protected_branch_commit <agent_type> <advice>
 #   Backstop for any agent that reaches a `git commit`: refuse it on a protected
 #   branch. Scoped by the caller to agent sessions, so a normal user session is
-#   never intercepted. The branch lookup is the one fork here, and only for a
-#   command that already looks like a commit.
+#   never intercepted. Forks only for a command that already looks like a commit.
+#
+#   The branch is read where the commit runs (#224): the payload's `cwd`, or the
+#   literal <dir> of GUARD_RE_COMMIT_IN_DIR. Any other shape also checks the hook's
+#   own directory, as before, so it is never weaker than that. See AGENTS.md,
+#   "The Bash guards are floors, not sandboxes".
 guard_block_protected_branch_commit() {
-  local agent_type="$1" advice="$2" branch
+  local agent_type="$1" advice="$2" branch dir d also_here=1
   [ -n "$agent_type" ] || return 0
   [[ $guard_cmd =~ $GUARD_RE_GIT_COMMIT ]] || return 0
-  branch="$(git branch --show-current 2>/dev/null || true)"
+  dir="$(jq -r '.cwd // ""' <<<"$guard_payload" 2>/dev/null || true)"
+  if [[ $guard_cmd_raw =~ $GUARD_RE_COMMIT_IN_DIR ]]; then
+    also_here=''
+    d="${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
+    case "$d" in '') ;; /*) dir="$d" ;; *) dir="${dir:-.}/$d" ;; esac
+  fi
+  branch="$(git -C "${dir:-.}" branch --show-current 2>/dev/null || true)"
+  if [ -n "$also_here" ] && ! [[ $branch =~ ^($GUARD_PROTECTED_BRANCHES)$ ]]; then
+    branch="$(git branch --show-current 2>/dev/null || true)"
+  fi
   if [[ $branch =~ ^($GUARD_PROTECTED_BRANCHES)$ ]]; then
     echo "Blocked: ${agent_type} may not commit on protected branch '$branch'. ${advice}" >&2
     exit 2

@@ -34,14 +34,26 @@ project file, or a nonsense compile error, rather than a clean lock error that n
 - **Never shared by concurrent builds:** `BaseIntermediateOutputPath` and `BaseOutputPath`
   (`obj/`, `bin/`). They are per-build-writer.
 
-So when another crew build/test/lint run may be live against the same project, take your own
-`-p:BaseIntermediateOutputPath=<dir>/obj/` / `-p:BaseOutputPath=<dir>/bin/` (trailing slash
-required) under the session's build location, one directory per gate role — build, test, lint —
-so the same gate finds its own incrementals warm on its next run; wait for the other run only when
-`morpheus` said to serialize. `dotnet format` takes no `-p:`, but MSBuild reads both properties
-from the environment, so set them as environment variables for that call. Say which you did in
-your findings — morpheus knows the dispatch and you do not. The cost of the split is one cold
-compile per gate path the first time; after that each path is as incremental as a shared one.
+So if another crew build/test/lint run may be live against the same project, either wait for it or
+use the path your dispatch gave you (below). Say which you did in your findings — morpheus knows
+the dispatch and you do not.
+
+### Parallel gates
+
+Build, test and lint may run at once when each gets its own artifacts root, `<path>` from the
+dispatch (`<location>/<lane>/<gate>`). The SDK then puts every project under
+`<path>/bin/<Project>/` and `<path>/obj/<Project>/`, so projects in one solution do not collide
+either, and nothing is written into the source tree. Reuse the same `<path>` per gate across the
+session and the second run is incremental.
+
+- Build: `dotnet build <sln> --artifacts-path <path>`
+- Test: `dotnet test <sln> --artifacts-path <path>`
+- Lint: `UseArtifactsOutput=true ArtifactsPath=<path> dotnet format <sln> --verify-no-changes`
+  (`dotnet format` has no `--artifacts-path`; MSBuild reads the environment instead)
+
+Serialize instead when the SDK is older than 8.0, or when the repo's `Directory.Build.props` or
+project files set `ArtifactsPath`, `BaseIntermediateOutputPath` or `BaseOutputPath`: the lint
+gate's environment value loses to a value set in a project file.
 
 ### A lock error is not automatically the user's environment
 

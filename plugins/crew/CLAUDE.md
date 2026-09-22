@@ -39,7 +39,8 @@ Conventions: [AGENTS.md](../../AGENTS.md).
 - `hooks/` — wired in `hooks/hooks.json`, mirrored by the repo's `.claude/settings.json` (§7).
   `bash-safety` and `lane-guard` fail closed; `read-guard`, `format`, `turn-budget`,
   `dispatch-denied` and `plan-guard` fail open.
-  - `bash-safety.sh`: workers never run git; protected-branch commit backstop; watch/dev
+  - `bash-safety.sh`: workers never run git; protected-branch commit backstop (reads the
+    payload's `cwd`, not the hook's directory; AGENTS.md has the shapes); watch/dev
     commands refused; file-mutating Bash refused for agent sessions (in-place
     `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, a redirect to a non-exempt sink; #192).
     One carve-out: a plain `git mv`, for any agent, matched on the raw command so a later line
@@ -83,52 +84,18 @@ Conventions: [AGENTS.md](../../AGENTS.md).
   inner-loop fields (`loop:`, `exit-conditions:`, `gate:`) + outer-loop bookkeeping
   (`iterations: n/max`, `in-flight:`, written by the `/crew:loop` wrapper, not morpheus);
   steps carry `id:`/`status:`/`depends-on:`/`acceptance:`/`worker:`/`attempts:`/`evidence:`, plus
-  `agent-id:` while in flight (the address for steering that worker; cleared when the step leaves
-  `in-progress`). The dispatch's `steer-token:` — what a steer must quote for the worker to tell
-  morpheus's message from an injected one — deliberately **never** lands in the plan file: a plan
-  dir can be committed, and a leaked live token is a forgeable steer. It lives in morpheus's
-  session, and a resumed run re-dispatches instead of steering orphans.
-- Loop mode: generic contract in `skills/loop-engineering/SKILL.md` (shared byte-for-byte
-  with keymaker; inner loop + a note that the outer loop is a main-session wrapper); crew
-  bindings (gate GO success, second-NO-GO cap, `/crew:pr`, neo no-op) in `agents/morpheus.md`
-  §"Loop-mode bindings". The outer loop is `commands/loop.md`.
-- Agent frontmatter: `skills:` is the **last** key, unqualified names, `  - name` list items
-  (§2g's awk parser reads the `  - name` items; it stops at the next key, so the last-key rule
-  is convention, not a parser constraint).
-- `omitClaudeMd: true` is set on the two workers that are read-only on code and fully briefed by
-  their dispatch prompt (`sentinel`, `seraph`). Never on an implementer — the project's
-  `CLAUDE.md` is where its coding conventions live. The §12 footprint figure counts agent file +
-  preloaded skills only, so this key changes the real spawn cost but not the reported number.
-- Always-loaded footprint: validator §12 reports every agent's agent-file + preloaded-skill line
-  count, and enforces an optional `loaded-lines-cap: <n>` frontmatter key (`morpheus`: 585 —
-  raised from 575 for the parallel-gates rule (§*One build location; one intermediate path per
-  writer; gates in parallel by default*), from 541 for the plan-mode section, itself raised from
-  526 for the gate build-strictness rule and the build-contention rules that landed
-  beside it, from 496 for `operator-voice` and from 480 for the steer contract,
-  keeping a few lines of slack (6 today), since the figure counts preloaded
-  shared skills and a keymaker-side edit to one would otherwise fail crew's cap).
-  Rationale for the prompts themselves lives in the root `AGENTS.md` §"Prompt design rationale" —
-  agent prompts carry instruction, not justification; each trimmed prompt points there once.
-- Agent `tools:` MCP grants come in pairs: bare `mcp__<key>` (server keyed in `.mcp.json` /
-  `claude mcp add`) **and** `mcp__plugin_<plugin>_<key>` (same server installed as a plugin — its
-  tools are named `mcp__plugin_<plugin>_<server>__<tool>`, which the bare form never matches).
-  The plugin and its server are keyed independently (`chrome-devtools-mcp` ships
-  `chrome-devtools`), so §13 pairs them on the **server** half, by suffix.
-  Validator §13 enforces the pairing both ways, reads either YAML shape of `tools:` (inline
-  list or `  - name` block), and rejects grants that cover less than they look like they do —
-  tool-scoped `mcp__server__tool` and serverless `mcp__*`.
-  Hosted connectors that can't ship in a plugin are exempt by name in the
-  validator's `mcp_connector_only` list — both namespaces a connector can surface under
-  (`claude_ai_<Name>` in the CLI, bare `<Name>` on claude.ai surfaces) for Figma, GitHub, Linear,
-  Atlassian, and Sentry. `/crew:init` §5 reports the namespaces a session can actually see; it
-  writes nothing.
-- Agent write-access declarations, checked by validator §9 (see below): every crew agent
-  carries `owns-git: true|false` and `lane-guarded: true|false` before `skills:`. Exactly one
-  agent (`morpheus`) owns git, and `bash-safety.sh`'s `git_owner=` line must name that same
-  agent — it is what the shared floor's `git mv` allowance keys on, and a stale name there fails
-  closed for the one agent that may rename. These are the declarative half of what the guard hooks
-  enforce — a new agent that omits them fails CI instead of silently getting unguarded git and no
-  lane.
+  `agent-id:` while in flight (cleared when the step leaves `in-progress`). The `steer-token:`
+  **never** lands in the plan file, since a plan dir can be committed; a resumed run
+  re-dispatches instead of steering orphans.
+- Loop mode: generic contract in the shared `loop-engineering` skill; crew bindings (gate GO
+  success, second-NO-GO cap, `/crew:pr`, neo no-op) in `agents/morpheus.md` §"Loop-mode
+  bindings". The outer loop is `commands/loop.md`.
+- Every crew agent carries `owns-git` and `lane-guarded` before `skills:` (§9); exactly one
+  (`morpheus`) owns git, and `bash-safety.sh`'s `git_owner=` names it.
+- `omitClaudeMd: true` only on `sentinel` and `seraph` (read-only, fully briefed). Never on an
+  implementer: the project's `CLAUDE.md` holds its conventions.
+- `morpheus` has `loaded-lines-cap: 575`, 2 lines of slack; a keymaker edit to a shared skill
+  counts against it too.
 
 ## Gotchas
 

@@ -242,6 +242,11 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 
 ### crew:morpheus
 
+- **Gates run serially unless a stack proves a split.** Parallel gates need every writer on its
+  own path, and each tool splits differently (per-project `obj/` in .NET, `.tsbuildinfo` and
+  `.eslintcache` in Node, no knob in Maven/Gradle). A generic "split the path" rule drew a review
+  finding per tool in #232, so a stack earns parallel gates only with a **Parallel gates** recipe in
+  its skill that was run for real. .NET has one (`--artifacts-path`, checked on SDK 8.0).
 - **Right-size the process.** A one-line fix shouldn't have to pay for a plan file, a
   checkpoint, and a full review gate — hence the express lane. The reverse bias matters just as
   much: a wrong small fix costs more than the escalation would have, which is why the rule is
@@ -316,18 +321,6 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 - **Builds and full test suites.** Builds and full suites are expensive and verbose, which is
   why they are a single delegated final gate rather than a per-step check. Delegating a
   standalone build before the review gate builds the same tree twice.
-- **Gates in parallel on split paths, serial as the exception.** The one-writer rule (#194, #205)
-  exists because two compiles racing over one `obj/` corrupt it silently; the first fix listed
-  "serialize" before "split", and an orchestrator that reads two options with no rule for
-  choosing picks the safe-sounding one, which serialized every lane's gates. Both options are
-  collision-safe, so the choice is a wall-clock question, and the prompt now makes it one:
-  parallel over per-gate paths by default, because the paths are reused across the session (the
-  extra compile is paid once per gate, not per run) and the suites behind a compile usually
-  outlast it; serial where the stack offers no path knob (Maven/Gradle) or where a cold dependency
-  compile per path costs more than it saves (Rust). Go and Python are called out because they need
-  neither — their caches are concurrency-safe — and a rule that made them split would pay for a
-  collision that cannot happen. The stack skills carry the knobs and costs, not `morpheus`,
-  because they are per-tool facts and the orchestrator's footprint is capped.
 - **Address review feedback.** The lifecycle doesn't stop at `/crew:pr` — the same lane routing,
   git ownership, and gate that built the feature also close the review loop, so the post-PR
   flow is the same machinery rather than a second, looser one.
@@ -758,6 +751,14 @@ Both gaps stay open deliberately. A worker reaching `git` on a second line is on
 several — a `$(...)`, an interpreter — and the worker's own prompt is what keeps it out of git.
 Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
 size than the rule it would replace, and belongs in its own PR.
+
+**The protected-branch backstop reads the branch where the commit runs, not where it is typed.**
+That is the payload's `cwd`, or the literal directory of a whole command shaped
+`git -C <dir> commit …` or `cd <dir> && git commit …`. Any other shape (`pushd`, a `$VAR`,
+`GIT_DIR=`, a second clause) also checks the hook's own directory, so it is never weaker than the
+check before #224; it can still refuse such a worktree commit. Open gap: a `CDPATH` in the agent's
+shell can send a literal `cd wt` elsewhere. #224 first tried a shell walk to cover every shape; it
+drew 100+ review threads and was replaced.
 
 **The one pattern that does read line starts is an allowance, which is why it may.** The
 `git mv` carve-out matches the raw command, newlines intact, and treats a line start as a command

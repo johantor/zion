@@ -7,21 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [3.27.1] - 2026-09-22
+## [3.27.0] - 2026-09-22
+
+### Added
+
+- **.NET review gates run in parallel.** Build, test and lint each get their own
+  `--artifacts-path`; other stacks still run their gates one at a time.
+
+## [3.26.5] - 2026-09-22
 
 ### Fixed
 
-- `git mv` now stops reading operands at a real line break, so a second-line `--force` command no
-  longer looks like a forced rename.
-
-## [3.27.0] - 2026-09-22
-
-### Changed
-
-- Same-lane review gates run **in parallel by default**, each on its own intermediate/output path;
-  `morpheus` serializes only where the stack has no knob (Maven/Gradle) or a cold compile dominates.
-- Each backend stack skill states its knobs and costs: .NET the `-p:`/environment forms, Rust the
-  dependency-compile cost, Go and Python that no split is needed, Node that `dist` is the shared write.
+- **A commit in a git worktree is judged by the worktree's branch.** The protected-branch
+  backstop read the hook's own directory, so a main checkout on `develop` refused worktree commits.
 
 ## [3.26.4] - 2026-09-22
 

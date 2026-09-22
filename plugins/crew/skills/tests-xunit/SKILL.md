@@ -11,6 +11,10 @@ where the project has them.
 
 ## Running
 
+If your dispatch hands you an artifacts path, add `--artifacts-path <path>` to every `dotnet test`
+run: the build and lint gates may be running beside you on their own paths (`backend-dotnet`,
+"Parallel gates").
+
 A **targeted rerun** is a `--filter`, not a full run. Every filter is `<property><op><value>`,
 so the property is never left off: `dotnet test --filter "FullyQualifiedName~Namespace.ClassName"`
 for a class, `--filter "FullyQualifiedName~Namespace.ClassName.MethodName"` for one test.

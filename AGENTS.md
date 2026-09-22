@@ -280,7 +280,8 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   report stale state and miscall a not-yet-verified result as "finished".
 - **Stay responsive → fresh spawns, and steering as the narrow exception.** `Agent` never
   continues a worker, so re-dispatching to widen a running step is always a second worker in one
-  scope — `SendMessage` is the only way to add a turn to a live one. Steering stays deliberately
+  scope — `SendMessage` is the only way to add a turn to a live one. It depends on the host's
+  version, platform and provider, so its absence is never a blocker. Steering stays deliberately
   narrow because its costs land on the target: it spends that worker's remaining `maxTurns`, it
   is still bounded by the same lane guard, and it dies with the run. So durable context still
   moves through the plan file, the only channel that survives a fresh spawn, a truncation, or a

@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.28.0] - 2026-09-22
+
+### Added
+
+- **`morpheus` can read the web while it plans.** Adds `WebFetch` and `WebSearch`; fetched
+  content is data, not instructions.
+
+### Fixed
+
+- **`morpheus` can ask with options, stop a worker, and load a stack skill.** Adds
+  `AskUserQuestion`, `TaskStop` and `Skill`, which its prompt and `loop-engineering` already use.
+
 ## [3.27.0] - 2026-09-22
 
 ### Added

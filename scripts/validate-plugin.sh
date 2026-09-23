@@ -266,8 +266,7 @@ while IFS= read -r h; do
   esac
 done < <(git ls-files 'plugins/*/hooks/*.sh')
 
-# 4-5. Unused: the cross-plugin skill and hook sync checks went with the
-#      second plugin. Later sections keep their numbers.
+# 4-5. Unused numbers; later sections keep theirs so §N references stay stable.
 
 # 6. Hook wiring cross-check: every command in a plugin's hooks/hooks.json must
 #    resolve (via its "${CLAUDE_PLUGIN_ROOT}"/ prefix) to a file in that plugin,

@@ -65,12 +65,12 @@ assert_quiet "fresh transcript starts a fresh counter" "$(payload_post seraph /t
 
 # --- Fail-open paths ------------------------------------------------------------
 assert_allow "no agent_type (user session) is never warned" turn-budget.sh "$(payload_post "" /tmp/t/user.jsonl)"
-assert_allow "unknown agent_type (other plugin) is never warned" turn-budget.sh "$(payload_post keymaker /tmp/t/km.jsonl)"
+assert_allow "unknown agent_type (other plugin) is never warned" turn-budget.sh "$(payload_post other-agent /tmp/t/other.jsonl)"
 assert_allow "no transcript/session key -> fail open" turn-budget.sh "$(payload_post seraph "")"
 assert_allow "unparseable payload -> fail open" turn-budget.sh 'not json'
 # No state may be written for non-crew sessions (the two allow-cases above).
 found=""
-for f in "$CREW_TURN_BUDGET_DIR"/crew-turn-budget.*.keymaker; do [ -e "$f" ] && found="$f"; done
+for f in "$CREW_TURN_BUDGET_DIR"/crew-turn-budget.*.other-agent; do [ -e "$f" ] && found="$f"; done
 if [ -n "$found" ]; then _fail "state file written for an unknown agent_type"; else _pass; fi
 
 # --- Corrupt counter state is treated as fresh, not a crash ---------------------

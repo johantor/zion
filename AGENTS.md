@@ -348,10 +348,10 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 
 ### crew:debt (the debt lane)
 
-- **Why the debt lane has no worker of its own.** It used to be the `keymaker` plugin with a
-  `twin` fixer. `twin` duplicated `tank`/`trinity`'s lanes, `remaining:` contract, turn budget and
-  wait recipe, so every fix to those landed twice; its fixer rules now travel in each handoff
-  instead, and `model: sonnet` keeps a mechanical batch as cheap as `twin` was.
+- **Why the debt lane has no worker of its own.** A dedicated fixer would duplicate
+  `tank`/`trinity`'s lanes, `remaining:` contract, turn budget and wait recipe, so every fix to
+  those would land twice. The fixer rules travel in each handoff instead, and `model: sonnet`
+  keeps a mechanical batch cheap.
 - **Open mode exit contract / resume protocol.** The 0-findings exit and the already-complete
   ledger exit exist so that re-running a successful `/crew:debt` — including an
   `/crew:audit` re-pick of a pointer already cleared — is a cheap no-op instead of a

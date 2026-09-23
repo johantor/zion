@@ -98,6 +98,10 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   unwritable), hand `oracle` a step it cannot finish (tests for two scripts, one needing a binary
   that is not installed) → it ends with a `remaining:` line naming the blocked part, and
   `morpheus` reports the step as partly done, not done.
+- [ ] **Each worker names its own remainder** — same hook setup, one step each: `dozer` with one
+  spec that needs a service that is not running, `seraph` with one state it cannot reach →
+  `remaining:` names the spec or state. `sentinel` with four plausible commits → it inspects three,
+  and the unread fourth is **not** a `remaining:` item (the cap is a finished step).
 
 ### Loop mode (inner — `loop-engineering`)
 

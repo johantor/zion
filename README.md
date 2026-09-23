@@ -4,7 +4,6 @@
      blanked (`&label=`) so each badge is a single pill of the tag itself, which
      already names the plugin, instead of doubling it up as "crew crew/v3.5.2". -->
 [![crew](https://img.shields.io/github/v/release/johantor/zion?filter=crew/v*&label=)](https://github.com/johantor/zion/releases)
-[![keymaker](https://img.shields.io/github/v/release/johantor/zion?filter=keymaker/v*&label=)](https://github.com/johantor/zion/releases)
 [![Validate](https://github.com/johantor/zion/actions/workflows/validate.yml/badge.svg)](https://github.com/johantor/zion/actions/workflows/validate.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
@@ -12,10 +11,8 @@
 [Claude Code](https://code.claude.com/docs/en/overview) plugin marketplace for
 team-style software delivery across .NET, Node, Python, Go, Rust, the JVM and shell: a
 captain that plans and delegates to backend, view, test, and design specialists
-behind hook-enforced guardrails
-(**crew**), and a precision tool that pays down tech debt and upgrades
-dependencies one verified fix at a time (**keymaker**) — installable together
-or independently.
+behind hook-enforced guardrails (**crew**). The same captain pays down tech debt and
+upgrades dependencies one verified fix at a time.
 
 ```bash
 claude plugin marketplace add johantor/zion
@@ -31,17 +28,12 @@ claude plugin install crew@zion
 | Plugin | Status | What it does | Adds to your session |
 |---|---|---|---|
 | **[crew](plugins/crew/README.md)** | Stable | Orchestrated, multi-agent feature delivery: a captain (`morpheus`) plans the work and delegates to backend, client-facing, test, and visual-review specialists across .NET, Node, Python, Go, Rust, the JVM and shell, with a consolidated review gate before anything ships. | `/crew:*` commands, agents, safety hooks, skills |
-| **[keymaker](plugins/keymaker/README.md)** | [Beta](plugins/keymaker/README.md#graduation-to-stable-v10) | Pointer-driven tech debt remediation and dependency upgrades: fix one suppression, rule, or package at a time, with a blast-radius gate before anything moves. | `/keymaker:*` commands, agents, safety hooks, skills |
-
-The plugins are designed to compose: they read the same `.claude/crew.md`
-configuration slots and share the same guard-hook floor, so installing both adds
-capability without conflicts.
 
 ## Requirements
 
 - [Claude Code](https://code.claude.com/docs/en/overview) with plugin support
   (CLI, desktop, or IDE extension).
-- A git repository: `crew` and `keymaker` branch and commit their work.
+- A git repository: `crew` branches and commits its work.
 - Optional, for `crew`'s visual review and PR workflows: Playwright, Figma, and
   GitHub / Azure DevOps MCP servers. Setup is documented in the
   [crew README](plugins/crew/README.md); everything else works without them.
@@ -54,11 +46,10 @@ Add the marketplace once:
 claude plugin marketplace add johantor/zion
 ```
 
-Then install the plugins you want:
+Then install the plugin:
 
 ```bash
 claude plugin install crew@zion
-claude plugin install keymaker@zion
 ```
 
 Alternatively, install from the UI: run `/plugin` in Claude Code and browse to
@@ -87,15 +78,17 @@ or, from a normal session:
 feature branch, and runs workers in the background so you can keep talking to it
 mid-flight. Nothing is pushed and no PR is opened until you say so.
 
-### keymaker — fix debt, one pointer at a time
+### crew — fix debt, one pointer at a time
 
 ```
-/keymaker:open src/Orders/OrderService.cs:42    # a suppression at a specific line
-/keymaker:open CS8602                           # every suppression of a rule
-/keymaker:open eslint no-explicit-any           # an ESLint rule
-/keymaker:open Newtonsoft.Json 13.x             # a dependency upgrade
-/keymaker:audit <scope>                         # read-only scout: returns ready-to-paste pointers
+/crew:debt src/Orders/OrderService.cs:42    # a suppression at a specific line
+/crew:debt CS8602                           # every suppression of a rule
+/crew:debt eslint no-explicit-any           # an ESLint rule
+/crew:debt Newtonsoft.Json 13.x             # a dependency upgrade
+/crew:audit <scope>                         # read-only scout: returns ready-to-paste pointers
 ```
+
+In a `claude --agent crew:morpheus` session, just name the pointer.
 
 Each fix is classified, gated on its blast radius, fixed in verified batches,
 and committed per batch. The deleted suppression makes the analyzer itself the
@@ -109,15 +102,12 @@ claude plugin update crew@zion           # update an installed plugin
 claude plugin uninstall crew@zion        # remove a plugin
 ```
 
-Release notes: [crew](plugins/crew/CHANGELOG.md) ·
-[keymaker](plugins/keymaker/CHANGELOG.md).
+Release notes: [crew](plugins/crew/CHANGELOG.md).
 
 ## Documentation
 
 - [crew](plugins/crew/README.md): agents, commands, hooks, background
   delegation, and optional MCP setup.
-- [keymaker](plugins/keymaker/README.md): pointer syntax, the fix pipeline,
-  and audit scopes.
 - [AGENTS.md](AGENTS.md): contributing a plugin or hacking on the crew.
 
 ## License
@@ -143,7 +133,5 @@ mapped loosely to what they do:
 - **oracle** — sees what will and won't hold up: the unit tests (backend, plus frontend component tests).
 - **seraph** — the guardian who knows you by testing you ("you do not truly know someone until you fight them"): visual design conformance.
 - **sentinel** — the machines' search unit, hunting through the dark: post-merge triage, tracking a production signal back to the commit that caused it.
-- **keymaker** — "I make the keys": opens locked doors one at a time, with precision (tech debt and upgrades orchestrator).
-- **twin** — the keymaker's mechanical fixer/runner; works in pairs, in parallel.
 
 </details>

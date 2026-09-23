@@ -1,6 +1,6 @@
 ---
 name: debt-taxonomy-dotnet
-description: .NET / C# suppression mechanisms, safe-removal recipes, NuGet package-manager variance, and upgrade-tier examples for the keymaker crew. Apply when stack detection (debt-taxonomy) finds a .NET project. Load into keymaker and twin.
+description: .NET / C# suppression mechanisms, safe-removal recipes, NuGet package-manager variance, and upgrade-tier examples for crew's debt lane. Apply when stack detection (debt-taxonomy) finds a .NET project.
 ---
 
 # Debt taxonomy — .NET / C#
@@ -30,15 +30,15 @@ gate are in the core `debt-taxonomy` skill.
 ## Stale heuristics (grep-only, for audit `stale` scope)
 
 Per the core skill: audit must not build. These are grep-only signals that a suppression
-is a *candidate* for removal; `/keymaker:open` proves it via the twin (`dotnet build` of
+is a *candidate* for removal; `/crew:debt` proves it via a worker (`dotnet build` of
 the affected project, then check the diagnostic is absent).
 
 | Mechanism | Grep-only stale heuristic |
 |---|---|
 | `#pragma warning disable CS####` … `restore` | Candidate when the surrounded line(s) have no obvious trigger for that diagnostic — e.g. a `disable CS8602` (nullable deref) block over a line with no `.` member access; a `disable CS0168` (unused variable) block over a line with no declaration. Also candidate when `restore` is missing or far from `disable`, suggesting cargo-cult retention. |
 | `[SuppressMessage("category", "id", Justification = "…")]` | Candidate when the targeted member has no obvious construct that triggers the rule (e.g. `CA1062` argument-null check on a member with no parameters). A meaningful `Justification` may still be legitimate (rubric class 1) — flag, do not assume. |
-| `<NoWarn>` in `.csproj` / `Directory.Build.props` | **Out of scope for `stale` audit (v1).** Grep for a rule ID in source returns zero for virtually any active project-wide warning (the ID lives in pragmas, not in the code the diagnostic fires on), so the signal is structurally inverted and high-noise. Proof of staleness requires a build; defer to `/keymaker:open` where the twin can run `dotnet build`. |
-| `.editorconfig` `dotnet_diagnostic.CS####.severity = none/silent` | **Out of scope for `stale` audit (v1).** Same inversion as `<NoWarn>`: the rule ID does not appear in the source the diagnostic fires on. Final proof requires a build; defer to `/keymaker:open`. |
+| `<NoWarn>` in `.csproj` / `Directory.Build.props` | **Out of scope for `stale` audit (v1).** Grep for a rule ID in source returns zero for virtually any active project-wide warning (the ID lives in pragmas, not in the code the diagnostic fires on), so the signal is structurally inverted and high-noise. Proof of staleness requires a build; defer to `/crew:debt` where a worker can run `dotnet build`. |
+| `.editorconfig` `dotnet_diagnostic.CS####.severity = none/silent` | **Out of scope for `stale` audit (v1).** Same inversion as `<NoWarn>`: the rule ID does not appear in the source the diagnostic fires on. Final proof requires a build; defer to `/crew:debt`. |
 | `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Each entry is a separate candidate. Heuristic: grep the `Target` symbol in `*.cs` source files (`grep -rn --include="*.cs" "<symbol>" src/`) — if the target member no longer exists in source, the suppression is a strong candidate. |
 | `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | Never a stale candidate — skipped tests are rubric class 4 (needs-investigation), not removable without confirmation. |
 

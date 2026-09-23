@@ -1,6 +1,6 @@
 ---
 name: debt-taxonomy-typescript
-description: TypeScript / JavaScript suppression mechanisms, safe-removal recipes, npm/pnpm/yarn package-manager variance, and upgrade-tier examples for the keymaker crew. Covers any JS/TS project — React frontend or Node backend/CLI. Apply when stack detection (debt-taxonomy) finds a JS/TS project. Load into keymaker and twin.
+description: TypeScript / JavaScript suppression mechanisms, safe-removal recipes, npm/pnpm/yarn package-manager variance, and upgrade-tier examples for crew's debt lane. Covers any JS/TS project — React frontend or Node backend/CLI. Apply when stack detection (debt-taxonomy) finds a JS/TS project.
 ---
 
 # Debt taxonomy — TypeScript / JavaScript
@@ -28,7 +28,7 @@ skill.
 ## Justification slots (for the core skill's justified-suppression filter)
 
 Where a keep-decision lives per mechanism. Most JS/TS mechanisms have a **native** slot, so no
-keymaker-specific syntax is needed — see core `debt-taxonomy` for what counts as meaningful and
+crew-specific syntax is needed — see core `debt-taxonomy` for what counts as meaningful and
 which audit scopes the filter applies to.
 
 | Mechanism | Native justification slot | Example |
@@ -69,15 +69,15 @@ acknowledgement:
 ## Stale heuristics (grep-only, for audit `stale` scope)
 
 Per the core skill: audit must not compile. These are grep-only signals that a suppression
-is a *candidate* for removal; `/keymaker:open` proves it via the twin.
+is a *candidate* for removal; `/crew:debt` proves it via a worker.
 
 | Mechanism | Grep-only stale heuristic |
 |---|---|
 | `@ts-expect-error` | **Always a candidate** — TS reports unused directives as errors, so removal is always safe to attempt. Highest-value, lowest-risk. Rank these first. |
-| `@ts-ignore` | Candidate when the next line has no obvious type-error shape (no member access, no call, no JSX). Riskier than `@ts-expect-error` because removal does not self-report when stale; `/keymaker:open` must verify via `tsc --noEmit`. |
+| `@ts-ignore` | Candidate when the next line has no obvious type-error shape (no member access, no call, no JSX). Riskier than `@ts-expect-error` because removal does not self-report when stale; `/crew:debt` must verify via `tsc --noEmit`. |
 | `// eslint-disable-next-line <rule>` | Candidate when the next line no longer contains the rule's syntactic trigger — e.g. `no-explicit-any` over a line with no `any`, `no-unused-vars` over a line whose identifier is referenced elsewhere in the file. |
 | `// eslint-disable <rule>` … `// eslint-enable` | Candidate when the surrounded block has no occurrence of the rule's syntactic trigger. |
-| `/* eslint-disable */` (no rule, file scope) | Not a stale candidate from grep alone — covers every rule; defer to a real lint pass via `/keymaker:open`. |
+| `/* eslint-disable */` (no rule, file scope) | Not a stale candidate from grep alone — covers every rule; defer to a real lint pass via `/crew:debt`. |
 | `// biome-ignore lint/category/rule: reason` | Candidate when the next line no longer contains the rule's syntactic trigger. A meaningful `reason` may still be legitimate (rubric class 1) — flag, do not assume. |
 | `it.skip` / `test.skip` / `xit` / `xdescribe` | Never a stale candidate — skipped tests are rubric class 4 (needs-investigation), not removable without confirmation. |
 

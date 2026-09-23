@@ -5,7 +5,7 @@
 # CI needs updating to add one. Runnable locally and in CI:
 #   bash tests/hooks/run.sh
 # A single plugin's suite is just a narrower glob:
-#   for t in plugins/keymaker/tests/*.test.sh; do bash "$t"; done
+#   for t in plugins/crew/tests/*.test.sh; do bash "$t"; done
 set -uo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/../.." || exit 1
 

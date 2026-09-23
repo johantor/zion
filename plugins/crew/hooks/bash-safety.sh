@@ -6,8 +6,8 @@
 # hooks/lib/guard-lib.sh, vendored byte-identically into every plugin that ships
 # a Bash guard (validator §5, crew's copy canonical). What stays here is crew's
 # own policy: which agents may run git, and what the messages tell them to do
-# instead. The marked "shared guard" region below is byte-synced with keymaker's
-# copy, so either plugin alone enforces the same rules in the same order.
+# instead. The marked "shared guard" region below is what another plugin's copy
+# must match byte for byte, so each plugin alone enforces the same rules in order.
 #
 # Fails closed: a guard that can't read its input must block, not pass the
 # command through uninspected. jq is a documented dependency.

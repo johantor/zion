@@ -1,6 +1,6 @@
 ---
 name: debt-taxonomy
-description: Stack-neutral core for the keymaker crew — stack detection, classification rubric, blast-radius gate, upgrade tiers, batch commit shape, and handoff-outline format. Pairs with a per-stack taxonomy skill (debt-taxonomy-dotnet, debt-taxonomy-typescript). Load into keymaker and twin.
+description: Stack-neutral core for crew's debt lane — stack detection, classification rubric, blast-radius gate, upgrade tiers, batch commit shape, and handoff-outline format. Pairs with a per-stack taxonomy skill (debt-taxonomy-dotnet, debt-taxonomy-typescript). Loaded by the `debt` skill.
 ---
 
 # Debt taxonomy (core)
@@ -39,7 +39,7 @@ sits in.
 
 **If no stack matches** (Go, Python, Java, Rust, etc.): say so plainly, report what marker
 files you *did* find, and ask the user for the suppression mechanism rather than guessing.
-Do not attempt to fix a stack keymaker has no taxonomy for — a wrong suppression edit is
+Do not attempt to fix a stack with no taxonomy here — a wrong suppression edit is
 worse than no edit. (Adding a stack is a small additive change: a new `debt-taxonomy-<stack>`
 skill plus a row in the table above.)
 
@@ -55,8 +55,8 @@ skill plus a row in the table above.)
 
 Concrete per-stack examples (EF Core, React, .NET TFM, Node major) live in the stack skills.
 
-**The rule:** a version bump is a pointer; a platform migration is a project. Pointers
-keymaker fixes. Projects keymaker outlines and hands off.
+**The rule:** a version bump is a pointer; a platform migration is a project. The debt lane
+fixes pointers. It outlines projects and hands them to the full flow.
 
 ## Upgrade workflow (stack-neutral)
 
@@ -93,11 +93,11 @@ or a framework major is tier 2 — outline, don't apply.
 
 ## Stale-suppression heuristic (audit `stale` scope)
 
-The `/keymaker:audit stale` scope fans out across every suppression mechanism each loaded
+The `/crew:audit stale` scope fans out across every suppression mechanism each loaded
 per-stack skill declares, filtered to suppressions that look removable. Audit is grep-only
 (`context-discipline`) — true staleness requires a compile, which is too expensive for a
-scout pass. So `stale` reports **candidates**; final proof is left to `/keymaker:open`,
-where a twin can compile/build and confirm.
+scout pass. So `stale` reports **candidates**; final proof is left to `/crew:debt`,
+where a worker can compile/build and confirm.
 
 Each `debt-taxonomy-<stack>` skill is responsible for declaring, per mechanism, a
 **grep-only stale heuristic** — a textual signal that suggests the suppression is likely
@@ -115,8 +115,8 @@ Examples (non-exhaustive — the per-stack skill is the source of truth):
 
 Findings from `stale` scope are classified through the same rubric as any other audit —
 typically rubric class 2 (trivially fixable) and behavior-preserving — and ranked the same
-way. Every finding still emits a ready-to-paste `/keymaker:open <pointer>` so the user can
-ask a twin to prove the candidate stale and remove it.
+way. Every finding still emits a ready-to-paste `/crew:debt <pointer>` so the user can
+ask a worker to prove the candidate stale and remove it.
 
 ## Classification rubric
 
@@ -124,15 +124,15 @@ Classify every suppression *before* gating. Applied in order:
 
 1. **Legitimately suppressed** — has a meaningful justification comment/param AND the issue it suppresses is a known false-positive or intentional pattern. Action: add or verify justification; leave the suppression; remove from backlog.
 2. **Trivially fixable** — suppression is stale (the diagnostic no longer fires at that location) OR the fix is a one-line code change (rename, null-check, cast). Action: remove suppression and/or apply fix; verify.
-3. **Needs real work** — fix requires design judgment, non-trivial refactor, or understanding of business logic. Action: include in batch with explicit acceptance criteria; twin implements.
+3. **Needs real work** — fix requires design judgment, non-trivial refactor, or understanding of business logic. Action: include in batch with explicit acceptance criteria; the lane's worker implements.
 4. **Needs investigation** — skipped tests, blanket suppressions without context, any suppression with no commit rationale and an unclear rule. Action: `git log -1 --format="%s %ae %ar" -- <file>` to surface committer/date; flag in report; do not auto-fix.
 5. **Environmental** — suppresses a tooling/build-environment quirk not fixable in application code (generated code, vendored files, CI-only paths). Action: mark legitimate; suggest a justification.
 
 ## Justified suppressions — what audit skips
 
-A suppression the team already decided to keep should not be re-surfaced every audit. keymaker
-**reads** justifications; it never writes or demands them. There is no ack command and no
-keymaker-specific syntax: the justification is whatever the developer wrote in the mechanism's
+A suppression the team already decided to keep should not be re-surfaced every audit. The debt
+lane **reads** justifications; it never writes or demands them. There is no ack command and no
+crew-specific syntax: the justification is whatever the developer wrote in the mechanism's
 **own** justification slot when they wrote the suppression. Each `debt-taxonomy-<stack>` skill
 declares that slot per mechanism, and names the mechanisms that have none.
 
@@ -168,8 +168,8 @@ comment is not a legitimacy justification; skipped tests stay **rubric class 4**
 (needs-investigation) and stay in the report however they are annotated.
 
 **`open` respects it too.** When *every* site a pointer resolves to carries a justification,
-`/keymaker:open` exits with a one-liner quoting the rationale — same shape as the 0-findings
-exit — and `--force` (an **`open`-only** flag; audit has no override, it lists exclusions instead)
+`/crew:debt` exits with a one-liner quoting the rationale — same shape as the 0-findings
+exit — and `--force` (a **`/crew:debt`-only** flag; audit has no override, it lists exclusions instead)
 overrides to work it anyway. When only *some* sites are justified, proceed
 with the rest and note the excluded count; a partly-justified rule is still real work.
 
@@ -196,9 +196,9 @@ silent behavior regression.
 Enumerate with scripts — counts and file paths, never file bodies (`context-discipline`).
 Then apply the gate:
 
-- **≤ 5 findings, single lane** → proceed immediately (one twin, one commit)
-- **6–40 findings, single lane** → proceed in batches (fan twins by directory cluster)
-- **6–40 findings, cross-lane** → one background twin per lane, parallel dispatch
+- **≤ 5 findings, single lane** → proceed immediately (one worker, one commit)
+- **6–40 findings, single lane** → proceed in batches (fan workers by directory cluster)
+- **6–40 findings, cross-lane** → one background worker per lane, parallel dispatch
 - **> 40 findings for a single rule** → stop, present natural slices (by directory/project), ask user which to proceed with; remainder becomes an open item or handoff outline on request
 - **Platform migration detected** → classify as tier 2; produce handoff outline on user request; stop
 - **Behavior-sensitive findings with no test command configured** → warn the user explicitly ("these change runtime behavior and no test suite is configured — a green linter won't catch a regression") and require acknowledgement before proceeding. This is the same warning the upgrade path gives; it applies to any behavior-sensitive batch, not just upgrades.
@@ -218,7 +218,7 @@ suppression after the fix verifies — never leave both the fix and the suppress
 
 ## Handoff outline format (tier-2 projects only)
 
-Written to `.claude/plan-<slug>.md`. Morpheus-compatible so a slice can feed `/crew:feature` directly.
+Written to `<plan-dir>/plan-<slug>.md`, so a slice can feed `/crew:feature` directly.
 
 ```markdown
 # <Migration name> — handoff outline

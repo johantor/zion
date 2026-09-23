@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.30.0] - 2026-09-23
+
+### Added
+
+- **Debt lane: `/crew:debt <pointer>` and `/crew:audit <scope>`**, or just name the pointer to
+  `morpheus`. The `keymaker` plugin's flow, now run by `morpheus` through the lane workers.
+- **`debt`, `debt-taxonomy`, `debt-taxonomy-dotnet` and `debt-taxonomy-typescript` skills.**
+
+### Changed
+
+- **`sentinel` hands accumulated debt to `/crew:debt`** instead of `/keymaker:open`.
+
 ## [3.29.3] - 2026-09-23
 
 ### Fixed

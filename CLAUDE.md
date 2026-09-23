@@ -1,6 +1,6 @@
 # Zion — Claude Code notes
 
-Zion is a Claude Code plugin marketplace (`crew`, `keymaker`):
+Zion is a Claude Code plugin marketplace (`crew`):
 orchestrated agents, commands, hooks, and skills. **This repository *is* the plugins** —
 there is no application code to build or ship.
 
@@ -13,7 +13,6 @@ to each plugin and load automatically when working under it — start there inst
 re-exploring:
 
 - [plugins/crew/CLAUDE.md](plugins/crew/CLAUDE.md)
-- [plugins/keymaker/CLAUDE.md](plugins/keymaker/CLAUDE.md)
 
 Keep them accurate: a PR that changes anything they state updates them in the same commit.
 

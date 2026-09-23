@@ -554,7 +554,7 @@ done < <(git ls-files 'plugins/*/hooks/turn-budget.sh')
 #    name missing from it. See AGENTS.md, "Validating changes".
 #
 #    Opt-in per plugin, keyed on the fields being declared, so plugins that gate
-#    differently (keymaker's twin check) are skipped. lane-guard's per-agent
+#    differently are skipped. lane-guard's per-agent
 #    dispatch arms are deliberately NOT checked -- nested `case`, and a parser
 #    that misread them would report false lockstep.
 #

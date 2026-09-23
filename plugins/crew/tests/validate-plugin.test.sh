@@ -313,7 +313,7 @@ assert_silent "§9 silent: no stale-name complaint in lockstep" "$d" "remove the
 assert_silent "§9 silent: no owner complaint in lockstep" "$d" "exactly one agent"
 assert_silent "§9 silent: git_owner agrees with owns-git" "$d" "git_owner="
 
-# A plugin whose agents declare neither field is skipped entirely (keymaker).
+# A plugin whose agents declare neither field is skipped entirely.
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_turns_agent "$d/plugins/foo" plain 40
 assert_silent "§9 silent for a plugin that hasn't opted in" "$d" "crew-roster"

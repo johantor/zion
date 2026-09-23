@@ -23,7 +23,7 @@
     <ul>
       <li><a href="#plugins">Plugins</a></li>
       <li><a href="#crew">crew</a></li>
-      <li><a href="#keymaker">keymaker</a></li>
+      <li><a href="#debt">debt</a></li>
       <li><a href="#install">Install</a></li>
       <li><a href="https://github.com/johantor/zion">GitHub&nbsp;↗</a></li>
     </ul>
@@ -69,9 +69,9 @@
 <section id="plugins">
   <div class="wrap">
     <div class="sec-head">
-      <h2>Two plugins, composable</h2>
-      <p>They read the same configuration slots and share the same guard-hook floor, so
-        installing both adds capability without conflicts.</p>
+      <h2>One crew, two lanes</h2>
+      <p>The same captain, workers, configuration and guard hooks build features and pay down
+        debt.</p>
     </div>
     <div class="grid">
       <div class="card">
@@ -82,14 +82,14 @@
         <div class="foot"><a href="#crew">How it works ↓</a></div>
       </div>
       <div class="card">
-        <h3>keymaker <span class="tag beta">Beta</span></h3>
+        <h3>debt lane <span class="tag beta">Beta</span></h3>
         <p>Pointer-driven tech-debt remediation and dependency upgrades. Fix one suppression, rule, or
           package at a time, with the blast radius reported before anything moves.</p>
-        <div class="foot"><a href="#keymaker">How it works ↓</a></div>
+        <div class="foot"><a href="#debt">How it works ↓</a></div>
       </div>
     </div>
-    <p class="note"><strong>Note:</strong> both plugins read the same
-      <code>.claude/crew.md</code> configuration, and <code>crew</code> carries the shared
+    <p class="note"><strong>Note:</strong> both lanes read the same
+      <code>.claude/crew.md</code> configuration, and <code>crew</code> carries the
       <code>engineering-principles</code> review rubric that its reviewers grade against.</p>
   </div>
 </section>
@@ -164,17 +164,17 @@
   </div>
 </section>
 
-<section id="keymaker">
+<section id="debt">
   <div class="wrap">
     <div class="sec-head">
-      <h2>keymaker <span class="tag beta">Beta</span></h2>
+      <h2>debt lane <span class="tag beta">Beta</span></h2>
       <p>Pointer-driven, not sweep-driven. Every run starts from something you identified, and a required
         scope argument prevents accidental full-repo scans. Deleting the suppression makes the analyzer
         itself the regression test.</p>
     </div>
     <ul class="cmds">
-      <li><code>/keymaker:open</code><span>A suppression at a line, an analyzer or ESLint rule, or a dependency upgrade.</span></li>
-      <li><code>/keymaker:audit</code><span>Read-only scout over a scope you name; returns ready-to-paste pointers.</span></li>
+      <li><code>/crew:debt</code><span>A suppression at a line, an analyzer or ESLint rule, or a dependency upgrade.</span></li>
+      <li><code>/crew:audit</code><span>Read-only scout over a scope you name; returns ready-to-paste pointers.</span></li>
     </ul>
     <p class="note">Two stacks today: .NET / C# and TypeScript / JavaScript. Platform-scale migrations get
       a handoff outline rather than a forced implementation, and the blast radius is reported before any
@@ -189,7 +189,7 @@
     </div>
     <ul class="rails">
       <li><b>Claude Code</b>CLI, desktop, or IDE extension, with plugin support.</li>
-      <li><b>A git repository</b><code>crew</code> and <code>keymaker</code> branch and commit their work.</li>
+      <li><b>A git repository</b><code>crew</code> branches and commits its work.</li>
       <li><b>Optional MCP servers</b>Playwright, Figma, and a GitHub or Azure DevOps server unlock visual
         review and PR workflows. Everything else works without them.</li>
     </ul>
@@ -203,7 +203,6 @@
     <div class="flinks">
       <a href="https://github.com/johantor/zion">GitHub</a>
       <a href="https://github.com/johantor/zion/blob/main/plugins/crew/README.md">crew docs</a>
-      <a href="https://github.com/johantor/zion/blob/main/plugins/keymaker/README.md">keymaker docs</a>
       <a href="https://github.com/johantor/zion/blob/main/AGENTS.md">Contributing</a>
       <a href="https://github.com/johantor/zion/blob/main/PRIVACY.md">Privacy</a>
       <a href="https://github.com/johantor/zion/blob/main/SECURITY.md">Security</a>

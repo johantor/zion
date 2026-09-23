@@ -1,6 +1,6 @@
 {
   "name": "zion",
-  "description": "Team-style software delivery for Claude Code: an orchestrated multi-agent crew for building features, a pointer-driven tech-debt and dependency-upgrade fixer, and the shared review rubric behind both.",
+  "description": "Team-style software delivery for Claude Code: an orchestrated multi-agent crew for building features and paying down tech debt, and the shared review rubric behind it.",
   "owner": {
     "name": "johantor"
   },
@@ -8,12 +8,7 @@
     {
       "name": "crew",
       "source": "./plugins/crew",
-      "description": "Team-style feature delivery for Claude Code: a captain agent plans the work and delegates each step to backend, frontend, test, and design specialists behind hook-enforced guardrails, with a consolidated review gate before anything ships."
-    },
-    {
-      "name": "keymaker",
-      "source": "./plugins/keymaker",
-      "description": "Pay down tech debt one verified fix at a time: point it at a suppression, a rule, or an outdated package, and it reports the blast radius before editing, fixes in gated batches, and commits each batch only once its acceptance gate passes."
+      "description": "Team-style feature delivery for Claude Code: a captain agent plans the work and delegates each step to backend, frontend, test, and design specialists behind hook-enforced guardrails, with a consolidated review gate before anything ships. Also pays down tech debt one verified, gated batch at a time."
     }
   ]
 }

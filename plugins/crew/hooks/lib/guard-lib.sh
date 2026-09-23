@@ -4,8 +4,8 @@
 #
 # Sourced, never executed, and wired in no hooks.json -- validator §6 wires only
 # the top-level hooks/*.sh entry points, and §5 pins every plugin's copy of this
-# file byte-identical (crew's copy is canonical: edit crew's, then mirror), so a
-# standalone keymaker install enforces the same floor as crew.
+# file byte-identical (crew's copy is canonical: edit crew's, then mirror), so
+# any plugin installed alone enforces the same floor as crew.
 #
 # Two rules shape everything below.
 #
@@ -333,7 +333,7 @@ GUARD_GIT_MV_MASK='@gitmv@'
 # it is reviewed. WHOSE commit is each plugin's policy, not the floor's: the
 # floor once refused every agent but the plugin's own git owner, and with two
 # plugins installed each hook then refused the other plugin's owner -- crew's
-# morpheus was told keymaker owns git. So a plugin refuses its own non-owners'
+# morpheus was told another plugin owned git. So a plugin refuses its own non-owners'
 # `git mv` below the shared region, with guard_block_git_mv_handback, and an
 # agent no plugin rosters answers to its own plugin's guard. `-f`/`--force` stays
 # refused for everyone: it can clobber an existing destination, which IS a write.

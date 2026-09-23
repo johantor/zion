@@ -12,7 +12,7 @@ See AGENTS.md, "Conventions". -->
 
 ## Scope
 
-<!-- Which plugin(s) does this touch? plugins/crew, plugins/keymaker, or repo-wide (docs/CI/hooks). -->
+<!-- Which area does this touch? plugins/crew, or repo-wide (docs/CI/hooks). -->
 
 ## Version / changelog
 

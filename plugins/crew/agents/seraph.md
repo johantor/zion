@@ -105,7 +105,8 @@ Then, separately: values that match no token (off-scale, correct today — see `
 elements you could not confidently pair with the reference, anything you could not measure, and
 any state or element you didn't reach. Those four lists are part of the report, not an appendix —
 a gate reading only the mismatches would take an unmatched element for a conforming one. The
-last one is a `remaining:` line, with or without a budget warning.
+last one is a `remaining:` line, with or without a budget warning. The no-browser exit below is
+a finished static report, not a remainder.
 
 Rules:
 

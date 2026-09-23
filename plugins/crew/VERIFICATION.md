@@ -100,8 +100,9 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   `morpheus` reports the step as partly done, not done.
 - [ ] **Each worker names its own remainder** — same hook setup, one step each: `dozer` with one
   spec that needs a service that is not running, `seraph` with one state it cannot reach →
-  `remaining:` names the spec or state. `sentinel` with four plausible commits → it inspects three,
-  and the unread fourth is **not** a `remaining:` item (the cap is a finished step).
+  `remaining:` names the spec or state. Two finished steps carry **no** `remaining:` item:
+  `sentinel` with four plausible commits (it inspects three; the cap is the limit), and `seraph`
+  with no browser MCP (its static-only report is the whole result).
 
 ### Loop mode (inner — `loop-engineering`)
 

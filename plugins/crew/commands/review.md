@@ -75,21 +75,32 @@ steered mid-run and can tell your message from one injected by the output it's r
 Each handoff carries this **wait recipe** verbatim, so a command of any length ends inside the
 worker's turn — a worker that ends its turn on its own background work can report late, and that
 report can miss you. Start the command detached, with its exit code written to a file (the
-literal `/tmp/` prefix keeps the redirects inside `bash-safety.sh`'s exempt sinks):
+literal `/tmp/` prefix keeps the redirects inside `bash-safety.sh`'s exempt sinks; the braces
+capture every part of a compound command; `set -m` gives it its own process group, whose id goes to
+`pid`):
 
 ```sh
-mkdir -m 700 /tmp/gate.$$ && { ( <command> >/tmp/gate.$$/log 2>&1; echo $? >/tmp/gate.$$/exit ) >/dev/null 2>&1 & } && echo /tmp/gate.$$
+set -m; mkdir -m 700 /tmp/gate.$$ && { ( { <command>; } >/tmp/gate.$$/log 2>&1; echo $? >/tmp/gate.$$/exit ) >/dev/null 2>&1 & echo $! >/tmp/gate.$$/pid; } && echo /tmp/gate.$$
 ```
 
 Then repeat this call, with the printed path as `d` and Bash `timeout: 600000`, until it prints an
-exit code instead of `running`; grep `$d/log` for the findings (a bare `cat` is refused). Never `run_in_background`. Give
-the handoff a wall-clock budget: still `running` past it is a **gate timeout**, reported with the
-gate's name and `$d`, never as a code failure. A build timeout follows `morpheus`'s gate step 6; a
-hung test, e2e or lint run goes to the user as its own timeout, not rerun as contention.
+exit code instead of `running`; grep `$d/log` for the findings (a bare `cat` is refused). Never
+`run_in_background`.
 
 ```sh
 d=<path>; for i in $(seq 110); do [ -f "$d/exit" ] && break; sleep 5; done; head -c 8 "$d/exit" 2>/dev/null || echo running
 ```
+
+Give the handoff a wall-clock budget. Still `running` past it is a **gate timeout**: stop the whole
+group and confirm it is gone before you report, so nothing keeps writing build outputs.
+
+```sh
+d=<path>; p=$(head -c 16 "$d/pid"); kill -TERM -- -"$p"; for i in $(seq 60); do kill -0 -- -"$p" 2>/dev/null || break; sleep 1; done; kill -0 -- -"$p" 2>/dev/null && echo still-running || echo stopped
+```
+
+Report it with the gate's name and `$d`, never as a code failure; `still-running` goes to the user
+as is. A build timeout follows `morpheus`'s gate step 6; a hung test, e2e or lint run goes to the
+user as its own timeout, not rerun as contention.
 
 **Independent of each other is not independent of the build outputs.** Same-lane gates write the
 same build location: gates 1-3 all compile the backend (a test or lint run builds too), and a

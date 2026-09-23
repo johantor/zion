@@ -333,7 +333,9 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   that late report can reach the user's UI and never the orchestrator (#239). One Bash call waits
   at most 600 s, so the `/crew:review` wait recipe starts the command detached and polls an exit
   file in bounded calls: one rule for any duration, and completion is the exit file, not a guess
-  from artifacts. The resend in `morpheus` covers a worker that ends its turn anyway.
+  from artifacts. A timed-out gate is killed as a process group (`set -m`) and confirmed gone, so
+  it cannot keep writing outputs a retry collides with. The resend in `morpheus` covers a worker
+  that ends its turn anyway.
 - **Address review feedback.** The lifecycle doesn't stop at `/crew:pr` — the same lane routing,
   git ownership, and gate that built the feature also close the review loop, so the post-PR
   flow is the same machinery rather than a second, looser one.

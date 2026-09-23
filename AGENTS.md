@@ -59,8 +59,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     README stays a user-facing document.
 - `scripts/` — repo tooling (not part of any plugin; it needs this monorepo's layout and never
   runs in an installed plugin):
-  - `validate-plugin.sh` — validates every plugin's manifest/structure, including skill-drift
-    across plugins (§4 in the script), hook-script drift (§5), hooks.json wiring (§6; see
+  - `validate-plugin.sh` — validates every plugin's manifest/structure, including hooks.json
+    wiring (§6; see
     *How we review code* below), and YAML-parseable frontmatter (§14; see *Validating changes*).
     Tree-only: no base ref, so it runs anywhere.
   - `check-changelog.sh` — the release-notes gate: a change to shipped files must be described
@@ -180,19 +180,6 @@ what to check here, severity, and the **Blocking** / **Warning** / **Passed** ou
 project, `/crew:review` applies `engineering-principles` only; the `code-review` skill is Zion's
 own. Each is written once, in its own file; everything else points to them.
 
-Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
-today there are none, since crew is the only plugin. `scripts/validate-plugin.sh` enforces this
-automatically: the check is generic by skill *name*, so it catches a future duplicate between
-any plugins (CI fails on mismatch). The same
-policy covers hook scripts shipped by more than one plugin (§5): copies with no markers must be
-byte-identical (`read-guard.sh`, `lib/guard-lib.sh`), and `bash-safety.sh`'s marker-delimited
-"shared guard" regions must match byte-for-byte while the git-policy sections around them stay
-per-plugin (crew's copies are canonical — edit there first). Prefer moving genuinely shared logic
-into `hooks/lib/guard-lib.sh` over widening a marked region: one vendored file compared whole is
-easier to keep honest than logic duplicated across several regions, and it leaves the markers
-covering only the short call sequence that defines the shared floor's order. Reviewers
-should still flag any drift that slips through as at least a **Warning**, and **Blocking** when
-it would change reviewer behavior.
 
 ### Reviewing a prompt change (commands, agents, skills)
 
@@ -418,9 +405,9 @@ what it enforces.
 
 `validate-plugin.sh`'s sections, cited as `§N` across the docs: manifests §2, marketplace sync
 §2f, `skills:` resolution §2g, version ↔ changelog §2h, `[Unreleased]` slot §2i, hook file modes
-§3, skill sync §4, hook sync §5, wiring §6, dev-wiring mirror §7, turn-budget §8, rosters §9,
+§3, wiring §6 (§4–§5 are unused), dev-wiring mirror §7, turn-budget §8, rosters §9,
 prose refs §10, `crew.md` keys §11, footprint §12, MCP pairs §13, YAML frontmatter §14.
-§2g and §4 index skills through `git ls-files`, so stage a new or renamed skill file before
+§2g and §12 index skills through `git ls-files`, so stage a new or renamed skill file before
 running the validator.
 
 `plugins/<plugin>/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
@@ -481,7 +468,7 @@ orchestrator) to fail CI when it grows past a chosen budget, so raising the
 budget is a visible frontmatter edit rather than silent creep. A present-but-unparseable cap is a
 failure, not a skipped check, and so is an unreadable agent or skill file — counting it as 0 lines
 could under-count a footprint straight past its cap. Unresolved skill refs belong to §2g and are
-not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g/§4.
+not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g.
 
 §13 covers the `mcp__` entries of an agent's `tools:`. A plugin-bundled MCP server's tools are
 named `mcp__plugin_<plugin>_<server>__<tool>`, so a bare `mcp__<key>` grant — the form that
@@ -586,10 +573,7 @@ Versions are per-plugin. To cut a release:
 1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a matching `CHANGELOG.md`
    entry (a PR that changes plugin behavior must do this — see *Release by default* below).
    `validate-plugin.sh` §2h fails CI unless the manifest version equals the newest `## [X.Y.Z]`
-   entry in that plugin's changelog, so the two always move together. **A change to a skill
-   shipped by more than one plugin bumps *every* plugin that ships it** — the §4 sync check keeps
-   the copies byte-identical, so a fix in one is a release in all of them (every plugin keeps
-   its own changelog at `plugins/<name>/CHANGELOG.md`).
+   entry in that plugin's changelog, so the two always move together.
 2. Fold in anything parked under `## [Unreleased]` (below), moving those bullets into the new
    version's section. `check-changelog.sh` fails a bump that leaves the slot non-empty.
 3. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
@@ -804,12 +788,10 @@ wave through a `git mv` that sits inside a string — it cannot refuse anything.
 two renames typed on two lines were refused, the second read as `mv` welded onto the first's
 operands. The blocking patterns do not get the same anchor; the paragraph above is why.
 
-**The floor decides *what* a `git mv` is, not *whose*.** It once refused every agent but the
-plugin's own git owner, and the two plugins name different owners, so with both installed each
-hook refused the other's: `morpheus` was told keymaker owns git. Now the floor lets any agent run
-a plain `git mv` and each plugin refuses its own non-owners' below the shared region
-(`guard_block_git_mv_handback`), naming the agent to hand the rename to. A rule about a plugin's
-roster belongs beside that roster, never in the region both plugins share.
+**The floor decides *what* a `git mv` is, not *whose*.** The floor lets any agent run a plain
+`git mv`; after it, `bash-safety.sh` refuses its own roster's non-owners
+(`guard_block_git_mv_handback`), naming the agent to hand the rename to. An agent on no roster —
+another plugin's git owner — is not refused, so crew's guard never blocks another plugin's owner.
 
 The hand-back is a *refusal*, so it reads the flattened command like the other refusals: a
 worker's `git mv` on a later line is the newline gap above, not handed back. Masking heredocs and
@@ -859,12 +841,6 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
   `validate-plugin.sh` run can't (e.g. a command whose stated behavior isn't mechanically
   achievable, or an ownership contradiction between two files). Reviewers should be a backstop,
   not the first pass.
-- **A changed shipped file is a release for every plugin that ships it.** Editing a byte-synced
-  skill or hook shipped by more than one plugin (none today) is
-  user-visible in *each* plugin that ships it, so bump + changelog all of them, not just the one
-  you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, and
-  `check-changelog.sh` now names each plugin whose shipped files moved without a record, so the
-  second plugin can't be the one you forgot.
 - **A command that delegates can only pass what the delegated command accepts.** A thin command
   built on another (say, one wrapping `/crew:feature`, which only forwards its goal to
   `crew:morpheus`) can't "tell" the inner agent anything that inner command doesn't forward. If

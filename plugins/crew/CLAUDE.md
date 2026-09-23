@@ -52,9 +52,9 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     commands refused; file-mutating Bash refused for agent sessions (in-place
     `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, a redirect to a non-exempt sink; #192).
     One carve-out: a plain `git mv`, for any agent, matched on the raw command so a later line
-    counts; `-f`/`--force` stays refused. *Whose* rename it is lives below the shared region:
+    counts; `-f`/`--force` stays refused. *Whose* rename it is comes after the floor:
     the no-git arm calls `guard_block_git_mv_handback "$git_owner"` (first line only, like every
-    refusal). `git_owner=morpheus` sits above the region; §9 pins it to the `owns-git` agent.
+    refusal). `git_owner=morpheus` sits above the floor; §9 pins it to the `owns-git` agent.
     Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
   - `lane-guard.sh`: Edit/Write lanes. The only hook that reads crew config: `.claude/crew.md`

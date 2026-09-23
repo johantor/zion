@@ -18,8 +18,6 @@ output format; Copilot reads it directly and Claude Code's `zion-review` skill l
   Blocking. Never reopen a resolved thread with the same point reworded.
 - **One root cause, one finding.** When findings share a cause (the same parser, the same
   missing case), report the cause once as a design finding and stop listing instances.
-- **Mirrored files are one finding.** `hooks/lib/guard-lib.sh` and `read-guard.sh` are
-  byte-identical across plugins; name every copy in one bullet.
 
 ## Severity: earn it with an input
 

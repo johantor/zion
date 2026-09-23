@@ -48,7 +48,6 @@ per plugin. Read the section before you touch its area:
 
 - **Validating** (every `run:` step in `.github/workflows/validate.yml`, the `§N` section map,
   staging new skill files): *Validating changes*.
-- **Shared files** (crew is canonical; byte-identical skills and hooks): *How we review code*.
 - **Hooks and shell** (portability, no fork per pattern, the open gaps): *Conventions* and *The
   Bash guards are floors, not sandboxes*.
 - **Agents and prompts** (frontmatter, MCP pairs, footprint cap): *Validating changes* and

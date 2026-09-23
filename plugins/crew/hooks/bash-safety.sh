@@ -2,12 +2,9 @@
 # PreToolUse(Bash) guard. Blocks destructive commands and raw/streaming reads
 # that bypass context discipline, and keeps crew's workers out of git.
 #
-# The command-shape patterns and the shared floor they enforce live in
-# hooks/lib/guard-lib.sh, vendored byte-identically into every plugin that ships
-# a Bash guard (validator §5, crew's copy canonical). What stays here is crew's
-# own policy: which agents may run git, and what the messages tell them to do
-# instead. The marked "shared guard" region below is what another plugin's copy
-# must match byte for byte, so each plugin alone enforces the same rules in order.
+# The command-shape patterns and the floor they enforce live in
+# hooks/lib/guard-lib.sh. What stays here is crew's own policy: which agents may
+# run git, and what the messages tell them to do instead.
 #
 # Fails closed: a guard that can't read its input must block, not pass the
 # command through uninspected. jq is a documented dependency.
@@ -39,19 +36,15 @@ guard_normalize "$guard_untrusted"
 # `owns-git` frontmatter.
 git_owner=morpheus
 
-# --- BEGIN shared guard: floor ---
-# The floor every plugin's Bash guard enforces, in this order. Destructive ops
-# are refused for everyone; the watch/dev/serve and file-write blocks are scoped
-# to agent sessions, since the user's own session may legitimately run a dev
-# server, and is not write-guarded on the Edit|Write path either. The file-write
-# block lets any agent run a plain `git mv`: which agents may NOT is each
-# plugin's own policy, below the region, so that a plugin never refuses another
-# plugin's git owner.
+# The floor, in this order. Destructive ops are refused for everyone; the
+# watch/dev/serve and file-write blocks are scoped to agent sessions, since the
+# user's own session may legitimately run a dev server, and is not write-guarded
+# on the Edit|Write path either. The file-write block lets any agent run a plain
+# `git mv`: which agents may NOT is crew's roster policy, below.
 guard_block_destructive
 [ -n "$agent_type" ] && guard_block_watch_commands
 guard_block_raw_reads
 [ -n "$agent_type" ] && guard_block_file_writes
-# --- END shared guard: floor ---
 
 # Workers never touch git -- morpheus is the sole git owner (see AGENTS.md, "How
 # the crew works"). A worker's `git mv` is answered first, with whose the rename

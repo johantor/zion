@@ -6,14 +6,3 @@
 
 # Default owner for everything.
 *                                       @johantor
-
-# Byte-synced shared files. These are shipped by more than one plugin and MUST
-# stay identical across every copy — scripts/validate-plugin.sh §4 (skills) and
-# §5 (hooks) fail CI on drift. Drift is the recurring hazard here, so every copy
-# is called out explicitly to guarantee a reviewer sees changes to them.
-/scripts/validate-plugin.sh             @johantor
-**/skills/engineering-principles/       @johantor
-**/skills/context-discipline/           @johantor
-**/skills/loop-engineering/             @johantor
-**/hooks/bash-safety.sh                 @johantor
-**/hooks/read-guard.sh                  @johantor

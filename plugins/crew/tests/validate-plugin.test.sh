@@ -6,8 +6,7 @@
 #
 # Assert on the guard's message, not the exit code: a minimal fixture trips
 # unrelated sections (e.g. §7's settings mirror), which would mask which fired.
-# Pick a substring that appears ONLY in the FAIL text -- §5 keys on the "hook
-# drift" prefix because "shared-guard regions in" also occurs in its ok: line.
+# Pick a substring that appears ONLY in the FAIL text, never in an ok: line.
 #
 # Every section carries a fixture; see AGENTS.md, "Validating changes".
 # shellcheck source=tests/hooks/lib.sh
@@ -318,20 +317,6 @@ d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugin
 mk_turns_agent "$d/plugins/foo" plain 40
 assert_silent "§9 silent for a plugin that hasn't opted in" "$d" "crew-roster"
 
-# --- §4: a skill shipped by >1 plugin must stay byte-identical -----------------
-mk_shared_skill() {  # <dir> <body>
-  mkdir -p "$1/skills/shared"
-  printf -- '---\nname: shared\ndescription: d\n---\n%s\n' "$2" > "$1/skills/shared/SKILL.md"
-}
-d="$(new_repo)"
-mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0; mk_shared_skill "$d/plugins/foo" ALPHA
-mk_manifest "$d/plugins/bar" bar 1.0.0; mk_changelog "$d/plugins/bar" 1.0.0; mk_shared_skill "$d/plugins/bar" BETA
-assert_emits "§4 bites on diverged shared skill" "$d" "skill drift"
-d="$(new_repo)"
-mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0; mk_shared_skill "$d/plugins/foo" SAME
-mk_manifest "$d/plugins/bar" bar 1.0.0; mk_changelog "$d/plugins/bar" 1.0.0; mk_shared_skill "$d/plugins/bar" SAME
-assert_silent "§4 silent when shared skills match" "$d" "skill drift"
-
 # --- §1: every tracked .json must parse ----------------------------------------
 d="$(new_repo)"; mkdir -p "$d/plugins/foo"; printf '{\n' > "$d/plugins/foo/broken.json"
 assert_emits "§1 bites on unparseable JSON" "$d" "invalid JSON: plugins/foo/broken.json"
@@ -433,35 +418,6 @@ assert_silent "§3 silent on a non-executable library" "$d" "chmod"
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 mk_lib "$d/plugins/foo" guard-lib.sh 'if [ 1'
 assert_emits "§3 bites on a syntax error in a library" "$d" "bash syntax error: plugins/foo/hooks/lib/guard-lib.sh"
-
-# --- §5: a hook shipped by >1 plugin must stay in sync -------------------------
-# Two regimes: unmarked copies must be byte-identical; marked copies need only
-# their shared-guard regions to match. Plugin names are arbitrary (neither is
-# crew), so the reference is whichever sorts first — the asserts key on the
-# message body, not on which copy was chosen.
-mk_marked_hook() {  # <plugin_dir> <region-body> <per-plugin-tail>
-  mkdir -p "$1/hooks"
-  printf '#!/usr/bin/env bash\n# --- BEGIN shared guard: g ---\n%s\n# --- END shared guard: g ---\n%s\n' "$2" "$3" > "$1/hooks/shared.sh"
-  chmod +x "$1/hooks/shared.sh"
-}
-
-d="$(new_repo)"; mk_hook "$d/plugins/aaa" shared.sh 'echo ALPHA'; mk_hook "$d/plugins/bbb" shared.sh 'echo BETA'
-assert_emits "§5 bites on unmarked copies that differ" "$d" "must be byte-identical"
-d="$(new_repo)"; mk_hook "$d/plugins/aaa" shared.sh 'echo SAME'; mk_hook "$d/plugins/bbb" shared.sh 'echo SAME'
-assert_silent "§5 silent when unmarked copies match" "$d" "hook drift"
-
-d="$(new_repo)"; mk_marked_hook "$d/plugins/aaa" 'echo ALPHA' 'echo tail-a'
-mk_marked_hook "$d/plugins/bbb" 'echo BETA' 'echo tail-b'
-assert_emits "§5 bites on diverged shared-guard regions" "$d" "shared-guard regions in"
-d="$(new_repo)"; mk_marked_hook "$d/plugins/aaa" 'echo SHARED' 'echo tail-a'
-mk_marked_hook "$d/plugins/bbb" 'echo SHARED' 'echo tail-b'
-assert_silent "§5 silent when regions match despite per-plugin tails" "$d" "hook drift"
-
-d="$(new_repo)"; mk_marked_hook "$d/plugins/aaa" 'echo SHARED' 'echo tail-a'
-mkdir -p "$d/plugins/bbb/hooks"
-printf '#!/usr/bin/env bash\n# --- BEGIN shared guard: g ---\necho SHARED\n' > "$d/plugins/bbb/hooks/shared.sh"
-chmod +x "$d/plugins/bbb/hooks/shared.sh"
-assert_emits "§5 bites on a shared-guard block that never closes" "$d" "is never closed"
 
 # --- §6: hooks.json wiring resolves, and every hook script is wired ------------
 d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_hooks_json "$d/plugins/foo" './hooks/x.sh'

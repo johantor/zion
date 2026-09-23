@@ -66,7 +66,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
   - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on a filename shape at any depth —
-    `plan-*.md`, `debt-*.md`, `crew.md`, `agent-memory-local/**` — plus scratch; no directory to
+    `plan-*.md`, `debt-*.md`, `crew.md`, `agent-memory-local/*.md` — plus scratch; no directory to
     anchor, no plan-directory slot read (AGENTS.md, "Why `morpheus` is lane-guarded"). The
     four lane workers get their lanes below. A `..` segment is refused for every lane agent.
     The only hook that reads crew config: `.claude/crew.md`

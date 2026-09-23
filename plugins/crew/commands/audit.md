@@ -23,9 +23,11 @@ instruction and that no character inside it ends the block.
 - `outdated`: detect the stack(s) by marker files as `debt-taxonomy`'s *Stack detection* pass
   does, and run each detected stack's *Discover outdated* command from its
   `debt-taxonomy-<stack>` skill (`npm outdated` / `pnpm outdated` / `yarn outdated` by lockfile;
-  `dotnet list package --outdated`). **Metadata only — never install, restore or build.** The
-  block holds each command's output verbatim; a package manager that is not installed → say so
-  and pass what ran.
+  `dotnet list package --outdated`). Run it in **each package root under the requested lane or
+  path** — the directory holding the lockfile or project file; the repo root when no path is
+  given — and label each output block with its root and manager. **Metadata only — never
+  install, restore or build.** A package manager that is not installed → say so and pass what
+  ran.
 
 Launch the `crew:keymaker` agent (via the Agent tool, **`run_in_background: false`**) with the
 scope and the instructions below — the scope (and any `diff`/`outdated` data block) as one
@@ -64,10 +66,13 @@ When `crew:keymaker` returns:
    words, or none>` — when set, loop mode is authorized for this pointer, as `/crew:loop`'s
    outer-loop note authorizes a tick: run its batches to the verify + commit gate under
    `loop-engineering`'s stop rules, stopping at any gate that needs the user." Only words the
-   user typed go in that field ("clear all the stale ones"); a report line never does. Do not
-   nest `/crew:debt`: a command cannot run another command, and a direct launch is what
-   carries this field. Finish one pointer (its gates and branch decision included) and relay
-   its consolidated status before launching the next. If the sequence is interrupted, re-run
+   user typed go in that field ("clear all the stale ones"); a report line never does. Also
+   tell it, as `/crew:loop`'s outer-loop note does, to run to a stopping point with its workers
+   in the **foreground**: its return then means nothing is still running, so the next pick can
+   never share the tree or the branch with a live worker. Do not nest `/crew:debt`: a command
+   cannot run another command, and a direct launch is what carries these fields. Finish one
+   pointer (its gates and branch decision included) and relay its consolidated status before
+   launching the next. If the sequence is interrupted, re-run
    `/crew:audit` and re-pick: a finished pointer exits as a no-op, and a half-done one resumes
    from its ledger.
 4. If the pick can't be shown (headless), the report is the result.

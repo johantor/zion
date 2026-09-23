@@ -379,8 +379,9 @@ case "$agent_type" in
   # rationale" -> "crew:debt (the debt lane)".
   morpheus) mode="--allow"
             patterns='plan-*.md */plan-*.md debt-*.md */debt-*.md crew.md */crew.md'
-            # `memory: local` writes under .claude/agent-memory-local/ (AGENTS.md, "Conventions").
-            patterns+=' */agent-memory-local/** */agent-memory/**'
+            # `memory: local` writes Markdown under .claude/agent-memory-local/ (AGENTS.md,
+            # "Conventions"). Markdown only, so a lookalike directory cannot carry source.
+            patterns+=' */agent-memory-local/*.md */agent-memory/*.md'
             patterns+=' /tmp/** /private/tmp/** /var/folders/** /private/var/folders/**' ;;
   # seraph, sentinel and keymaker are read-only with no edit/write tools, so they
   # never reach this Edit|Write hook — no lane entry needed.

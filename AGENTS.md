@@ -366,7 +366,7 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   plans and ledgers, crew config and its agent memory, never production code, in every flow —
   so the allowlist is mode-free rather than a debt-mode switch, and Bash-side writes were already
   refused for every agent session. The lane is `plan-*.md`, `debt-*.md`, `crew.md` and
-  `agent-memory-local/**` at any depth, plus scratch, not a directory: a directory allowlist needed a
+  Markdown under `agent-memory-local/` at any depth, plus scratch, not a directory: a directory allowlist needed a
   root to anchor to (`src/.claude/app.ts` passed a `.claude/**` prefix) and a `planDirectory`
   slot that could overlap source, and three review rounds found an edge case each. Production
   code is never named `plan-*.md`, so the shape needs neither. What it does allow — any Markdown

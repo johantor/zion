@@ -89,6 +89,8 @@ assert_block "morpheus denied a Markdown file that is not a plan or ledger" \
   "$HOOK" "$(payload_file morpheus README.md)" "allowed paths"
 assert_block "morpheus denied a plan-named source file" \
   "$HOOK" "$(payload_file morpheus src/plan-runner.ts)" "allowed paths"
+assert_block "morpheus denied source under a lookalike memory directory" \
+  "$HOOK" "$(payload_file morpheus src/agent-memory-local/app.ts)" "allowed paths"
 # A configured plan directory changes nothing: the lane is the shape, not the place.
 fm_src="$(make_crew_md 'planDirectory: src')"
 assert_allow "morpheus allowed a plan in a plan directory set to src" \

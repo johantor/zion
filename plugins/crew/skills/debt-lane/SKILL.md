@@ -139,8 +139,10 @@ only way out.
   sites, written before the launch), `attempts:`, and `evidence:` — the commit SHA first when
   `done`, the attempt history when `blocked`.
 
-**On resume:** match only on the `pointer:` header. Get a clean tree, check out `work-branch`,
-and confirm `base-branch`. A `done` batch must map to its commit. An `in-progress` batch is
+**On resume:** match only on the `pointer:` header. Inspect git without changing it: confirm
+`base-branch`, and that `work-branch` is checked out. A dirty tree on `work-branch` is a crashed
+batch's edits — keep it for step 8, never stash, reset or discard it; a dirty tree on any other
+branch → stop and ask. A `done` batch must map to its commit. An `in-progress` batch is
 unconfirmed: re-verify it per step 8 against its `snapshot:`, and reset it to `pending` if
 unmet; an `in-progress` batch with no `snapshot:` cannot be verified, so reset it. Continue from
 the first batch not `done`. A `blocked` batch stays blocked until the user decides. All `done` →

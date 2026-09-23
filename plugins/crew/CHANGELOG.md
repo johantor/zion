@@ -25,7 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`morpheus`'s writes are lane-guarded**: Edit/Write only on `plan-*.md`, `debt-*.md`,
-  `crew.md`, `agent-memory-local/**` and scratch. It never wrote production code; the hook now
+  `crew.md`, Markdown under `agent-memory-local/` and scratch. It never wrote production code; the hook now
   enforces it. A `..` path segment is refused for every lane agent.
 - **`sentinel` hands accumulated debt to `/crew:debt`** instead of `/keymaker:open`.
 

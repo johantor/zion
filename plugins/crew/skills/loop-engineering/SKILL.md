@@ -41,7 +41,7 @@ it (unless standing authorization already covers it).
 **Exit observability.** The run summary gains one line:
 `loop exit: success | blocked — <decision> | retry cap on <unit>`.
 
-**Scope.** Full flow only — a single-pass express task is unaffected. This inner loop is not
+**Scope.** The full flow and the debt lane — a single-pass express task is unaffected. This inner loop is not
 the harness's built-in `/loop` scheduler: never invoke scheduling primitives yourself. An
 *outer* loop that re-invokes the orchestrator across runs (past one run's `maxTurns`) lives in
 a human-initiated main-session wrapper (e.g. crew's `/crew:loop`) that owns the scheduling and

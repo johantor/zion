@@ -28,7 +28,7 @@ guard_read_payload
 # non-lane session never pays even for the field lookup.
 # shellcheck disable=SC2016  # $at is a jq variable, not a shell one
 if ! guard_jq2 \
-  '(.agent_type // "") as $at | (if (["oracle","dozer","tank","trinity"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
+  '(.agent_type // "") as $at | (if (["oracle","dozer","tank","trinity","morpheus"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
   '.agent_type // ""'; then
   echo "Blocked: lane-guard could not parse the hook payload." >&2
   exit 2
@@ -43,7 +43,7 @@ path="$guard_untrusted"
 # the agents' frontmatter `lane-guarded`. Load-bearing shape: this marker, then
 # the `case` header, then the `a|b|c)` arm on the very next line.
 case "$agent_type" in
-  oracle|dozer|tank|trinity) ;;
+  oracle|dozer|tank|trinity|morpheus) ;;
   *) exit 0 ;;
 esac
 [ -z "$path" ] && exit 0
@@ -362,8 +362,16 @@ case "$agent_type" in
       fi
     fi
     ;;
-  # seraph is a read-only reviewer with no edit/write tools, so it never reaches
-  # this Edit|Write hook — no lane entry needed.
+  # morpheus writes plans, ledgers and notes, never production code: its lane is
+  # the plan directory (the `planDirectory` slot, default .claude/), the rest of
+  # .claude/ (crew config, agent memory) and scratch. See AGENTS.md, "Prompt
+  # design rationale" -> "crew:debt (the debt lane)".
+  morpheus) mode="--allow"
+            patterns='.claude/** /tmp/** /private/tmp/** /var/folders/** /private/var/folders/**'
+            plan_dir="$(config_slot planDirectory 'Plan directory')"
+            [ -n "$plan_dir" ] && patterns+=" $(lane_globs "$plan_dir")" ;;
+  # seraph, sentinel and keymaker are read-only with no edit/write tools, so they
+  # never reach this Edit|Write hook — no lane entry needed.
   *) exit 0 ;;  # main session or any agent without a lane: no restriction
 esac
 

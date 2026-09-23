@@ -6,7 +6,7 @@ source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 HOOK="bash-safety.sh"
 
 # --- Workers never run git -----------------------------------------------------
-for agent in tank trinity oracle dozer neo; do
+for agent in tank trinity oracle dozer neo keymaker; do
   assert_block "worker $agent blocked from git" "$HOOK" "$(payload_bash 'git status' "$agent")" "never runs git"
 done
 assert_allow "git in a no-agent session" "$HOOK" "$(payload_bash 'git status')"

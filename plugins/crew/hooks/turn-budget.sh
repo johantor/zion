@@ -43,6 +43,7 @@ case "$agent_type" in
   seraph) budget=60 ;;
   neo) budget=72 ;;
   sentinel) budget=60 ;;
+  keymaker) budget=60 ;;
   *) exit 0 ;;
 esac
 

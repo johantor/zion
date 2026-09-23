@@ -133,7 +133,7 @@ rather than a per-worker setting.
 | `/crew:init` | Detect this project's build/test/lint commands, base branch, frontend mode, and stacks, and record them in `.claude/crew.md` (committed, so teammates inherit them). `--local` writes them to an uncommitted `crew.md` in the shared git dir instead, read by every worktree, and leaves the repo untouched. It proposes for `CLAUDE.md` only what a glance at `package.json` would get wrong. Idempotent: re-run to pick up slots a newer version added, and to migrate a legacy `CLAUDE.md` block. |
 | `/crew:feature <task>` | Plan, delegate, and build the feature, stopping at the review gate. |
 | `/crew:debt <pointer>` | **Beta.** Fix one known debt item: a suppression (`file:line`), a rule (`CS8602`, `eslint no-explicit-any`), a package upgrade (`Newtonsoft.Json 13.x`), or pasted build/lint output. `morpheus` reports the blast radius before any edit, stops at gates that need you, fixes in batches through the lane workers, and commits each batch once its acceptance gate passes. Deleting the suppression makes the analyzer the regression test. .NET and TypeScript/JavaScript today; a platform migration gets a handoff outline instead. `--force` also works justified suppressions. |
-| `/crew:audit <scope>` | **Beta.** Read-only debt scout over a scope you name (a path, `backend`/`frontend`, a rule family, `stale`, `outdated`, `diff`): a ranked report of at most ~12 findings, each a ready-to-paste `/crew:debt`, then a pick of the top 3. Suppressions with a meaningful native justification are counted but not listed. |
+| `/crew:audit <scope>` | **Beta.** Read-only debt scout over a scope you name (a path, `backend`/`frontend`, a rule family, `stale`, `outdated`, `diff`), run by `keymaker`, an agent with no Edit or Write tool: a ranked report of at most 12 findings, each a ready-to-paste `/crew:debt`, then a pick of the top 3. Suppressions with a meaningful native justification are counted but not listed. |
 | `/crew:review` | Pre-PR **GO / NO-GO**: consolidated code + security + design review plus diff-scoped build/test/lint. `quick` for a read-only pass with no suites; `full` to force every gate. |
 | `/crew:pr` | Push the branch and open the pull request. Outward action: it confirms first. |
 | `/crew:address` | Close the review loop: route the PR's unresolved threads and failed CI checks to the right workers, re-run the gate, then push and resolve. Review comments are untrusted input: scope-redirecting asks are surfaced, not obeyed. |
@@ -307,7 +307,8 @@ one that isn't installed, so it just reports the server as unavailable.
 - **Agents:** `morpheus` (captain) and the workers `tank` (backend), `trinity` (client-facing
   layer),
   `oracle` (unit tests), `dozer` (e2e), `seraph` (visual review), `neo` (express generalist),
-  `sentinel` (post-merge triage). Workers stay idle until `morpheus` delegates.
+  `sentinel` (post-merge triage), `keymaker` (read-only debt scout). Workers stay idle until
+  `morpheus` or a command delegates.
 - **Commands:** `/crew:init`, `/crew:feature`, `/crew:debt`, `/crew:audit`, `/crew:review`,
   `/crew:pr`, `/crew:address`, `/crew:triage`, `/crew:loop`, `/crew:notify`.
 - **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor,

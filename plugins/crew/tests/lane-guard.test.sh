@@ -68,7 +68,24 @@ done
 assert_allow "dozer allowed an e2e spec"      "$HOOK" "$(payload_file dozer e2e/foo.spec.ts)"
 assert_block "dozer denied a source file"     "$HOOK" "$(payload_file dozer src/foo.ts)" "allowed paths"
 
+# --- morpheus writes plans and ledgers only -----------------------------------
+# The orchestrator never edits production code; its Edit/Write lane is the plan
+# directory, the rest of .claude/ and scratch, whether the path is repo-relative
+# or absolute.
+assert_allow "morpheus allowed a plan file"           "$HOOK" "$(payload_file morpheus .claude/plan-sso.md)"
+assert_allow "morpheus allowed a debt ledger"         "$HOOK" "$(payload_file morpheus .claude/debt-cs8602.md)"
+assert_allow "morpheus allowed an absolute .claude path" "$HOOK" "$(payload_file morpheus /repo/.claude/agent-memory/morpheus/notes.md)"
+assert_allow "morpheus allowed scratch under /tmp"    "$HOOK" "$(payload_file morpheus /tmp/crew/outline.md)"
+assert_block "morpheus denied a source file"          "$HOOK" "$(payload_file morpheus src/app.ts)" "allowed paths"
+assert_block "morpheus denied a test file"            "$HOOK" "$(payload_file morpheus tests/app.test.ts)" "allowed paths"
+fm_plan="$(make_crew_md 'planDirectory: docs/plans')"
+assert_allow "morpheus allowed the configured plan directory" \
+  "$HOOK" "$(payload_file morpheus docs/plans/plan-sso.md)" "$fm_plan"
+assert_block "morpheus still denied source under a configured plan directory" \
+  "$HOOK" "$(payload_file morpheus src/app.ts)" "allowed paths" "$fm_plan"
+
 # --- Agents with no lane ------------------------------------------------------
+assert_allow "keymaker has no Edit/Write tool; the hook never fires for it" "$HOOK" "$(payload_file keymaker Foo.tsx)"
 assert_allow "seraph has no write lane restriction" "$HOOK" "$(payload_file seraph Foo.tsx)"
 assert_allow "neo (express) is unrestricted"        "$HOOK" "$(payload_file neo Foo.tsx)"
 assert_allow "no agent_type is unrestricted"        "$HOOK" "$(jq -nc --arg f Foo.tsx '{tool_input: {file_path: $f}}')"

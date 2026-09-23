@@ -29,7 +29,7 @@ for w in tank trinity oracle dozer neo; do
 done
 run_hook "$hook" "$(payload_dispatch crew:tank plan)"
 if [[ "$_stderr" == *"crew:tank"* ]]; then _pass; else _fail "refusal should name the worker (got: $_stderr)"; fi
-for w in sentinel seraph; do
+for w in sentinel seraph keymaker; do
   assert_allow "plan mode lets crew:$w through (no Edit/Write)" "$hook" "$(payload_dispatch "crew:$w" plan)"
 done
 assert_allow "plan mode lets crew:morpheus through (owns git; it plans there)" "$hook" "$(payload_dispatch crew:morpheus plan)"

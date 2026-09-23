@@ -81,7 +81,7 @@ worker delegation by. The crew's **configuration** is not here: it lives in
 ## Crew orchestration
 
 Development in this repo is orchestrated: `morpheus` plans the work and delegates each step to a
-worker subagent (`tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`, `sentinel`). Dispatching a
+worker subagent (`tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`, `sentinel`, `keymaker`). Dispatching a
 worker is ordinary in-repo development — the worker reads and edits files in this working tree and
 returns a summary. It is not remote execution, and it sends nothing outside the repository.
 

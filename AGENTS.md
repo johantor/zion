@@ -20,13 +20,14 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `.claude-plugin/marketplace.json` — the marketplace; lists each plugin and its `source`.
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
-  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), and `sentinel` (post-merge triage; read-only, no Bash). Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/init`, `/feature`, `/debt`, `/audit`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature`, `/debt`, `/audit` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
+  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), `sentinel` (post-merge triage; read-only, no Bash), and `keymaker` (debt scout; read-only — Bash for grep and package-manager metadata, no Edit/Write, no git). Auto-discovered from this dir; not declared in the manifest.
+  - `commands/` — `/init`, `/feature`, `/debt`, `/audit`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature`, `/debt` and `/address` are thin routers into `morpheus`'s own flows, so they also work by just asking in a `claude --agent crew:morpheus` session. `/audit` launches `keymaker` (resolving a `diff` scope's file list first, since the scout has no git), relays its report, then launches `morpheus` directly for each picked pointer — never by nesting `/debt`. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
   - `skills/` — `context-discipline`, `loop-engineering` (the loop-mode stop rules, preloaded by
     `morpheus`; the feature flow and the debt lane each bind it), `operator-voice` (how
     `morpheus` writes to the operator), `engineering-principles` (the review rubric),
     `debt-lane` (loaded by `morpheus` on a debt pointer) with `debt-taxonomy`,
-    `debt-taxonomy-dotnet` and `debt-taxonomy-typescript`, and
+    `debt-taxonomy-dotnet` and `debt-taxonomy-typescript` (the taxonomy skills are loaded by
+    `keymaker` too), and
     `mid-run-direction` (how a
     worker treats a steer that arrives mid-run — preloaded by every worker, not by `morpheus`,
     which carries the sending half);
@@ -119,7 +120,9 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   `dozer` = frontend e2e only (for the resolved e2e tool), `seraph` = visual design
   conformance (read-only), `neo` = express-lane generalist for small changes (all lanes;
   no lane guard by design), `sentinel` = post-merge triage (read-only; locates a production
-  signal and correlates it to suspect commits, and returns a pointer rather than a fix). Stack knowledge lives in per-stack skills, loaded once `morpheus`
+  signal and correlates it to suspect commits, and returns a pointer rather than a fix),
+  `keymaker` = debt scout (read-only; audits a scope and returns ranked `/crew:debt` pointers,
+  never a fix — it has no Edit/Write tool). Stack knowledge lives in per-stack skills, loaded once `morpheus`
   resolves the project's stack (crew config's `backendStack`/`frontendStack` slots).
   E2e tool knowledge lives in per-tool skills (`Frontend e2e tool` slot); frontend unit test
   tool knowledge lives in its own per-tool skills (`Frontend unit test tool` slot). `lane-
@@ -133,10 +136,12 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   (delegate to `neo`, skip the plan/checkpoint/full-gate, quick self-review, commit); features and
   anything risky, multi-lane, or needing new tests take the full flow through the specialists.
   It escalates express → full the moment a task proves bigger. A pointer to known debt (a
-  suppression, rule, package or audit scope) takes the **debt lane**: `morpheus` loads the `debt-lane`
-  skill, gates on the blast radius, and commits one verified batch at a time. It is a skill, not
-  a second orchestrator, because `claude --agent crew:morpheus` sessions can only dispatch from
-  the main thread, and because an on-demand skill stays out of `morpheus`'s footprint cap.
+  suppression, rule or package) takes the **debt lane**, and takes it even when it looks like an
+  express one-liner: `morpheus` loads the `debt-lane` skill, gates on the blast radius, and
+  commits one verified batch at a time. It is a skill, not a second orchestrator, because
+  `claude --agent crew:morpheus` sessions can only dispatch from the main thread, and because an
+  on-demand skill stays out of `morpheus`'s footprint cap. An **audit scope** goes to `keymaker`
+  instead, and each pick comes back to the lane as a pointer.
 - **Loop mode** (`loop-engineering` — the feature flow and the debt lane each bind it to their
   own units/gate/state): on explicit user intent in
   conversation ("keep going until done", "loop this", "finish it", "clear all the stale ones")
@@ -348,10 +353,22 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 
 ### crew:debt (the debt lane)
 
-- **Why the debt lane has no worker of its own.** A dedicated fixer would duplicate
+- **Why the debt lane has a scout but no fixer of its own.** A dedicated fixer would duplicate
   `tank`/`trinity`'s lanes, `remaining:` contract, turn budget and wait recipe, so every fix to
   those would land twice. The fixer rules travel in each handoff instead, and `model: sonnet`
-  keeps a mechanical batch cheap.
+  keeps a mechanical batch cheap. The audit is different: it greps untrusted repository content
+  and must edit nothing, and a `tools:` list with no Edit/Write is a boundary no prompt line
+  provides. `keymaker` is that list. It keeps Bash for `grep` and the package managers'
+  outdated commands, and has no git — a non-owner's `git` is refused outright — so `/crew:audit`
+  resolves a `diff` scope's file list in the main session and hands it over.
+- **Why `morpheus` is lane-guarded.** It writes plans, ledgers and notes and never production
+  code, in every flow, so its Edit/Write lane is the plan directory, the rest of `.claude/` and
+  scratch — a mode-free allowlist rather than a debt-mode switch. Bash-side writes were already
+  refused for every agent session; this closes the one path that was prose-only.
+- **Why class 4 waits for the user.** A skipped test or a blanket suppression is
+  needs-investigation in the rubric; routing it to `oracle`/`dozer` on the pointer alone would
+  turn "investigate" into "unskip". The lane reports the evidence and dispatches only what the
+  user decided.
 - **Open mode exit contract / resume protocol.** The 0-findings exit and the already-complete
   ledger exit exist so that re-running a successful `/crew:debt` — including an
   `/crew:audit` re-pick of a pointer already cleared — is a cheap no-op instead of a

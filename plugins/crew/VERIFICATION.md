@@ -65,6 +65,8 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   **NO-GO** naming the blocking finding, and `/crew:pr` refuses to push until it's GO.
 - [ ] **Lane-scoped** — a backend-only diff skips the design-conformance (`seraph`) gate, reported
   as *lane untouched*; `/crew:review full` forces every gate.
+- [ ] **A zero-file lint is not clean** — a lint command that exits 0 but reports zero files
+  checked → the lint gate shows ❌ (*zero files checked*) and the review is **NO-GO**.
 - [ ] **.NET gates in parallel on split paths** — a .NET diff that triggers backend tests, build,
   and lint → the session's first run is serial and passes the tree check; the next run dispatches
   the three together, each handoff (`oracle`'s too) naming its own `<location>/backend/<gate>`

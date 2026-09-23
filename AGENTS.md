@@ -20,8 +20,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `.claude-plugin/marketplace.json` — the marketplace; lists each plugin and its `source`.
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
-  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), `sentinel` (post-merge triage; read-only, no Bash), and `keymaker` (debt scout; read-only — Bash for grep and package-manager metadata, no Edit/Write, no git). Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/init`, `/feature`, `/debt`, `/audit`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature`, `/debt` and `/address` are thin routers into `morpheus`'s own flows, so they also work by just asking in a `claude --agent crew:morpheus` session. `/audit` launches `keymaker` (resolving a `diff` scope's file list first, since the scout has no git), relays its report, then launches `morpheus` directly for each picked pointer — never by nesting `/debt`. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
+  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), `sentinel` (post-merge triage; read-only, no Bash), and `keymaker` (debt scout; read-only — no Edit/Write/Bash, so no git and no package manager). Auto-discovered from this dir; not declared in the manifest.
+  - `commands/` — `/init`, `/feature`, `/debt`, `/audit`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature`, `/debt` and `/address` are thin routers into `morpheus`'s own flows, so they also work by just asking in a `claude --agent crew:morpheus` session. `/audit` launches `keymaker` (resolving a `diff` scope's file list and an `outdated` scope's package-manager output first, since the scout has no Bash), relays its report, then launches `morpheus` directly for each picked pointer — never by nesting `/debt`. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
   - `skills/` — `context-discipline`, `loop-engineering` (the loop-mode stop rules, preloaded by
     `morpheus`; the feature flow and the debt lane each bind it), `operator-voice` (how
     `morpheus` writes to the operator), `engineering-principles` (the review rubric),
@@ -358,14 +358,15 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   those would land twice. The fixer rules travel in each handoff instead, and `model: sonnet`
   keeps a mechanical batch cheap. The audit is different: it greps untrusted repository content
   and must edit nothing, and a `tools:` list with no Edit/Write is a boundary no prompt line
-  provides. `keymaker` is that list. It keeps Bash for `grep` and the package managers'
-  outdated commands, and has no git — a non-owner's `git` is refused outright — so `/crew:audit`
-  resolves a `diff` scope's file list in the main session and hands it over.
+  provides. `keymaker` is that list, and it has no Bash either: with a shell it could still run
+  `npm install`, which no guard refuses. `Grep` and `Glob` cover enumeration and stack detection,
+  and the two scopes that need a shell — `diff` (git) and `outdated` (a package manager) — are
+  resolved by `/crew:audit` in the main session and handed over as data blocks.
 - **Why `morpheus` is lane-guarded, and why its lane is a filename shape.** It writes Markdown
   plans and ledgers, crew config and its agent memory, never production code, in every flow —
   so the allowlist is mode-free rather than a debt-mode switch, and Bash-side writes were already
   refused for every agent session. The lane is `plan-*.md`, `debt-*.md`, `crew.md` and
-  `agent-memory/**` at any depth, plus scratch, not a directory: a directory allowlist needed a
+  `agent-memory-local/**` at any depth, plus scratch, not a directory: a directory allowlist needed a
   root to anchor to (`src/.claude/app.ts` passed a `.claude/**` prefix) and a `planDirectory`
   slot that could overlap source, and three review rounds found an edge case each. Production
   code is never named `plan-*.md`, so the shape needs neither. What it does allow — any Markdown
@@ -799,7 +800,7 @@ size than the rule it would replace, and belongs in its own PR.
 **`/crew:audit` passes `diff` file names as quoted lines, not as a parsed encoding.** A
 repository-controlled name can carry a quote, a backtick or a fence, and the block has no parser
 that such a character could break out of: the scout reads the whole block as data, by
-instruction, and it has no Edit, Write or git tool, so the worst a hostile name can do is skew a
+instruction, and it has no Edit, Write or Bash tool, so the worst a hostile name can do is skew a
 report the user reads before picking anything. A JSON or length-delimited encoding would add a
 step the reader has to get right for a gap whose ceiling is a wrong line in a report. Accepted.
 

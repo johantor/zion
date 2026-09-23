@@ -15,8 +15,9 @@ lives there or in its per-stack skill.
 ## Audit is not this lane
 
 An audit scope (`/crew:audit`, "audit src/") goes to `crew:keymaker`, the read-only scout: it has
-no Edit or Write tool and no git. Dispatch it with the scope — for `diff`, resolve the file list
-yourself with `git diff --name-only <base>...HEAD` and pass that — relay its report with its
+no Edit, Write or Bash tool. Dispatch it with the scope, resolving what needs a shell yourself
+and passing it as a data block — `diff`: `git diff --name-only <base>...HEAD`; `outdated`: each
+detected stack's discover-outdated command, metadata only — then relay its report with its
 totals line, and edit nothing. Each finding it returns is a `/crew:debt <pointer>` for this lane.
 
 This skill is **open mode**: classify, enumerate, gate, delegate, verify, commit — or, for a

@@ -15,8 +15,8 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     (client-facing layer), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual, no Bash;
     measures computed styles through the browser MCP), `neo` (express generalist), `sentinel`
     (post-merge triage; no Write/Edit/Bash, history via the git-host MCP), `keymaker` (debt
-    scout; Bash for grep and package-manager metadata, no Write/Edit, git refused by the
-    no-git roster).
+    scout; no Write/Edit/Bash — `Grep`/`Glob` only, so `/crew:audit` hands it `diff` and
+    `outdated` results as data).
 - `commands/` — namespaced `crew:*` when installed.
   - `init` writes `.claude/crew.md`, one frontmatter key per slot; `--local` writes the same
     file to the shared git dir and the orchestration prose to `~/.claude/CLAUDE.md`. Its §1 slot keys are validator
@@ -26,9 +26,10 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   - `debt`: routes into `morpheus`'s debt lane (the `debt-lane` skill), in the foreground so its
     gates can prompt. The skill must not share a command's name: a command is also listed as a
     skill, so `morpheus` would load the command and relaunch itself.
-  - `audit`: launches `keymaker` (a `diff` scope's file list is resolved here first — the scout
-    has no git), relays the report, then launches `morpheus` directly per picked pointer with
-    `debt`'s open-mode instructions, never by nesting `/crew:debt`.
+  - `audit`: launches `keymaker` (`diff`'s file list and `outdated`'s package-manager output are
+    resolved here first — the scout has no Bash), relays the report, then launches `morpheus`
+    directly per picked pointer with `debt`'s open-mode instructions, never by nesting
+    `/crew:debt`.
   - `loop`: re-launches `morpheus` directly each tick on native `/loop` until exit conditions or
     the cap; the wrapper owns scheduling.
   - `triage`: launches `sentinel` and relays its report; writes nothing (#175 phase 2).
@@ -65,7 +66,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
   - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on a filename shape at any depth —
-    `plan-*.md`, `debt-*.md`, `crew.md`, `agent-memory/**` — plus scratch; no directory to
+    `plan-*.md`, `debt-*.md`, `crew.md`, `agent-memory-local/**` — plus scratch; no directory to
     anchor, no plan-directory slot read (AGENTS.md, "Why `morpheus` is lane-guarded"). The
     four lane workers get their lanes below. A `..` segment is refused for every lane agent.
     The only hook that reads crew config: `.claude/crew.md`

@@ -116,8 +116,9 @@ Each row is stack-neutral; run it once per stack.
 - [ ] **Audit scopes** — `/crew:audit` with a path, a lane, a rule family, `stale`, `outdated` and
   `diff` → `keymaker` runs each one; each report is limited to its scope, the taxonomy comes
   from marker files (not the lane name), `stale` lists grep-only candidates, `outdated` triages
-  SAFE/REVIEW/CAUTION without installing, `diff` gets its file list from the command (the scout
-  runs no git), and nothing is edited — the agent has no Edit/Write tool to edit with.
+  SAFE/REVIEW/CAUTION without installing, `diff` and `outdated` get their inputs from the
+  command as data blocks (the scout has no Bash), and nothing is edited — the agent has no
+  Edit/Write tool to edit with.
 - [ ] **Audit picks** — pick two findings → the command launches `crew:morpheus` directly for the
   first (foreground; its gates prompt), relays its status, then the second; "None" alongside a
   finding runs nothing.

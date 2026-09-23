@@ -18,14 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **Debt lane: `/crew:debt <pointer>`**, or just name the pointer to `morpheus`. The `keymaker`
   plugin's fix flow, now run by `morpheus` through the lane workers.
-- **`keymaker` agent: the read-only debt scout behind `/crew:audit <scope>`.** It has no Edit or
-  Write tool and runs no git; each pick launches `morpheus`'s debt lane directly.
+- **`keymaker` agent: the read-only debt scout behind `/crew:audit <scope>`.** It has no Edit,
+  Write or Bash tool; each pick launches `morpheus`'s debt lane directly.
 - **`debt-lane`, `debt-taxonomy`, `debt-taxonomy-dotnet` and `debt-taxonomy-typescript` skills.**
 
 ### Changed
 
 - **`morpheus`'s writes are lane-guarded**: Edit/Write only on `plan-*.md`, `debt-*.md`,
-  `crew.md`, `agent-memory/**` and scratch. It never wrote production code; the hook now
+  `crew.md`, `agent-memory-local/**` and scratch. It never wrote production code; the hook now
   enforces it. A `..` path segment is refused for every lane agent.
 - **`sentinel` hands accumulated debt to `/crew:debt`** instead of `/keymaker:open`.
 

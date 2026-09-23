@@ -379,7 +379,9 @@ case "$agent_type" in
   # rationale" -> "crew:debt (the debt lane)".
   morpheus) mode="--allow"
             patterns='plan-*.md */plan-*.md debt-*.md */debt-*.md crew.md */crew.md'
-            patterns+=' */agent-memory/** /tmp/** /private/tmp/** /var/folders/** /private/var/folders/**' ;;
+            # `memory: local` writes under .claude/agent-memory-local/ (AGENTS.md, "Conventions").
+            patterns+=' */agent-memory-local/** */agent-memory/**'
+            patterns+=' /tmp/** /private/tmp/** /var/folders/** /private/var/folders/**' ;;
   # seraph, sentinel and keymaker are read-only with no edit/write tools, so they
   # never reach this Edit|Write hook — no lane entry needed.
   *) exit 0 ;;  # main session or any agent without a lane: no restriction

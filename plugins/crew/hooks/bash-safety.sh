@@ -63,7 +63,7 @@ case "$agent_type" in
     fi ;;
 esac
 
-# Any other agent (morpheus, other plugins' agents) must not commit onto a
+# Any other agent (morpheus, an agent not on crew's roster) must not commit onto a
 # protected base branch. Scoped via agent_type, so a normal main session (no
 # agent_type) is never intercepted.
 guard_block_protected_branch_commit "$agent_type" \

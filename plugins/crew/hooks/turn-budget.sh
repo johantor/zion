@@ -33,7 +33,7 @@ agent_type="$guard_trusted"
 # Budget per agent = that agent's frontmatter maxTurns. validate-plugin.sh §8
 # keeps this table in lockstep with plugins/crew/agents/*.md and depends on the
 # exact `<name>) budget=<n> ;;` line shape — keep it when editing. Any other
-# agent_type (the user's own session, other plugins) is none of our business.
+# agent_type (the user's own session, an agent not on crew's roster) is none of our business.
 case "$agent_type" in
   morpheus) budget=144 ;;
   tank) budget=108 ;;

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # plan-guard.sh: in plan mode, a dispatch of a crew worker that edits files is
-# refused; the orchestrator, read-only workers, other plugins' agents, and every
+# refused; the orchestrator, read-only workers, agents not on crew's roster, and every
 # other permission mode pass. Fails open on anything it can't read.
 #
 # The real agent files decide the shipped verdicts (tank blocks, sentinel

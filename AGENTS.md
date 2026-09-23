@@ -790,8 +790,8 @@ operands. The blocking patterns do not get the same anchor; the paragraph above 
 
 **The floor decides *what* a `git mv` is, not *whose*.** The floor lets any agent run a plain
 `git mv`; after it, `bash-safety.sh` refuses its own roster's non-owners
-(`guard_block_git_mv_handback`), naming the agent to hand the rename to. An agent on no roster —
-another plugin's git owner — is not refused, so crew's guard never blocks another plugin's owner.
+(`guard_block_git_mv_handback`), naming the agent to hand the rename to. An agent not on crew's
+roster is not refused.
 
 The hand-back is a *refusal*, so it reads the flattened command like the other refusals: a
 worker's `git mv` on a later line is the newline gap above, not handed back. Masking heredocs and

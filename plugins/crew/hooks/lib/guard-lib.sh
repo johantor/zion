@@ -329,8 +329,8 @@ GUARD_GIT_MV_MASK='@gitmv@'
 # lane guard or a formatter to inspect, and the rename lands in a commit, where
 # it is reviewed. WHOSE commit is the roster's policy, not the floor's: the hook
 # refuses its own non-owners' `git mv` after the floor, with
-# guard_block_git_mv_handback, and an agent on no roster is not refused here, so
-# another plugin's git owner is never blocked by crew's guard. `-f`/`--force` stays
+# guard_block_git_mv_handback; an agent not on crew's roster is not refused here.
+# `-f`/`--force` stays
 # refused for everyone: it can clobber an existing destination, which IS a write.
 #
 # The loop reads $guard_cmd_raw, so a `git mv` on a later line is recognised (see

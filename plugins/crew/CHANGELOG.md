@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.29.2] - 2026-09-23
+
+### Fixed
+
+- **`morpheus` picks a worker's location before dispatch: `isolation: worktree` or a named path,
+  never both, and no worktree for a gitignored deliverable** (#241, #242).
+- **A formatter or linter that checks zero files is reported as not run, not as clean** (#241).
+- **`tank` accepts a verify-only step that writes no file** (#242).
+
 ## [3.29.1] - 2026-09-23
 
 ### Fixed

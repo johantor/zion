@@ -81,6 +81,15 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   it appears and hands back in the same turn; `morpheus` gets the report with no "waiting on its
   own background work" notice. Past the handoff's budget, it is reported as a gate timeout.
 
+### Worker location (`isolation`)
+
+- [ ] **A gitignored deliverable stays in the main checkout** — a step whose output is a spec
+  under `<plan-dir>` → the dispatch passes no `isolation`, and the file exists after the worker
+  returns.
+- [ ] **An existing worktree is named, not sandboxed** — a verify step whose changes exist only
+  in a worktree created earlier → the dispatch omits `isolation`, names that path and why, and
+  the worker runs there without a relocation refusal.
+
 ### Loop mode (inner — `loop-engineering`)
 
 - [ ] **Intent enters loop mode** — "keep going until done" on open-ended work → `morpheus` echoes

@@ -29,11 +29,12 @@ Rules:
 - **Never end your turn while a command you started still runs** — that late report can miss
   `morpheus`. Never `run_in_background` a suite; the gate handoff gives the wait recipe.
 - Apply `context-discipline`: surface only failing specs and errors.
-- If you couldn't finish — specs written but not run, or the run cut off partway — **say so
-  explicitly**. Silence reads as "all green" here, so an unfinished run must be reported as
-  unfinished (name what didn't run), never left to look like a pass.
+- End with an explicit completion marker: what you completed and, if anything is left undone,
+  a `remaining:` line naming it — specs not written, not run, or cut off partway. Silence reads
+  as "all green" here, so an unfinished run is never left to look like a pass. If the task is
+  larger than one clean pass, stop at a safe boundary and hand back the rest the same way.
 - A `Turn budget` warning from the harness means wind down **now**: finish only the sub-task
   in flight (don't start another spec or run), then report — naming everything not yet
-  written or run as unfinished, per the rule above.
+  written or run in `remaining:`, per the rule above.
 - Keep full run logs in your own context.
 - Consult/update local memory.

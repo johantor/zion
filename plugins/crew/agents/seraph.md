@@ -104,7 +104,9 @@ Render-only defects go in the same prioritized list, without a delta:
 Then, separately: values that match no token (off-scale, correct today — see `design-tokens`),
 elements you could not confidently pair with the reference, anything you could not measure, and
 any state or element you didn't reach. Those four lists are part of the report, not an appendix —
-a gate reading only the mismatches would take an unmatched element for a conforming one.
+a gate reading only the mismatches would take an unmatched element for a conforming one. The
+last one is a `remaining:` line, with or without a budget warning. The no-browser exit below is
+a finished static report, not a remainder.
 
 Rules:
 
@@ -116,4 +118,5 @@ Rules:
 - Apply `context-discipline`: request targeted snapshots/nodes/elements, never broad dumps — a
   full Figma file or page dump is bulk output, so fetch the specific node.
 - A `Turn budget` warning from the harness means stop measuring **now**: return the mismatches
-  found so far and name the areas you didn't get to, rather than starting another capture.
+  found so far and name the areas you didn't get to in `remaining:`, rather than starting another
+  capture.

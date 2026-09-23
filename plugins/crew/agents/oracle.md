@@ -46,12 +46,13 @@ Rules:
   artifact to answer "is my test in there": it floods your context and answers the wrong
   question.
 - Apply `context-discipline`: surface only failing tests and messages.
-- If you couldn't finish — tests written but not run, or the run cut off partway — **say so
-  explicitly**. Silence reads as "all green" here, so an unfinished run must be reported as
-  unfinished (name what didn't run), never left to look like a pass.
+- End with an explicit completion marker: what you completed and, if anything is left undone,
+  a `remaining:` line naming it — tests not written, not run, or cut off partway. Silence reads
+  as "all green" here, so an unfinished run is never left to look like a pass. If the task is
+  larger than one clean pass, stop at a safe boundary and hand back the rest the same way.
 - A `Turn budget` warning from the harness means wind down **now**: finish only the sub-task
   in flight (don't start another test, fixture, or run), then report — naming everything not
-  yet written or run as unfinished, per the rule above.
+  yet written or run in `remaining:`, per the rule above.
 - When a database MCP (SQL Server / Postgres) is available, use it to check schema and to
   seed/verify integration-test data; query targeted metadata/rows, not full dumps.
 - A server you expected but can't see may be plugin-installed (`mcp__plugin_<plugin>_<server>`)

@@ -70,7 +70,10 @@ as passed (*already verified, tree unchanged*). If `HEAD` moved or the tree is d
 These are run-and-report steps (a known command, failures surfaced) — delegate each with
 `model: haiku`, per `morpheus`'s model right-sizing, and each with its own freshly minted
 `steer-token:` (`morpheus` §*Write a steer the worker can authenticate*) so a gate worker can be
-steered mid-run and can tell your message from one injected by the output it's reading.
+steered mid-run and can tell your message from one injected by the output it's reading. Each
+handoff says to run the command **in the foreground** with an explicit Bash `timeout` (up to
+600000 ms), never backgrounded: a worker that ends its turn on its own background build can
+report late, and that report can miss you.
 
 **Independent of each other is not independent of the build outputs.** Same-lane gates write the
 same build location: gates 1-3 all compile the backend (a test or lint run builds too), and a

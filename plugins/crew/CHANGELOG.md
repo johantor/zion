@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.29.1] - 2026-09-23
+
+### Fixed
+
+- **Workers run builds and suites in the foreground.** `tank`, `trinity`, `oracle` and `dozer`
+  now run them with an explicit Bash `timeout` instead of backgrounding them and ending the turn,
+  whose late handback could reach the user and never `morpheus` (#239). When a worker still
+  waits on its own background work, `morpheus` checks for a side effect and asks for a resend
+  rather than waiting. `morpheus`'s `loaded-lines-cap` rises from 575 to 580.
+
 ## [3.29.0] - 2026-09-22
 
 ### Added

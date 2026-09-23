@@ -34,6 +34,8 @@ Rules:
   filter), not the whole suite — the full suite is the **final review gate**, run once when
   the work queue is drained, not after every fix. If you weren't told which tests failed,
   ask `morpheus` for the list rather than defaulting to a full run.
+- Run a suite **in the foreground** with an explicit Bash `timeout` (up to 600000 ms). Never
+  background your own command and end your turn while it runs: that late report can miss `morpheus`.
 - **Verify that a new test is discovered with the runner, never with the build output.** The
   test skill says how for its tool: a list/collect command filtered to the file or class you
   wrote where the tool has one, a targeted run's own summary line where it doesn't (JUnit).

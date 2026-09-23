@@ -48,6 +48,8 @@ Rules:
   exact error signature for your stack is in your stack skill. If you think a build is
   warranted before then, say so in your summary and let `morpheus` decide rather than
   running it yourself.
+- Run a build **in the foreground** with an explicit Bash `timeout` (up to 600000 ms). Never
+  background your own command and end your turn while it runs: that late report can miss `morpheus`.
 - Follow `engineering-principles`.
 - If a browser-automation MCP (e.g. Playwright) is available, use it only for your own implementation loop checks, not formal sign-off; otherwise skip browser checks.
 - If a Figma MCP is available and the delegation provides a Figma link/node, read the design spec from it (measurements, spacing, colors, type, component structure) and build to it. Fetch the specific node — not a whole-file/page dump (`context-discipline`). If none is available, build to the reference provided in the delegation and don't invent design intent.

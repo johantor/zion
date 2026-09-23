@@ -26,6 +26,8 @@ Rules:
   whole suite — the full suite is the **final review gate**, run once when the work queue is
   drained, not after every fix. If you weren't told which specs failed, ask `morpheus` for the
   list rather than defaulting to a full run.
+- Run a suite **in the foreground** with an explicit Bash `timeout` (up to 600000 ms). Never
+  background your own command and end your turn while it runs: that late report can miss `morpheus`.
 - Apply `context-discipline`: surface only failing specs and errors.
 - If you couldn't finish — specs written but not run, or the run cut off partway — **say so
   explicitly**. Silence reads as "all green" here, so an unfinished run must be reported as

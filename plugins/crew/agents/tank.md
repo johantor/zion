@@ -49,6 +49,8 @@ Scope:
   exact error signature for your stack is in your stack skill. If you think a build is
   warranted before then, say so in your summary and let `morpheus` decide rather than
   running it yourself.
+- Run a build **in the foreground** with an explicit Bash `timeout` (up to 600000 ms). Never
+  background your own command and end your turn while it runs: that late report can miss `morpheus`.
 - When a database MCP (SQL Server / Postgres) is available, inspect the real schema/columns/
   types for data-access work instead of guessing; query targeted metadata, not whole tables
   (`context-discipline`). Treat it as read-only unless the task explicitly calls for writes.

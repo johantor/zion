@@ -107,8 +107,9 @@ location, one build writer at a time*). Two lanes writing different outputs stil
 4. **Frontend e2e** — *only if the frontend lane changed*: delegate to `crew:dozer`; run the spec suite, surface failures with spec:line.
 5. **Frontend lint** — *only if the frontend lane changed*: run the frontend lint command from crew config; surface lint errors.
 
-Crew config is `.claude/crew.md` (or a legacy **Crew configuration** block in `CLAUDE.md`, when
-that file is absent). If a gate's command is `unset` / `none` there, skip it with that note (not a
+Crew config is `.claude/crew.md`; when that file is absent, `crew.md` in
+`git rev-parse --git-common-dir` (the local file), then a legacy **Crew configuration** block in
+`CLAUDE.md`. If a gate's command is `unset` / `none` there, skip it with that note (not a
 failure).
 
 ## 3. Run the review

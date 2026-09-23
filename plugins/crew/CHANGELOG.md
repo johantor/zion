@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.29.0] - 2026-09-22
+
+### Added
+
+- **`/crew:init --local` keeps the config out of the repo.** Slots go to `crew.md` in the shared
+  git dir, read by every worktree; the orchestration prose goes to `~/.claude/CLAUDE.md`.
+
 ## [3.28.0] - 2026-09-22
 
 ### Added

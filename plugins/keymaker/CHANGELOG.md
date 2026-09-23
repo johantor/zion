@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.1] - 2026-09-22
+
+### Fixed
+
+- **`keymaker` reads crew's local config.** Falls back to `crew.md` in the shared git dir when
+  `.claude/crew.md` is absent.
+
 ## [0.10.0] - 2026-09-22
 
 ### Added

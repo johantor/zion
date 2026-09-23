@@ -244,7 +244,7 @@ Open questions: <unknowns — do not guess>
 ...
 
 ## Verification
-Build / Test / Lint commands: <from crew configuration — `.claude/crew.md`>
+Build / Test / Lint commands: <from crew configuration — the file they were read from>
 
 ## Known risks
 <list; mark each UNKNOWN if unconfirmed>

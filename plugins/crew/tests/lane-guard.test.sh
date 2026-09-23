@@ -206,6 +206,39 @@ assert_allow "frontmatter wins over a stale legacy block" \
 assert_block "the stale legacy block does not widen tank's lane" \
   "$HOOK" "$(payload_file tank src/web/page.ts)" "out of" "$both_files"
 
+# --- Local config in the shared git dir (/crew:init --local) -------------------
+# The same lanes as $fm_both, stored uncommitted. A linked worktree must read the
+# main clone's copy, so the worktree case is the one that proves the lookup.
+local_lanes='---
+backendStack: node
+frontendStack: nextjs
+backendLanePaths: src/api
+frontendLanePaths: src/web
+---'
+local_clone="$(make_git_branch main)"
+printf '%s\n' "$local_lanes" > "$local_clone/.git/crew.md"
+assert_allow "local: tank allowed in its backend lane" \
+  "$HOOK" "$(payload_file tank src/api/handler.ts)" "$local_clone"
+assert_block "local: tank denied in the frontend lane" \
+  "$HOOK" "$(payload_file tank src/web/page.cs)" "out of" "$local_clone"
+
+git -C "$local_clone" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
+local_wt="$(new_tmpdir)/wt"
+git -C "$local_clone" worktree add -q "$local_wt" -b wt 2>/dev/null
+assert_block "local: a linked worktree reads the shared config" \
+  "$HOOK" "$(payload_file tank src/web/page.cs)" "out of" "$local_wt"
+
+# A committed file is the team's config and wins; its lanes are swapped here.
+mkdir -p "$local_clone/.claude"
+printf '%s\n' '---
+backendStack: node
+frontendStack: nextjs
+backendLanePaths: src/web
+frontendLanePaths: src/api
+---' > "$local_clone/.claude/crew.md"
+assert_allow "local: a committed .claude/crew.md wins over the local file" \
+  "$HOOK" "$(payload_file tank src/web/page.ts)" "$local_clone"
+
 # --- Marker detection when the stacks are unset --------------------------------
 # With no CLAUDE.md, the guard walks the repo for markers to decide whether the
 # extension regime can separate tank from trinity at all. A miss there fails

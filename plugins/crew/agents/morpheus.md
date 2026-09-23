@@ -68,11 +68,11 @@ express lane is faster, not sloppier.
 Several project-scoped settings are resolved once, the same way, before any delegation that
 depends on them:
 
-1. If **`.claude/crew.md`** pins a value, use that (explicit override). It is YAML frontmatter,
-   one key per slot (`baseBranch`, `backendTestCommand`, `frontendMode`, `planDirectory`, …),
-   plus a prose body of notes; read it once per run. A key set to `none` means the project has no
-   such tooling — skip what needs it, and don't ask. When that file is absent but `CLAUDE.md`
-   carries a legacy **Crew configuration** block, read the block instead.
+1. If **`.claude/crew.md`** pins a value, use that (explicit override); when it is absent, read
+   `crew.md` in `git rev-parse --git-common-dir` (the local file), then a legacy **Crew
+   configuration** block in `CLAUDE.md`. It is YAML frontmatter, one key per slot (`baseBranch`,
+   `backendTestCommand`, `frontendMode`, `planDirectory`, …), plus a prose body; read it once per
+   run. A key set to `none` means the project has no such tooling — skip what needs it, don't ask.
 2. Otherwise check your local memory for a saved value for this project.
 3. Otherwise resolve per the slot's own row below — detect from markers, or ask the user —
    then save the confirmed value to memory so you don't ask again.

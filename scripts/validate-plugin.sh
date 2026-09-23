@@ -13,7 +13,7 @@ ok()  { echo "ok:   $*"; }
 
 command -v jq >/dev/null 2>&1 || { echo "FAIL: jq is required" >&2; exit 1; }
 
-# Associative arrays (declare -A in §2g/§4/§5/§6/§8) need Bash 4+; macOS's
+# Associative arrays (declare -A in §2g/§6/§8) need Bash 4+; macOS's
 # stock /bin/bash is 3.2. Fail with a pointer instead of the cryptic
 # `declare: -A: invalid option` those sections would otherwise die with.
 if [ "${BASH_VERSINFO[0]:-0}" -lt 4 ]; then
@@ -266,135 +266,7 @@ while IFS= read -r h; do
   esac
 done < <(git ls-files 'plugins/*/hooks/*.sh')
 
-# 4. Skill drift: a skill name shipped by more than one plugin must stay
-#    byte-identical across every copy. Grouped by directory basename, so it
-#    catches any two plugins sharing a skill. Crew's copy is the reference when
-#    crew ships it (see AGENTS.md), else the first found. Whole directories are
-#    compared (diff -rq), so a missing or extra file counts as drift too.
-declare -A skill_dirs=()
-while IFS= read -r skill_md; do
-  dir="$(dirname "$skill_md")"
-  name="$(basename "$dir")"
-  skill_dirs["$name"]="${skill_dirs["$name"]:-}${skill_dirs["$name"]:+ }$dir"
-done < <(git ls-files 'plugins/*/skills/*/SKILL.md')
-
-for name in "${!skill_dirs[@]}"; do
-  # shellcheck disable=SC2206  # intentional word-splitting: dirs never contain spaces
-  dirs=(${skill_dirs["$name"]})
-  [ "${#dirs[@]}" -lt 2 ] && continue
-  reference=""
-  for d in "${dirs[@]}"; do
-    case "$d" in plugins/crew/skills/*) reference="$d" ;; esac
-  done
-  [ -z "$reference" ] && reference="${dirs[0]}"
-  for d in "${dirs[@]}"; do
-    [ "$d" = "$reference" ] && continue
-    if diff -rq "$reference" "$d" >/dev/null 2>&1; then
-      ok "skill in sync: $d == $reference"
-    else
-      err "skill drift: $d differs from $reference (skill '$name' shipped by multiple plugins)"
-    fi
-  done
-done
-
-# 5. Hook-script drift: a hook script filename shipped by more than one plugin
-#    must stay in sync across every copy — same policy and same reference rule as
-#    §4. Two regimes:
-#      - no shared-guard markers in the reference -> the whole file must be
-#        byte-identical (today: read-guard.sh);
-#      - regions delimited by "# --- BEGIN shared guard: <label> ---" ...
-#        "# --- END shared guard: <label> ---" -> only the marked regions must
-#        match (labels, contents, and order), since the rest is per-plugin
-#        policy (today: bash-safety.sh).
-#    Malformed markers are a failure: a sync check that can't parse its regions
-#    would silently compare the wrong content.
-declare -A hook_groups=()
-while IFS= read -r h; do
-  b="$(basename "$h")"
-  hook_groups["$b"]="${hook_groups["$b"]:-}${hook_groups["$b"]:+ }$h"
-done < <(git ls-files 'plugins/*/hooks/*.sh')
-
-# Print each marked region as "=== <label> ===" followed by its lines, so two
-# files' shared regions can be compared as plain strings.
-shared_regions() {
-  awk '
-    /^# --- BEGIN shared guard: .* ---/ {
-      label = $0
-      sub(/^# --- BEGIN shared guard: /, "", label)
-      sub(/ ---.*$/, "", label)
-      print "=== " label " ==="
-      inblock = 1
-      next
-    }
-    /^# --- END shared guard: .* ---/ { inblock = 0; next }
-    inblock { print }
-  ' "$1"
-}
-
-# Structural marker validation for one file: BEGIN/END must strictly alternate,
-# labels must pair, every block must close by EOF, and a marker-prefixed line
-# must carry the full "... ---" shape. Prints one line per problem; silence means
-# shared_regions can be trusted.
-marker_errors() {
-  awk '
-    /^# --- (BEGIN|END) shared guard: / {
-      is_begin = ($0 ~ /^# --- BEGIN /)
-      if ($0 !~ / ---[[:space:]]*$/) {
-        print "marker at line " NR " is missing its trailing \" ---\""
-        next
-      }
-      label = $0
-      sub(/^# --- (BEGIN|END) shared guard: /, "", label)
-      sub(/ ---[[:space:]]*$/, "", label)
-      if (is_begin) {
-        if (open != "") print "BEGIN \"" label "\" at line " NR " nests inside open block \"" open "\""
-        open = label
-      } else {
-        if (open == "") print "END \"" label "\" at line " NR " has no matching BEGIN"
-        else if (label != open) print "END \"" label "\" at line " NR " does not match open BEGIN \"" open "\""
-        open = ""
-      }
-      next
-    }
-    END { if (open != "") print "BEGIN \"" open "\" is never closed" }
-  ' "$1"
-}
-
-for b in "${!hook_groups[@]}"; do
-  # shellcheck disable=SC2206  # intentional word-splitting: paths never contain spaces
-  copies=(${hook_groups["$b"]})
-  [ "${#copies[@]}" -lt 2 ] && continue
-  reference=""
-  for h in "${copies[@]}"; do
-    case "$h" in plugins/crew/hooks/*) reference="$h" ;; esac
-  done
-  [ -z "$reference" ] && reference="${copies[0]}"
-  markers_ok=1
-  for h in "${copies[@]}"; do
-    problems="$(marker_errors "$h")"
-    [ -z "$problems" ] && continue
-    while IFS= read -r problem; do
-      err "$h shared-guard $problem; fix the markers so the sync check can verify its regions"
-    done <<<"$problems"
-    markers_ok=0
-  done
-  [ "$markers_ok" = 1 ] || continue
-  ref_regions="$(shared_regions "$reference")"
-  for h in "${copies[@]}"; do
-    [ "$h" = "$reference" ] && continue
-    if [ -z "$ref_regions" ]; then
-      if diff -q "$reference" "$h" >/dev/null 2>&1; then
-        ok "hook in sync: $h == $reference"
-      else
-        err "hook drift: $h differs from $reference (hook '$b' shipped by multiple plugins with no shared-guard markers, so copies must be byte-identical)"
-      fi
-    elif [ "$(shared_regions "$h")" = "$ref_regions" ]; then
-      ok "hook shared-guard regions in sync: $h == $reference"
-    else
-      err "hook drift: shared-guard regions in $h differ from $reference (labels, contents, and order must match; crew's copy is canonical)"
-    fi
-  done
-done
+# 4-5. Unused numbers; later sections keep theirs so §N references stay stable.
 
 # 6. Hook wiring cross-check: every command in a plugin's hooks/hooks.json must
 #    resolve (via its "${CLAUDE_PLUGIN_ROOT}"/ prefix) to a file in that plugin,
@@ -554,7 +426,7 @@ done < <(git ls-files 'plugins/*/hooks/turn-budget.sh')
 #    name missing from it. See AGENTS.md, "Validating changes".
 #
 #    Opt-in per plugin, keyed on the fields being declared, so plugins that gate
-#    differently (keymaker's twin check) are skipped. lane-guard's per-agent
+#    differently are skipped. lane-guard's per-agent
 #    dispatch arms are deliberately NOT checked -- nested `case`, and a parser
 #    that misread them would report false lockstep.
 #
@@ -828,10 +700,9 @@ file_lines() {
   return 0
 }
 
-# Skill name -> SKILL.md path, indexed via git ls-files exactly like §2g/§4, so
-# all three sections share one staging rule (see the plugin CLAUDE.md gotcha).
-# A name shipped by several plugins keeps the first path found — §4 pins the
-# copies byte-identical, so their line counts agree.
+# Skill name -> SKILL.md path, indexed via git ls-files exactly like §2g, so
+# both sections share one staging rule (see the plugin CLAUDE.md gotcha).
+# A name shipped by several plugins keeps the first path found.
 declare -A skill_file=()
 while IFS= read -r skill_md; do
   sname="$(basename "$(dirname "$skill_md")")"

@@ -28,7 +28,7 @@ guard_read_payload
 # non-lane session never pays even for the field lookup.
 # shellcheck disable=SC2016  # $at is a jq variable, not a shell one
 if ! guard_jq2 \
-  '(.agent_type // "") as $at | (if (["oracle","dozer","tank","trinity"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
+  '(.agent_type // "") as $at | (if (["oracle","dozer","tank","trinity","morpheus"] | index($at)) then ((.tool_input.file_path // .tool_input.path) // "") else "" end)' \
   '.agent_type // ""'; then
   echo "Blocked: lane-guard could not parse the hook payload." >&2
   exit 2
@@ -43,10 +43,20 @@ path="$guard_untrusted"
 # the agents' frontmatter `lane-guarded`. Load-bearing shape: this marker, then
 # the `case` header, then the `a|b|c)` arm on the very next line.
 case "$agent_type" in
-  oracle|dozer|tank|trinity) ;;
+  oracle|dozer|tank|trinity|morpheus) ;;
   *) exit 0 ;;
 esac
 [ -z "$path" ] && exit 0
+
+# A `..` segment lets an allowed prefix name a file outside it (`.claude/../src/app.ts`)
+# and a denied prefix be dodged the same way. This guard matches strings and resolves
+# nothing, and no agent has a reason to edit through one, so it is refused for every
+# lane agent instead.
+case "/$path/" in
+  */../*)
+    echo "Blocked: $path has a '..' segment — name the file by its plain path." >&2
+    exit 2 ;;
+esac
 
 # Crew configuration lives in `.claude/crew.md` as YAML frontmatter, one key per
 # slot. Earlier versions wrote the same slots into CLAUDE.md as
@@ -362,8 +372,19 @@ case "$agent_type" in
       fi
     fi
     ;;
-  # seraph is a read-only reviewer with no edit/write tools, so it never reaches
-  # this Edit|Write hook — no lane entry needed.
+  # morpheus writes Markdown plans and ledgers, crew config, its agent memory and
+  # scratch, never production code. The lane is a filename shape at any depth, not
+  # a directory: production code is never named plan-*.md, so there is no root to
+  # anchor and no plan-directory slot to read. See AGENTS.md, "Prompt design
+  # rationale" -> "crew:debt (the debt lane)".
+  morpheus) mode="--allow"
+            patterns='plan-*.md */plan-*.md debt-*.md */debt-*.md crew.md */crew.md'
+            # `memory: local` writes Markdown under .claude/agent-memory-local/ (AGENTS.md,
+            # "Conventions"). Markdown only, so a lookalike directory cannot carry source.
+            patterns+=' */agent-memory-local/*.md */agent-memory/*.md'
+            patterns+=' /tmp/** /private/tmp/** /var/folders/** /private/var/folders/**' ;;
+  # seraph, sentinel and keymaker are read-only with no edit/write tools, so they
+  # never reach this Edit|Write hook — no lane entry needed.
   *) exit 0 ;;  # main session or any agent without a lane: no restriction
 esac
 

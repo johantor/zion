@@ -67,7 +67,7 @@ CREW_DISPATCH_DENIED_DIR="$(new_tmpdir)"
 export CREW_DISPATCH_DENIED_DIR
 
 # --- Only crew dispatches are this hook's business ------------------------------
-assert_silent "another plugin's subagent is left alone" "$(payload_denied general-purpose /tmp/t/a.jsonl)"
+assert_silent "a subagent not on crew's roster is left alone" "$(payload_denied general-purpose /tmp/t/a.jsonl)"
 assert_silent "an unnamespaced agent is left alone" "$(payload_denied neo /tmp/t/a.jsonl)"
 assert_silent "a bare 'crew:' prefix with no worker is not a dispatch" "$(payload_denied crew: /tmp/t/a.jsonl)"
 assert_silent "no subagent_type (not a dispatch) -> silent" "$(payload_denied "" /tmp/t/a.jsonl)"

@@ -3,10 +3,9 @@
 # files. Fails OPEN — a missing library or jq, or a path that is absent or not a
 # regular file, skips the check rather than blocking.
 #
-# Byte-identical across every plugin that ships it (validator §5); the limits
-# live in hooks/lib/guard-lib.sh, so both plugins agree on "too large".
+# The limits live in hooks/lib/guard-lib.sh.
 _lib="${BASH_SOURCE[0]%/*}/lib/guard-lib.sh"
-# shellcheck disable=SC1090,SC1091  # resolved at runtime; every plugin ships its own copy
+# shellcheck disable=SC1090,SC1091  # resolved at runtime
 . "$_lib" 2>/dev/null || exit 0
 command -v jq >/dev/null 2>&1 || exit 0
 

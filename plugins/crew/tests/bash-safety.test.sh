@@ -211,9 +211,9 @@ assert_block "forced git mv on a second line"      "$HOOK" "$(payload_bash "git 
 assert_block "bare mv on a second line"            "$HOOK" "$(payload_bash "git mv a b${nl}mv c d" morpheus)"        "$gap"
 assert_block "git and mv on separate lines"        "$HOOK" "$(payload_bash "git${nl}mv a b" morpheus)"                "$gap"
 assert_block "git -C dir and mv on separate lines" "$HOOK" "$(payload_bash "git -C src${nl}mv a b" morpheus)"         "$gap"
-# The floor does not decide WHOSE rename it is: with keymaker installed too, both
-# guards fire on every Bash call, and this one must not refuse keymaker's owner.
-assert_allow "another plugin's git owner may git mv" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' keymaker)"
+# The floor does not decide WHOSE rename it is: an agent not on crew's roster is
+# not crew's to refuse.
+assert_allow "an agent not on crew's roster may git mv" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' general-purpose)"
 # A worker is told whose the rename is and what to hand back, rather than the
 # generic write message that sends it looking for a synonym.
 assert_block "tank git mv names the owner"      "$HOOK" "$(payload_bash 'git mv a b' tank)" "morpheus owns git"

@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Builds a planted-debt scratch repo for exercising keymaker's verification matrix
-# (plugins/keymaker/README.md). Prints the repo path on stdout; everything else
-# goes to stderr, so it composes:
+# Builds a planted-debt scratch repo for the debt-lane rows of crew's verification
+# matrix (plugins/crew/VERIFICATION.md). Prints the repo path on stdout; everything
+# else goes to stderr, so it composes:
 #
-#   repo="$(bash tests/fixtures/keymaker-scratch.sh)"
-#   cd "$repo" && claude --plugin-dir /path/to/plugins/keymaker -p "/keymaker:audit src/"
+#   repo="$(bash tests/fixtures/debt-scratch.sh)"
+#   cd "$repo" && claude --plugin-dir /path/to/plugins/crew -p "/crew:audit src/"
 #
 # Why a generator instead of a committed fixture: a git repo can't be nested
 # inside this one, and the matrix rows need real `git init`/commits to assert
@@ -13,7 +13,7 @@
 #   --stack ts|dotnet   which taxonomy to plant for (default ts)
 #   --dir <path>        where to build (default: a fresh mktemp dir)
 #
-# The plant covers the justification rows specifically (keymaker 0.8.0): for each
+# The plant covers the justification rows specifically: for each
 # stack, same-rule suppressions where some carry a meaningful native justification
 # and some don't, plus a justified-AND-stale one and an annotated skipped test —
 # the two documented filter exemptions.
@@ -41,7 +41,7 @@ case "$stack" in ts|dotnet) ;; *) echo "--stack must be ts or dotnet" >&2; exit 
 command -v git >/dev/null 2>&1 || { echo "FATAL: git is required" >&2; exit 1; }
 
 if [ -z "$dir" ]; then
-  dir="$(mktemp -d "${TMPDIR:-/tmp}/keymaker-scratch.XXXXXX")" || { echo "FATAL: mktemp failed" >&2; exit 1; }
+  dir="$(mktemp -d "${TMPDIR:-/tmp}/debt-scratch.XXXXXX")" || { echo "FATAL: mktemp failed" >&2; exit 1; }
 fi
 mkdir -p "$dir" || { echo "FATAL: cannot create $dir" >&2; exit 1; }
 
@@ -50,7 +50,7 @@ w() {
   cat > "$dir/$1" || { echo "FATAL: could not write $1" >&2; exit 1; }
 }
 
-# Crew-config block: keymaker reads these slots, and an unset one makes it ask —
+# Crew-config block: the debt lane reads these slots, and an unset one makes it ask —
 # which a headless run cannot answer. Plan dir is outside .claude/ because Claude
 # Code treats that directory as sensitive and refuses edits there.
 w CLAUDE.md <<'EOF'
@@ -69,7 +69,7 @@ EOF
 if [ "$stack" = ts ]; then
   w package.json <<'EOF'
 {
-  "name": "keymaker-scratch",
+  "name": "debt-scratch",
   "version": "1.0.0",
   "private": true,
   "devDependencies": { "eslint": "^9.0.0", "typescript": "^5.4.0" }
@@ -185,7 +185,7 @@ fi
 
 git init -q -b main "$dir" >/dev/null 2>&1 || { echo "FATAL: git init failed in $dir" >&2; exit 1; }
 git -C "$dir" config user.email scratch@example.invalid
-git -C "$dir" config user.name "Keymaker Scratch"
+git -C "$dir" config user.name "Debt Scratch"
 git -C "$dir" config commit.gpgsign false
 git -C "$dir" add -A >/dev/null 2>&1
 git -C "$dir" commit -q -m "scratch: planted debt fixture ($stack)" >/dev/null 2>&1 \

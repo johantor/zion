@@ -6,7 +6,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 ## Map
 
 - `agents/` — auto-discovered, not in the manifest.
-  - `morpheus`: orchestrator, `model: opus`, sole git owner. Its `Agent(...)` allowlist (seven
+  - `morpheus`: orchestrator, `model: opus`, sole git owner. Its `Agent(...)` allowlist (eight
     workers plus `Explore`/`Plan`) and `ExitPlanMode` only work as the main thread of
     `claude --agent crew:morpheus`; via `/crew:feature` the harness ignores both. It also has
     `AskUserQuestion` (operator choices), `TaskStop`, `Skill`, `WebFetch` and `WebSearch`;
@@ -14,13 +14,22 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   - Workers: `tank` (the stack's core: in a CLI or script pack, the commands and I/O), `trinity`
     (client-facing layer), `oracle` (unit tests), `dozer` (e2e), `seraph` (visual, no Bash;
     measures computed styles through the browser MCP), `neo` (express generalist), `sentinel`
-    (post-merge triage; no Write/Edit/Bash, history via the git-host MCP).
+    (post-merge triage; no Write/Edit/Bash, history via the git-host MCP), `keymaker` (debt
+    scout; no Write/Edit/Bash — `Grep`/`Glob` only, so `/crew:audit` hands it `diff` and
+    `outdated` results as data).
 - `commands/` — namespaced `crew:*` when installed.
   - `init` writes `.claude/crew.md`, one frontmatter key per slot; `--local` writes the same
     file to the shared git dir and the orchestration prose to `~/.claude/CLAUDE.md`. Its §1 slot keys are validator
     §11's source of truth; §3 owns what may go in `CLAUDE.md` (auto mode's classifier reads only
     that file); §5 migrates a legacy `## Crew configuration` block; §6 reports MCP namespaces.
   - `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path), `address`.
+  - `debt`: routes into `morpheus`'s debt lane (the `debt-lane` skill), in the foreground so its
+    gates can prompt. The skill must not share a command's name: a command is also listed as a
+    skill, so `morpheus` would load the command and relaunch itself.
+  - `audit`: launches `keymaker` (`diff`'s file list and `outdated`'s package-manager output are
+    resolved here first — the scout has no Bash), relays the report, then launches `morpheus`
+    directly per picked pointer with `debt`'s open-mode instructions, never by nesting
+    `/crew:debt`.
   - `loop`: re-launches `morpheus` directly each tick on native `/loop` until exit conditions or
     the cap; the wrapper owns scheduling.
   - `triage`: launches `sentinel` and relays its report; writes nothing (#175 phase 2).
@@ -28,12 +37,16 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     a `--agent crew:morpheus` session needs an explicit `to=`.
 - `skills/` — `<name>/SKILL.md`, frontmatter `name:` + `description:` only (the description
   carries the triggers).
-  - Shared with keymaker: `context-discipline`, `loop-engineering`, `operator-voice`
-    (ASD-STE-100, preloaded by the two orchestrators; operator messages only, never plans,
-    ledgers or commits).
-  - Crew-only: `engineering-principles` (the code rules `/crew:review` grades a user's project
+  - `morpheus`'s preloads: `context-discipline`, `loop-engineering`, `operator-voice`
+    (ASD-STE-100; operator messages only, never plans, ledgers or commits).
+  - Debt lane, loaded on demand: `debt-lane` (open mode — the flow, the fixer rules each handoff
+    carries, the `<plan-dir>/debt-<slug>.md` ledger with its per-batch `snapshot:`),
+    `debt-taxonomy` (rubric, gate, tiers), and `debt-taxonomy-dotnet`/`-typescript`
+    (mechanisms, justification slots, recipes). `keymaker` loads the taxonomy skills too; the
+    audit flow lives in its own prompt.
+  - Also: `engineering-principles` (the code rules `/crew:review` grades a user's project
     against; this repo's own review rubric is `.github/skills/code-review`), and the preloads
-    `mid-run-direction` (all seven workers, not `morpheus`) and `design-tokens` (`seraph`).
+    `mid-run-direction` (all eight workers, not `morpheus`) and `design-tokens` (`seraph`).
   - Loaded once resolved: frontend mode, stack and test-tool skills. Backends `backend-dotnet`
     (+ `cms-optimizely`), `-node`, `-python`, `-go`, `-rust`, `-java`, `-shell`, each paired with
     a `tests-*` skill. Only node needs lane paths (its extensions collide with a frontend's).
@@ -47,12 +60,16 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     commands refused; file-mutating Bash refused for agent sessions (in-place
     `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, a redirect to a non-exempt sink; #192).
     One carve-out: a plain `git mv`, for any agent, matched on the raw command so a later line
-    counts; `-f`/`--force` stays refused. *Whose* rename it is lives below the shared region:
+    counts; `-f`/`--force` stays refused. *Whose* rename it is comes after the floor:
     the no-git arm calls `guard_block_git_mv_handback "$git_owner"` (first line only, like every
-    refusal). `git_owner=morpheus` sits above the region; §9 pins it to the `owns-git` agent.
+    refusal). `git_owner=morpheus` sits above the floor; §9 pins it to the `owns-git` agent.
     Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
-  - `lane-guard.sh`: Edit/Write lanes. The only hook that reads crew config: `.claude/crew.md`
+  - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on a filename shape at any depth —
+    `plan-*.md`, `debt-*.md`, `crew.md`, `agent-memory-local/*.md` — plus scratch; no directory to
+    anchor, no plan-directory slot read (AGENTS.md, "Why `morpheus` is lane-guarded"). The
+    four lane workers get their lanes below. A `..` segment is refused for every lane agent.
+    The only hook that reads crew config: `.claude/crew.md`
     frontmatter by key, else `crew.md` in the shared git dir (`/crew:init --local`; found by
     reading `.git` and `commondir`, no fork), else the legacy `CLAUDE.md` block. Loaded once in the parent shell, since
     `config_slot` runs in `$(...)`.
@@ -97,9 +114,10 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 - Every crew agent carries `owns-git` and `lane-guarded` before `skills:` (§9); exactly one
   (`morpheus`) owns git, and `bash-safety.sh`'s `git_owner=` names it.
 - `omitClaudeMd: true` only on `sentinel` and `seraph` (read-only, fully briefed). Never on an
-  implementer: the project's `CLAUDE.md` holds its conventions.
-- `morpheus` has `loaded-lines-cap: 590`, 3 lines of slack; a keymaker edit to a shared skill
-  counts against it too.
+  implementer: the project's `CLAUDE.md` holds its conventions. Not on `keymaker` either: the
+  project's `CLAUDE.md` may carry the debt policy section it has to honor.
+- `morpheus` has `loaded-lines-cap: 595`, 4 lines of slack. Skills it loads on demand (`debt-lane`)
+  do not count.
 
 ## Gotchas
 

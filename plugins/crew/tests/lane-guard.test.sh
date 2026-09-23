@@ -68,7 +68,50 @@ done
 assert_allow "dozer allowed an e2e spec"      "$HOOK" "$(payload_file dozer e2e/foo.spec.ts)"
 assert_block "dozer denied a source file"     "$HOOK" "$(payload_file dozer src/foo.ts)" "allowed paths"
 
+# --- morpheus writes plans and ledgers only -----------------------------------
+# The orchestrator never edits production code. Its Edit/Write lane is a filename
+# shape at any depth (plan-*.md, debt-*.md, crew.md, agent-memory/**) plus
+# scratch, whether the path is repo-relative or absolute, and whatever the plan
+# directory is configured as -- so there is no directory to anchor or to overlap.
+assert_allow "morpheus allowed a plan file"           "$HOOK" "$(payload_file morpheus .claude/plan-sso.md)"
+assert_allow "morpheus allowed a debt ledger"         "$HOOK" "$(payload_file morpheus .claude/debt-cs8602.md)"
+assert_allow "morpheus allowed a plan in another plan directory" "$HOOK" "$(payload_file morpheus docs/plans/plan-sso.md)"
+assert_allow "morpheus allowed a plan at the repo root" "$HOOK" "$(payload_file morpheus plan-sso.md)"
+assert_allow "morpheus allowed crew config"           "$HOOK" "$(payload_file morpheus .claude/crew.md)"
+assert_allow "morpheus allowed its local agent memory" "$HOOK" "$(payload_file morpheus .claude/agent-memory-local/morpheus/MEMORY.md)"
+assert_allow "morpheus allowed project agent memory (absolute)" "$HOOK" "$(payload_file morpheus /repo/.claude/agent-memory/morpheus/MEMORY.md)"
+assert_allow "morpheus allowed scratch under /tmp"    "$HOOK" "$(payload_file morpheus /tmp/crew/outline.md)"
+assert_block "morpheus denied a source file"          "$HOOK" "$(payload_file morpheus src/app.ts)" "allowed paths"
+assert_block "morpheus denied a test file"            "$HOOK" "$(payload_file morpheus tests/app.test.ts)" "allowed paths"
+assert_block "morpheus denied source under a nested .claude directory" \
+  "$HOOK" "$(payload_file morpheus src/.claude/app.ts)" "allowed paths"
+assert_block "morpheus denied a Markdown file that is not a plan or ledger" \
+  "$HOOK" "$(payload_file morpheus README.md)" "allowed paths"
+assert_block "morpheus denied a plan-named source file" \
+  "$HOOK" "$(payload_file morpheus src/plan-runner.ts)" "allowed paths"
+assert_block "morpheus denied source under a lookalike memory directory" \
+  "$HOOK" "$(payload_file morpheus src/agent-memory-local/app.ts)" "allowed paths"
+# A configured plan directory changes nothing: the lane is the shape, not the place.
+fm_src="$(make_crew_md 'planDirectory: src')"
+assert_allow "morpheus allowed a plan in a plan directory set to src" \
+  "$HOOK" "$(payload_file morpheus src/plan-sso.md)" "$fm_src"
+assert_block "morpheus denied source in a plan directory set to src" \
+  "$HOOK" "$(payload_file morpheus src/app.ts)" "allowed paths" "$fm_src"
+
+# --- A `..` segment is refused for every lane agent -----------------------------
+assert_block "morpheus denied a '..' traversal out of .claude" \
+  "$HOOK" "$(payload_file morpheus .claude/../src/app.ts)" "'..' segment"
+assert_block "oracle denied a '..' traversal out of tests/" \
+  "$HOOK" "$(payload_file oracle tests/../src/foo.ts)" "'..' segment"
+assert_block "tank denied a '..' traversal (checked before any lane regime)" \
+  "$HOOK" "$(payload_file tank src/api/../web/page.ts)" "'..' segment"
+assert_block "morpheus denied a leading '..'" \
+  "$HOOK" "$(payload_file morpheus ../other/.claude/plan-x.md)" "'..' segment"
+assert_allow "'..' inside a filename is not a segment" \
+  "$HOOK" "$(payload_file morpheus .claude/plan-v1..2.md)"
+
 # --- Agents with no lane ------------------------------------------------------
+assert_allow "keymaker has no Edit/Write tool; the hook never fires for it" "$HOOK" "$(payload_file keymaker Foo.tsx)"
 assert_allow "seraph has no write lane restriction" "$HOOK" "$(payload_file seraph Foo.tsx)"
 assert_allow "neo (express) is unrestricted"        "$HOOK" "$(payload_file neo Foo.tsx)"
 assert_allow "no agent_type is unrestricted"        "$HOOK" "$(jq -nc --arg f Foo.tsx '{tool_input: {file_path: $f}}')"

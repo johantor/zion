@@ -1,6 +1,6 @@
 ---
 name: loop-engineering
-description: Loop-mode discipline for orchestrated runs — recognize loop intent ("keep going until done", "loop this", "finish it", "clear all the stale ones", "bump everything SAFE"), offer to loop on open-ended work, and run to completion under explicit stop rules that always end at the run's terminal gate. Preload into orchestrator agents (crew's morpheus, keymaker); each defines its own bindings. Use whenever the user asks to keep going, loop, or finish the work without further check-ins.
+description: Loop-mode discipline for orchestrated runs — recognize loop intent ("keep going until done", "loop this", "finish it", "clear all the stale ones", "bump everything SAFE"), offer to loop on open-ended work, and run to completion under explicit stop rules that always end at the run's terminal gate. Preloaded by morpheus; the feature flow and the debt lane each define their own bindings. Use whenever the user asks to keep going, loop, or finish the work without further check-ins.
 ---
 
 # Loop engineering
@@ -41,7 +41,7 @@ it (unless standing authorization already covers it).
 **Exit observability.** The run summary gains one line:
 `loop exit: success | blocked — <decision> | retry cap on <unit>`.
 
-**Scope.** Full flow only — a single-pass express task is unaffected. This inner loop is not
+**Scope.** The full flow and the debt lane — a single-pass express task is unaffected. This inner loop is not
 the harness's built-in `/loop` scheduler: never invoke scheduling primitives yourself. An
 *outer* loop that re-invokes the orchestrator across runs (past one run's `maxTurns`) lives in
 a human-initiated main-session wrapper (e.g. crew's `/crew:loop`) that owns the scheduling and

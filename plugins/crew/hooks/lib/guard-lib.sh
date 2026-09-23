@@ -1,11 +1,9 @@
 #!/usr/bin/env bash
-# Shared runtime for the plugin hook guards: payload plumbing, the command-shape
-# patterns every plugin's Bash guard enforces, and per-session state files.
+# Shared runtime for crew's hook guards: payload plumbing, the command-shape
+# patterns the Bash guard enforces, and per-session state files.
 #
 # Sourced, never executed, and wired in no hooks.json -- validator §6 wires only
-# the top-level hooks/*.sh entry points, and §5 pins every plugin's copy of this
-# file byte-identical (crew's copy is canonical: edit crew's, then mirror), so a
-# standalone keymaker install enforces the same floor as crew.
+# the top-level hooks/*.sh entry points.
 #
 # Two rules shape everything below.
 #
@@ -215,9 +213,8 @@ GUARD_RE_REDIRECT='([0-9]*|&)>>?\|?[[:space:]]*([^[:space:];|&<>]*)'
 
 # --------------------------------------------------------- blocking helpers
 #
-# The shared floor, as functions rather than copy-pasted regions: each inspects
-# $guard_cmd and exits 2 with the message the agent sees. Order and wording are
-# part of the contract both plugins keep.
+# The floor, as functions: each inspects $guard_cmd and exits 2 with the message
+# the agent sees. Order and wording are part of the contract.
 
 guard_block_destructive() {
   if [[ $guard_cmd =~ $GUARD_RE_DESTRUCTIVE ]]; then
@@ -330,12 +327,10 @@ GUARD_GIT_MV_MASK='@gitmv@'
 # `git mv` is the one carve-out, for every agent. It renames a tracked path and
 # records the rename in the index; no bytes change, so there is nothing for a
 # lane guard or a formatter to inspect, and the rename lands in a commit, where
-# it is reviewed. WHOSE commit is each plugin's policy, not the floor's: the
-# floor once refused every agent but the plugin's own git owner, and with two
-# plugins installed each hook then refused the other plugin's owner -- crew's
-# morpheus was told keymaker owns git. So a plugin refuses its own non-owners'
-# `git mv` below the shared region, with guard_block_git_mv_handback, and an
-# agent no plugin rosters answers to its own plugin's guard. `-f`/`--force` stays
+# it is reviewed. WHOSE commit is the roster's policy, not the floor's: the hook
+# refuses its own non-owners' `git mv` after the floor, with
+# guard_block_git_mv_handback; an agent not on crew's roster is not refused here.
+# `-f`/`--force` stays
 # refused for everyone: it can clobber an existing destination, which IS a write.
 #
 # The loop reads $guard_cmd_raw, so a `git mv` on a later line is recognised (see
@@ -398,8 +393,8 @@ guard_block_file_writes() {
 # rather than the generic write message that sends the agent looking for a
 # synonym. A refusal, so it reads the flattened $guard_cmd like every other
 # refusal: a `git mv` on a later line is the newline gap in guard_normalize, not
-# caught here. Called below the shared region, so a plugin only ever answers for
-# its own roster; a forced `git mv` never reaches it, the floor having refused
+# caught here. Called after the floor, so the hook only ever answers for its own
+# roster; a forced `git mv` never reaches it, the floor having refused
 # that already.
 guard_block_git_mv_handback() {
   [[ $guard_cmd =~ $GUARD_RE_GIT_MV ]] || return 0

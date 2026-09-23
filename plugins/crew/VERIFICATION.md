@@ -104,6 +104,48 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   `sentinel` with four plausible commits (it inspects three; the cap is the limit), and `seraph`
   with no browser MCP (its static-only report is the whole result).
 
+### Debt lane (`debt-lane`, `/crew:debt`, `/crew:audit`)
+
+`bash tests/fixtures/debt-scratch.sh --stack ts` (or `--stack dotnet`) prints the path of a
+planted-debt repo: same-rule suppressions with and without a native justification, a
+justified-and-stale one, and an annotated skipped test. Plant anything else a row names by hand.
+Each row is stack-neutral; run it once per stack.
+
+- [ ] **Entry without a command** — `claude --agent crew:morpheus`, "fix the CS8602 suppressions"
+  → it loads `debt-lane` and runs open mode, not the feature flow.
+- [ ] **Audit scopes** — `/crew:audit` with a path, a lane, a rule family, `stale`, `outdated` and
+  `diff` → `keymaker` runs each one; each report is limited to its scope, the taxonomy comes
+  from marker files (not the lane name), `stale` lists grep-only candidates, `outdated` triages
+  SAFE/REVIEW/CAUTION without installing, `diff` and `outdated` get their inputs from the
+  command as data blocks (the scout has no Bash), and nothing is edited — the agent has no
+  Edit/Write tool to edit with.
+- [ ] **Audit picks** — pick two findings → the command launches `crew:morpheus` directly for the
+  first (foreground; its gates prompt), relays its status, then the second; "None" alongside a
+  finding runs nothing.
+- [ ] **A debt pointer is never express** — `claude --agent crew:morpheus`, "remove the
+  eslint-disable at src/a.ts:10" → the debt lane (classification, radius, ledger), not `neo`.
+- [ ] **Class 4 waits** — a pointer at an annotated skipped test → reported with its `git log`
+  line, no dispatch until the user says what the test should become.
+- [ ] **Report cap and totals** — 50+ hits for one rule fold into one entry; justified sites are
+  left out of the list but counted in the totals line; `stale` still lists a justified candidate,
+  tagged; an annotated skipped test is still reported.
+- [ ] **Early exits** — a gone suppression, pasted output whose rules all count 0, an all-justified
+  pointer, and a re-run of a finished pointer → one line each; no branch, ledger or dispatch. A run
+  killed mid-batch resumes from its ledger.
+- [ ] **Gate** — 3 sites → one worker, one commit; ~20 → directory batches; 60 → slices, then
+  wait; a framework major → tier 2, outline offer, no edits; a behavior-sensitive batch with no
+  test command → warning and acknowledgement; a peer conflict → stop, no pin or override.
+- [ ] **Delegate by lane** — a cross-lane pointer → backend sites to `tank`, frontend to
+  `trinity`, each handoff carrying the fixer rules and a `debt-taxonomy-<stack>` load.
+- [ ] **Verify** — a worker that swaps an `eslint-disable` for a `@ts-ignore`, or adds a
+  justification to a surviving suppression → rejected against the batch's `snapshot:` field and
+  re-delegated; a third failure → `blocked` with its history. A run killed after the worker
+  edited but before verify → the resume re-verifies against the same `snapshot:`.
+- [ ] **Commit** — `chore(debt): …` per batch, one unit per commit when behavior-sensitive; an
+  upgrade commits its lockfile as `chore(deps): …`, and a failed verify reverts only that package.
+- [ ] **Loop mode** — "clear all the stale ones" after an audit → picks run to completion, a gate
+  that needs the user still stops the loop, and blockers surface together.
+
 ### Loop mode (inner — `loop-engineering`)
 
 - [ ] **Intent enters loop mode** — "keep going until done" on open-ended work → `morpheus` echoes

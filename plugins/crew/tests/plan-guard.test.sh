@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # plan-guard.sh: in plan mode, a dispatch of a crew worker that edits files is
-# refused; the orchestrator, read-only workers, other plugins' agents, and every
+# refused; the orchestrator, read-only workers, agents not on crew's roster, and every
 # other permission mode pass. Fails open on anything it can't read.
 #
 # The real agent files decide the shipped verdicts (tank blocks, sentinel
@@ -29,7 +29,7 @@ for w in tank trinity oracle dozer neo; do
 done
 run_hook "$hook" "$(payload_dispatch crew:tank plan)"
 if [[ "$_stderr" == *"crew:tank"* ]]; then _pass; else _fail "refusal should name the worker (got: $_stderr)"; fi
-for w in sentinel seraph; do
+for w in sentinel seraph keymaker; do
   assert_allow "plan mode lets crew:$w through (no Edit/Write)" "$hook" "$(payload_dispatch "crew:$w" plan)"
 done
 assert_allow "plan mode lets crew:morpheus through (owns git; it plans there)" "$hook" "$(payload_dispatch crew:morpheus plan)"

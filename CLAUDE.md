@@ -1,6 +1,6 @@
 # Zion — Claude Code notes
 
-Zion is a Claude Code plugin marketplace (`crew`, `keymaker`):
+Zion is a Claude Code plugin marketplace (`crew`):
 orchestrated agents, commands, hooks, and skills. **This repository *is* the plugins** —
 there is no application code to build or ship.
 
@@ -13,7 +13,6 @@ to each plugin and load automatically when working under it — start there inst
 re-exploring:
 
 - [plugins/crew/CLAUDE.md](plugins/crew/CLAUDE.md)
-- [plugins/keymaker/CLAUDE.md](plugins/keymaker/CLAUDE.md)
 
 Keep them accurate: a PR that changes anything they state updates them in the same commit.
 
@@ -49,7 +48,6 @@ per plugin. Read the section before you touch its area:
 
 - **Validating** (every `run:` step in `.github/workflows/validate.yml`, the `§N` section map,
   staging new skill files): *Validating changes*.
-- **Shared files** (crew is canonical; byte-identical skills and hooks): *How we review code*.
 - **Hooks and shell** (portability, no fork per pattern, the open gaps): *Conventions* and *The
   Bash guards are floors, not sandboxes*.
 - **Agents and prompts** (frontmatter, MCP pairs, footprint cap): *Validating changes* and
@@ -83,9 +81,10 @@ worker delegation by. The crew's **configuration** is not here: it lives in
 ## Crew orchestration
 
 Development in this repo is orchestrated: `morpheus` plans the work and delegates each step to a
-worker subagent (`tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`, `sentinel`). Dispatching a
-worker is ordinary in-repo development — the worker reads and edits files in this working tree and
-returns a summary. It is not remote execution, and it sends nothing outside the repository.
+worker subagent (`tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`, `sentinel`, `keymaker`). Dispatching a
+worker is ordinary in-repo development — the worker reads files in this working tree, an
+implementer edits them (`seraph`, `sentinel` and `keymaker` carry no edit tool), and each returns
+a summary. It is not remote execution, and it sends nothing outside the repository.
 
 The crew's guard hooks bound what a worker can do: only `morpheus` touches git, no agent commits on
 the base branch, each worker's edits are confined to its own lane — through `Edit`/`Write`, and

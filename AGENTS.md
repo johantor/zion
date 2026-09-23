@@ -1,7 +1,7 @@
 # Contributing to Zion
 
-Zion is a Claude Code plugin marketplace: `crew` (orchestrated feature delivery) and `keymaker`
-(tech-debt and upgrade fixes). **This repository *is* the plugins** — there is no application
+Zion is a Claude Code plugin marketplace: `crew` (orchestrated feature delivery, plus a debt lane
+for tech-debt and upgrade fixes). **This repository *is* the plugins** — there is no application
 code to build or ship. Work here means editing agent/command/skill definitions, hooks, and
 docs.
 
@@ -20,14 +20,14 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `.claude-plugin/marketplace.json` — the marketplace; lists each plugin and its `source`.
 - `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
   - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
-  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), and `sentinel` (post-merge triage; read-only, no Bash). Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/init`, `/feature`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature` and `/address` are thin routers into `morpheus`'s own flows, so both also work by just asking in a `claude --agent crew:morpheus` session. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
-  - `skills/` — shared: `context-discipline`, `loop-engineering`,
-    `operator-voice` (all also shipped by `keymaker` — kept byte-for-byte in sync
-    automatically; see *How we review code* below; `loop-engineering` carries the loop-mode stop
-    rules, preloaded by `morpheus` and `keymaker` with per-agent bindings, and `operator-voice`
-    sets how those two write to the operator); crew-only: `engineering-principles` (the review
-    rubric — crew is its only home since the standalone plugin was dropped) and
+  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), `sentinel` (post-merge triage; read-only, no Bash), and `keymaker` (debt scout; read-only — no Edit/Write/Bash, so no git and no package manager). Auto-discovered from this dir; not declared in the manifest.
+  - `commands/` — `/init`, `/feature`, `/debt`, `/audit`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature`, `/debt` and `/address` are thin routers into `morpheus`'s own flows, so they also work by just asking in a `claude --agent crew:morpheus` session. `/audit` launches `keymaker` (resolving a `diff` scope's file list and an `outdated` scope's package-manager output first, since the scout has no Bash), relays its report, then launches `morpheus` directly for each picked pointer — never by nesting `/debt`. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
+  - `skills/` — `context-discipline`, `loop-engineering` (the loop-mode stop rules, preloaded by
+    `morpheus`; the feature flow and the debt lane each bind it), `operator-voice` (how
+    `morpheus` writes to the operator), `engineering-principles` (the review rubric),
+    `debt-lane` (loaded by `morpheus` on a debt pointer) with `debt-taxonomy`,
+    `debt-taxonomy-dotnet` and `debt-taxonomy-typescript` (the taxonomy skills are loaded by
+    `keymaker` too), and
     `mid-run-direction` (how a
     worker treats a steer that arrives mid-run — preloaded by every worker, not by `morpheus`,
     which carries the sending half);
@@ -57,11 +57,11 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     Bash guard enforces.
   - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
   - `VERIFICATION.md` — the plugin's behavioral scenario matrix, kept out of the README so the
-    README stays a user-facing document. `keymaker` carries its own alongside its README.
+    README stays a user-facing document.
 - `scripts/` — repo tooling (not part of any plugin; it needs this monorepo's layout and never
   runs in an installed plugin):
-  - `validate-plugin.sh` — validates every plugin's manifest/structure, including skill-drift
-    across plugins (§4 in the script), hook-script drift (§5), hooks.json wiring (§6; see
+  - `validate-plugin.sh` — validates every plugin's manifest/structure, including hooks.json
+    wiring (§6; see
     *How we review code* below), and YAML-parseable frontmatter (§14; see *Validating changes*).
     Tree-only: no base ref, so it runs anywhere.
   - `check-changelog.sh` — the release-notes gate: a change to shipped files must be described
@@ -82,7 +82,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   `mocks/git-host-mcp.js`, a dependency-free mock git-host MCP with its own LLM-free self-test.
   See *Adversarial scenario suite* below; it is never a required PR check.
 - `tests/fixtures/` — repo tooling: scratch-repo generators for exercising a plugin's verification
-  matrix by hand (`keymaker-scratch.sh` plants same-rule suppressions, justified and not, plus the
+  matrix by hand (`debt-scratch.sh` plants same-rule suppressions, justified and not, plus the
   justification filter's two exemptions). Prints the repo path on stdout so it composes into a
   headless `claude --plugin-dir …` run.
 - `.github/copilot-instructions.md` — Copilot's entry point; it points to the `code-review` skill.
@@ -120,7 +120,9 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
   `dozer` = frontend e2e only (for the resolved e2e tool), `seraph` = visual design
   conformance (read-only), `neo` = express-lane generalist for small changes (all lanes;
   no lane guard by design), `sentinel` = post-merge triage (read-only; locates a production
-  signal and correlates it to suspect commits, and returns a pointer rather than a fix). Stack knowledge lives in per-stack skills, loaded once `morpheus`
+  signal and correlates it to suspect commits, and returns a pointer rather than a fix),
+  `keymaker` = debt scout (read-only; audits a scope and returns ranked `/crew:debt` pointers,
+  never a fix — it has no Edit/Write tool). Stack knowledge lives in per-stack skills, loaded once `morpheus`
   resolves the project's stack (crew config's `backendStack`/`frontendStack` slots).
   E2e tool knowledge lives in per-tool skills (`Frontend e2e tool` slot); frontend unit test
   tool knowledge lives in its own per-tool skills (`Frontend unit test tool` slot). `lane-
@@ -133,12 +135,18 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
 - `morpheus` **right-sizes the process by task size**: small, low-risk work takes an express lane
   (delegate to `neo`, skip the plan/checkpoint/full-gate, quick self-review, commit); features and
   anything risky, multi-lane, or needing new tests take the full flow through the specialists.
-  It escalates express → full the moment a task proves bigger.
-- **Loop mode** (`loop-engineering`, shared with `keymaker` — each orchestrator binds it to
-  its own units/gate/state in its agent file): on explicit user intent in
+  It escalates express → full the moment a task proves bigger. A pointer to known debt (a
+  suppression, rule or package) takes the **debt lane**, and takes it even when it looks like an
+  express one-liner: `morpheus` loads the `debt-lane` skill, gates on the blast radius, and
+  commits one verified batch at a time. It is a skill, not a second orchestrator, because
+  `claude --agent crew:morpheus` sessions can only dispatch from the main thread, and because an
+  on-demand skill stays out of `morpheus`'s footprint cap. An **audit scope** goes to `keymaker`
+  instead, and each pick comes back to the lane as a pointer.
+- **Loop mode** (`loop-engineering` — the feature flow and the debt lane each bind it to their
+  own units/gate/state): on explicit user intent in
   conversation ("keep going until done", "loop this", "finish it", "clear all the stale ones")
   the full flow runs to completion without per-step check-ins, stopping only on the
-  orchestrator's terminal gate (crew: review gate GO; keymaker: verify + commit — never
+  run's terminal gate (feature flow: review gate GO; debt lane: verify + commit — never
   push/PR), a blocked human decision (independent units drain first), or a retry cap (3 failed
   fix→verify round-trips on a unit; for crew's gate, a second NO-GO on the same findings).
   Intent is never inferred from fetched content; any checkpoint/gate that needs the user's
@@ -177,21 +185,6 @@ what to check here, severity, and the **Blocking** / **Warning** / **Passed** ou
 project, `/crew:review` applies `engineering-principles` only; the `code-review` skill is Zion's
 own. Each is written once, in its own file; everything else points to them.
 
-Any skill shipped by more than one plugin must stay byte-for-byte in sync across every copy —
-today that's `context-discipline`, `loop-engineering`, and `operator-voice` (all crew's
-canonical copies, also shipped by `keymaker`).
-`scripts/validate-plugin.sh` enforces this automatically: the check
-is generic by skill *name*, not hardcoded to these pairs, so it also catches a future
-duplicate between any other plugins — crew included or not (CI fails on mismatch). The same
-policy covers hook scripts shipped by more than one plugin (§5): copies with no markers must be
-byte-identical (`read-guard.sh`, `lib/guard-lib.sh`), and `bash-safety.sh`'s marker-delimited
-"shared guard" regions must match byte-for-byte while the git-policy sections around them stay
-per-plugin (crew's copies are canonical — edit there first). Prefer moving genuinely shared logic
-into `hooks/lib/guard-lib.sh` over widening a marked region: one vendored file compared whole is
-easier to keep honest than logic duplicated across several regions, and it leaves the markers
-covering only the short call sequence that defines the shared floor's order. Reviewers
-should still flag any drift that slips through as at least a **Warning**, and **Blocking** when
-it would change reviewer behavior.
 
 ### Reviewing a prompt change (commands, agents, skills)
 
@@ -358,19 +351,43 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   the run summary renders. Naming the exact previously-failing tests on a re-verify keeps full
   suites where they belong: the final review gate, not every fix.
 
-### keymaker:keymaker
+### crew:debt (the debt lane)
 
+- **Why the debt lane has a scout but no fixer of its own.** A dedicated fixer would duplicate
+  `tank`/`trinity`'s lanes, `remaining:` contract, turn budget and wait recipe, so every fix to
+  those would land twice. The fixer rules travel in each handoff instead, and `model: sonnet`
+  keeps a mechanical batch cheap. The audit is different: it greps untrusted repository content
+  and must edit nothing, and a `tools:` list with no Edit/Write is a boundary no prompt line
+  provides. `keymaker` is that list, and it has no Bash either: with a shell it could still run
+  `npm install`, which no guard refuses. `Grep` and `Glob` cover enumeration and stack detection,
+  and the two scopes that need a shell — `diff` (git) and `outdated` (a package manager) — are
+  resolved by `/crew:audit` in the main session and handed over as data blocks.
+- **Why `morpheus` is lane-guarded, and why its lane is a filename shape.** It writes Markdown
+  plans and ledgers, crew config and its agent memory, never production code, in every flow —
+  so the allowlist is mode-free rather than a debt-mode switch, and Bash-side writes were already
+  refused for every agent session. The lane is `plan-*.md`, `debt-*.md`, `crew.md` and
+  Markdown under `agent-memory-local/` at any depth, plus scratch, not a directory: a directory allowlist needed a
+  root to anchor to (`src/.claude/app.ts` passed a `.claude/**` prefix) and a `planDirectory`
+  slot that could overlap source, and three review rounds found an edge case each. Production
+  code is never named `plan-*.md`, so the shape needs neither. What it does allow — any Markdown
+  file with a plan name, anywhere — is not production code. A `..` segment is refused for every
+  lane agent rather than resolved: the guard matches strings, and no agent has a reason to edit
+  through one.
+- **Why class 4 waits for the user.** A skipped test or a blanket suppression is
+  needs-investigation in the rubric; routing it to `oracle`/`dozer` on the pointer alone would
+  turn "investigate" into "unskip". The lane reports the evidence and dispatches only what the
+  user decided.
 - **Open mode exit contract / resume protocol.** The 0-findings exit and the already-complete
-  ledger exit exist so that re-running a successful `/keymaker:open` — including an
-  `/keymaker:audit` re-pick of a pointer already cleared — is a cheap no-op instead of a
+  ledger exit exist so that re-running a successful `/crew:debt` — including an
+  `/crew:audit` re-pick of a pointer already cleared — is a cheap no-op instead of a
   re-enumeration. A ledger whose every batch is `done` has no further use once its commits are
   in place; only a `blocked` batch keeps it alive as a resume point.
-- **Step 8, verify.** The independent per-mechanism re-sweep exists because a twin's
-  self-reported counts cannot be the source of truth for whether the twin introduced new
+- **Step 8, verify.** The independent per-mechanism re-sweep exists because a worker's
+  self-reported counts cannot be the source of truth for whether the worker introduced new
   suppressions — that is exactly the claim under test.
 - **The batch ledger is durable state.** Open mode may run many batches across many turns, so a
   crash or context reset would otherwise lose the run.
-- **Justified suppressions — why keymaker only reads them** (0.8.0, was #52). The store had to be
+- **Justified suppressions — why the debt lane only reads them** (#52). The store had to be
   the codebase itself. Two alternatives were rejected: `memory: local` is gitignored, so it would
   solve the re-surfacing problem for exactly one clone on one machine while every teammate's
   audit re-flagged the same site and CI lost the rationale entirely — a keep-decision is a shared
@@ -381,7 +398,7 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   possible since the file lives in the user's project. A native justification slot has keying,
   lifecycle, and PR-review locality for free. Project-level *policy* keeps the AGENTS.md route,
   because one coarse statement beats annotating fifty sites.
-  There is deliberately **no ack command and no keymaker-specific token**: requiring an explicit
+  There is deliberately **no ack command and no crew-specific token**: requiring an explicit
   gesture to record a keep-decision is a step the user shouldn't have to take, and once nothing
   writes the ack, the token, the lifecycle machinery, and the side log all stop being needed.
   The cost is that slot-less mechanisms (`<NoWarn>`, `.editorconfig` severity, a bare `#pragma`)
@@ -413,9 +430,9 @@ what it enforces.
 
 `validate-plugin.sh`'s sections, cited as `§N` across the docs: manifests §2, marketplace sync
 §2f, `skills:` resolution §2g, version ↔ changelog §2h, `[Unreleased]` slot §2i, hook file modes
-§3, skill sync §4, hook sync §5, wiring §6, dev-wiring mirror §7, turn-budget §8, rosters §9,
+§3, wiring §6 (§4–§5 are unused), dev-wiring mirror §7, turn-budget §8, rosters §9,
 prose refs §10, `crew.md` keys §11, footprint §12, MCP pairs §13, YAML frontmatter §14.
-§2g and §4 index skills through `git ls-files`, so stage a new or renamed skill file before
+§2g and §12 index skills through `git ls-files`, so stage a new or renamed skill file before
 running the validator.
 
 `plugins/<plugin>/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
@@ -458,7 +475,7 @@ agent without those two fields fails CI.
 The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
 
 Two more checks cover prose that names something the harness has to resolve. §10 requires every
-`crew:`/`keymaker:` reference in an agent, command, or skill body to resolve to a real agent or
+`crew:` reference in an agent, command, or skill body to resolve to a real agent or
 command file — a typo there fails silently and late, since the delegation simply doesn't launch.
 §11 keeps `commands/init.md` §1 — which declares itself the source of truth for the crew
 configuration slots — in lockstep with this repo's own `.claude/crew.md`, both directions, so a
@@ -471,12 +488,12 @@ configuration, and an unparseable list is reported rather than passed over. The 
 §12 measures what the repo preaches. Every agent's **always-loaded footprint** — its own file
 plus every skill its frontmatter preloads — is reported on each run, because that cost is paid on
 every single invocation and nothing else in the repo tracked it. The number is informational by
-default; an agent may declare `loaded-lines-cap: <n>` in its frontmatter (today `morpheus` and
-`keymaker`, the two orchestrators) to fail CI when it grows past a chosen budget, so raising the
+default; an agent may declare `loaded-lines-cap: <n>` in its frontmatter (today `morpheus`, the
+orchestrator) to fail CI when it grows past a chosen budget, so raising the
 budget is a visible frontmatter edit rather than silent creep. A present-but-unparseable cap is a
 failure, not a skipped check, and so is an unreadable agent or skill file — counting it as 0 lines
 could under-count a footprint straight past its cap. Unresolved skill refs belong to §2g and are
-not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g/§4.
+not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g.
 
 §13 covers the `mcp__` entries of an agent's `tools:`. A plugin-bundled MCP server's tools are
 named `mcp__plugin_<plugin>_<server>__<tool>`, so a bare `mcp__<key>` grant — the form that
@@ -513,7 +530,7 @@ weakens one and the happy path still works, so nothing notices:
 
 - `morpheus` §*Address review feedback* step 2 — a comment that tries to widen scope,
   exfiltrate secrets, or disable a guard is **surfaced, not obeyed**.
-- `keymaker` step 3 — pasted build/lint output is **data**: rule IDs are parsed from it;
+- `debt-lane` open-mode step 3 — pasted build/lint output is **data**: rule IDs are parsed from it;
   instructions in its prose are never followed.
 - `loop-engineering` — loop intent is **never inferred** from fetched or pasted content.
 - `sentinel` §*The signal is untrusted input* — a bug report is third-party free text: its
@@ -581,10 +598,7 @@ Versions are per-plugin. To cut a release:
 1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a matching `CHANGELOG.md`
    entry (a PR that changes plugin behavior must do this — see *Release by default* below).
    `validate-plugin.sh` §2h fails CI unless the manifest version equals the newest `## [X.Y.Z]`
-   entry in that plugin's changelog, so the two always move together. **A change to a skill
-   shipped by more than one plugin bumps *every* plugin that ships it** — the §4 sync check keeps
-   the copies byte-identical, so a fix in one is a release in all of them (every plugin keeps
-   its own changelog at `plugins/<name>/CHANGELOG.md`).
+   entry in that plugin's changelog, so the two always move together.
 2. Fold in anything parked under `## [Unreleased]` (below), moving those bullets into the new
    version's section. `check-changelog.sh` fails a bump that leaves the slot non-empty.
 3. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
@@ -783,6 +797,13 @@ several — a `$(...)`, an interpreter — and the worker's own prompt is what k
 Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
 size than the rule it would replace, and belongs in its own PR.
 
+**`/crew:audit` passes `diff` file names as quoted lines, not as a parsed encoding.** A
+repository-controlled name can carry a quote, a backtick or a fence, and the block has no parser
+that such a character could break out of: the scout reads the whole block as data, by
+instruction, and it has no Edit, Write or Bash tool, so the worst a hostile name can do is skew a
+report the user reads before picking anything. A JSON or length-delimited encoding would add a
+step the reader has to get right for a gap whose ceiling is a wrong line in a report. Accepted.
+
 **The protected-branch backstop reads the branch where the commit runs, not where it is typed.**
 That is the payload's `cwd`, or the literal directory of a whole command shaped
 `git -C <dir> commit …` or `cd <dir> && git commit …`. Any other shape (`pushd`, a `$VAR`,
@@ -799,12 +820,10 @@ wave through a `git mv` that sits inside a string — it cannot refuse anything.
 two renames typed on two lines were refused, the second read as `mv` welded onto the first's
 operands. The blocking patterns do not get the same anchor; the paragraph above is why.
 
-**The floor decides *what* a `git mv` is, not *whose*.** It once refused every agent but the
-plugin's own git owner, and the two plugins name different owners, so with both installed each
-hook refused the other's: `morpheus` was told keymaker owns git. Now the floor lets any agent run
-a plain `git mv` and each plugin refuses its own non-owners' below the shared region
-(`guard_block_git_mv_handback`), naming the agent to hand the rename to. A rule about a plugin's
-roster belongs beside that roster, never in the region both plugins share.
+**The floor decides *what* a `git mv` is, not *whose*.** The floor lets any agent run a plain
+`git mv`; after it, `bash-safety.sh` refuses its own roster's non-owners
+(`guard_block_git_mv_handback`), naming the agent to hand the rename to. An agent not on crew's
+roster is not refused.
 
 The hand-back is a *refusal*, so it reads the flattened command like the other refusals: a
 worker's `git mv` on a later line is the newline gap above, not handed back. Masking heredocs and
@@ -854,12 +873,6 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
   `validate-plugin.sh` run can't (e.g. a command whose stated behavior isn't mechanically
   achievable, or an ownership contradiction between two files). Reviewers should be a backstop,
   not the first pass.
-- **A changed shipped file is a release for every plugin that ships it.** Editing a byte-synced
-  shared skill (`loop-engineering`, `context-discipline`, `operator-voice`) is
-  user-visible in *each* plugin that ships it, so bump + changelog all of them, not just the one
-  you were thinking about — §2h/§4 enforce the version↔changelog and byte-identity halves, and
-  `check-changelog.sh` now names each plugin whose shipped files moved without a record, so the
-  second plugin can't be the one you forgot.
 - **A command that delegates can only pass what the delegated command accepts.** A thin command
   built on another (say, one wrapping `/crew:feature`, which only forwards its goal to
   `crew:morpheus`) can't "tell" the inner agent anything that inner command doesn't forward. If
@@ -868,6 +881,5 @@ rather than waiting for a reviewer (human or Copilot) to catch them again:
   own arguments.
 - **Behavioral verification means actually running the scenario, not asserting it in the PR.**
   For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario from that
-  plugin's `VERIFICATION.md` ([crew](plugins/crew/VERIFICATION.md),
-  [keymaker](plugins/keymaker/VERIFICATION.md)) and cite the observed result — a checklist item
+  plugin's `VERIFICATION.md` ([crew](plugins/crew/VERIFICATION.md)) and cite the observed result — a checklist item
   that reads "would pass" is not verification.

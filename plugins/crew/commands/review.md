@@ -78,13 +78,14 @@ report can miss you. Start the command detached, with its exit code written to a
 literal `/tmp/` prefix keeps the redirects inside `bash-safety.sh`'s exempt sinks):
 
 ```sh
-mkdir /tmp/gate.$$ && { ( <command> >/tmp/gate.$$/log 2>&1; echo $? >/tmp/gate.$$/exit ) >/dev/null 2>&1 & } && echo /tmp/gate.$$
+mkdir -m 700 /tmp/gate.$$ && { ( <command> >/tmp/gate.$$/log 2>&1; echo $? >/tmp/gate.$$/exit ) >/dev/null 2>&1 & } && echo /tmp/gate.$$
 ```
 
 Then repeat this call, with the printed path as `d` and Bash `timeout: 600000`, until it prints an
 exit code instead of `running`; grep `$d/log` for the findings (a bare `cat` is refused). Never `run_in_background`. Give
-the handoff a wall-clock budget: still `running` past it is a **build timeout** (§6 in
-`morpheus`'s gate steps), reported with `$d`, not a code failure.
+the handoff a wall-clock budget: still `running` past it is a **gate timeout**, reported with the
+gate's name and `$d`, never as a code failure. A build timeout follows `morpheus`'s gate step 6; a
+hung test, e2e or lint run goes to the user as its own timeout, not rerun as contention.
 
 ```sh
 d=<path>; for i in $(seq 110); do [ -f "$d/exit" ] && break; sleep 5; done; head -c 8 "$d/exit" 2>/dev/null || echo running

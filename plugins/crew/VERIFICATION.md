@@ -76,6 +76,10 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
 - [ ] **A collision is not the operator's environment** — a lock/corrupt-`obj/` failure while two
   crew runs shared the build location → `morpheus` names its own overlapping dispatch and
   re-runs serialized, instead of asking the user to stop their dev server.
+- [ ] **A long gate ends inside the worker's turn** — a gate command that runs longer than one
+  poll call (e.g. `sleep 700 && make build`) → the worker polls the wait recipe's exit file until
+  it appears and hands back in the same turn; `morpheus` gets the report with no "waiting on its
+  own background work" notice. Past the handoff's budget, it is reported as a gate timeout.
 
 ### Loop mode (inner — `loop-engineering`)
 

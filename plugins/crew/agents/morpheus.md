@@ -8,7 +8,7 @@ maxTurns: 144
 memory: local
 owns-git: true
 lane-guarded: false
-loaded-lines-cap: 575
+loaded-lines-cap: 580
 skills:
   - loop-engineering
   - context-discipline
@@ -202,6 +202,11 @@ Only a step that must prompt the user runs in the foreground; otherwise, always 
 
 - **Backgrounding is not abandoning — waiting is not blocking.** You still collect every worker's
   result (you're notified when it finishes), then verify and commit.
+- **A worker "waiting on its own background work" may never report back to you.** Don't wait
+  passively: on that notice, `SendMessage` it by agent ID, opening with its `steer-token:`, to send
+  you its full report when the work ends. If none reaches you by your next wake, or `SendMessage`
+  isn't in reach, ask the user whether a handback reached them. Never report a result you have not
+  received.
 - **`Agent` always spawns fresh — to continue a worker, message it.** A second `Agent` call never
   extends a running worker: it starts a **new** one that knows only what its own prompt carries,
   so re-dispatching to widen an in-flight step just puts two workers into one scope. Use
@@ -342,7 +347,7 @@ Before triggering that gate:
    caches.
 4. **One-shot build, bounded.** Use the project's **build** command, never a watch/dev/serve
    command (`dotnet watch`, `npm run dev`, `vite`, `tsc --watch`) — those never terminate and
-   hang the worker. Give the build a wall-clock timeout so a hang fails fast.
+   hang the worker. Require `/crew:review`'s wait recipe and a wall-clock budget in the handoff.
 5. **Full strictness; warnings are findings.** Require the configured command run **as
    configured** — no narrowed target, no property or flag that relaxes analyzers/type checks, no
    verbosity below the default. A zero exit code is not a pass: require the build's **warnings**

@@ -364,7 +364,10 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 - **Why `morpheus` is lane-guarded.** It writes plans, ledgers and notes and never production
   code, in every flow, so its Edit/Write lane is the plan directory, the rest of `.claude/` and
   scratch — a mode-free allowlist rather than a debt-mode switch. Bash-side writes were already
-  refused for every agent session; this closes the one path that was prose-only.
+  refused for every agent session; this closes the one path that was prose-only. Under a
+  configured plan directory only `plan-*.md`/`debt-*.md` are allowed, so `planDirectory: src`
+  cannot widen the lane to source. A `..` segment is refused for every lane agent rather than
+  resolved: the guard matches strings, and no agent has a reason to edit through one.
 - **Why class 4 waits for the user.** A skipped test or a blanket suppression is
   needs-investigation in the rubric; routing it to `oracle`/`dozer` on the pointer alone would
   turn "investigate" into "unskip". The lane reports the evidence and dispatches only what the

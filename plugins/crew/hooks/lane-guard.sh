@@ -48,6 +48,16 @@ case "$agent_type" in
 esac
 [ -z "$path" ] && exit 0
 
+# A `..` segment lets an allowed prefix name a file outside it (`.claude/../src/app.ts`)
+# and a denied prefix be dodged the same way. This guard matches strings and resolves
+# nothing, and no agent has a reason to edit through one, so it is refused for every
+# lane agent instead.
+case "/$path/" in
+  */../*)
+    echo "Blocked: $path has a '..' segment — name the file by its plain path." >&2
+    exit 2 ;;
+esac
+
 # Crew configuration lives in `.claude/crew.md` as YAML frontmatter, one key per
 # slot. Earlier versions wrote the same slots into CLAUDE.md as
 # `- **Label:** value` bullets; /crew:init migrates those, so the legacy block is
@@ -368,8 +378,10 @@ case "$agent_type" in
   # design rationale" -> "crew:debt (the debt lane)".
   morpheus) mode="--allow"
             patterns='.claude/** /tmp/** /private/tmp/** /var/folders/** /private/var/folders/**'
+            # Under a configured plan directory only the plan and ledger shapes are
+            # allowed, so `planDirectory: src` still keeps src/app.ts out of the lane.
             plan_dir="$(config_slot planDirectory 'Plan directory')"
-            [ -n "$plan_dir" ] && patterns+=" $(lane_globs "$plan_dir")" ;;
+            [ -n "$plan_dir" ] && patterns+=" ${plan_dir%/}/plan-*.md ${plan_dir%/}/debt-*.md" ;;
   # seraph, sentinel and keymaker are read-only with no edit/write tools, so they
   # never reach this Edit|Write hook — no lane entry needed.
   *) exit 0 ;;  # main session or any agent without a lane: no restriction

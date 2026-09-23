@@ -45,7 +45,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     audit flow lives in its own prompt.
   - Also: `engineering-principles` (the code rules `/crew:review` grades a user's project
     against; this repo's own review rubric is `.github/skills/code-review`), and the preloads
-    `mid-run-direction` (all seven workers, not `morpheus`) and `design-tokens` (`seraph`).
+    `mid-run-direction` (all eight workers, not `morpheus`) and `design-tokens` (`seraph`).
   - Loaded once resolved: frontend mode, stack and test-tool skills. Backends `backend-dotnet`
     (+ `cms-optimizely`), `-node`, `-python`, `-go`, `-rust`, `-java`, `-shell`, each paired with
     a `tests-*` skill. Only node needs lane paths (its extensions collide with a frontend's).
@@ -64,9 +64,10 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     refusal). `git_owner=morpheus` sits above the floor; §9 pins it to the `owns-git` agent.
     Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
-  - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on `.claude/**`, the
-    `planDirectory` slot and scratch (plans, ledgers, notes — never production code); the four
-    lane workers get their lanes below. The only hook that reads crew config: `.claude/crew.md`
+  - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on `.claude/**`, scratch, and
+    `plan-*.md`/`debt-*.md` under the `planDirectory` slot (never production code, even with
+    `planDirectory: src`); the four lane workers get their lanes below. A `..` segment is
+    refused for every lane agent. The only hook that reads crew config: `.claude/crew.md`
     frontmatter by key, else `crew.md` in the shared git dir (`/crew:init --local`; found by
     reading `.git` and `commondir`, no fork), else the legacy `CLAUDE.md` block. Loaded once in the parent shell, since
     `config_slot` runs in `$(...)`.

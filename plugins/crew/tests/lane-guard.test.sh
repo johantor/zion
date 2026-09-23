@@ -79,10 +79,31 @@ assert_allow "morpheus allowed scratch under /tmp"    "$HOOK" "$(payload_file mo
 assert_block "morpheus denied a source file"          "$HOOK" "$(payload_file morpheus src/app.ts)" "allowed paths"
 assert_block "morpheus denied a test file"            "$HOOK" "$(payload_file morpheus tests/app.test.ts)" "allowed paths"
 fm_plan="$(make_crew_md 'planDirectory: docs/plans')"
-assert_allow "morpheus allowed the configured plan directory" \
+assert_allow "morpheus allowed a plan in the configured plan directory" \
   "$HOOK" "$(payload_file morpheus docs/plans/plan-sso.md)" "$fm_plan"
+assert_allow "morpheus allowed a ledger in the configured plan directory" \
+  "$HOOK" "$(payload_file morpheus docs/plans/debt-cs8602.md)" "$fm_plan"
 assert_block "morpheus still denied source under a configured plan directory" \
   "$HOOK" "$(payload_file morpheus src/app.ts)" "allowed paths" "$fm_plan"
+# Only the plan and ledger shapes are allowed there, so a plan directory that
+# overlaps source cannot widen the lane to source.
+fm_src="$(make_crew_md 'planDirectory: src')"
+assert_allow "morpheus allowed a plan in a plan directory set to src" \
+  "$HOOK" "$(payload_file morpheus src/plan-sso.md)" "$fm_src"
+assert_block "morpheus denied source in a plan directory set to src" \
+  "$HOOK" "$(payload_file morpheus src/app.ts)" "allowed paths" "$fm_src"
+
+# --- A `..` segment is refused for every lane agent -----------------------------
+assert_block "morpheus denied a '..' traversal out of .claude" \
+  "$HOOK" "$(payload_file morpheus .claude/../src/app.ts)" "'..' segment"
+assert_block "oracle denied a '..' traversal out of tests/" \
+  "$HOOK" "$(payload_file oracle tests/../src/foo.ts)" "'..' segment"
+assert_block "tank denied a '..' traversal (checked before any lane regime)" \
+  "$HOOK" "$(payload_file tank src/api/../web/page.ts)" "'..' segment"
+assert_block "morpheus denied a leading '..'" \
+  "$HOOK" "$(payload_file morpheus ../other/.claude/plan-x.md)" "'..' segment"
+assert_allow "a dotfile is not a '..' segment" \
+  "$HOOK" "$(payload_file morpheus .claude/..notes.md)"
 
 # --- Agents with no lane ------------------------------------------------------
 assert_allow "keymaker has no Edit/Write tool; the hook never fires for it" "$HOOK" "$(payload_file keymaker Foo.tsx)"

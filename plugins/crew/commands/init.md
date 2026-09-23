@@ -227,8 +227,9 @@ crew *is*, and never instructs the classifier to permit anything.
 
 Development in this repo is orchestrated: `morpheus` plans the work and delegates each step to a
 worker subagent (`tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo`, `sentinel`, `keymaker`). Dispatching a
-worker is ordinary in-repo development — the worker reads and edits files in this working tree and
-returns a summary. It is not remote execution, and it sends nothing outside the repository.
+worker is ordinary in-repo development — the worker reads files in this working tree, an
+implementer edits them (`seraph`, `sentinel` and `keymaker` carry no edit tool), and each returns
+a summary. It is not remote execution, and it sends nothing outside the repository.
 
 The crew's guard hooks bound what a worker can do: only `morpheus` touches git, no agent commits on
 the base branch, each worker's edits are confined to its own lane, and destructive shell commands

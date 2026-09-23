@@ -53,7 +53,9 @@ below lives there or in its per-stack skill.
    git, so its `git log` line is open mode's, not yours.
 5. **Drop justified findings from the list, keep them in the totals** (*Justified
    suppressions*): a meaningfully justified suppression, or one a policy section excludes, is
-   counted but not listed. `stale` is exempt; skipped tests are never excluded. Unclear intent →
+   counted but not listed — a justified suppression that also looks stale is still excluded in a
+   path, lane, rule-family or `diff` scope. Only the **`stale` scope** lists justified candidates
+   (tagged `justified`), and skipped tests are never excluded in any scope. Unclear intent →
    list it. Audit has no `--force`: excluded sites go under *Excluded from the ranking* with
    their rationale.
 6. **Rank** trivially-fixable → needs-real-work → needs-investigation (`outdated`: SAFE → REVIEW

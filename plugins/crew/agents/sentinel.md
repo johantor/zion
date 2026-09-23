@@ -134,4 +134,5 @@ Add the **regression test that would have caught this**, in one line.
 
 Apply `context-discipline`: fetch the specific item, commit, or diff — never a dump. A `Turn
 budget` warning means stop investigating **now**: return the candidates you have and name what
-you didn't reach.
+you didn't reach in `remaining:`. With or without a warning, a report that leaves a rung, source
+or candidate unchecked ends with that `remaining:` line.

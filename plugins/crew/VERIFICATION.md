@@ -92,6 +92,13 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   in a worktree created earlier → the dispatch omits `isolation`, names that path and why, and
   the worker runs there without a relocation refusal.
 
+### Partial hand-back (`remaining:`)
+
+- [ ] **No budget warning needed** — with `turn-budget.sh` failing open (`CREW_TURN_BUDGET_DIR`
+  unwritable), hand `oracle` a step it cannot finish (tests for two scripts, one needing a binary
+  that is not installed) → it ends with a `remaining:` line naming the blocked part, and
+  `morpheus` reports the step as partly done, not done.
+
 ### Loop mode (inner — `loop-engineering`)
 
 - [ ] **Intent enters loop mode** — "keep going until done" on open-ended work → `morpheus` echoes

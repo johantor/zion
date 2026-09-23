@@ -64,10 +64,11 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     refusal). `git_owner=morpheus` sits above the floor; §9 pins it to the `owns-git` agent.
     Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
-  - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on `.claude/**`, scratch, and
-    `plan-*.md`/`debt-*.md` under the `planDirectory` slot (never production code, even with
-    `planDirectory: src`); the four lane workers get their lanes below. A `..` segment is
-    refused for every lane agent. The only hook that reads crew config: `.claude/crew.md`
+  - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on a filename shape at any depth —
+    `plan-*.md`, `debt-*.md`, `crew.md`, `agent-memory/**` — plus scratch; no directory to
+    anchor, no plan-directory slot read (AGENTS.md, "Why `morpheus` is lane-guarded"). The
+    four lane workers get their lanes below. A `..` segment is refused for every lane agent.
+    The only hook that reads crew config: `.claude/crew.md`
     frontmatter by key, else `crew.md` in the shared git dir (`/crew:init --local`; found by
     reading `.git` and `commondir`, no fork), else the legacy `CLAUDE.md` block. Loaded once in the parent shell, since
     `config_slot` runs in `$(...)`.

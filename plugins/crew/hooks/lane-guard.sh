@@ -372,16 +372,14 @@ case "$agent_type" in
       fi
     fi
     ;;
-  # morpheus writes plans, ledgers and notes, never production code: its lane is
-  # the plan directory (the `planDirectory` slot, default .claude/), the rest of
-  # .claude/ (crew config, agent memory) and scratch. See AGENTS.md, "Prompt
-  # design rationale" -> "crew:debt (the debt lane)".
+  # morpheus writes Markdown plans and ledgers, crew config, its agent memory and
+  # scratch, never production code. The lane is a filename shape at any depth, not
+  # a directory: production code is never named plan-*.md, so there is no root to
+  # anchor and no plan-directory slot to read. See AGENTS.md, "Prompt design
+  # rationale" -> "crew:debt (the debt lane)".
   morpheus) mode="--allow"
-            patterns='.claude/** /tmp/** /private/tmp/** /var/folders/** /private/var/folders/**'
-            # Under a configured plan directory only the plan and ledger shapes are
-            # allowed, so `planDirectory: src` still keeps src/app.ts out of the lane.
-            plan_dir="$(config_slot planDirectory 'Plan directory')"
-            [ -n "$plan_dir" ] && patterns+=" ${plan_dir%/}/plan-*.md ${plan_dir%/}/debt-*.md" ;;
+            patterns='plan-*.md */plan-*.md debt-*.md */debt-*.md crew.md */crew.md'
+            patterns+=' */agent-memory/** /tmp/** /private/tmp/** /var/folders/** /private/var/folders/**' ;;
   # seraph, sentinel and keymaker are read-only with no edit/write tools, so they
   # never reach this Edit|Write hook — no lane entry needed.
   *) exit 0 ;;  # main session or any agent without a lane: no restriction

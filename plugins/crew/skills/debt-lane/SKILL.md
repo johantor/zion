@@ -47,6 +47,13 @@ say so.
 **Resume first.** Derive the pointer's slug and look for `<plan-dir>/debt-<slug>.md`. If its
 `pointer:` header matches, resume it (*The batch ledger*) and skip steps 1–5.
 
+**The slug** names the ledger, the outline and the branch (`chore/debt-<slug>`), so it is
+derived one way: lowercase the pointer as typed; replace every run of characters outside
+`a-z0-9` with one `-`; trim `-` from both ends; cut to 40 characters. `src/Orders/Total.cs:12`
+→ `src-orders-total-cs-12`; `Newtonsoft.Json 13.0.3` → `newtonsoft-json-13-0-3`. Nothing else
+from the pointer reaches a path or a ref. A ledger whose `pointer:` header differs but whose
+slug collides gets `-2`, `-3`, …; the header, never the filename, decides a resume.
+
 1. **Recognise the form**: `file:line` → one suppression; a rule ID → rule-wide; package +
    version → upgrade; pasted output → rule IDs parsed in step 3; anything else → ask.
 2. **Cheap pre-count** for the concrete forms: grep the token at the location, grep-count the

@@ -361,13 +361,17 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   provides. `keymaker` is that list. It keeps Bash for `grep` and the package managers'
   outdated commands, and has no git — a non-owner's `git` is refused outright — so `/crew:audit`
   resolves a `diff` scope's file list in the main session and hands it over.
-- **Why `morpheus` is lane-guarded.** It writes plans, ledgers and notes and never production
-  code, in every flow, so its Edit/Write lane is the plan directory, the rest of `.claude/` and
-  scratch — a mode-free allowlist rather than a debt-mode switch. Bash-side writes were already
-  refused for every agent session; this closes the one path that was prose-only. Under a
-  configured plan directory only `plan-*.md`/`debt-*.md` are allowed, so `planDirectory: src`
-  cannot widen the lane to source. A `..` segment is refused for every lane agent rather than
-  resolved: the guard matches strings, and no agent has a reason to edit through one.
+- **Why `morpheus` is lane-guarded, and why its lane is a filename shape.** It writes Markdown
+  plans and ledgers, crew config and its agent memory, never production code, in every flow —
+  so the allowlist is mode-free rather than a debt-mode switch, and Bash-side writes were already
+  refused for every agent session. The lane is `plan-*.md`, `debt-*.md`, `crew.md` and
+  `agent-memory/**` at any depth, plus scratch, not a directory: a directory allowlist needed a
+  root to anchor to (`src/.claude/app.ts` passed a `.claude/**` prefix) and a `planDirectory`
+  slot that could overlap source, and three review rounds found an edge case each. Production
+  code is never named `plan-*.md`, so the shape needs neither. What it does allow — any Markdown
+  file with a plan name, anywhere — is not production code. A `..` segment is refused for every
+  lane agent rather than resolved: the guard matches strings, and no agent has a reason to edit
+  through one.
 - **Why class 4 waits for the user.** A skipped test or a blanket suppression is
   needs-investigation in the rubric; routing it to `oracle`/`dozer` on the pointer alone would
   turn "investigate" into "unskip". The lane reports the evidence and dispatches only what the
@@ -791,6 +795,13 @@ Both gaps stay open deliberately. A worker reaching `git` on a second line is on
 several — a `$(...)`, an interpreter — and the worker's own prompt is what keeps it out of git.
 Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
 size than the rule it would replace, and belongs in its own PR.
+
+**`/crew:audit` passes `diff` file names as quoted lines, not as a parsed encoding.** A
+repository-controlled name can carry a quote, a backtick or a fence, and the block has no parser
+that such a character could break out of: the scout reads the whole block as data, by
+instruction, and it has no Edit, Write or git tool, so the worst a hostile name can do is skew a
+report the user reads before picking anything. A JSON or length-delimited encoding would add a
+step the reader has to get right for a gap whose ceiling is a wrong line in a report. Accepted.
 
 **The protected-branch backstop reads the branch where the commit runs, not where it is typed.**
 That is the payload's `cwd`, or the literal directory of a whole command shaped

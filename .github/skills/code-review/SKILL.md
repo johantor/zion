@@ -39,13 +39,13 @@ output format; Copilot reads it directly and Claude Code's `zion-review` skill l
   starts or quoted text is Blocking.
 - Probe changed patterns with: a second line, a backslash-newline, a quoted string, a heredoc,
   `;`/`&&`/`|`, an env prefix (`FOO=1`, `env`, `command`), `find -exec`, and `*` or `[` in a value.
-- `bash-safety`, `lane-guard` and `write-guard` fail closed (exit 2 without their library or
+- `bash-safety` and `lane-guard` fail closed (exit 2 without their library or
   `jq`); `read-guard`, `format`, `turn-budget`, `dispatch-denied` and `plan-guard` fail open. A
   change that flips a hook's direction is Blocking.
 - Match with `[[ =~ ]]` and parameter expansion, no fork per pattern. Quote expansions used as
   patterns (`${x#*"$m"}`). POSIX classes, no `\s` or `\b`, no GNU-only flags.
-- Crew is canonical. A plugin's roster rule lives below the shared `bash-safety.sh` region. Do
-  not reshape `# crew-roster:` arms (validator §9).
+- A roster rule lives below the floor in `bash-safety.sh`. Do not reshape `# crew-roster:` arms
+  (validator §9).
 
 ## Prompts (`agents/`, `commands/`, `skills/`)
 
@@ -56,9 +56,8 @@ has a behavior; changed terms agree across the agent, command, README, `CLAUDE.m
 ## Release, tests, docs
 
 - **Shipped change without a bump** (anything under `plugins/<name>/` except `tests/`,
-  `CLAUDE.md`, `VERIFICATION.md`, the changelog): Warning; Blocking if users miss a fix. A shared
-  skill edit ships in every plugin that carries it.
-- **Hook behavior change**: allow and block cases in the suite of every plugin that ships the
+  `CLAUDE.md`, `VERIFICATION.md`, the changelog): Warning; Blocking if users miss a fix.
+- **Hook behavior change**: allow and block cases in the plugin's suite for the
   hook, asserting its output contract (stderr for a guard, stdout JSON for `dispatch-denied`).
   A new case must fail on the base code.
 - **Any other behavior change without a test** that would catch its regression is a Warning.

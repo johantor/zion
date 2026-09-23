@@ -1,6 +1,6 @@
 ---
 name: debt-taxonomy
-description: Stack-neutral core for crew's debt lane — stack detection, classification rubric, blast-radius gate, upgrade tiers, batch commit shape, and handoff-outline format. Pairs with a per-stack taxonomy skill (debt-taxonomy-dotnet, debt-taxonomy-typescript). Loaded by the `debt` skill.
+description: Stack-neutral core for crew's debt lane — stack detection, classification rubric, blast-radius gate, upgrade tiers, batch commit shape, and handoff-outline format. Pairs with a per-stack taxonomy skill (debt-taxonomy-dotnet, debt-taxonomy-typescript). Loaded by the `debt-lane` skill.
 ---
 
 # Debt taxonomy (core)

@@ -57,7 +57,7 @@ Before running the standard flow, classify the task by size and take the lightes
   needing new tests, or deep domain judgment): run the standard flow below — explore, plan,
   checkpoint, delegate to the lane specialists, then the review gate.
 - **Debt lane — a pointer to known debt** (a suppression, rule ID, package + version, pasted
-  warnings, an audit scope; `/crew:debt`, `/crew:audit`): load the `debt` skill and follow it.
+  warnings, an audit scope; `/crew:debt`, `/crew:audit`): load the `debt-lane` skill and follow it.
 - **Escalate on evidence.** If an express task turns out to need decomposition, new tests, a
   risky/structural change, or real investigation — or `neo` reports it's past the express lane —
   **stop and rerun it through the full flow**. Small-by-default, escalate-on-evidence.

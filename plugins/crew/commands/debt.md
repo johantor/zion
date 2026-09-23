@@ -12,7 +12,7 @@ yourself. If `crew:morpheus` cannot be launched, stop and report the exact error
 
 Instructions for `crew:morpheus`:
 
-This is a debt pointer, in **open mode**: `$ARGUMENTS`. Load the `debt` skill and follow its
+This is a debt pointer, in **open mode**: `$ARGUMENTS`. Load the `debt-lane` skill and follow its
 open-mode flow end to end. A `--force` typed as the user's own flag skips the justification
 check and changes nothing else.
 

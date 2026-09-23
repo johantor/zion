@@ -21,8 +21,9 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     §11's source of truth; §3 owns what may go in `CLAUDE.md` (auto mode's classifier reads only
     that file); §5 migrates a legacy `## Crew configuration` block; §6 reports MCP namespaces.
   - `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path), `address`.
-  - `debt`, `audit`: route into `morpheus`'s debt lane (the `debt` skill). `debt` runs in the
-    foreground so its gates can prompt.
+  - `debt`, `audit`: route into `morpheus`'s debt lane (the `debt-lane` skill). `debt` runs in
+    the foreground so its gates can prompt. The skill must not share a command's name: a
+    command is also listed as a skill, so `morpheus` would load the command and relaunch itself.
   - `loop`: re-launches `morpheus` directly each tick on native `/loop` until exit conditions or
     the cap; the wrapper owns scheduling.
   - `triage`: launches `sentinel` and relays its report; writes nothing (#175 phase 2).
@@ -32,7 +33,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   carries the triggers).
   - `morpheus`'s preloads: `context-discipline`, `loop-engineering`, `operator-voice`
     (ASD-STE-100; operator messages only, never plans, ledgers or commits).
-  - Debt lane, loaded on demand: `debt` (the flow, the fixer rules each handoff carries, the
+  - Debt lane, loaded on demand: `debt-lane` (the flow, the fixer rules each handoff carries, the
     `<plan-dir>/debt-<slug>.md` ledger), `debt-taxonomy` (rubric, gate, tiers), and
     `debt-taxonomy-dotnet`/`-typescript` (mechanisms, justification slots, recipes).
   - Also: `engineering-principles` (the code rules `/crew:review` grades a user's project
@@ -102,7 +103,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   (`morpheus`) owns git, and `bash-safety.sh`'s `git_owner=` names it.
 - `omitClaudeMd: true` only on `sentinel` and `seraph` (read-only, fully briefed). Never on an
   implementer: the project's `CLAUDE.md` holds its conventions.
-- `morpheus` has `loaded-lines-cap: 590`, 1 line of slack. Skills it loads on demand (`debt`)
+- `morpheus` has `loaded-lines-cap: 590`, 1 line of slack. Skills it loads on demand (`debt-lane`)
   do not count.
 
 ## Gotchas

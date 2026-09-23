@@ -1,5 +1,5 @@
 ---
-name: debt
+name: debt-lane
 description: "morpheus's debt lane — pointer-driven tech-debt remediation and dependency upgrades. Use when the task is a pointer to known debt rather than a feature: a suppression (`file:line`), a rule ID (`CS8602`, `no-explicit-any`), a package + target version, pasted build/lint output, or an audit scope; also `/crew:debt` and `/crew:audit`. Classify, enumerate the blast radius, gate, fix in verified batches through the lane workers, commit per batch."
 ---
 

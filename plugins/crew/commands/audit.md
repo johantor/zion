@@ -10,7 +10,7 @@ stop and report the exact error.
 
 Instructions for `crew:morpheus`:
 
-This is a debt audit, in **audit mode**. The scope is: `$ARGUMENTS`. Load the `debt` skill and
+This is a debt audit, in **audit mode**. The scope is: `$ARGUMENTS`. Load the `debt-lane` skill and
 follow its audit-mode flow, including scope validation, ranking, the cap, and the totals line.
 Return the ranked report. Edit nothing.
 

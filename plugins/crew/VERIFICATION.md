@@ -104,7 +104,7 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   `sentinel` with four plausible commits (it inspects three; the cap is the limit), and `seraph`
   with no browser MCP (its static-only report is the whole result).
 
-### Debt lane (`debt`, `/crew:debt`, `/crew:audit`)
+### Debt lane (`debt-lane`, `/crew:debt`, `/crew:audit`)
 
 `bash tests/fixtures/debt-scratch.sh --stack ts` (or `--stack dotnet`) prints the path of a
 planted-debt repo: same-rule suppressions with and without a native justification, a
@@ -112,7 +112,7 @@ justified-and-stale one, and an annotated skipped test. Plant anything else a ro
 Each row is stack-neutral; run it once per stack.
 
 - [ ] **Entry without a command** — `claude --agent crew:morpheus`, "fix the CS8602 suppressions"
-  → it loads `debt` and runs open mode, not the feature flow.
+  → it loads `debt-lane` and runs open mode, not the feature flow.
 - [ ] **Audit scopes** — `/crew:audit` with a path, a lane, a rule family, `stale`, `outdated` and
   `diff` → each report is limited to its scope, the taxonomy comes from marker files (not the
   lane name), `stale` lists grep-only candidates, `outdated` triages SAFE/REVIEW/CAUTION without

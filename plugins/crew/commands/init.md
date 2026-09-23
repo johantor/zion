@@ -293,7 +293,8 @@ protected paths (`.git/`, `~/.claude/`), so expect a permission prompt for each 
      in place — it belongs there (§3). In local mode, skip steps 3–4 and leave `CLAUDE.md`
      untouched: the local file wins over the legacy block.
 
-In local mode, every bullet above targets the local file in place of `.claude/crew.md`.
+In local mode, every bullet above targets the local file in place of `.claude/crew.md`, and the
+§3 prose goes to `~/.claude/CLAUDE.md`; nothing is written to the project `CLAUDE.md`.
 
 Before writing, show the exact set of additions and removals — a short diff of slots, plus the
 `CLAUDE.md` lines kept, reworded, and dropped — and apply only after the user confirms. Migration

@@ -11,8 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- **Workers run builds and suites with an explicit timeout and never end their turn while one
-  runs; `morpheus` asks for the report when a worker waits on its own background work** (#239).
+- **Gate builds and suites end inside the worker's turn: run detached, polled on an exit file;
+  `morpheus` asks for the report when a worker waits on its own background work** (#239).
 
 ## [3.29.0] - 2026-09-22
 

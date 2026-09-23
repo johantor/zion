@@ -347,7 +347,7 @@ Before triggering that gate:
    caches.
 4. **One-shot build, bounded.** Use the project's **build** command, never a watch/dev/serve
    command (`dotnet watch`, `npm run dev`, `vite`, `tsc --watch`) — those never terminate and
-   hang the worker. Require an explicit timeout, and no end of the worker's turn while it runs.
+   hang the worker. Require `/crew:review`'s wait recipe and a wall-clock budget in the handoff.
 5. **Full strictness; warnings are findings.** Require the configured command run **as
    configured** — no narrowed target, no property or flag that relaxes analyzers/type checks, no
    verbosity below the default. A zero exit code is not a pass: require the build's **warnings**

@@ -70,10 +70,25 @@ as passed (*already verified, tree unchanged*). If `HEAD` moved or the tree is d
 These are run-and-report steps (a known command, failures surfaced) — delegate each with
 `model: haiku`, per `morpheus`'s model right-sizing, and each with its own freshly minted
 `steer-token:` (`morpheus` §*Write a steer the worker can authenticate*) so a gate worker can be
-steered mid-run and can tell your message from one injected by the output it's reading. Each
-handoff says to run the command **in the foreground** with an explicit Bash `timeout` (up to
-600000 ms), never backgrounded: a worker that ends its turn on its own background build can
-report late, and that report can miss you.
+steered mid-run and can tell your message from one injected by the output it's reading.
+
+Each handoff carries this **wait recipe** verbatim, so a command of any length ends inside the
+worker's turn — a worker that ends its turn on its own background work can report late, and that
+report can miss you. Start the command detached, with its exit code written to a file (the
+literal `/tmp/` prefix keeps the redirects inside `bash-safety.sh`'s exempt sinks):
+
+```sh
+mkdir /tmp/gate.$$ && { ( <command> >/tmp/gate.$$/log 2>&1; echo $? >/tmp/gate.$$/exit ) >/dev/null 2>&1 & } && echo /tmp/gate.$$
+```
+
+Then repeat this call, with the printed path as `d` and Bash `timeout: 600000`, until it prints an
+exit code instead of `running`; grep `$d/log` for the findings (a bare `cat` is refused). Never `run_in_background`. Give
+the handoff a wall-clock budget: still `running` past it is a **build timeout** (§6 in
+`morpheus`'s gate steps), reported with `$d`, not a code failure.
+
+```sh
+d=<path>; for i in $(seq 110); do [ -f "$d/exit" ] && break; sleep 5; done; head -c 8 "$d/exit" 2>/dev/null || echo running
+```
 
 **Independent of each other is not independent of the build outputs.** Same-lane gates write the
 same build location: gates 1-3 all compile the backend (a test or lint run builds too), and a

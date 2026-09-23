@@ -328,11 +328,12 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 - **Builds and full test suites.** Builds and full suites are expensive and verbose, which is
   why they are a single delegated final gate rather than a per-step check. Delegating a
   standalone build before the review gate builds the same tree twice.
-- **Builds run in the foreground; a late handback is a fallback.** A worker that backgrounds its
-  own command and ends its turn reports later through `SubagentHandback`, and that late report
-  can reach the user's UI and never the orchestrator (#239). The Bash default timeout is 2 min,
-  so without an explicit `timeout` (up to 600000 ms) a worker reaches for `run_in_background`.
-  A build longer than 600 s still needs it, which is why `morpheus` keeps the resend fallback.
+- **A gate command ends inside the worker's turn; a late handback is a fallback.** A worker that
+  backgrounds its own command and ends its turn reports later through `SubagentHandback`, and
+  that late report can reach the user's UI and never the orchestrator (#239). One Bash call waits
+  at most 600 s, so the `/crew:review` wait recipe starts the command detached and polls an exit
+  file in bounded calls: one rule for any duration, and completion is the exit file, not a guess
+  from artifacts. The resend in `morpheus` covers a worker that ends its turn anyway.
 - **Address review feedback.** The lifecycle doesn't stop at `/crew:pr` — the same lane routing,
   git ownership, and gate that built the feature also close the review loop, so the post-PR
   flow is the same machinery rather than a second, looser one.

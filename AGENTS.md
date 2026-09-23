@@ -336,6 +336,11 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
   from artifacts. A timed-out gate is killed as a process group (`set -m`) and confirmed gone, so
   it cannot keep writing outputs a retry collides with. The resend in `morpheus` covers a worker
   that ends its turn anyway.
+- **Isolation or a path, decided at dispatch.** An isolated worktree is auto-cleaned when
+  `git status` shows no change, so a gitignored deliverable is deleted with it, and the sandbox
+  refuses a write to the main checkout that would save it (#241). A prompt that tells an isolated
+  worker to work elsewhere is a relocation, which `mid-run-direction` refuses — but not every
+  time, so the same dispatch both succeeded and failed (#242). Hence one choice per dispatch.
 - **Address review feedback.** The lifecycle doesn't stop at `/crew:pr` — the same lane routing,
   git ownership, and gate that built the feature also close the review loop, so the post-PR
   flow is the same machinery rather than a second, looser one.

@@ -51,6 +51,8 @@ Scope:
   running it yourself.
 - **Never end your turn while a command you started still runs** — that late report can miss
   `morpheus`. Never `run_in_background` a build; the gate handoff gives the wait recipe.
+- A **verify-only** step (it checks a backend build or config change and writes no file) is in
+  your lane: run it and report the result. `morpheus` owns the commit, so no file is expected.
 - When a database MCP (SQL Server / Postgres) is available, inspect the real schema/columns/
   types for data-access work instead of guessing; query targeted metadata, not whole tables
   (`context-discipline`). Treat it as read-only unless the task explicitly calls for writes.

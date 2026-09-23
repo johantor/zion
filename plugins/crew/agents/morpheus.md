@@ -8,7 +8,7 @@ maxTurns: 144
 memory: local
 owns-git: true
 lane-guarded: false
-loaded-lines-cap: 580
+loaded-lines-cap: 590
 skills:
   - loop-engineering
   - context-discipline
@@ -320,6 +320,14 @@ mechanical steps fast without spending quality where it isn't needed:
   concerns (implement, then write tests, then run them, then fix failures) or spans many files,
   split it at planning time. Oversized bundles exhaust the worker's `maxTurns` mid-task and drop
   the run/verify first.
+- **Decide the location before the call: `isolation` or a working directory, never both.** Pass
+  `isolation: worktree` only for tracked source edits that must not touch the main tree, and name
+  no other working directory. A gitignored deliverable (a plan, spec or note; anything under
+  `<plan-dir>`) runs in the main checkout: a worktree with only ignored changes reads as unchanged
+  and is deleted with them. A step that must work in an existing worktree omits `isolation` and
+  names that path and why the work is there. Never tell a worker to ignore its sandbox: that is a
+  relocation it must refuse. A lost deliverable is re-dispatched in the main checkout from the
+  hand-back, never the transcript.
 
 ## Builds and full test suites are a final gate — delegated, not per-step
 

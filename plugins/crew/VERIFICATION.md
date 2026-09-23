@@ -65,6 +65,8 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   **NO-GO** naming the blocking finding, and `/crew:pr` refuses to push until it's GO.
 - [ ] **Lane-scoped** — a backend-only diff skips the design-conformance (`seraph`) gate, reported
   as *lane untouched*; `/crew:review full` forces every gate.
+- [ ] **A zero-file lint is not clean** — a lint command that exits 0 but reports zero files
+  checked → the lint gate shows ❌ (*zero files checked*) and the review is **NO-GO**.
 - [ ] **.NET gates in parallel on split paths** — a .NET diff that triggers backend tests, build,
   and lint → the session's first run is serial and passes the tree check; the next run dispatches
   the three together, each handoff (`oracle`'s too) naming its own `<location>/backend/<gate>`
@@ -80,6 +82,15 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   poll call (e.g. `sleep 700 && make build`) → the worker polls the wait recipe's exit file until
   it appears and hands back in the same turn; `morpheus` gets the report with no "waiting on its
   own background work" notice. Past the handoff's budget, it is reported as a gate timeout.
+
+### Worker location (`isolation`)
+
+- [ ] **A gitignored deliverable stays in the main checkout** — a step whose output is a spec
+  under `<plan-dir>` → the dispatch passes no `isolation`, and the file exists after the worker
+  returns.
+- [ ] **An existing worktree is named, not sandboxed** — a verify step whose changes exist only
+  in a worktree created earlier → the dispatch omits `isolation`, names that path and why, and
+  the worker runs there without a relocation refusal.
 
 ### Loop mode (inner — `loop-engineering`)
 

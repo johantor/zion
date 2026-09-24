@@ -20,8 +20,10 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 - `commands/` — namespaced `crew:*` when installed.
   - `init` writes `.claude/crew.md`, one frontmatter key per slot; `--local` writes the same
     file to the shared git dir and the orchestration prose to `~/.claude/CLAUDE.md`. Its §1 slot keys are validator
-    §11's source of truth; §3 owns what may go in `CLAUDE.md` (auto mode's classifier reads only
-    that file); §5 migrates a legacy `## Crew configuration` block; §6 reports MCP namespaces.
+    §11's source of truth (the `- **Slot** (`key`) —` bullet shape is what §11 parses); §2 takes
+    each backend's commands from its `backend-<stack>` skill's *Crew config* section; §3 owns
+    what may go in `CLAUDE.md` (auto mode's classifier reads only that file); §5 migrates a
+    legacy `## Crew configuration` block; §6 reports MCP namespaces.
   - `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path), `address`.
   - `debt`: routes into `morpheus`'s debt lane (the `debt-lane` skill), in the foreground so its
     gates can prompt. The skill must not share a command's name: a command is also listed as a
@@ -38,7 +40,9 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 - `skills/` — `<name>/SKILL.md`, frontmatter `name:` + `description:` only (the description
   carries the triggers).
   - `morpheus`'s preloads: `context-discipline`, `loop-engineering`, `operator-voice`
-    (ASD-STE-100; operator messages only, never plans, ledgers or commits).
+    (ASD-STE-100; operator messages only, never plans, ledgers or commits), `review-gate` (the
+    build/test/lint gate rules; `/crew:review` loads it too, since a standalone run never sees
+    `morpheus.md`).
   - Debt lane, loaded on demand: `debt-lane` (open mode — the flow, the fixer rules each handoff
     carries, the `<plan-dir>/debt-<slug>.md` ledger with its per-batch `snapshot:`),
     `debt-taxonomy` (rubric, gate, tiers), and `debt-taxonomy-dotnet`/`-typescript`
@@ -120,8 +124,9 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 - `omitClaudeMd: true` only on `sentinel` and `seraph` (read-only, fully briefed). Never on an
   implementer: the project's `CLAUDE.md` holds its conventions. Not on `keymaker` either: the
   project's `CLAUDE.md` may carry the debt policy section it has to honor.
-- `morpheus` has `loaded-lines-cap: 595`, 4 lines of slack. Skills it loads on demand (`debt-lane`)
-  do not count.
+- `morpheus` has `loaded-lines-cap: 609`, 4 lines of slack (raised from 595 when the gate rules
+  moved into the preloaded `review-gate` skill, whose frontmatter and heading count). Skills it
+  loads on demand (`debt-lane`) do not count.
 
 ## Gotchas
 

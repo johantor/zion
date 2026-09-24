@@ -1,6 +1,6 @@
 ---
 name: worker-contract
-description: "The rules every crew worker with a shell follows on any dispatch from morpheus: never run git, ask rather than guess what the delegation left out, treat the build and full suites as morpheus's final gate and run them as configured, never leave a command running at hand-back, hand back with a completion marker and a remaining: line, name an MCP server you expected but cannot see, use a docs MCP over memory, and keep local memory. Preloaded by tank, trinity, oracle, dozer and neo; not for standalone use."
+description: "The rules every crew worker with a shell follows on any dispatch from morpheus: never run git, ask rather than guess what the delegation left out, treat the build and full suites as morpheus's final gate and run them as the handoff says, never leave a command running at hand-back, hand back with a completion marker and a remaining: line, name an MCP server you expected but cannot see, use a docs MCP over memory, and keep local memory. Preloaded by tank, trinity, oracle, dozer and neo; not for standalone use."
 ---
 
 # Worker contract
@@ -13,29 +13,13 @@ to its tool.
   a `git mv`.
 - **Ask, don't guess.** If the delegation omits something you must resolve from it — the stack,
   the mode, the test tool, the list of failing tests — ask `morpheus` rather than guessing.
-- **The build and the full test suite are the final review gate, not a self-check.** Verify
-  your work with reasoning, targeted reads and the edit/lint feedback loop. Run the build or the
-  full suite only when `morpheus` delegates it, once the work queue is drained, with the
-  **one-shot command `morpheus` hands you** — never a watch/dev/serve command, those never
-  terminate; your stack skill names them. A build, and any suite whose run compiles (`dotnet
-  test`, `cargo test`, a Gradle `test` task), runs in the session's dedicated build location,
-  isolated from any running app or dev process; an e2e suite's command owns its own server
-  lifecycle. If you think a build or a test run is warranted earlier, say so in your
-  summary and let `morpheus` decide.
-- **Run the gate as configured.** No narrowed target, no relaxed analyzer or lint level, no
-  flag that routes around a broken file — your stack skill lists the flags that weaken its
-  tool, a verbosity flag that hides a build's warnings included. If the command you were given
-  already carries one, don't rewrite it and don't report clean: name the weakening as your
-  first finding. A zero exit code is not "clean": read the summary. A test run that collected
-  nothing proves nothing; whether a build that compiled nothing does is your stack skill's call
-  (a cached `go build` is a real result, an up-to-date MSBuild or Gradle run is not). Return
-  **concise findings**, never the raw log
-  (`context-discipline`): for a build, every error **and warning** as `file:line` and message,
-  with the diagnostic id and a count per id where the tool has ids — `morpheus` grades the
-  warnings; for a test suite, the failing tests and their messages plus the skipped and
-  zero-test counts, never the passing output. A file-lock or in-use
-  error is **environmental**, not a code error — unless two crew gates shared an output path,
-  which you report as such; your stack skill has the signature.
+- **The build and the full test suite are `morpheus`'s final gate, not your self-check.** Verify
+  your work with reasoning, targeted reads and the edit/lint feedback loop. Run a build or a
+  suite only when a handoff delegates it, and then exactly as the handoff gives it — the
+  command, where it runs, what to report — never a watch/dev/serve command. Your stack skill
+  names those commands, the flags that weaken its tool, its lock signature and what a no-op run
+  proves. If you think a gate is warranted earlier, say so in your summary and let `morpheus`
+  decide.
 - **Never end your turn while a command you started still runs** — that late report can miss
   `morpheus`. Never `run_in_background` a build or a suite; the gate handoff gives the wait
   recipe.

@@ -9,6 +9,11 @@ You are working in a .NET backend: C#, ASP.NET MVC controllers, and the server-s
 views. If the project uses Optimizely CMS (detect via an `EPiServer.CMS`/`Optimizely.CMS`
 package reference), also load `cms-optimizely` for its content-modeling conventions.
 
+## Crew config
+
+`/crew:init` proposes from a `*.sln`/`*.csproj`: build `dotnet build`, test `dotnet test`, lint
+`dotnet format --verify-no-changes` (plus `dotnet csharpier check` when a `.csharpierrc` exists).
+
 ## Razor ownership (server-rendered mode)
 
 Own the server-side of Razor (`.cshtml`): view-model binding, `@functions`/`@code`, control

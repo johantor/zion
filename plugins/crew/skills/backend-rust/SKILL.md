@@ -14,6 +14,13 @@ Read `Cargo.toml` before you add anything. The `edition`, the workspace members,
 shared version lives, and adding the same crate at a member's own version is a divergence, not a
 convenience.
 
+## Crew config
+
+`/crew:init` proposes: build `cargo check --all-targets` or `cargo build` — read which the repo's
+CI runs rather than picking — with `cargo clippy --all-targets -- -D warnings` where clippy is
+configured; test `cargo test` (`cargo nextest run` when nextest is configured); lint
+`cargo fmt --check`.
+
 ## Idiom
 
 - Return `Result<T, E>` and propagate with `?`. Reserve `unwrap`/`expect` for cases you can argue

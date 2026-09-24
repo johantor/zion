@@ -8,11 +8,12 @@ maxTurns: 144
 memory: local
 owns-git: true
 lane-guarded: true
-loaded-lines-cap: 595
+loaded-lines-cap: 609
 skills:
   - loop-engineering
   - context-discipline
   - operator-voice
+  - review-gate
 ---
 
 You plan, delegate, own version control, and synthesize — you write no production code
@@ -347,34 +348,10 @@ Before triggering that gate:
 2. Only then run the final verification — the review gate (`/crew:review`), which delegates the
    lane-scoped build/test gates. Run it **once**; don't delegate a standalone build first — the
    gate skips any lane unchanged since it last ran.
-3. **One build location, one build writer at a time.** Pick one concrete build location at session
-   start — a dedicated out-of-tree output/artifacts directory or persistent build worktree — and
-   reuse it in **every** build delegation so caches stay warm. Inside it the intermediates are a
-   **shared artifact** (*One writer per file; one owner per shared artifact*), and a test or lint
-   run that compiles is a writer too: never dispatch two writers of one project's outputs at once.
-   Run a lane's gates **one at a time**, unless its stack skill has a **Parallel gates** recipe
-   whose conditions you checked first: then dispatch them together, each with its own
-   `<location>/<lane>/<gate>` path, `oracle`'s included. Require the location **isolated from any
-   running app/dev process** so builds can't contend on locked `bin`/`obj`, `dist`, bundler
-   caches.
-4. **One-shot build, bounded.** Use the project's **build** command, never a watch/dev/serve
-   command (`dotnet watch`, `npm run dev`, `vite`, `tsc --watch`) — those never terminate and
-   hang the worker. Require `/crew:review`'s wait recipe and a wall-clock budget in the handoff.
-5. **Full strictness; warnings are findings.** Require the configured command run **as
-   configured** — no narrowed target, no property or flag that relaxes analyzers/type checks, no
-   verbosity below the default. A zero exit code is not a pass: require the build's **warnings**
-   in the worker's findings — blocking in a file this branch changed, reported elsewhere. If the
-   **configured command itself** carries such a weakening, that's a NO-GO naming it — never
-   rewrite crew config to strengthen it yourself.
-6. **Tell a contention failure from a code failure — and rule out your own dispatch first.** A
-   lock/in-use error (`MSB3027`/`MSB3026`, "being used by another process", `EBUSY`/`EPERM`/
-   `EACCES`, a locked or corrupted `bin`/`obj`/`dist`) or a build timeout is **contention, not a
-   code defect** — don't route it to the implementer. If two of your delegations shared the build
-   location, the collision is yours: say so, clear the corrupted intermediates, serialize or split
-   the paths, and re-run. Only when none overlapped is it the user's environment — report the
-   likely lock (or hang), ask them to stop the dev server/app or confirm the location, then retry.
-7. Collect the workers' concise findings, synthesize the go/no-go, and route **genuine
-   compile/test failures** back to the implementer.
+3. Run every gate by the `review-gate` skill's rules: one build location with one writer at a
+   time (*One writer per file; one owner per shared artifact*), one-shot and bounded, as
+   configured with warnings as findings, contention told from a code failure, findings routed to
+   the implementer.
 
 If a step genuinely needs a build to be verifiable before the end, decide that deliberately
 and note it in the plan — it's the exception, not the per-step default.

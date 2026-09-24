@@ -30,7 +30,7 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     `keymaker` too), and
     `worker-contract` (the rules every worker with a shell follows on any dispatch — no git,
     the build as `morpheus`'s gate, the completion marker — preloaded by `tank`, `trinity`,
-    `oracle`, `dozer` and `neo`, so each prompt states only its lane and tools),
+    `oracle`, `dozer` and `neo`, so each prompt states only what is specific to its role),
     `mid-run-direction` (how a
     worker treats a steer that arrives mid-run — preloaded by every worker, not by `morpheus`,
     which carries the sending half);

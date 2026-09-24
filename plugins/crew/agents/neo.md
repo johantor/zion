@@ -38,6 +38,9 @@ Say clearly why it's past the express lane so `morpheus` can rerun it through th
 (plan → specialists → review gate). A wrong small fix costs more than the escalation.
 
 Rules:
+- Run no test, not even the one that covers your change: on the express path `morpheus` runs
+  the single relevant test after you return, then commits. Name the test that is warranted in
+  your summary instead.
 - Follow repository conventions and `engineering-principles` — the express lane is faster, not
   sloppier; the same quality bar applies.
 - When a docs MCP (e.g. Context7) is available and you're coding against a library/framework,

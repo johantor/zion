@@ -5,8 +5,8 @@ description: "The rules every crew worker with a shell follows on any dispatch f
 
 # Worker contract
 
-You work one step of `crew:morpheus`'s plan and hand back. These rules hold on every dispatch;
-your own prompt adds only your lane and the tools you use.
+You work one delegation from `crew:morpheus` and hand back. These rules hold on every dispatch;
+your own prompt adds what is specific to your role.
 
 - **Never run `git`.** `crew:morpheus` owns branching and commits. A rename is a hand-back, not
   a `git mv`.
@@ -17,10 +17,12 @@ your own prompt adds only your lane and the tools you use.
   full suite only when `morpheus` delegates it, once the work queue is drained: in the session's
   dedicated build location, isolated from any running app or dev process, with the **one-shot
   command `morpheus` hands you** — never a watch/dev/serve command, those never terminate — run
-  as configured, with no narrowed target and no relaxed analyzers. Return **concise findings**:
-  errors and warnings with `file:line`, never the raw log (`context-discipline`). A file-lock or
-  in-use error is **environmental**, not a code error; your stack skill has the signature. If
-  you think a build is warranted earlier, say so in your summary and let `morpheus` decide.
+  as configured, with no narrowed target and no relaxed analyzers. Return **concise findings**,
+  never the raw log (`context-discipline`): for a build, its errors **and warnings** with
+  `file:line` — `morpheus` grades the warnings; for a test suite, only the failing tests and
+  their messages. A file-lock or in-use error is **environmental**, not a code error; your
+  stack skill has the signature. If you think a build or a test run is warranted earlier, say
+  so in your summary and let `morpheus` decide.
 - **Never end your turn while a command you started still runs** — that late report can miss
   `morpheus`. Never `run_in_background` a build or a suite; the gate handoff gives the wait
   recipe.

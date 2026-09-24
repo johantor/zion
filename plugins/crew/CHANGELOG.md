@@ -14,8 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- **Those five worker prompts state only their lane and tools**; the shared rules moved to
-  `worker-contract`.
+- **Those five worker prompts state only what is specific to their role**; the shared rules
+  moved to `worker-contract`.
 - **README: which skills are always on**, per agent, matches the agents' frontmatter (#250).
 
 ## [4.0.1] - 2026-09-24

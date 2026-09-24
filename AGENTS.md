@@ -89,8 +89,8 @@ frontmatter, one key per slot, plus a prose body. `/crew:init` writes and reconc
 reads `unset` when unresolved (the orchestrator asks once) and `none` when the project has no such
 tooling (the gate skips). Configuration does **not** live in a project's `CLAUDE.md`; what stays
 there is the `## Crew orchestration` prose, whose reader — auto mode's permission classifier —
-sees only `CLAUDE.md`. Readers take the committed file first, then the `--local` file in the
-shared git dir, then a legacy **Crew configuration** block that `/crew:init` migrates.
+sees only `CLAUDE.md`. It is the one location: the `--local` file and the legacy `CLAUDE.md`
+block went in 5.0.0 (#248), each stated in seven places and read by one hook.
 
 ## How we review code (the crew reviewer)
 

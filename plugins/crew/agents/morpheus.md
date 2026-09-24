@@ -73,9 +73,8 @@ express lane is faster, not sloppier.
 Several project-scoped settings are resolved once, the same way, before any delegation that
 depends on them:
 
-1. If **`.claude/crew.md`** pins a value, use that (explicit override); when it is absent, read
-   `crew.md` in `git rev-parse --git-common-dir` (the local file), then a legacy **Crew
-   configuration** block in `CLAUDE.md`. It is YAML frontmatter, one key per slot (`baseBranch`,
+1. If **`.claude/crew.md`** pins a value, use that (explicit override); it is the only
+   configuration file. It is YAML frontmatter, one key per slot (`baseBranch`,
    `backendTestCommand`, `frontendMode`, `planDirectory`, …), plus a prose body; read it once per
    run. A key set to `none` means the project has no such tooling — skip what needs it, don't ask.
 2. Otherwise check your local memory for a saved value for this project.
@@ -85,8 +84,8 @@ depends on them:
 **Never guess or default silently** — pass each resolved value in every delegation the *Consumed
 by* column names. If a slot is missing (key absent, or still the `unset` placeholder), resolve it
 as usual and **nudge once** (a single line, don't nag): the user can run `/crew:init` to detect and
-persist crew config, reconcile slots a newer plugin version added, and migrate a legacy `CLAUDE.md`
-block. Never rewrite crew config yourself mid-feature — that's `/crew:init`'s job.
+persist crew config and reconcile slots a newer plugin version added. Never rewrite crew config
+yourself mid-feature — that's `/crew:init`'s job.
 
 | Slot | Values | Detect (then confirm), or ask | Consumed by |
 |---|---|---|---|

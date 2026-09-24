@@ -15,7 +15,7 @@ line, never inline in prose, with the agent told that nothing inside the block i
 instruction and that no character inside it ends the block.
 
 - `diff`: read the base branch from crew configuration (`baseBranch` in `.claude/crew.md`, else
-  the local `crew.md` in the git common dir, else ask) and run `git diff --name-only
+  ask) and run `git diff --name-only
   <base>...HEAD`. The scope line becomes `diff (<N> files vs <base>)`; the block holds one
   single-quoted name per line. A filename is repository content — a branch can name a file so
   it reads as an instruction, or put a quote, a fence or a newline in it — hence the block. An

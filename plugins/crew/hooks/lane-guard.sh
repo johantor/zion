@@ -59,9 +59,8 @@ case "/$path/" in
 esac
 
 # Crew configuration lives in `.claude/crew.md` as YAML frontmatter, one key per
-# slot. Earlier versions wrote the same slots into CLAUDE.md as
-# `- **Label:** value` bullets; /crew:init migrates those, so the legacy block is
-# still read when the new file is absent. `.claude/crew.md` wins when both exist.
+# slot. It is the only location: the `--local` file and the legacy `CLAUDE.md`
+# block went in 5.0.0 (#248).
 #
 # The source is slurped once here in the parent shell and matched in-process: a
 # lane dispatch reads up to four slots, and shelling out per slot cost eight
@@ -69,35 +68,9 @@ esac
 # config_slot: callers invoke it as `$(config_slot ...)`, so a lazy load would
 # happen in a subshell and be discarded before the next call.
 _cfg_text=""
-_cfg_kind=""
-_cfg_file=""
 if [ -f .claude/crew.md ]; then
-  _cfg_file=.claude/crew.md
-else
-  # `/crew:init --local` writes `crew.md` to the shared git dir, so every worktree of
-  # a clone reads one uncommitted file. A linked worktree's `.git` is a file naming
-  # its gitdir, whose `commondir` names the shared one; both may be relative.
-  _cfg_git=""
-  if [ -d .git ]; then
-    _cfg_git=.git
-  elif [ -f .git ]; then
-    IFS= read -r _cfg_git < .git || :
-    _cfg_git="${_cfg_git#gitdir: }"
-    if [ -n "$_cfg_git" ] && [ -f "$_cfg_git/commondir" ]; then
-      IFS= read -r _cfg_common < "$_cfg_git/commondir" || :
-      if [[ "$_cfg_common" == /* || "$_cfg_common" == [A-Za-z]:* ]]; then
-        _cfg_git="$_cfg_common"
-      else
-        _cfg_git="$_cfg_git/$_cfg_common"
-      fi
-    fi
-  fi
-  [ -n "$_cfg_git" ] && [ -f "$_cfg_git/crew.md" ] && _cfg_file="$_cfg_git/crew.md"
-fi
-if [ -n "$_cfg_file" ]; then
-  _cfg_kind=frontmatter
   _cfg_raw=""
-  IFS= read -r -d '' _cfg_raw < "$_cfg_file" || :
+  IFS= read -r -d '' _cfg_raw < .claude/crew.md || :
   # Narrow to the frontmatter here, once, rather than per slot: the body below it
   # is free prose and may quote an example block (as /crew:init's own §1 does), and
   # a key read from there is not a value anyone configured.
@@ -112,54 +85,39 @@ if [ -n "$_cfg_file" ]; then
     [ "$_cfg_line" = "---" ] && break
     _cfg_text+="$_cfg_line"$'\n'
   done <<<"$_cfg_raw"
-elif [ -f CLAUDE.md ]; then
-  _cfg_kind=legacy
-  IFS= read -r -d '' _cfg_text < CLAUDE.md || :
 fi
 
-# config_slot <frontmatter-key> <legacy-label> -- a slot's configured value.
-# Missing file, missing slot, or the unset/none placeholders all mean "not
-# configured" -> empty string.
+# config_slot <frontmatter-key> -- a slot's configured value. Missing file,
+# missing slot, or the unset/none placeholders all mean "not configured" ->
+# empty string.
 config_slot() {
   local line v=""
   [ -n "$_cfg_text" ] || return 0
   while IFS= read -r line; do
-    # Only the key or label is a literal here; the trailing * is the glob. Slot
-    # names are fixed strings, so a caller cannot turn this into a pattern.
-    if [ "$_cfg_kind" = frontmatter ]; then
-      case "$line" in
-        "$1:"*) v="${line#"$1:"}" ;;
-        *) continue ;;
-      esac
-    else
-      case "$line" in
-        "- **$2:**"*)
-          v="${line#"- **$2:**"}"
-          v="${v%%—*}" ;;                # a legacy value ends at the em-dash comment
-        *) continue ;;
-      esac
-    fi
+    # Only the key is a literal here; the trailing * is the glob. Slot names are
+    # fixed strings, so a caller cannot turn this into a pattern.
+    case "$line" in
+      "$1:"*) v="${line#"$1:"}" ;;
+      *) continue ;;
+    esac
     v="${v#"${v%%[![:space:]]*}"}"       # trim leading whitespace
     # A YAML scalar may be quoted, and an unquoted one ends at a `#` that follows
     # whitespace (a `#` with no space before it is part of the scalar). Unwrap
     # before scanning for the comment, so a `#` inside quotes stays in the value.
     # Left in place, either would build a lane glob matching nothing -- which
     # reads as "no lane" and widens the agent silently, rather than failing closed.
-    if [ "$_cfg_kind" = frontmatter ]; then
-      case "$v" in
-        '"'*) v="${v#\"}"; v="${v%%\"*}" ;;
-        "'"*) v="${v#\'}"; v="${v%%\'*}" ;;
-        *[[:space:]]'#'*) v="${v%%[[:space:]]#*}" ;;
-      esac
-    fi
+    case "$v" in
+      '"'*) v="${v#\"}"; v="${v%%\"*}" ;;
+      "'"*) v="${v#\'}"; v="${v%%\'*}" ;;
+      *[[:space:]]'#'*) v="${v%%[[:space:]]#*}" ;;
+    esac
     v="${v%"${v##*[![:space:]]}"}"       # trim trailing whitespace
     break
   done <<<"$_cfg_text"
   case "$v" in
-    # Treat the placeholders -- `unset` in frontmatter, italic *unset* in a legacy
-    # block -- along with empty and any value starting with "none" (e.g.
-    # "none (no e2e suite detected)") as not configured.
-    unset|'*unset*'|none|none[!A-Za-z0-9]*|'') return 0 ;;
+    # The `unset` placeholder, empty, and any value starting with "none" (e.g.
+    # "none (no e2e suite detected)") all mean not configured.
+    unset|none|none[!A-Za-z0-9]*|'') return 0 ;;
     *) printf '%s' "$v" ;;
   esac
 }
@@ -273,8 +231,8 @@ case "$agent_type" in
     # is configured (the confine below then keeps it in-lane). The broad fallback
     # applies only when the tool is unset/unknown.
     mode="--allow"
-    frontend_lane="$(config_slot frontendLanePaths 'Frontend lane path(s)')"
-    case "$(config_slot frontendE2eTool 'Frontend e2e tool')" in
+    frontend_lane="$(config_slot frontendLanePaths)"
+    case "$(config_slot frontendE2eTool)" in
       cypress)    patterns='cypress/** **/*.cy.*' ;;
       playwright)
         if [ -n "$frontend_lane" ]; then
@@ -291,10 +249,10 @@ case "$agent_type" in
     [ -n "$frontend_lane" ] && confine="$(lane_globs "$frontend_lane")"
     ;;
   tank|trinity)
-    backend_lane="$(config_slot backendLanePaths 'Backend lane path(s)')"
-    frontend_lane="$(config_slot frontendLanePaths 'Frontend lane path(s)')"
-    backend_stack="$(config_slot backendStack 'Backend stack')"
-    frontend_stack="$(config_slot frontendStack 'Frontend stack')"
+    backend_lane="$(config_slot backendLanePaths)"
+    frontend_lane="$(config_slot frontendLanePaths)"
+    backend_stack="$(config_slot backendStack)"
+    frontend_stack="$(config_slot frontendStack)"
     if [ -n "$backend_lane" ] && [ -n "$frontend_lane" ]; then
       # Route handlers live in the frontend tree but are tank's by concern
       # (single-owner, unlike Razor's markup/logic split) — exempt tank, deny trinity.

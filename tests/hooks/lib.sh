@@ -146,14 +146,6 @@ make_git_branch() {
   printf '%s' "$dir"
 }
 
-# make_claude_md <content> -> echoes a throwaway dir containing a CLAUDE.md
-make_claude_md() {
-  local dir
-  dir="$(new_tmpdir)"
-  printf '%s\n' "$1" > "$dir/CLAUDE.md"
-  printf '%s' "$dir"
-}
-
 # make_crew_md <frontmatter> [body] -> echoes a throwaway dir containing a
 # .claude/crew.md with <frontmatter> between the `---` delimiters. The body is
 # prose the readers must ignore, so it is separate rather than something a caller

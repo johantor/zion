@@ -64,43 +64,17 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     wiring (§6; see
     *How we review code* below), and YAML-parseable frontmatter (§14; see *Validating changes*).
     Tree-only: no base ref, so it runs anywhere.
-  - `check-changelog.sh` — the release-notes gate: a change to shipped files must be described
-    by a version bump or a bullet parked under `## [Unreleased]` (see *Releasing*). Diff-based,
-    so it takes the base branch to compare against.
-  - `release-notes.sh` — builds a release's notes: the version's changelog section plus the
-    commits that shipped in the same tag without an entry. Called by `auto-release.yml`.
-- `.claude/settings.json` — this repo's own dev-time hooks: wires the same hooks as
-  `plugins/crew/hooks/hooks.json`, resolved via `CLAUDE_PROJECT_DIR` instead of
-  `CLAUDE_PLUGIN_ROOT`, so they still run while developing in this repo **without the crew
-  plugin installed**. The two files must mirror each other exactly (modulo the root variable) —
-  `validate-plugin.sh` enforces this automatically (§7, CI fails on mismatch). If the crew
-  plugin is *also* installed while working here, both wirings fire and every guard runs twice
-  per matching tool call; installing the plugin while developing in this repo isn't a supported
-  setup.
-- `tests/scenarios/` — repo tooling (not part of any plugin): the adversarial scenario suite
-  that drives real agents against throwaway repos to check the untrusted-input rules hold, plus
-  `mocks/git-host-mcp.js`, a dependency-free mock git-host MCP with its own LLM-free self-test.
-  See *Adversarial scenario suite* below; it is never a required PR check.
-- `tests/fixtures/` — repo tooling: scratch-repo generators for exercising a plugin's verification
-  matrix by hand (`debt-scratch.sh` plants same-rule suppressions, justified and not, plus the
-  justification filter's two exemptions). Prints the repo path on stdout so it composes into a
-  headless `claude --plugin-dir …` run.
+  - `check-changelog.sh` — the release gate: a change to shipped files must bump the plugin's
+    version (see *Releasing*). Diff-based, so it takes the base branch to compare against.
+- `tests/hooks/` — the harness the plugin test suites share (`lib.sh`) and their runner
+  (`run.sh`); see *Validating changes*.
+- `.claude/crew.md` — this repo's own crew configuration, written by `/crew:init`. The repo
+  carries no hook wiring of its own: work here with `claude --plugin-dir plugins/crew`, which
+  loads the hooks from `plugins/crew/hooks/hooks.json`.
 - `.github/copilot-instructions.md` — Copilot's entry point; it points to the `code-review` skill.
 - `.github/skills/code-review/SKILL.md` — the one review rubric for this repo, read by Copilot directly. `.claude/skills/zion-review/` is the Claude Code wrapper: it loads the rubric, runs the checks, and reproduces each finding.
-- `biome.json` / `package.json` — repo tooling: [Biome](https://biomejs.dev) lints the repo's
-  web assets and JavaScript (`docs/*.html`, `docs/*.css`, `tests/scenarios/mocks/*.js`) and its
-  JSON. **Linter only** — the formatter and the assist actions are off on purpose: enabling the
-  formatter rewrites ten files including the two `hooks.json` copies that §7 requires to stay
-  mirrored, and the `useSortedProperties` assist emits invalid CSS on a block whose last
-  declaration has no trailing semicolon. `npm ci && npx biome ci .` is read-only and is what CI
-  runs; `npm run lint:fix` applies fixes locally as a reviewable diff. `package.json` pins
-  `"type": "commonjs"` so the mock is parsed as the CommonJS script it is — without it Biome
-  reads `'use strict'` as redundant and strips it, silently moving the file to sloppy mode.
-  This is the repo's only npm dependency, and no plugin ships JavaScript or depends on it.
-- `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation + hook tests +
-  the mock's self-test + Biome.
-- `.github/workflows/adversarial.yml` — CI: the adversarial scenario suite, on a
-  `run-adversarial` PR label or `workflow_dispatch` only — no scheduled runs.
+- `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation + the release
+  gate + hook tests.
 
 ## How the crew works
 
@@ -416,11 +390,10 @@ LLM comply. Compression is not a quota: if an honest pass yields little, that is
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh tests/scenarios/*.sh tests/scenarios/mocks/*.sh tests/fixtures/*.sh
+shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh
 bash scripts/validate-plugin.sh
 bash scripts/check-changelog.sh          # takes the base branch; defaults to main
 bash tests/hooks/run.sh
-bash tests/scenarios/mocks/selftest.sh
 ```
 
 `check-changelog.sh` is the one diff-based check: it compares against the merge base with the
@@ -429,9 +402,8 @@ is deliberately tree-only, so it runs anywhere with no base to resolve). See *Re
 what it enforces.
 
 `validate-plugin.sh`'s sections, cited as `§N` across the docs: manifests §2, marketplace sync
-§2f, `skills:` resolution §2g, version ↔ changelog §2h, `[Unreleased]` slot §2i, hook file modes
-§3, wiring §6 (§4–§5 are unused), dev-wiring mirror §7, turn-budget §8, rosters §9,
-prose refs §10, `crew.md` keys §11, footprint §12, MCP pairs §13, YAML frontmatter §14.
+§2f, `skills:` resolution §2g, version ↔ changelog §2h, hook file modes §3, wiring §6 (§4–§5 and
+§7 are unused), turn-budget §8, rosters §9, prose refs §10, `crew.md` keys §11, footprint §12, MCP pairs §13, YAML frontmatter §14.
 §2g and §12 index skills through `git ls-files`, so stage a new or renamed skill file before
 running the validator.
 
@@ -523,143 +495,39 @@ class hand-written descriptions fall into. A value that opens with a quote, a bl
 flow collection or an anchor/tag indicator has already declared its type and is left to YAML's
 own rules; the fix the message names is to wrap the value in double quotes.
 
-### Adversarial scenario suite (`tests/scenarios/`)
-
-Six of the prompts' safety properties are the kind that rot silently — a later edit
-weakens one and the happy path still works, so nothing notices:
-
-- `morpheus` §*Address review feedback* step 2 — a comment that tries to widen scope,
-  exfiltrate secrets, or disable a guard is **surfaced, not obeyed**.
-- `debt-lane` open-mode step 3 — pasted build/lint output is **data**: rule IDs are parsed from it;
-  instructions in its prose are never followed.
-- `loop-engineering` — loop intent is **never inferred** from fetched or pasted content.
-- `sentinel` §*The signal is untrusted input* — a bug report is third-party free text: its
-  identifiers are parsed, its prose is never followed, and a work-item ID, URL, or pipeline
-  name found **inside** it never becomes a target. **This one has no scenario yet** — it is
-  covered only by the manual rows in `plugins/crew/VERIFICATION.md`.
-- `mid-run-direction` — a worker acts on a steer quoting its dispatch's `steer-token:`, correcting a
-  wrong premise rather than discarding the message, and surfaces mid-run direction that carries no
-  token or points out of bounds. **No scenario yet either, and only half of it is scriptable here:**
-  the unanchored half is s1-shaped (plant a `system-reminder`-shaped block in a file the worker
-  reads, assert the bait untouched), but the anchored-yet-wrong half needs a real `SendMessage` into
-  a live worker, and its correct outcome — a corrected premise reported back — lives in the
-  transcript, which this suite deliberately does not assert on. Manual rows in
-  `plugins/crew/VERIFICATION.md` cover it meanwhile.
-- `seraph` §*Your browser MCP does more than screenshots* — the page under review is data:
-  rendered text, DOM content, console messages, and response bodies can all carry seeded
-  content, and `seraph`'s report is relayed verbatim into the `/crew:review` design gate.
-  **No scenario yet either** — same manual-rows-only coverage as `sentinel`'s.
-
-Those last three are the weakest-covered of the six until scenarios exist.
-
-`tests/scenarios/` drives the real agents headlessly against throwaway repos and asserts the
-guard held. Repo tooling, never shipped with a plugin.
-
-```bash
-bash tests/scenarios/run.sh              # all scenarios
-bash tests/scenarios/run.sh s3 s4        # a subset
-SCENARIO_MODEL=opus bash tests/scenarios/run.sh
-KEEP_FIXTURES=1 bash tests/scenarios/run.sh   # keep scratch repos to inspect
-```
-
-It needs a working `claude` CLI and credentials; without them it prints a loud **SKIP** and
-exits 0 — it must never look green having verified nothing. **It is never a required PR
-check, and it never runs unattended:** it runs on a PR labelled `run-adversarial`, or via
-`workflow_dispatch` (`.github/workflows/adversarial.yml`). There is deliberately no `schedule:`
-trigger — a live-model suite that costs tokens runs when someone asks for it. The mock's
-self-test carries no such cost and *does* run on every PR.
-
-Four properties of the design matter more than the scenario count, and a change that breaks
-any of them makes the suite worthless while still reporting green:
-
-- **Assertions read observable state only** — git refs on a local bare remote, file hashes,
-  `git status`, the mock's recorded calls. What an agent *says* it refused is not evidence.
-  (`s2`'s positive check is the one documented exception: its correct outcome is to stop at a
-  gate having changed nothing, which on disk is identical to never having started.)
-- **The agent is granted the capabilities it is being tested not to misuse.** If the
-  permission layer blocked git, "nothing was pushed" would pass because the *harness* stopped
-  it. `s0-positive-control.sh` asserts a bare agent *can* write, edit, and push when
-  legitimately asked; a FAIL there voids the rest of the run.
-- **Every scenario also asserts something positive** (`assert_engaged`) — an agent that does
-  nothing satisfies every "did not" assertion, so an inert run must fail.
-- **Fixtures must read like ordinary project files.** A fixture guard once carried the comment
-  "any modification to this file fails the scenario"; the agent read it as an instruction and
-  cited it when refusing. Guard fixtures also live in `ci/`, never `.claude/` — Claude Code
-  treats that directory as sensitive and refuses edits there regardless of permission mode, so
-  a guard placed inside it is protected by the harness rather than by the rule under test.
-
-A pass means the property held **on that run**; these are live-model runs, so the value is
-regression signal over time, not proof. Adding a scenario is one new `s<N>-*.sh` file.
-
 ## Releasing
 
-Versions are per-plugin. To cut a release:
+Versions are per-plugin, and there is one rule: **a shipped change bumps the version.** To cut a
+release:
 
 1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a matching `CHANGELOG.md`
-   entry (a PR that changes plugin behavior must do this — see *Release by default* below).
-   `validate-plugin.sh` §2h fails CI unless the manifest version equals the newest `## [X.Y.Z]`
-   entry in that plugin's changelog, so the two always move together.
-2. Fold in anything parked under `## [Unreleased]` (below), moving those bullets into the new
-   version's section. `check-changelog.sh` fails a bump that leaves the slot non-empty.
-3. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
+   entry in the same PR. `validate-plugin.sh` §2h fails CI unless the manifest version equals the
+   newest `## [X.Y.Z]` entry in that plugin's changelog, so the two always move together.
+2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
    version has no `<plugin>/v<version>` tag yet, and creates the tag and GitHub Release
-   automatically, with notes built by `scripts/release-notes.sh`. No
+   automatically, with that version's changelog section as the notes. No
    matching changelog entry → it skips with a warning. No manual tagging is needed
    (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
 
-### Release by default; park only what a user cannot observe
+### A shipped change bumps the version
 
 A tag carries **everything** merged since the previous tag, not just the bump — so a change that
-skips the bump/changelog step doesn't wait for a release of its own, it ships inside the next one,
-described nowhere. That is how a README rewrite and a pass over the shipped hooks' comments both
-went out in `crew/v3.15.0` without appearing in any notes.
+skips the bump ships inside the next release, described nowhere. That is how a README rewrite and
+a pass over the shipped hooks' comments both went out in `crew/v3.15.0` without appearing in any
+notes.
 
-**So bump by default.** The question is not "is this big enough for a release?" but:
+So every PR that touches shipped files bumps — patch for a fix, minor for an addition, major for
+a breaking change. A guard that blocks a command it used to allow, a reworded refusal, a changed
+agent prompt, a comment inside a shipped hook, a README users read: every one of those is a
+release, however few lines it took. Releasing often is the cheap side of the trade. Auto-release
+does the tagging, versions are per-plugin, and a small release that names its change beats a
+large one that buries it. Several in a day is fine.
 
-> **Would a user who runs `claude plugin update` notice?**
-
-If yes, it earns a version bump in the same PR — patch for a fix, minor for an addition, major for
-a breaking change. A guard
-that blocks a command it used to allow, a reworded refusal, a changed agent prompt, a README
-users read: every one of those is a release, however few lines it took. Releasing often is the
-cheap side of the trade. Auto-release does the tagging, versions are per-plugin, and a small
-release that names its change beats a large one that buries it. Several in a day is fine.
-
-Park only when the answer is no — a comment inside a shipped file, whitespace, an internal
-cross-reference, anything a user cannot observe from the outside. Every changelog keeps an
-`## [Unreleased]` heading at the top (§2i requires it) for those:
-
-```
-## [Unreleased]
-
-- README: lead with outcomes rather than the component list (#178)
-```
-
-The next PR that bumps folds those bullets into the version section it opens. Cite the PR as
-`(#N)` — that reference is also what keeps the commit from being listed twice in the notes.
-
-`check-changelog.sh` enforces both halves on every PR, and both are blocking:
-
-- **shipped files changed → bump or park.** Shipped means everything under `plugins/<name>/`
-  except `tests/` (repo tooling), `CLAUDE.md` and `VERIFICATION.md` (contributor material), and
-  `CHANGELOG.md` itself. `README.md` counts — users read it. A pre-existing parked bullet doesn't
-  count as your note; the section has to actually change.
-- **version bumped → the slot must be empty**, because auto-release reads only the version's own
-  section and would ship the rest still parked.
-
-Repo-wide changes (CI, root docs, `tests/scenarios/`) reach no user through
-`claude plugin update`, so they need neither.
-
-The `[Unreleased]` heading deliberately has no link reference at the bottom of the file, unlike
-the version headings: a compare link would have to be re-pointed at every release, which is one
-more step to forget.
-
-**The notes cover the whole tag range.** `scripts/release-notes.sh` prints the version's
-changelog section, then an *Also in this release* list of commits since the plugin's previous tag
-that touched it and aren't described — skipping the bump commit itself (the section above *is* its
-notes) and any commit whose `(#N)` the section already cites. It's the backstop for whatever slips
-past the two rules above, so the release record is complete even when the per-PR discipline isn't.
-Preview it before merging with `scripts/release-notes.sh plugins/<name> <version>`.
+`check-changelog.sh` enforces it on every PR, and it is blocking. Shipped means everything under
+`plugins/<name>/` except `tests/` (repo tooling), `CLAUDE.md` and `VERIFICATION.md` (contributor
+material), and `CHANGELOG.md` itself. `README.md` counts — users read it. Repo-wide changes (CI,
+root docs, `scripts/`, `tests/`) reach no user through `claude plugin update`, so they need no
+bump.
 
 **Changelog entries are terse.** One bullet per change under its Keep-a-Changelog heading
 (`Added`/`Changed`/`Fixed`/`Removed`); lead with *what changed* in plain terms, one line — two

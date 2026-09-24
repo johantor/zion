@@ -5,7 +5,7 @@
 # proves the guard discriminates rather than firing unconditionally.
 #
 # Assert on the guard's message, not the exit code: a minimal fixture trips
-# unrelated sections (e.g. §7's settings mirror), which would mask which fired.
+# unrelated sections (e.g. §2's manifest keys), which would mask which fired.
 # Pick a substring that appears ONLY in the FAIL text, never in an ok: line.
 #
 # Every section carries a fixture; see AGENTS.md, "Validating changes".
@@ -45,9 +45,7 @@ assert_silent() { # <label> <dir> <substr>
 }
 
 mk_manifest() { mkdir -p "$1/.claude-plugin"; printf '{"name":"%s","version":"%s"}\n' "$2" "$3" > "$1/.claude-plugin/plugin.json"; }
-# Carries the `## [Unreleased]` slot §2i requires, so the shared fixture stays
-# valid for every other section's cases; §2i's own bites write their own file.
-mk_changelog() { printf '## [Unreleased]\n\n## [%s]\n- note\n' "$2" > "$1/CHANGELOG.md"; }
+mk_changelog() { printf '## [%s]\n- note\n' "$2" > "$1/CHANGELOG.md"; }
 
 # Raw-JSON writers for the shapes the two above can't express: a manifest missing
 # a key, declaring component paths, or carrying a description; a marketplace.
@@ -73,13 +71,7 @@ mk_hooks_json() {
   mkdir -p "$1/hooks"
   printf '{"hooks":{"PreToolUse":[{"matcher":"Bash","hooks":[{"type":"command","command":"%s"}]}]}}\n' "$2" > "$1/hooks/hooks.json"
 }
-# mk_dev_settings <repo> <command-string> <matcher> — §7's dev-side mirror.
-mk_dev_settings() {
-  mkdir -p "$1/.claude"
-  printf '{"hooks":{"PreToolUse":[{"matcher":"%s","hooks":[{"type":"command","command":"%s"}]}]}}\n' "$3" "$2" > "$1/.claude/settings.json"
-}
-
-# Wiring commands, shared by §2e/§6/§7. Single-quoted so the "${VAR}" text stays
+# Wiring commands, shared by §2e/§6. Single-quoted so the "${VAR}" text stays
 # literal — it is JSON content here, not a shell expansion — and the \" pairs
 # become real quotes when printf writes them.
 # shellcheck disable=SC2016
@@ -88,25 +80,12 @@ wired_x='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/x.sh'
 wired_missing='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/missing.sh'
 # shellcheck disable=SC2016
 wired_lib='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/lib/guard-lib.sh'
-# shellcheck disable=SC2016
-dev_x='\"${CLAUDE_PROJECT_DIR}\"/plugins/crew/hooks/x.sh'
 
 # --- §2h: manifest version must match the newest CHANGELOG entry ---------------
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 9.9.9; mk_changelog "$d/plugins/foo" 1.0.0
 assert_emits "§2h bites on version/changelog mismatch" "$d" "!= newest"
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
 assert_silent "§2h silent when they match" "$d" "!= newest"
-
-# --- §2i: every changelog keeps an `## [Unreleased]` slot at the top ------------
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0
-printf '## [1.0.0]\n- note\n' > "$d/plugins/foo/CHANGELOG.md"
-assert_emits "§2i bites on a missing Unreleased heading" "$d" "has no '## [Unreleased]' heading"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0
-printf '## [1.0.0]\n- note\n\n## [Unreleased]\n' > "$d/plugins/foo/CHANGELOG.md"
-assert_emits "§2i bites on Unreleased below the newest entry" "$d" "below the newest version entry"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
-assert_silent "§2i silent with the slot at the top (missing)" "$d" "has no '## [Unreleased]'"
-assert_silent "§2i silent with the slot at the top (misplaced)" "$d" "below the newest version entry"
 
 # --- §2g: an agent's skills: ref must resolve to a real skill -----------------
 mk_agent() {  # <plugin_dir> <skill_ref>
@@ -445,18 +424,6 @@ assert_silent "§6 does not demand a library be wired" "$d" "is not wired"
 d="$(new_repo)"; mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_lib "$d/plugins/foo" guard-lib.sh 'echo lib'
 mk_hooks_json "$d/plugins/foo" "$wired_lib"
 assert_emits "§6 bites on wiring a sourced library as a hook" "$d" "but hooks/lib/*.sh are sourced libraries"
-
-# --- §7: .claude/settings.json mirrors plugins/crew/hooks/hooks.json ----------
-d="$(new_repo)"; mk_hook "$d/plugins/crew" x.sh 'exit 0'; mk_hooks_json "$d/plugins/crew" "$wired_x"
-assert_emits "§7 bites when the dev mirror is absent" "$d" ".claude/settings.json is missing"
-d="$(new_repo)"; mk_dev_settings "$d" "$dev_x" Bash
-assert_emits "§7 bites when the plugin wiring is absent" "$d" "plugins/crew/hooks/hooks.json is missing"
-d="$(new_repo)"; mk_hook "$d/plugins/crew" x.sh 'exit 0'; mk_hooks_json "$d/plugins/crew" "$wired_x"
-mk_dev_settings "$d" "$dev_x" Write
-assert_emits "§7 bites when the mirrored matcher drifts" "$d" "hook wiring drift"
-d="$(new_repo)"; mk_hook "$d/plugins/crew" x.sh 'exit 0'; mk_hooks_json "$d/plugins/crew" "$wired_x"
-mk_dev_settings "$d" "$dev_x" Bash
-assert_silent "§7 silent when the mirror matches modulo root variable" "$d" "hook wiring drift"
 
 # --- §10: namespaced refs in prose must resolve to an agent or command --------
 mk_prose_agent() {  # <plugin_dir> <name> <body>

@@ -52,13 +52,16 @@ jobs:
               continue
             fi
 
-            # Notes = this version's CHANGELOG section, plus the commits that
-            # shipped inside this tag without an entry of their own. It lives in a
-            # script so it is shellchecked and covered by the tests. Same rule as
-            # the release call below: record the failure and carry on, so one
-            # plugin can't take the rest of the loop down with it.
-            if ! notes="$(scripts/release-notes.sh "$plugin_dir" "$version")"; then
-              echo "::error::Failed to build release notes for $tag"
+            # Notes = this version's CHANGELOG section: from its heading to the
+            # next `## [` heading. Same rule as the release call below: record
+            # the failure and carry on, so one plugin can't take the rest of the
+            # loop down with it.
+            notes="$(awk -v ver="## [${version}]" '
+              /^## \[/ { if (found) exit; if (index($0, ver) == 1) { found = 1; print; next } }
+              found { print }
+            ' "$changelog")"
+            if [ -z "$notes" ]; then
+              echo "::error::Empty '## [${version}]' section in $changelog for $tag"
               failed=$((failed + 1))
               continue
             fi

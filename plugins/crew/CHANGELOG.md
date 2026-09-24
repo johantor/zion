@@ -5,7 +5,12 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [4.0.1] - 2026-09-24
+
+### Changed
+
+- **Hooks have one wiring, `hooks/hooks.json`.** The repo's dev-time mirror
+  `.claude/settings.json` is gone; develop with `claude --plugin-dir plugins/crew` (#251).
 
 ## [4.0.0] - 2026-09-23
 

@@ -234,8 +234,7 @@ intercepted**.
   to do first. No roster, so nothing to keep in lockstep. Fails open: no `jq`, an unreadable
   payload, an agent file it can't find, all allow — plan mode itself still blocks the edits.
 
-Hooks are registered in `.claude/settings.json` for local development and `hooks/hooks.json` when
-installed as a plugin.
+Hooks are registered in `hooks/hooks.json`.
 
 </details>
 

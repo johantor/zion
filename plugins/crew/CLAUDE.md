@@ -52,8 +52,8 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     a `tests-*` skill. Only node needs lane paths (its extensions collide with a frontend's).
     `frontendStack: none` is a stated absence: `morpheus` skips frontend, e2e and unit-tool
     resolution and dispatches only `tank`/`oracle`. That gate sits above the resolution table.
-- `hooks/` — wired in `hooks/hooks.json`, mirrored by the repo's `.claude/settings.json` (§7).
-  `bash-safety` and `lane-guard` fail closed; `read-guard`, `format`, `turn-budget`,
+- `hooks/` — wired in `hooks/hooks.json`, the one copy; in this repo they load through
+  `claude --plugin-dir plugins/crew`. `bash-safety` and `lane-guard` fail closed; `read-guard`, `format`, `turn-budget`,
   `dispatch-denied` and `plan-guard` fail open.
   - `bash-safety.sh`: workers never run git; protected-branch commit backstop (reads the
     payload's `cwd`, not the hook's directory; AGENTS.md has the shapes); watch/dev
@@ -85,10 +85,10 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   - `dispatch-denied.sh` (`PermissionDenied`, `Agent|Task`): attempt 1 emits `retry: true`,
     later ones only a `systemMessage`. The JSON is the decision. Counter under
     `CREW_DISPATCH_DENIED_DIR`; a path that cannot count takes the no-retry branch. Gates on the
-    `crew:` namespace, not a roster, so it is inert under this repo's dev wiring.
+    `crew:` namespace, not a roster.
   - `plan-guard.sh` (`PreToolUse`, `Agent|Task`): in plan mode, refuses a `crew:<worker>` whose
     frontmatter grants `Edit`/`Write`/`NotebookEdit`; `owns-git: true` passes. Reads both
-    `tools:` shapes; `CREW_AGENTS_DIR` is the test override. Inert under dev wiring too.
+    `tools:` shapes; `CREW_AGENTS_DIR` is the test override.
   - `lib/guard-lib.sh`: payload plumbing, `guard_normalize`, `GUARD_RE_*`, the `guard_block_*`
     helpers, quote masking, protected branches, read-guard limits, state files.
 - `tests/` — a guard is `stdin JSON → exit 0/2`: assert allow/block plus a stderr substring.

@@ -2,394 +2,209 @@
 
 Zion is a Claude Code plugin marketplace: `crew` (orchestrated feature delivery, plus a debt lane
 for tech-debt and upgrade fixes). **This repository *is* the plugins** — there is no application
-code to build or ship. Work here means editing agent/command/skill definitions, hooks, and
-docs.
+code to build or ship. Work here means editing agent/command/skill definitions, hooks, and docs.
 
-This is the contributor guide for anyone — human or agent — changing this repo, it is
-tool-neutral, and it is the one place each rule is written. Tool-specific entry points point
-here: `CLAUDE.md` for Claude Code (plus how Claude should talk and edit), the `code-review` skill
-in `.github/skills/` for reviewers, and each plugin's `CLAUDE.md` for its own map. Crew's
-configuration lives in `.claude/crew.md`.
+This is the contributor guide for anyone — human or agent — changing this repo. It is tool-neutral
+and the one place each rule is written. Tool-specific entry points point here: `CLAUDE.md` for
+Claude Code (plus how Claude should talk and edit), the `code-review` skill in `.github/skills/`
+for reviewers, and each plugin's `CLAUDE.md` for its own map. Crew's configuration lives in
+`.claude/crew.md`.
 
 ## Repository layout
 
-This is a **monorepo marketplace**: `.claude-plugin/marketplace.json` lists the plugins,
-each of which lives in its own directory under `plugins/<name>/` (its plugin root). Adding
-a plugin is additive — create `plugins/<name>/` and add an entry to `marketplace.json`.
+A **monorepo marketplace**: `.claude-plugin/marketplace.json` lists the plugins, each in its own
+directory under `plugins/<name>/`. Adding a plugin is additive — create the directory and add an
+entry.
 
-- `.claude-plugin/marketplace.json` — the marketplace; lists each plugin and its `source`.
-- `plugins/crew/` — the `crew` plugin (its root; component paths below are relative to it):
-  - `.claude-plugin/plugin.json` — plugin manifest (name `crew`).
-  - `agents/` — `morpheus` (orchestrator) plus workers `tank`, `trinity`, `oracle`, `dozer`, `seraph`, `neo` (express-lane generalist), `sentinel` (post-merge triage; read-only, no Bash), and `keymaker` (debt scout; read-only — no Edit/Write/Bash, so no git and no package manager). Auto-discovered from this dir; not declared in the manifest.
-  - `commands/` — `/init`, `/feature`, `/debt`, `/audit`, `/review`, `/pr`, `/address`, `/triage`, `/loop`, `/notify` (namespaced as `crew:feature` etc. once installed). `/init` detects and writes the crew configuration to `.claude/crew.md` (idempotent reconcile; migrates a legacy `CLAUDE.md` block). `/review` is the pre-PR GO/NO-GO gate (consolidated review + build/test/lint). `/address` closes the post-PR review loop — routes review comments / CI failures to the crew, re-runs the gate, and pushes. `/loop` is the outer-loop driver — re-launches `morpheus` directly (not by nesting `/feature`) each tick across runs on the native `/loop` (dynamic mode) until the plan's exit conditions are met; the wrapper owns scheduling, `morpheus` never self-schedules. `/feature`, `/debt` and `/address` are thin routers into `morpheus`'s own flows, so they also work by just asking in a `claude --agent crew:morpheus` session. `/audit` launches `keymaker` (resolving a `diff` scope's file list and an `outdated` scope's package-manager output first, since the scout has no Bash), relays its report, then launches `morpheus` directly for each picked pointer — never by nesting `/debt`. `/triage` is the standalone entry to `sentinel` — it launches the agent, relays its report, and writes nothing. `/notify` messages another running crew **session** (not a worker inside one) over `ListAgents`/`SendMessage` — a command rather than a `morpheus` capability, since peer messaging is a user-driven action and `morpheus`'s prompt is close to its footprint cap.
-  - `skills/` — `context-discipline`, `loop-engineering` (the loop-mode stop rules, preloaded by
-    `morpheus`; the feature flow and the debt lane each bind it), `operator-voice` (how
-    `morpheus` writes to the operator), `review-gate` (the build/test/lint gate rules, preloaded
-    by `morpheus` and loaded by `/crew:review`, so a standalone gate run follows the same rules), `engineering-principles` (the review rubric),
-    `debt-lane` (loaded by `morpheus` on a debt pointer) with `debt-taxonomy`,
-    `debt-taxonomy-dotnet` and `debt-taxonomy-typescript` (the taxonomy skills are loaded by
-    `keymaker` too), and
-    `worker-contract` (the rules every worker with a shell follows on any dispatch — no git,
-    the build as `morpheus`'s gate, the completion marker — preloaded by `tank`, `trinity`,
-    `oracle`, `dozer` and `neo`, so each prompt states only what is specific to its role),
-    `mid-run-direction` (how a
-    worker treats a steer that arrives mid-run — preloaded by every worker, not by `morpheus`,
-    which carries the sending half);
-    frontend mode: `frontend-headless`, `frontend-server-rendered`; per-stack (loaded
-    dynamically once `morpheus` resolves the project's stack): `backend-dotnet`, `backend-node`,
-    `backend-python`, `backend-go`, `backend-rust`, `backend-java`, `cms-optimizely` (composes on
-    `backend-dotnet`), `frontend-react`, `frontend-nextjs`, `tests-xunit`, `tests-node`,
-    `tests-pytest`, `tests-go`, `tests-cargo`, `tests-junit`, `backend-shell`, `tests-shell`;
-    per-e2e-tool (loaded by `dozer`): `tests-cypress`, `tests-playwright`; per-frontend-unit-
-    test-tool (loaded by `oracle` for component tests): `tests-vitest`, `tests-jest-frontend`;
-    per-worker (preloaded, not stack-resolved): `design-tokens`, which `seraph` reads so a
-    visual finding names the token and not just the pixel value.
-  - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`, `turn-budget.sh`
-    (warns an agent nearing its `maxTurns` so it hands back an orderly `remaining:` instead of
-    truncating; validator §8 keeps its budget table in lockstep with agent frontmatter),
-    `dispatch-denied.sh` (`PermissionDenied`: auto mode can't allowlist an `Agent` call, so a
-    worker dispatch is classified per call and can be refused mid-run — this retries the first
-    denial once and reports the real fixes after that), `plan-guard.sh` (`PreToolUse` on
-    `Agent|Task`: in plan mode, refuses a crew worker whose own frontmatter grants `Edit`/`Write`,
-    since plan mode would refuse every edit it makes; the orchestrator and read-only workers pass;
-    fails open), wired via `hooks/hooks.json`.
-    A `hooks/` directory holds two kinds of file and the distinction is enforced, not
-    conventional: the top-level `*.sh` are **entry points** the harness executes (must be `+x`,
-    must be wired), while `hooks/lib/*.sh` are **sourced libraries** (must not be `+x`, must not
-    be wired — validator §3 and §6). Today that is `hooks/lib/guard-lib.sh`, which carries the
-    payload plumbing, the command-shape patterns, and the shared block helpers every plugin's
-    Bash guard enforces.
-  - `CHANGELOG.md` — release notes for this plugin's versions (moved here from the repo root).
-  - `VERIFICATION.md` — the plugin's behavioral scenario matrix, kept out of the README so the
-    README stays a user-facing document.
-- `scripts/` — repo tooling (not part of any plugin; it needs this monorepo's layout and never
-  runs in an installed plugin):
-  - `validate-plugin.sh` — validates every plugin's manifest/structure, including hooks.json
-    wiring (§6; see
-    *How we review code* below), and YAML-parseable frontmatter (§14; see *Validating changes*).
-    Tree-only: no base ref, so it runs anywhere.
-  - `check-changelog.sh` — the release gate: a change to shipped files must bump the plugin's
-    version (see *Releasing*). Diff-based, so it takes the base branch to compare against.
-  - `release-notes.sh` — prints one version's changelog section, the GitHub Release notes.
-    Called by `auto-release.yml`; a script so the tests cover it before a merge.
-- `tests/hooks/` — the harness the plugin test suites share (`lib.sh`) and their runner
-  (`run.sh`); see *Validating changes*.
-- `.claude/crew.md` — this repo's own crew configuration, written by `/crew:init`. The repo
-  carries no hook wiring of its own: work here with `claude --plugin-dir plugins/crew`, which
-  loads the hooks from `plugins/crew/hooks/hooks.json`.
-- `.github/copilot-instructions.md` — Copilot's entry point; it points to the `code-review` skill.
-- `.github/skills/code-review/SKILL.md` — the one review rubric for this repo, read by Copilot directly. `.claude/skills/zion-review/` is the Claude Code wrapper: it loads the rubric, runs the checks, and reproduces each finding.
-- `.github/workflows/validate.yml` — CI: shellcheck + plugin manifest validation + the release
-  gate + hook tests.
+- `plugins/crew/` — the `crew` plugin (paths below relative to it):
+  - `.claude-plugin/plugin.json` — the manifest.
+  - `agents/` — `morpheus` (orchestrator) and the workers `tank`, `trinity`, `oracle`, `dozer`,
+    `seraph`, `neo`, `sentinel`, `keymaker`. Auto-discovered; not declared in the manifest.
+  - `commands/` — `/init`, `/feature`, `/debt`, `/audit`, `/review`, `/pr`, `/address`, `/triage`,
+    `/loop`, `/notify` (namespaced `crew:*` once installed). `/feature`, `/debt` and `/address`
+    are thin routers into `morpheus`'s own flows; `/loop` and `/audit` launch agents directly
+    rather than nesting a command, since a wrapper cannot pass what the inner command does not
+    forward. `/pr` is the only push path. Each command's own file says what it does; the plugin
+    map (`plugins/crew/CLAUDE.md`) says how they fit.
+  - `skills/` — preloads: `context-discipline` (every agent), `loop-engineering`,
+    `operator-voice` and `review-gate` (`morpheus`; `/crew:review` loads `review-gate` too),
+    `engineering-principles` (the implementers), `worker-contract` (the five workers with a
+    shell: the rules every dispatch follows), `mid-run-direction` (every worker),
+    `design-tokens` (`seraph`). On demand: `debt-lane` with `debt-taxonomy` and its per-stack
+    skills; the stack skills `backend-*`, `frontend-*`, `cms-optimizely`, `tests-*`, loaded once
+    `morpheus` resolves the project's stack and tools.
+  - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`,
+    `turn-budget.sh`, `dispatch-denied.sh`, `plan-guard.sh`, wired in `hooks/hooks.json`. The
+    top-level `*.sh` are entry points (`+x`, wired); `hooks/lib/*.sh` are sourced libraries (not
+    `+x`, not wired) — validator §3 and §6 enforce the split. The plugin map describes each hook.
+  - `CHANGELOG.md`, `README.md` (user-facing), `VERIFICATION.md` (the manual scenario matrix),
+    `CLAUDE.md` (the plugin map for agents working on it).
+- `scripts/` — repo tooling, never shipped: `validate-plugin.sh` (tree-only structural checks,
+  the `§N` sections below), `check-changelog.sh` (the diff-based release gate, takes the base
+  branch), `release-notes.sh` (one version's changelog section, used by `auto-release.yml`).
+- `tests/hooks/` — the shared harness (`lib.sh`) and runner (`run.sh`) for `plugins/*/tests/`.
+- `.claude/crew.md` — this repo's own crew configuration. The repo carries no hook wiring of its
+  own: work here with `claude --plugin-dir plugins/crew`.
+- `.github/` — `copilot-instructions.md` points Copilot at `skills/code-review/SKILL.md`, the one
+  review rubric (`.claude/skills/zion-review/` wraps it for Claude Code); `workflows/validate.yml`
+  runs shellcheck, the validator, the release gate and the hook tests; `auto-release.yml` tags.
 
 ## How the crew works
 
-- `morpheus` plans and delegates; it writes no production code. Workers stay idle until delegated to.
-- A **regression** enters the flow through `sentinel`: `morpheus` delegates the bug report or
-  trace to it before planning and plans against the pointer it returns, so the finding arrives
-  in `morpheus`'s own context rather than being re-typed into a goal string. `/crew:triage` is
-  the same agent without the build flow attached.
-- `morpheus` maintains a written plan at `<plan-dir>/plan-<feature>.md` — `<plan-dir>` is the `Plan directory` crew-config slot, or `.claude/` when unset — with per-step acceptance criteria, and presents it for the user's go-ahead before creating the branch or delegating (the plan checkpoint — one gate, honoring a standing "just build it").
-- `morpheus` is the sole owner of git: it branches off the resolved base branch and commits each
-  verified step; workers never run git. The crew stops at the local review gate by default —
-  pushing and opening a PR is the separate `/crew:pr` command.
-- Worker lanes are stack-agnostic: `tank` = backend implementer for the resolved backend
-  stack, `trinity` = implementer of the client-facing layer for the resolved frontend stack
-  (plus a shared server template's markup in server-rendered mode), `oracle` = all unit test authoring
-  (backend tests + frontend component tests when a frontend unit test tool is configured),
-  `dozer` = frontend e2e only (for the resolved e2e tool), `seraph` = visual design
-  conformance (read-only), `neo` = express-lane generalist for small changes (all lanes;
-  no lane guard by design), `sentinel` = post-merge triage (read-only; locates a production
-  signal and correlates it to suspect commits, and returns a pointer rather than a fix),
-  `keymaker` = debt scout (read-only; audits a scope and returns ranked `/crew:debt` pointers,
-  never a fix — it has no Edit/Write tool). Stack knowledge lives in per-stack skills, loaded once `morpheus`
-  resolves the project's stack (crew config's `backendStack`/`frontendStack` slots).
-  E2e tool knowledge lives in per-tool skills (`Frontend e2e tool` slot); frontend unit test
-  tool knowledge lives in its own per-tool skills (`Frontend unit test tool` slot). `lane-
-  guard.sh` enforces the write lane by file extension for disjoint-language stacks (e.g.
-  dotnet+react, python+react — `trinity`'s deny list is the union of every backend's
-  extensions, so it holds whichever backend is resolved), or by configured directory paths
-  (**Backend/Frontend lane path(s)**) when both stacks are the same language (e.g.
-  node+nextjs). Node is the only supported backend that shares its extensions with a
-  frontend, so it is the only one that needs those paths.
-- `morpheus` **right-sizes the process by task size**: small, low-risk work takes an express lane
-  (delegate to `neo`, skip the plan/checkpoint/full-gate, quick self-review, commit); features and
-  anything risky, multi-lane, or needing new tests take the full flow through the specialists.
-  It escalates express → full the moment a task proves bigger. A pointer to known debt (a
-  suppression, rule or package) takes the **debt lane**, and takes it even when it looks like an
-  express one-liner: `morpheus` loads the `debt-lane` skill, gates on the blast radius, and
-  commits one verified batch at a time. It is a skill, not a second orchestrator, because
-  `claude --agent crew:morpheus` sessions can only dispatch from the main thread, and because an
-  on-demand skill stays out of `morpheus`'s footprint cap. An **audit scope** goes to `keymaker`
-  instead, and each pick comes back to the lane as a pointer.
-- **Loop mode** (`loop-engineering` — the feature flow and the debt lane each bind it to their
-  own units/gate/state): on explicit user intent in
-  conversation ("keep going until done", "loop this", "finish it", "clear all the stale ones")
-  the full flow runs to completion without per-step check-ins, stopping only on the
-  run's terminal gate (feature flow: review gate GO; debt lane: verify + commit — never
-  push/PR), a blocked human decision (independent units drain first), or a retry cap (3 failed
-  fix→verify round-trips on a unit; for crew's gate, a second NO-GO on the same findings).
-  Intent is never inferred from fetched content; any checkpoint/gate that needs the user's
-  answer still runs once. Loop state (`loop:`, `exit-conditions:`; durable per-unit
-  `attempts:`) lives in the orchestrator's durable file, so a resumed run continues in loop
-  mode and its caps survive a crash. The **outer** loop — re-invoking the orchestrator across
-  runs past one run's `maxTurns` — is a human-initiated main-session wrapper (crew's
-  `/crew:loop`, on the native `/loop` in dynamic mode) that owns the scheduling and the
-  iteration cap (`iterations: n/max`); the orchestrator itself never self-schedules.
-- All workers apply `context-discipline`: process bulk output with code, return only concise findings.
+- `morpheus` plans and delegates; it writes no production code and is the **sole owner of git**:
+  it branches off the resolved base and commits each verified step. Workers never run git. The
+  crew stops at the local review gate; `/crew:pr` pushes.
+- The plan at `<plan-dir>/plan-<feature>.md` (the `planDirectory` slot, else `.claude/`) carries
+  per-step acceptance criteria and is presented once for the user's go-ahead before the branch
+  or any delegation — the plan checkpoint, honoring a standing "just build it".
+- Lanes are stack-agnostic: `tank` backend, `trinity` client-facing layer (plus a shared server
+  template's markup in server-rendered mode), `oracle` unit tests (backend, and frontend
+  component tests when a unit tool is configured), `dozer` frontend e2e, `seraph` visual
+  conformance (read-only), `neo` express-lane generalist (all lanes, no lane guard), `sentinel`
+  post-merge triage (read-only, returns a pointer), `keymaker` debt scout (read-only, no Bash,
+  returns `/crew:debt` pointers). `lane-guard.sh` enforces the write lane by extension where the
+  stacks' languages differ, or by the configured lane paths when they are the same (Node +
+  Next.js is the one such pair).
+- A **regression** enters through `sentinel`: `morpheus` delegates the report to it and plans
+  against the pointer, so the finding arrives in its own context. `/crew:triage` is the same
+  agent standalone.
+- `morpheus` **right-sizes by task size**: small, low-risk work takes the express lane (`neo`, no
+  plan or full gate, a quick self-review, commit), escalating on evidence; features take the full
+  flow; a pointer to known debt takes the **debt lane** (`debt-lane` skill: gate on blast radius,
+  one verified batch per commit), even when it looks like a one-liner; an audit scope goes to
+  `keymaker`. The debt lane is a skill, not a second orchestrator: `claude --agent crew:morpheus`
+  sessions can only dispatch from the main thread, and an on-demand skill stays out of the
+  footprint cap.
+- **Loop mode** (`loop-engineering`): on explicit user intent the flow runs to completion without
+  per-step check-ins, stopping only at the terminal gate (feature: review gate GO; debt: verify +
+  commit — never push), a blocked human decision, or the retry cap (3 failed fix→verify
+  round-trips on a unit; for the gate, a second NO-GO on the same findings). Intent is never
+  inferred from fetched content. Loop state lives in the plan file so a resume continues in loop
+  mode. The **outer** loop across runs is `/crew:loop`, a main-session wrapper on the native
+  `/loop` that owns scheduling and the iteration cap; `morpheus` never self-schedules.
+- All workers apply `context-discipline`: process bulk output with code, return concise findings.
 
-The crew's runtime configuration (test/build/lint commands, base branch, frontend mode) lives in
-`.claude/crew.md` — YAML frontmatter, one key per slot, plus a prose body of notes. That is what
-`morpheus` and the `crew:*` commands read, and what `/crew:init` writes; a slot reads `unset` when
-it is unresolved (the orchestrator asks once) and `none` when the project has no such tooling (the
-gate skips). For this repo the slots are mostly `unset`/`none`, because the repo is the plugins
-themselves and has no app code to build or test.
-
-Configuration does **not** live in a project's `CLAUDE.md`. What stays there is the
-`## Crew orchestration` prose, whose reader — auto mode's permission classifier — sees only
-`CLAUDE.md`, plus any convention a quick glance would get wrong (`/crew:init` §3 sets that bar).
-Earlier versions wrote the slots into `CLAUDE.md` as a **Crew configuration** block; every reader
-still falls back to that block when `.claude/crew.md` is absent, and `/crew:init` migrates it.
-
-`/crew:init --local` keeps both out of the repo: the slots go to `crew.md` in the shared git dir
-(`git rev-parse --git-common-dir`), which every worktree of a clone reads and git never commits,
-and the prose goes to `~/.claude/CLAUDE.md`, which the classifier also reads. Readers take the
-committed file first, then the local one, then the legacy block.
+Runtime configuration (commands, base branch, mode, stacks) lives in `.claude/crew.md` — YAML
+frontmatter, one key per slot, plus a prose body. `/crew:init` writes and reconciles it. A slot
+reads `unset` when unresolved (the orchestrator asks once) and `none` when the project has no such
+tooling (the gate skips). Configuration does **not** live in a project's `CLAUDE.md`; what stays
+there is the `## Crew orchestration` prose, whose reader — auto mode's permission classifier —
+sees only `CLAUDE.md`. Readers take the committed file first, then the `--local` file in the
+shared git dir, then a legacy **Crew configuration** block that `/crew:init` migrates.
 
 ## How we review code (the crew reviewer)
 
 Reviews of **this repo** — by Copilot, the `zion-review` skill, or `/crew:review` run here — judge
-code against the `engineering-principles` skill (`plugins/crew/skills/engineering-principles/SKILL.md`,
-the code rules) and this repo's rubric, the `code-review` skill (`.github/skills/code-review/SKILL.md`:
-what to check here, severity, and the **Blocking** / **Warning** / **Passed** output). In a user's
-project, `/crew:review` applies `engineering-principles` only; the `code-review` skill is Zion's
-own. Each is written once, in its own file; everything else points to them.
-
+code against `engineering-principles` (the code rules) and the `code-review` skill (this repo's
+rubric: what to check, severity, the **Blocking** / **Warnings** / **Passed** output). In a user's
+project, `/crew:review` applies `engineering-principles` only. Each is written once; everything
+else points to them.
 
 ### Reviewing a prompt change (commands, agents, skills)
 
-These artifacts are **executable contracts written in prose** — an agent follows them at
-runtime — so `validate-plugin.sh` can't catch a *design* bug in them, only structural drift.
-Most of the review misses on this repo were this class: the contract read fine in isolation but
-broke an invariant or left a path undefined. Run this lens on the self-review **before pushing**
-(and apply it as a reviewer), because a static check never will:
+These artifacts are **executable contracts written in prose**, so `validate-plugin.sh` catches
+structural drift, never a design bug. Most review misses here were this class. Apply this lens
+before pushing and as a reviewer:
 
-- **Durable-state invariant.** If the artifact names one store as "the only cross-tick/-run
-  state," any counting or "N-in-a-row" logic must live *there* — no hidden in-memory tally a
-  fresh-context resume would lose. Trace every "track / count / remember across invocations"
-  claim back to the declared store.
-- **Delegation can only pass what the callee accepts.** A command that wraps another command
-  can't convey context the inner one doesn't forward. If it must pass extra intent or
-  authorization, launch the underlying agent directly and say so — don't assume the wrapper's
-  words reach the callee.
-- **Every threshold is a number.** No "several", "eventually", "a few times" — state the exact
-  count and what resets it.
-- **Every failure and edge path has a stated behavior.** Launch failure, zero results, a
-  missing/hand-edited field, malformed input — say stop / skip / surface, and which durable
-  state is or isn't mutated on that path.
-- **A structured field documents its shape where it's owned.** If a marker carries a payload
-  (not just presence), the schema owner must be told to preserve it *verbatim* on rewrite.
-- **Cross-file wording agrees.** Grep every term you changed across the command, its agent, and
-  the README/AGENTS/CLAUDE/CHANGELOG copies — the behavior and every description of it must
-  match (a "launches morpheus directly" command described elsewhere as "re-invokes /feature" is
-  a bug, not a paraphrase).
-
-The recurring, already-seen instances of these live in *Recurring review findings* below; this
-list is the general lens to apply proactively so they don't recur in a new shape.
+- **Durable-state invariant.** If one store is "the only cross-run state", every count or
+  "N-in-a-row" lives there — no in-memory tally a fresh-context resume would lose.
+- **Delegation can only pass what the callee accepts.** A wrapper cannot convey what the inner
+  command does not forward; launch the agent directly and say so.
+- **Every threshold is a number**, with what resets it.
+- **Every failure and edge path has a stated behavior** — stop, skip or surface, and which
+  durable state is or is not mutated.
+- **A structured field documents its shape where it is owned**, and the owner is told to
+  preserve it verbatim on rewrite.
+- **Cross-file wording agrees.** Grep every term you changed across the command, its agent and
+  the README/AGENTS/CLAUDE/CHANGELOG copies.
 
 ## Prompt design rationale
 
-An always-loaded agent prompt costs context on **every** run, so it carries *instruction* —
-what the agent must do — and not the *justification* for it. This section is where the
-justification lives, keyed by agent and by the prompt's own section heading. Each trimmed
-prompt carries a single one-line pointer here; there is deliberately no per-rule pointer,
-because this file is repo documentation and is never shipped with an installed plugin — a
-runtime agent cannot follow a pointer into it.
+An always-loaded prompt costs context on **every** run, so it carries *instruction* and not the
+*justification*. The justification lives here, one line per rule, with the PR that decided it
+where one exists; the PR holds the full story. Prompts carry a single pointer to this file, never
+per-rule pointers:
+this file is never shipped, so a runtime agent cannot follow one.
 
-**Before moving a line out of a prompt, apply the classification test:** *would an agent that
-never read this text behave differently on some input?* If yes it is instruction and stays,
-even when phrased as a "why" (*"watch/dev commands never terminate and hang the worker"*,
-*"background workers can't prompt"*, *"plugin agents are namespaced; bare names don't resolve"*
-— each one changes a decision). If no, it is rationale and belongs here. A short motivating
-clause that disambiguates which of two readings is intended (*"faster, not sloppier"*) stays,
-compressed. **Anything arguable stays in the prompt** — deleting a real edge-case rule is a far
-worse outcome than leaving a sentence of prose in place, and motivation does measurably help an
-LLM comply. Compression is not a quota: if an honest pass yields little, that is the result.
+**The classification test before moving a line out of a prompt:** *would an agent that never read
+this text behave differently on some input?* Yes → instruction, it stays, even phrased as a "why"
+("watch commands never terminate", "plugin agents are namespaced"). No → rationale, it comes here.
+Anything arguable stays: a deleted edge-case rule costs more than a sentence of prose, and
+motivation measurably helps compliance. Compression is not a quota.
 
 ### crew:morpheus
 
-- **Gates run serially unless a stack proves a split.** Parallel gates need every writer on its
-  own path, and each tool splits differently (per-project `obj/` in .NET, `.tsbuildinfo` and
-  `.eslintcache` in Node, no knob in Maven/Gradle). A generic "split the path" rule drew a review
-  finding per tool in #232, so a stack earns parallel gates only with a **Parallel gates** recipe in
-  its skill that was run for real. .NET has one (`--artifacts-path`, checked on SDK 8.0). Its
-  guards are closed checks, not lists: an allow-list of gate commands, and a tree check on every
-  run (no file newer than a marker), because any repo property can move outputs and the repo can
-  change mid-session. A failed parallel run is discarded and rerun serially.
-- **Right-size the process.** A one-line fix shouldn't have to pay for a plan file, a
-  checkpoint, and a full review gate — hence the express lane. The reverse bias matters just as
-  much: a wrong small fix costs more than the escalation would have, which is why the rule is
-  small-by-default but escalate-on-*evidence* rather than escalate-on-suspicion.
-- **Plan checkpoint.** The cheapest place to catch a misunderstood task is before any code is
-  written, which is why the single gate sits before the branch and the first delegation rather
-  than at the review stage.
-- **Plan mode — the approval is the checkpoint.** The harness's plan mode already has a gate
-  (`ExitPlanMode`), a read-only phase, and a rule that nothing is written before approval — the
-  same shape as the plan checkpoint, so running both would ask the user the same question twice.
-  The two session shapes get different rules because the harness treats them differently: the
-  `Agent(...)` type list and `ExitPlanMode` reach only a `claude --agent` main thread, while a
-  subagent loses `ExitPlanMode` and inherits plan mode with no `permissionMode` of its own (the
-  field is ignored for plugin agents). Hence the main thread presents its own plan, and a
-  subagent returns it for `/crew:feature` to present and then re-launch with — the "delegation
-  can only pass what the callee accepts" lens: the plan has to travel as text, and the second
-  launch has to be told it was approved, or `morpheus` would checkpoint again. `Explore`/`Plan`
-  are in the allowlist because plan mode's own workflow reaches for them and an allowlist that
-  excludes them turns "research" into a "cannot delegate — STOP" for an agent whose top rule says
-  exactly that; the STOP rule is for worker steps, and the section says so. `general-purpose` is
-  deliberately absent: it is an unguarded implementer, and the lane workers exist so that no
-  such thing runs. The `plan-guard` hook reads the worker's frontmatter rather than a roster so
-  §9 has nothing new to pin, and fails open because plan mode is the real boundary — the hook
-  only saves the worker's turns.
-- **Stay responsive.** A foreground call freezes the orchestrator's turn for the worker's entire
-  run — often minutes — and queues the user's messages unheard, so backgrounding is the default
-  rather than a tuning choice. The status pulse exists because a background run otherwise reads
-  as dead air. It must be emitted *after* the result is reconciled into the plan because until
-  then the plan still shows the step `in-progress`: pulsing from the raw notification would
-  report stale state and miscall a not-yet-verified result as "finished".
-- **Stay responsive → fresh spawns, and steering as the narrow exception.** `Agent` never
-  continues a worker, so re-dispatching to widen a running step is always a second worker in one
-  scope — `SendMessage` is the only way to add a turn to a live one. It depends on the host's
-  version, platform and provider, so its absence is never a blocker. Steering stays deliberately
-  narrow because its costs land on the target: it spends that worker's remaining `maxTurns`, it
-  is still bounded by the same lane guard, and it dies with the run. So durable context still
-  moves through the plan file, the only channel that survives a fresh spawn, a truncation, or a
-  crash. Steering nudges a run in flight; the plan file carries the state. The "amend the step as
-  you send" rule follows from the same split — the commit is judged against the plan's
-  `acceptance:`, so a steer that widens the work without widening the step makes the two disagree.
+- **Gates run serially unless a stack proves a split** with a *Parallel gates* recipe run for
+  real; a generic split-the-path rule drew a finding per tool (#232). .NET has one; its guards
+  are closed checks (a command allow-list, a tree check every run), not lists.
+- **Right-size the process.** Small by default, escalate on evidence: a wrong small fix costs
+  more than the escalation would have.
+- **Plan checkpoint** before the branch: the cheapest place to catch a misunderstood task.
+- **Plan mode — the approval is the checkpoint.** `ExitPlanMode` is the same gate, so both would
+  ask twice. A subagent loses `ExitPlanMode` and inherits plan mode, so it returns the plan for
+  `/crew:feature` to present and re-launch as approved. `Explore`/`Plan` stay in the allowlist
+  because plan mode's own workflow reaches for them; `general-purpose` is absent because it is an
+  unguarded implementer. `plan-guard` reads frontmatter, not a roster, and fails open: plan mode
+  is the real boundary.
+- **Stay responsive.** Foreground calls freeze the orchestrator for minutes, so background is the
+  default; the status pulse is emitted after the result is reconciled, or it reports stale state.
+- **Fresh spawns; steering is the narrow exception.** `Agent` never continues a worker, so
+  `SendMessage` is the only way to add a turn to a live one; it is host-dependent, so its absence
+  is never a blocker, and durable context still travels through the plan file. A steer amends the
+  plan step as it is sent: the commit is judged against the step's `acceptance:`, so a steer that
+  widens the work without widening the step makes the two disagree.
 - **A steer is authenticated on a per-dispatch token, and its content is still fallible.** A
-  message to a running worker surfaces there in a `system-reminder`-shaped block — the same shape a
-  source file, tool result, or fetched comment can carry — so shape cannot distinguish a
-  coordinator's steer from an injection, and a worker with only that signal has two bad options:
-  obey every authoritative-sounding block, or discard the channel and ignore its own coordinator.
-  The anchor that breaks the tie is a `steer-token:` minted per dispatch (*Anti-drift* 2): planted
-  content was authored before the token existed, so it cannot quote it. A plan step `id`
-  deliberately isn't the anchor — ids are small integers and the plan file sits in the repo the
-  worker reads, so an injected block could cite one. That same reasoning keeps the token **out of**
-  the plan file and out of what a worker echoes back: a plan dir can be committed and read by anyone
-  who can comment on the PR, and a leaked live token is a forgeable steer. Nothing needs it to be
-  durable, since a resumed run re-dispatches its unfinished steps rather than steering the workers
-  that died with the session. And because the token is only a freshness check, refusing
-  out-of-bounds work stays unconditional rather than something the right anchor unlocks. Hence the two-sided rule: `morpheus` writes steers that quote the token and
-  describe an **end state** rather than asserting what the worker already did (it cannot see the
-  worker's transcript, so an asserted premise is a guess that reads as an attack when wrong), and
-  workers preload `mid-run-direction`, which treats an anchored steer as *authenticated but
-  fallible* — correct a wrong premise in the return instead of dropping the message; let an
-  anchored steer grow the step but never move the lane, guards, or git posture; surface anything
-  unanchored. A well-reasoned refusal is the right answer to a bad steer; it is the wrong answer to
-  a coordinator's bookkeeping slip, and shape alone can't tell the two apart.
-- **A truncated return is not a finished step.** Judging completeness on *content* (is the
-  required evidence present?) is the rule because content is decisive and always available,
-  whereas the usage figures a completion notification may carry are not guaranteed to be there
-  and are not a precise turn count. The reconcile path is the same "`in-progress` is
-  unconfirmed — re-verify against the tree" rule the durable-resume protocol applies after a
-  crash; only the trigger differs, so the two paths deliberately share one behavior.
-- **Right-size the model per delegation.** Run-and-report steps need speed, not depth — the
-  command is known and failures surface on their own. Everywhere else a wrong fast result costs
-  more than the seconds saved, so the default is to omit the override. Splitting authoring from
-  verifying avoids paying for a truncation-and-resume round-trip, which is strictly more
-  expensive than planning two dispatches.
-- **Builds and full test suites.** Builds and full suites are expensive and verbose, which is
-  why they are a single delegated final gate rather than a per-step check. Delegating a
-  standalone build before the review gate builds the same tree twice.
-- **A gate command ends inside the worker's turn; a late handback is a fallback.** A worker that
-  backgrounds its own command and ends its turn reports later through `SubagentHandback`, and
-  that late report can reach the user's UI and never the orchestrator (#239). One Bash call waits
-  at most 600 s, so the `/crew:review` wait recipe starts the command detached and polls an exit
-  file in bounded calls: one rule for any duration, and completion is the exit file, not a guess
-  from artifacts. A timed-out gate is killed as a process group (`set -m`) and confirmed gone, so
-  it cannot keep writing outputs a retry collides with. The resend in `morpheus` covers a worker
-  that ends its turn anyway.
-- **Isolation or a path, decided at dispatch.** An isolated worktree is auto-cleaned when
-  `git status` shows no change, so a gitignored deliverable is deleted with it, and the sandbox
-  refuses a write to the main checkout that would save it (#241). A prompt that tells an isolated
-  worker to work elsewhere is a relocation, which `mid-run-direction` refuses — but not every
-  time, so the same dispatch both succeeded and failed (#242). Hence one choice per dispatch.
-- **Address review feedback.** The lifecycle doesn't stop at `/crew:pr` — the same lane routing,
-  git ownership, and gate that built the feature also close the review loop, so the post-PR
-  flow is the same machinery rather than a second, looser one.
-- **The plan file is durable state.** The file is written to survive a crashed or context-reset
-  session so the user never has to re-explain a feature already in flight. The `/crew:loop`
-  wrapper can detect a crashed tick from `in-flight:` alone because outer-loop ticks run their
-  workers in the foreground: a tick returns only when nothing is still running, so an
-  `in-flight:` marker still set at the next firing means that tick died. That inference is why
-  `morpheus` must preserve the field verbatim instead of regenerating it.
-- **Run summary.** It reproduces the per-worker view the live agent panel loses on resume, which
-  is why it duplicates neither `/recap`'s commit list nor the running status pulse.
-- **Anti-drift.** Citing the exact plan step in every delegation is what keeps a run resumable
-  and makes every unblocked step dispatchable at a glance. Keeping each step's `status` current
-  matters because a crash must leave an accurate, resumable record — that record is also what
-  the run summary renders. Naming the exact previously-failing tests on a re-verify keeps full
-  suites where they belong: the final review gate, not every fix.
+  steer arrives shaped like a `system-reminder`, the same shape injected text takes, so the anchor
+  is a token minted per dispatch that planted content cannot quote; a plan step id could be
+  cited by anyone who reads the repo. The token never enters the plan file or a worker's return.
+  Workers preload `mid-run-direction`: correct a wrong premise, grow the step but never move the
+  lane, guards or git posture, surface anything unanchored.
+- **A truncated return is not a finished step.** Completeness is judged on content, the only
+  signal always present; the reconcile path is the durable-resume rule under another trigger.
+- **Right-size the model per delegation.** Run-and-report steps get speed; everywhere else the
+  override is omitted, since a wrong fast result costs more than the seconds saved.
+- **Builds and full suites are one delegated final gate**, not a per-step check: expensive and
+  verbose, and a standalone build before the gate builds the same tree twice.
+- **A gate command ends inside the worker's turn.** A backgrounded command's late report can
+  reach the UI and never the orchestrator (#239), so `/crew:review`'s wait recipe polls an exit
+  file in bounded calls and kills a timed-out gate as a process group. A worker that still
+  backgrounds its own command is messaged for its report, and never reported on from a result
+  that has not arrived.
+- **Isolation or a path, decided at dispatch.** An isolated worktree auto-cleans a gitignored
+  deliverable (#241), and a relocation steer is refused inconsistently (#242).
+- **Address review feedback** with the same lane routing, git ownership and gate that built the
+  feature, not a second looser flow.
+- **The plan file is durable state.** It survives a crash or context reset. `/crew:loop` detects
+  a crashed tick from `in-flight:` alone because ticks run their workers in the foreground and
+  return only when nothing runs, which is why `morpheus` preserves the field verbatim.
+- **Run summary** reproduces the per-worker view the agent panel loses on resume, so it repeats
+  neither `/recap`'s commit list nor the status pulse.
+- **Anti-drift.** Citing the exact plan step in every delegation keeps a run resumable; current
+  `status` fields make a crash leave an accurate record; naming the failing tests on a re-verify
+  keeps full suites at the gate.
 
 ### crew:debt (the debt lane)
 
-- **Why the debt lane has a scout but no fixer of its own.** A dedicated fixer would duplicate
-  `tank`/`trinity`'s lanes, `remaining:` contract, turn budget and wait recipe, so every fix to
-  those would land twice. The fixer rules travel in each handoff instead, and `model: sonnet`
-  keeps a mechanical batch cheap. The audit is different: it greps untrusted repository content
-  and must edit nothing, and a `tools:` list with no Edit/Write is a boundary no prompt line
-  provides. `keymaker` is that list, and it has no Bash either: with a shell it could still run
-  `npm install`, which no guard refuses. `Grep` and `Glob` cover enumeration and stack detection,
-  and the two scopes that need a shell — `diff` (git) and `outdated` (a package manager) — are
-  resolved by `/crew:audit` in the main session and handed over as data blocks.
-- **Why `morpheus` is lane-guarded, and why its lane is a filename shape.** It writes Markdown
-  plans and ledgers, crew config and its agent memory, never production code, in every flow —
-  so the allowlist is mode-free rather than a debt-mode switch, and Bash-side writes were already
-  refused for every agent session. The lane is `plan-*.md`, `debt-*.md`, `crew.md` and
-  Markdown under `agent-memory-local/` at any depth, plus scratch, not a directory: a directory allowlist needed a
-  root to anchor to (`src/.claude/app.ts` passed a `.claude/**` prefix) and a `planDirectory`
-  slot that could overlap source, and three review rounds found an edge case each. Production
-  code is never named `plan-*.md`, so the shape needs neither. What it does allow — any Markdown
-  file with a plan name, anywhere — is not production code. A `..` segment is refused for every
-  lane agent rather than resolved: the guard matches strings, and no agent has a reason to edit
-  through one.
-- **Why class 4 waits for the user.** A skipped test or a blanket suppression is
-  needs-investigation in the rubric; routing it to `oracle`/`dozer` on the pointer alone would
-  turn "investigate" into "unskip". The lane reports the evidence and dispatches only what the
-  user decided.
-- **Open mode exit contract / resume protocol.** The 0-findings exit and the already-complete
-  ledger exit exist so that re-running a successful `/crew:debt` — including an
-  `/crew:audit` re-pick of a pointer already cleared — is a cheap no-op instead of a
-  re-enumeration. A ledger whose every batch is `done` has no further use once its commits are
-  in place; only a `blocked` batch keeps it alive as a resume point.
-- **Step 8, verify.** The independent per-mechanism re-sweep exists because a worker's
-  self-reported counts cannot be the source of truth for whether the worker introduced new
-  suppressions — that is exactly the claim under test.
-- **The batch ledger is durable state.** Open mode may run many batches across many turns, so a
-  crash or context reset would otherwise lose the run.
-- **Justified suppressions — why the debt lane only reads them** (#52). The store had to be
-  the codebase itself. Two alternatives were rejected: `memory: local` is gitignored, so it would
-  solve the re-surfacing problem for exactly one clone on one machine while every teammate's
-  audit re-flagged the same site and CI lost the rationale entirely — a keep-decision is a shared
-  fact about the code, not a machine-local preference. A per-site registry in the project's
-  `AGENTS.md` is committed and shared, but needs **keying** (`file:line` rots as soon as anything
-  above it shifts; a hash was explicitly unwanted) and rots into **staleness** — change the
-  suppression and the entry lingers, silently suppressing a *new* decision, with no validator
-  possible since the file lives in the user's project. A native justification slot has keying,
-  lifecycle, and PR-review locality for free. Project-level *policy* keeps the AGENTS.md route,
-  because one coarse statement beats annotating fifty sites.
-  There is deliberately **no ack command and no crew-specific token**: requiring an explicit
-  gesture to record a keep-decision is a step the user shouldn't have to take, and once nothing
-  writes the ack, the token, the lifecycle machinery, and the side log all stop being needed.
-  The cost is that slot-less mechanisms (`<NoWarn>`, `.editorconfig` severity, a bare `#pragma`)
-  have no per-site ack; they fall to project policy or stay surfaced. Accepted until it bites.
-- **Why `stale` scope ignores the filter, and skipped tests are never excluded.** A justification
-  explains why a suppression was *added*, not why it should stay now — so it cannot make a stale
-  suppression un-removable, and `@ts-expect-error` in particular is always removable because TS
-  self-reports unused directives. A `Skip="…"` reason says why a test is off, which is not the
-  same claim as "this debt is accepted", so skipped tests stay needs-investigation however they
-  are annotated. Both exemptions exist because the filter *hides* findings: the failure mode to
-  design against is a scope reported clean when it merely excluded everything.
+- **A scout but no fixer of its own.** A fixer would duplicate `tank`/`trinity`'s lanes and
+  contracts, so the fixer rules travel in each handoff. The audit greps untrusted content and
+  must edit nothing; `keymaker`'s `tools:` list without Edit/Write/Bash is the boundary, and
+  `/crew:audit` resolves the two shell-needing scopes as data blocks.
+- **Why `morpheus` is lane-guarded, and why its lane is a filename shape.** It writes plans,
+  ledgers, config and memory, never production code. A directory allowlist needed a root and a
+  slot that could overlap source, and three review rounds each found an edge case; production
+  code is never named `plan-*.md`. A `..` segment is refused for every lane agent.
+- **Class 4 waits for the user**: routing a skipped test on the pointer alone turns "investigate"
+  into "unskip".
+- **Exit contract and resume** make re-running a cleared pointer a cheap no-op.
+- **Step 8 re-sweeps independently** because the worker's own counts are the claim under test.
+- **The batch ledger is durable state**; open mode runs many batches across many turns.
+- **Justified suppressions are read, never written** (#52). The store had to be the codebase:
+  `memory: local` is per clone, a registry in the project's `AGENTS.md` rots by `file:line`, and
+  the mechanism's native slot has keying, lifecycle and review locality for free. No ack command,
+  no crew token. Slot-less mechanisms fall to project policy or stay surfaced — accepted.
+- **`stale` ignores the filter and skipped tests are never excluded**: a justification explains
+  why a suppression was added, not why it should stay, and the filter's failure mode is a scope
+  reported clean because it excluded everything.
 
 ## Validating changes
 
@@ -402,358 +217,158 @@ bash scripts/check-changelog.sh          # takes the base branch; defaults to ma
 bash tests/hooks/run.sh
 ```
 
-`check-changelog.sh` is the one diff-based check: it compares against the merge base with the
-base branch, which is why it takes a ref and why it lives outside `validate-plugin.sh` (that one
-is deliberately tree-only, so it runs anywhere with no base to resolve). See *Releasing* for
-what it enforces.
+`check-changelog.sh` is the one diff-based check, which is why it takes a ref and lives outside
+the tree-only `validate-plugin.sh`. See *Releasing*.
 
-`validate-plugin.sh`'s sections, cited as `§N` across the docs: manifests §2, marketplace sync
-§2f, `skills:` resolution §2g, version ↔ changelog §2h, hook file modes §3, wiring §6 (§4–§5 and
-§7 are unused), turn-budget §8, rosters §9, prose refs §10, `crew.md` keys §11, footprint §12, MCP pairs §13, YAML frontmatter §14.
-§2g and §12 index skills through `git ls-files`, so stage a new or renamed skill file before
-running the validator.
+`validate-plugin.sh`'s sections, cited as `§N`: manifests §2, marketplace sync §2f, `skills:`
+resolution §2g, version ↔ changelog §2h, hook file modes §3, wiring §6 (§4–§5 and §7 are
+unused), turn-budget §8, rosters §9, prose refs §10, `crew.md` keys §11, footprint §12, MCP
+pairs §13, YAML frontmatter §14. §2g and §12 index skills through `git ls-files`, so stage a
+new or renamed skill file before running the validator.
 
-`plugins/<plugin>/tests/` is a bash suite — no build step, no LLM, no network, needing only `jq`
-and `git` (the same tools the hooks and validator already require) — that exercises a plugin's
-hooks' *behavior*: each guard is a pure `stdin JSON → allow (exit 0) / block (exit 2)` function,
-so its allow/block decisions are unit-testable with no LLM. The harness itself
-(`tests/hooks/lib.sh`) is repo infrastructure and lives once at the top level, while the cases
-stay beside the plugin they cover; `tests/hooks/run.sh` discovers every `plugins/*/tests/*.test.sh`
-and **fails when a plugin ships `hooks/` with no suite beside it**, so a new plugin's guards
-cannot land untested. The two hooks that aren't guards are
-covered on their own terms — `turn-budget.sh` through its counter file, and `format.sh` (which
-never blocks) on the formatters it decides to run, faked in `node_modules/.bin` so no real
-toolchain is needed. It complements the structural checks
-(`validate-plugin.sh` + `shellcheck`): **a change to a hook's guard logic must add or adjust a
-case there**, covering both the allow and block sides.
+`plugins/<plugin>/tests/` is a bash suite — `jq` and `git` only, no LLM, no network — exercising
+the hooks' behavior: each guard is a pure `stdin JSON → exit 0/2` function. The harness lives
+once in `tests/hooks/`; `run.sh` discovers every suite and **fails when a plugin ships `hooks/`
+with no suite beside it**. `turn-budget.sh` is covered through its counter file and `format.sh`
+through faked formatters in `node_modules/.bin`. **A change to a guard's logic adds or adjusts a
+case, covering both the allow and the block side.**
 
-The suite also self-tests `validate-plugin.sh`: every section carries at least one **negative
-fixture** — a deliberately broken tree that the guard must reject — plus a control proving the
-same guard stays silent on a valid one. A check that silently stops checking is the worst
-failure mode for an enforcement tool, so this is a requirement, not a nicety: **a new validator
-section (or a new guard within an existing one) lands with its fixture in the same commit.**
-Assert on the guard's own FAIL message rather than the validator's exit code — a minimal
-fixture can't satisfy every unrelated section, and matching the message is what proves *which*
-guard fired.
+The suite also self-tests the validator: **every section carries a negative fixture and a silent
+control, and a new section or guard lands with its fixture in the same commit.** A check that
+silently stops checking is the worst failure for an enforcement tool. Assert on the guard's own
+FAIL message, not the exit code: a minimal fixture trips unrelated sections.
 
-`validate-plugin.sh` parses each `plugins/*/agents/*.md` YAML frontmatter and verifies every
-entry in its `skills:` list resolves to some `plugins/*/skills/<name>/SKILL.md` in the repo
-(skills are referenced unqualified, per existing convention). A typo here would otherwise fail
-silently at runtime — the skill just doesn't load and the agent guesses.
+What the lockstep sections protect, one line each:
 
-It also keeps the guard hooks' hardcoded agent rosters in lockstep with the agents themselves
-(§9). `bash-safety.sh` and `lane-guard.sh` gate on a list of agent names, and a name missing
-from one of those lists **fails open** — a newly added agent would silently get unrestricted
-git and no write lane. So each agent declares `owns-git: true|false` and
-`lane-guarded: true|false` in its frontmatter, each roster carries a `# crew-roster: <name>`
-marker, and §9 checks both directions: every agent classified, every roster entry real, and
-exactly one git owner per plugin — who must also be the agent `bash-safety.sh` names in its
-`git_owner=` line, the one a worker's refused `git mv` is told to hand the rename to. Adding an
-agent without those two fields fails CI.
-The rosters' `a|b|c)` arm shape and the markers are load-bearing — keep them when editing.
-
-Two more checks cover prose that names something the harness has to resolve. §10 requires every
-`crew:` reference in an agent, command, or skill body to resolve to a real agent or
-command file — a typo there fails silently and late, since the delegation simply doesn't launch.
-§11 keeps `commands/init.md` §1 — which declares itself the source of truth for the crew
-configuration slots — in lockstep with this repo's own `.claude/crew.md`, both directions, so a
-slot can't exist in one and not the other. The two read one exact shape each: a
-`- **<Slot>** (`key`) —` bullet under §1, and a top-level `key:` inside the config file's
-frontmatter. Bold text elsewhere is not a slot, a key named in the file's prose body is not
-configuration, and an unparseable list is reported rather than passed over. The pairing is on the
-**key**, not the prose label: the key is the half both files have to agree on.
-
-§12 measures what the repo preaches. Every agent's **always-loaded footprint** — its own file
-plus every skill its frontmatter preloads — is reported on each run, because that cost is paid on
-every single invocation and nothing else in the repo tracked it. The number is informational by
-default; an agent may declare `loaded-lines-cap: <n>` in its frontmatter (today `morpheus`, the
-orchestrator) to fail CI when it grows past a chosen budget, so raising the
-budget is a visible frontmatter edit rather than silent creep. A present-but-unparseable cap is a
-failure, not a skipped check, and so is an unreadable agent or skill file — counting it as 0 lines
-could under-count a footprint straight past its cap. Unresolved skill refs belong to §2g and are
-not double-reported here; skills are indexed via `git ls-files`, the same staging rule as §2g.
-
-§13 covers the `mcp__` entries of an agent's `tools:`. A plugin-bundled MCP server's tools are
-named `mcp__plugin_<plugin>_<server>__<tool>`, so a bare `mcp__<key>` grant — the form that
-matches a server keyed in `.mcp.json` — never matches them, and the agent reads a
-configured-but-not-allowlisted server as simply absent. The section requires every bare key to
-carry a plugin form, and every plugin form a bare key, so both install paths resolve; extra
-entries are inert, an unmatched one is not. The two halves are matched by **suffix**, not by
-assuming they're equal: a plugin and the server it bundles are keyed independently — the real
-`chrome-devtools-mcp` plugin ships a server called `chrome-devtools`, so
-`mcp__plugin_chrome-devtools-mcp_chrome-devtools` is what pairs with `mcp__chrome-devtools`. It also rejects
-the two grants that quietly cover less than they look like they do: a tool-scoped
-`mcp__server__tool`, which withholds the rest of that server's tools, and a bare `mcp__*`, which
-names no server at all. Both YAML shapes of `tools:` are read — the inline comma list the agents
-here use and a `  - name` block list — since reading only one would let the other skip the
-section without a word. Hosted
-connectors that can't be plugin-installed are exempt by name (`mcp__claude_ai_Figma`) — asserting
-a plugin twin for one would name a namespace that cannot exist.
-
-§14 parses what every other section reads key by key. A plain (unquoted) YAML scalar cannot hold
-a colon followed by whitespace — YAML reads it as a nested mapping and drops the whole
-frontmatter block — so a description written as ordinary prose ("Read-only: it investigates and
-reports") loads the file with no `name` and no `description` at all. A skill in that state never
-triggers and an agent in it is invisible to the orchestrator, while the file still reads
-correctly to a human, so nothing about the failure is visible while authoring. The check is
-targeted rather than a real parse: the repo carries no YAML dependency, and this is the whole
-class hand-written descriptions fall into. A value that opens with a quote, a block scalar, a
-flow collection or an anchor/tag indicator has already declared its type and is left to YAML's
-own rules; the fix the message names is to wrap the value in double quotes.
+- **§2g** — a `skills:` typo fails silently at runtime; the agent guesses.
+- **§9** — a name missing from a guard's roster **fails open**: unrestricted git, no lane. Each
+  agent declares `owns-git` and `lane-guarded`; each roster carries a `# crew-roster:` marker in
+  the load-bearing `a|b|c)` arm shape; exactly one git owner, who is also `bash-safety.sh`'s
+  `git_owner=`.
+- **§10** — a `crew:` reference in prose that resolves to no agent or command fails late.
+- **§11** — `init.md` §1's `- **Slot** (`key`) —` bullets and `.claude/crew.md`'s keys agree both
+  ways, paired on the key.
+- **§12** — the always-loaded footprint (agent + preloaded skills) is reported; an agent may set
+  `loaded-lines-cap` (today `morpheus`) so growth is a visible frontmatter edit. An unparseable
+  cap or unreadable file fails rather than counting zero.
+- **§13** — a plugin-bundled MCP server's tools are `mcp__plugin_<plugin>_<server>__…`, so every
+  bare `mcp__<key>` grant needs its plugin form and vice versa, matched by suffix. Tool-scoped
+  grants and a bare `mcp__*` are rejected; hosted connectors (`mcp__claude_ai_Figma`) are exempt.
+- **§14** — an unquoted YAML scalar with `: ` drops the whole frontmatter, so a skill never
+  triggers while reading fine to a human. Wrap the value in double quotes.
 
 ## Releasing
 
-Versions are per-plugin, and there is one rule: **a shipped change bumps the version.** To cut a
-release:
+Versions are per-plugin, and there is one rule: **a shipped change bumps the version.**
 
 1. Bump `version` in `plugins/<name>/.claude-plugin/plugin.json` and add a matching `CHANGELOG.md`
-   entry in the same PR. `validate-plugin.sh` §2h fails CI unless the manifest version equals the
-   newest `## [X.Y.Z]` entry in that plugin's changelog, so the two always move together.
-2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
-   version has no `<plugin>/v<version>` tag yet, and creates the tag and GitHub Release
-   automatically, with that version's changelog section as the notes
-   (`scripts/release-notes.sh`). No matching changelog entry → it skips with a warning. No manual tagging is needed
-   (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
+   entry in the same PR; §2h fails CI unless they agree.
+2. Merge to `main`. `auto-release.yml` sees the version has no `<plugin>/v<version>` tag, and
+   creates the tag and GitHub Release with that version's changelog section
+   (`scripts/release-notes.sh`). No entry → it skips with a warning.
 
 ### A shipped change bumps the version
 
-A tag carries **everything** merged since the previous tag, not just the bump — so a change that
-skips the bump ships inside the next release, described nowhere. That is how a README rewrite and
-a pass over the shipped hooks' comments both went out in `crew/v3.15.0` without appearing in any
-notes.
+A tag carries **everything** merged since the previous tag, so an unbumped change ships inside
+the next release, described nowhere (`crew/v3.15.0` did that to a README rewrite). So every PR
+that touches shipped files bumps — patch for a fix, minor for an addition, major for a break — a
+reworded refusal, a changed prompt, a comment inside a shipped hook, a README line included.
+Several in a day is fine. `check-changelog.sh` enforces it. Shipped means everything under
+`plugins/<name>/` except `tests/`, `CLAUDE.md`, `VERIFICATION.md` and `CHANGELOG.md` itself;
+`README.md` counts. Repo-wide changes (CI, root docs, `scripts/`, `tests/`) need no bump.
 
-So every PR that touches shipped files bumps — patch for a fix, minor for an addition, major for
-a breaking change. A guard that blocks a command it used to allow, a reworded refusal, a changed
-agent prompt, a comment inside a shipped hook, a README users read: every one of those is a
-release, however few lines it took. Releasing often is the cheap side of the trade. Auto-release
-does the tagging, versions are per-plugin, and a small release that names its change beats a
-large one that buries it. Several in a day is fine.
-
-`check-changelog.sh` enforces it on every PR, and it is blocking. Shipped means everything under
-`plugins/<name>/` except `tests/` (repo tooling), `CLAUDE.md` and `VERIFICATION.md` (contributor
-material), and `CHANGELOG.md` itself. `README.md` counts — users read it. Repo-wide changes (CI,
-root docs, `scripts/`, `tests/`) reach no user through `claude plugin update`, so they need no
-bump.
-
-**Changelog entries are terse.** One bullet per change under its Keep-a-Changelog heading
-(`Added`/`Changed`/`Fixed`/`Removed`); lead with *what changed* in plain terms, one line — two
-at most. The entry becomes the GitHub Release notes, so it's a scannable list, not a narrative:
-the *why*, mechanics, and background belong in the PR and commit message, not here. Reference the
-PR or issue as `(#N)` so the detail is one click away. Prefer:
-
-```
-### Added
-- `engineering-principles`: add `Observability` and `Backward compatibility` principles
-  (also shipped by the standalone plugin, v1.2.0).
-```
-
-over a multi-sentence paragraph restating each principle's contents.
+**Changelog entries are terse.** One bullet per change under its Keep-a-Changelog heading, one
+line, two at most: *what changed*, with the PR as `(#N)`. The why belongs in the PR and commit.
 
 ## Conventions
 
-- Hooks are Bash scripts (`#!/usr/bin/env bash`); keep them shellcheck-clean.
-- Shell scripts (hooks, `tests/`, tooling) stay BSD/macOS-portable — contributors and users run
-  them there too, not just on CI's Linux. Avoid GNU-only constructs: give `mktemp` an explicit
-  `XXXXXX` template (never bare `mktemp` or the GNU `-p` flag), use POSIX `[[:space:]]` rather
-  than `\s`, and prefer flags/behavior common to both GNU and BSD implementations.
+- Hooks are Bash (`#!/usr/bin/env bash`), shellcheck-clean, and **BSD/macOS-portable**: `mktemp`
+  with an explicit `XXXXXX` template, `[[:space:]]` not `\s`, no GNU-only flags.
 - Guards run before every tool call, so they match with `[[ =~ ]]` and parameter expansion, never
-  a fork per pattern (`echo | grep`, `sed`).
-- Agent/command/skill definitions are Markdown with YAML frontmatter — match the field
-  shape of existing files in the same directory. In an agent, `skills:` is the last key (§2g).
-- Local agent memory lives in `.claude/agent-memory-local/` and is gitignored. Don't commit it.
-  It resolves relative to the project directory, as the plan directory does (`<plan-dir>`,
-  `.claude/` when the slot is unset), so in a **git worktree** both sit inside that worktree and
-  `git worktree remove` deletes those working copies. Only committed content outlives it. Memory is
-  gitignored, so it is lost outright and the next worktree starts cold, re-asking what the last one
-  already answered; a plan survives only if it was committed, which is what pointing
-  `planDirectory` at a tracked path (e.g. `docs/plans/`) is for, rather than the untracked
-  `.claude/` fallback. Crew configuration is unaffected — `.claude/crew.md` is committed, and the `--local`
-  file lives in the shared git dir. Nothing
-  in this repo computes either path (`memory: local` is agent frontmatter the harness resolves), so
-  this is a property to work around, not a setting to change.
+  a fork per pattern.
+- Agent/command/skill files are Markdown with YAML frontmatter; match the field shape of their
+  neighbours. In an agent, `skills:` is the last key (§2g).
+- Local agent memory (`.claude/agent-memory-local/`) is gitignored. It and an unset plan directory
+  resolve inside a **git worktree**, so `git worktree remove` deletes both; only committed content
+  outlives it, which is what pointing `planDirectory` at a tracked path is for.
 - Keep diffs minimal-scope; list unrelated improvements rather than bundling them.
-- PR titles follow Conventional Commits: `type(scope): summary`, with a `(vX.Y.Z)` suffix
-  when the PR bumps a plugin version. Use `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope
-  the plugin when the change is plugin-specific (e.g. `feat(crew): … (v1.9.0)`).
-- **Keep PR descriptions short — this one has a hard budget, because "aim for short" gets
-  rationalised away.** A reviewer opens the PR to decide whether to approve, usually on a phone.
-  Anything that does not help that decision costs them time.
-  - **Summary: 150 words max, and at most 5 bullets.** Whole body under 400 words including the
-    template's sections. Count before posting; if it is over, cut rather than reword.
-  - **What the body is for:** why this change, and anything a reviewer needs in order to approve
-    safely (a deliberate omission, a risky assumption, a behaviour change). One sentence each.
-  - **Never in the body:** a self-review write-up, a bugs-I-found-and-fixed log, a
-    how-the-work-went narrative, design-alternatives reasoning, or quoted tool/agent output beyond
-    a single short line. Those go in the commit message (the natural home for depth), the issue,
-    or a review comment on the line in question — all of which a reviewer can *choose* to open.
-  - **Verification is a result, not a transcript.** "Ran X, all green" or a one-line-per-row list.
-    Never paste the output.
-  - If a caveat needs three paragraphs to justify, it is a review thread, not a PR body.
-  - The commit message carries the depth and is not budgeted. Writing a thorough commit message is
-    what makes a short PR body safe: nothing is lost, it is just moved somewhere it does not tax
-    every reviewer.
-- **Every review comment gets a reply, then the thread gets resolved.** Fixed it — say so and
-  name the commit. Declining — say why. Duplicate of another thread — say which. Silence leaves
-  the author guessing whether it was seen. Resolve only after replying, so the thread reads as
-  closed rather than ignored; leave it open if the answer is still pending.
-- When a PR resolves an issue, link it with a GitHub closing keyword in the body —
-  `Closes #N` / `Fixes #N` / `Resolves #N` — so the issue auto-closes on merge. Plain
-  references like `Implements #N` only cross-link; they do not close the issue.
-- One branch (and PR) per issue — don't reuse a branch across issues. Once a PR merges, GitHub
-  deletes its branch; reusing the same branch name for the next issue leaves a stale local
-  tracking ref and the next push is rejected (`stale info`) until you prune. Start each issue
-  from the latest `main` on a fresh branch:
-  `git fetch origin main && git checkout -B <branch> origin/main`.
+- PR titles follow Conventional Commits, `type(scope): summary`, with `(vX.Y.Z)` when the PR bumps.
+  Types: `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope the plugin when the change is
+  plugin-specific (`feat(crew): … (v1.9.0)`).
+- **PR descriptions have a hard budget**: summary 150 words and 5 bullets at most, whole body
+  under 400 words. The body says why, and what a reviewer needs to approve safely. Never a
+  self-review, a bugs-found log, a narrative, design alternatives, or pasted output; those go in
+  the commit message (not budgeted), the issue, or a review thread. Verification is a result
+  ("ran X, all green"), not a transcript.
+- **Every review comment gets a reply, then the thread is resolved.** Fixed — name the commit.
+  Declining — say why. Duplicate — say which.
+- A PR that resolves an issue links it with a closing keyword (`Closes #N`).
+- One branch and PR per issue, from the latest `main`: `git fetch origin main && git checkout -B
+  <branch> origin/main`. A merged PR's branch is deleted; reusing the name leaves a stale tracking
+  ref until pruned.
 
 ### Writing style (READMEs, changelogs, PR bodies, issues)
 
-Prose here should read like a person wrote it. Generated-sounding docs are not a style problem —
-they are a trust problem, because the patterns that make text sound generated are the same ones
-that let a claim slide through without evidence behind it.
+Prose here reads like a person wrote it; generated-sounding text is a trust problem, because the
+same patterns let a claim slide through unbacked.
 
-- **Name the catch.** Every guarantee has a cost, a limit, or a case where it doesn't hold. State
-  it next to the claim, not in a footnote. A section that only sells gets skimmed and believed in
-  the wrong places — see the two lane-guard overclaims in #178, both of which survived exactly
-  because the sentence sounded confident.
-- **Specifics instead of adjectives.** Not "powerful guardrails" — name the hook, the tool it
-  gates, and what happens when it fires. If an adjective is carrying the sentence, replace it
-  with the thing it's pointing at.
-- **Take the stance.** "Both approaches have their place" is a dodge. Say which one this repo
-  picked and why. If a doc boils down to "it depends", it didn't need writing.
-- **Don't hedge every sentence.** One or two qualifiers is normal. Qualifying everything reads as
-  evasion, and buries the qualifier that actually matters.
-- **Vary the rhythm.** Uniform medium-length sentences in uniform three-bullet lists is the house
-  style of generated text. Mix long and short. A four-word sentence is allowed.
-- **Skip the tells.** `delve`, `leverage`, `robust`, `seamless`, `unlock`, `harness` (as a verb),
+- **Name the catch** next to the claim. Two lane-guard overclaims survived #178 because the
+  sentence sounded confident.
+- **Specifics instead of adjectives.** Name the hook, the tool it gates, what happens when it fires.
+- **Take the stance.** "Both have their place" is a dodge.
+- **Don't hedge every sentence**, and **vary the rhythm**; a four-word sentence is allowed.
+- **Skip the tells**: `delve`, `leverage`, `robust`, `seamless`, `unlock`, `harness` (as a verb),
   `streamline`, `empower`, `elevate`, `pivotal`, "it's not just X, it's Y", "at its core", "in
-  today's fast-paced …". They add nothing and they date the writing.
-
-- **Go easy on em-dashes.** They were the house habit and got thinned out deliberately: roughly
-  one every five lines across the READMEs, which reads as machine-written whatever wrote it. A
-  colon, a comma, or a full stop usually says the same thing, and splitting a dashed clause into
-  its own short sentence fixes the rhythm at the same time. Keep the ones doing work no other
-  mark does, mostly a matched pair around a real aside. This is a nudge, not a ban, and it is
-  not worth a review comment on its own.
-
-Changelog entries have their own rule; see *Releasing*.
+  today's fast-paced …".
+- **Go easy on em-dashes.** A colon, a comma or a full stop usually serves; keep a matched pair
+  around a real aside. A nudge, not a review comment.
 
 ### The Bash guards are floors, not sandboxes
 
-`bash-safety.sh` refuses a few command shapes. Two of its rules have a scope that is easy to
-misread as "enforcement", and both have been widened once already and reverted; the reasoning
-lives here so it is not rediscovered at the cost of another review cycle. The hooks carry a
-one-line pointer to this section.
+`bash-safety.sh` refuses a few command shapes. Two rules read like enforcement and are not; each
+was widened once and reverted, and the hooks point here so it is not tried a third time.
 
-**The raw-read rule is a habit redirect.** It blocks `cat f` and names `Read` instead. It does
-not bound what can reach the context and does not try to — `grep . f`, `awk '{print}' f`,
-`tail -n 999999 f`, `od -c f`, `base64 f`, `tr a a < f` and a one-line `python3 -c` each dump the
-same file whole, and each is allowed. So the costs are asymmetric: a read the rule misses costs
-nothing, because a shorter bypass always sat beside it, while a read it refuses wrongly costs a
-turn and makes the rule look arbitrary — which is the friction it exists to remove. The pattern
-is therefore one line, and a pipe or **any** redirect ends the match. Following where bytes go
-through redirects means bash's own tokenizer: fd prefixes, quoting and redirection order, applied
-in order and with state. #226 tried, over six review rounds, and produced two regressions that
-refused ordinary commands (`cat f > out.txt`, then a commit message) before being reverted.
-
-**`guard_normalize` flattens newlines to a space, and that leaves a gap.** Flattening welds a
-later line onto the previous command's operands, so a pattern anchored at a command position sees
-only the first command: `cd sub` + newline + `git status` reads as `cd sub git status`, and the
-workers-never-run-git block misses it. Separating on the newline instead looks obvious and is not.
-A newline inside a quoted word, a heredoc body or a nested `$(...)` is data, not syntax, and
-turning those into separators refuses ordinary work — a heredoc commit message whose body line
-begins `cat ...` or `npm run dev ...`. #226 tried three shapes (unconditional, quote-aware, and
-quote-aware plus an odd/even backslash rule); each traded one routine failure for another, and the
-quote-aware one still let `echo "$(echo ok<newline>git status)"` through, which is the case it
-existed to stop.
-
-Both gaps stay open deliberately. A worker reaching `git` on a second line is one spelling among
-several — a `$(...)`, an interpreter — and the worker's own prompt is what keeps it out of git.
-Close either with a tokenizer or not at all; a pattern cannot. Either is a change of a different
-size than the rule it would replace, and belongs in its own PR.
-
-**`/crew:audit` passes `diff` file names as quoted lines, not as a parsed encoding.** A
-repository-controlled name can carry a quote, a backtick or a fence, and the block has no parser
-that such a character could break out of: the scout reads the whole block as data, by
-instruction, and it has no Edit, Write or Bash tool, so the worst a hostile name can do is skew a
-report the user reads before picking anything. A JSON or length-delimited encoding would add a
-step the reader has to get right for a gap whose ceiling is a wrong line in a report. Accepted.
-
-**The protected-branch backstop reads the branch where the commit runs, not where it is typed.**
-That is the payload's `cwd`, or the literal directory of a whole command shaped
-`git -C <dir> commit …` or `cd <dir> && git commit …`. Any other shape (`pushd`, a `$VAR`,
-`GIT_DIR=`, a second clause) also checks the hook's own directory, so it is never weaker than the
-check before #224; it can still refuse such a worktree commit. Open gap: a `CDPATH` in the agent's
-shell can send a literal `cd wt` elsewhere. #224 first tried a shell walk to cover every shape; it
-drew 100+ review threads and was replaced.
-
-**The one pattern that does read line starts is an allowance, which is why it may.** The
-`git mv` carve-out matches the raw command, newlines intact, and treats a line start as a command
-position. The asymmetry above runs the other way for it: a match *masks* the token so the generic
-write check does not read it as a bare `mv`, so a newline mistaken for a separator can at worst
-wave through a `git mv` that sits inside a string — it cannot refuse anything. Before it did so,
-two renames typed on two lines were refused, the second read as `mv` welded onto the first's
-operands. The blocking patterns do not get the same anchor; the paragraph above is why.
-
-**The floor decides *what* a `git mv` is, not *whose*.** The floor lets any agent run a plain
-`git mv`; after it, `bash-safety.sh` refuses its own roster's non-owners
-(`guard_block_git_mv_handback`), naming the agent to hand the rename to. An agent not on crew's
-roster is not refused.
-
-The hand-back is a *refusal*, so it reads the flattened command like the other refusals: a
-worker's `git mv` on a later line is the newline gap above, not handed back. Masking heredocs and
-quotes to close that gap was tried in #231 and reverted: each parse rule opened a new edge case.
+- **The raw-read rule is a habit redirect.** It blocks `cat f` and names `Read`; `grep . f`,
+  `awk`, `tail -n 999999`, `python3 -c` dump the same file and are allowed. A missed read costs
+  nothing, a wrong refusal costs a turn, so the pattern is one line and any pipe or redirect ends
+  the match. Following bytes through redirects needs bash's tokenizer (#226: two regressions in
+  six rounds, reverted).
+- **`guard_normalize` flattens newlines, leaving a gap**: `cd sub` + newline + `git status` reads
+  as one command and the no-git block misses it. Splitting on newlines refuses ordinary heredocs
+  and quoted strings (#226 tried three shapes). Both gaps stay open: the worker's prompt keeps it
+  out of git, and closing either takes a tokenizer in its own PR.
+- **`/crew:audit` passes `diff` file names as quoted lines**, not a parsed encoding: the scout
+  reads the block as data and has no tool to act on it, so a hostile name can only skew a report.
+- **The protected-branch backstop reads the branch where the commit runs**: the payload's `cwd`,
+  or the literal directory of `git -C <dir>` / `cd <dir> &&`; other shapes also check the hook's
+  own directory, so it is never weaker than before #224 (a full shell walk drew 100+ threads and
+  was replaced). Open gap: `CDPATH`.
+- **The `git mv` carve-out reads line starts because it is an allowance**: a false separator can
+  only wave through a `git mv` inside a string, never refuse anything. The floor decides *what* a
+  `git mv` is, not *whose*: it lets any agent run a plain one, and `bash-safety.sh` then refuses
+  its own roster's non-owners with a hand-back naming the owner; an agent not on crew's roster is
+  not refused. The hand-back is a refusal and reads the flattened command like the others;
+  masking heredocs to close that gap was tried in #231 and reverted.
 
 ## Recurring review findings — apply proactively
 
-Patterns that showed up more than once in review feedback on this repo. Apply these up front
-rather than waiting for a reviewer (human or Copilot) to catch them again:
+Patterns that showed up more than once in review on this repo. Apply them up front:
 
-- **Verify before filing a "nothing enforces this" issue.** Grep the actual implementation and
-  `AGENTS.md` first — the mechanism may already exist and just be undocumented in the place you
-  looked. (A drift-guard issue was filed against this repo without checking that
-  `validate-plugin.sh` already had one.)
-- **A validator/guard must fail loudly on every path where it can't verify its claim** — a
-  missing input file, invalid input, or an unreachable check are failures for a script whose job
-  is enforcement. Never silently skip and report nothing (or pass) when the thing being checked
-  couldn't actually be checked.
-- **When joining a trusted and an untrusted field with a delimiter for later splitting, anchor
-  the split on the trusted field, not the untrusted one.** Splitting on the *first* occurrence of
-  the delimiter is only safe when the field before it is a small, controlled value that can never
-  itself contain the delimiter (e.g., an `agent_type`). Put arbitrary/untrusted text (e.g., a full
-  shell command) last, or split from the end — otherwise the untrusted field could itself contain
-  the delimiter and truncate what a downstream safety check inspects.
-- **Adding a new conditional to a multi-mode flow means auditing every existing mode, not just
-  the default path.** A command with `full`/`quick`/`$ARGUMENTS`-style branches needs the new
-  behavior spelled out explicitly for each branch, or reconciled with it — don't leave a newly
-  added conditional ambiguous under a mode that predates it.
-- **State heuristics as heuristics.** Don't write "X can't happen" when a cost-saving skip is
-  actually based on "X is unlikely" — overclaiming a guarantee invites a correctness bug report
-  later; the accurate phrasing costs nothing.
-- **Bash: `if ! var="$(cmd)"; then ...` still assigns `var`** (typically to whatever the command
-  printed before failing, often empty) — the `if !` checks the command's exit status, not
-  whether an assignment happened. Don't write a comment implying the variable is "never set" on
-  failure.
-- **Quote variable expansions on principle, including array subscripts** — bash doesn't always
-  require it (e.g., an associative-array subscript isn't word-split even unquoted), but quoting
-  is free, avoids relying on that nuance, and heads off reviewer friction.
-- **Keep inline script/agent-prompt comments short; put full rationale in `AGENTS.md` or
-  `CHANGELOG.md` and point to it** rather than restating it at every call site — a one-line
-  pointer beats a paragraph duplicated in multiple places.
-- **After merging `main` into a branch to resolve conflicts, refresh the PR description too** —
-  version-bump ranges and scope notes written before the merge (e.g., "3.1.0 → 3.1.3") go stale
-  once the branch is rebased forward onto a `main` that already moved (e.g., to 3.1.2).
-- **Self-review the diff before opening a PR, not after.** Run `/code-review` on the working
-  diff (or the full `/crew:review` gate) *before* pushing — it catches design bugs a static
-  `validate-plugin.sh` run can't (e.g. a command whose stated behavior isn't mechanically
-  achievable, or an ownership contradiction between two files). Reviewers should be a backstop,
-  not the first pass.
-- **A command that delegates can only pass what the delegated command accepts.** A thin command
-  built on another (say, one wrapping `/crew:feature`, which only forwards its goal to
-  `crew:morpheus`) can't "tell" the inner agent anything that inner command doesn't forward. If
-  the wrapper needs to convey extra context (a driving intent, an authorization), launch the
-  underlying agent directly with that note rather than nesting a command that only forwards its
-  own arguments.
-- **Behavioral verification means actually running the scenario, not asserting it in the PR.**
-  For a behavior-changing plugin PR, exercise the relevant scratch-repo scenario from that
-  plugin's `VERIFICATION.md` ([crew](plugins/crew/VERIFICATION.md)) and cite the observed result — a checklist item
-  that reads "would pass" is not verification.
+- **Verify before filing a "nothing enforces this" issue.** Grep the implementation and this file
+  first; a drift-guard issue was filed against a check the validator already had.
+- **A validator or guard fails loudly on every path where it cannot verify its claim** — a missing
+  input, invalid input, an unreachable check. Never skip silently.
+- **Anchor a delimiter split on the trusted field.** Splitting on the first occurrence is safe
+  only when the field before it is a small controlled value that cannot contain the delimiter;
+  put untrusted text last, or split from the end.
+- **A new conditional in a multi-mode flow is spelled out for every mode**, not only the default.
+- **State heuristics as heuristics.** "X is unlikely" is not "X can't happen".
+- **Bash: `if ! var="$(cmd)"` still assigns `var`**; don't comment that it is "never set".
+- **Quote every expansion, array subscripts included.**
+- **Keep inline comments short; the rationale lives once, here or in the changelog, with a pointer.**
+- **After merging `main` into a branch, refresh the PR description**: version ranges go stale.
+- **Self-review the diff before opening a PR** (`/code-review` or the `/crew:review` gate);
+  reviewers are the backstop, not the first pass.
+- **Behavioral verification means running the scenario**, from the plugin's
+  [`VERIFICATION.md`](plugins/crew/VERIFICATION.md), and citing the observed result. "Would pass"
+  is not verification.

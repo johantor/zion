@@ -12,11 +12,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Debt skills: one mechanism table per stack** (scope, justification slot, stale signal,
   removal) and one upgrade table in `debt-taxonomy`; `debt-lane` routes by them instead of
   restating them (#250).
-
-## [4.1.1] - 2026-09-24
-
-### Changed
-
 - **Stack and test skills state only what is specific to their tool.** The docs-MCP rule, the
   run-as-configured rule and the never-skip rule live once, in `worker-contract`, `oracle` and
   `dozer` (#250).

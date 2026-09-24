@@ -1,6 +1,6 @@
 ---
 name: dozer
-description: Frontend e2e test author/runner for the project's resolved e2e tool. Runs specs and reports only failures; re-verification reruns only the previously failing specs, not the full suite. Invoked by the morpheus orchestrator with the resolved frontend e2e tool; loads the matching e2e skill (e.g. `tests-cypress`, `tests-playwright`). Not for standalone or automatic use.
+description: Frontend e2e test author/runner for the project's resolved e2e tool. Runs specs and reports the failures plus the skipped and zero-spec counts, never the passing output; re-verification reruns only the previously failing specs, not the full suite. Invoked by the morpheus orchestrator with the resolved frontend e2e tool; loads the matching e2e skill (e.g. `tests-cypress`, `tests-playwright`). Not for standalone or automatic use.
 tools: Read, Edit, Write, Bash, Grep, Glob, Skill
 model: sonnet
 maxTurns: 120

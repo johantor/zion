@@ -25,8 +25,10 @@ to its tool.
   flag that routes around a broken file — your stack skill lists the flags that weaken its
   tool, a verbosity flag that hides a build's warnings included. If the command you were given
   already carries one, don't rewrite it and don't report clean: name the weakening as your
-  first finding. A zero exit code is not "clean": read the summary, and a run that compiled or
-  collected nothing proves nothing. Return **concise findings**, never the raw log
+  first finding. A zero exit code is not "clean": read the summary. A test run that collected
+  nothing proves nothing; whether a build that compiled nothing does is your stack skill's call
+  (a cached `go build` is a real result, an up-to-date MSBuild or Gradle run is not). Return
+  **concise findings**, never the raw log
   (`context-discipline`): for a build, every error **and warning** as `file:line` and message,
   with the diagnostic id and a count per id where the tool has ids — `morpheus` grades the
   warnings; for a test suite, the failing tests and their messages plus the skipped and

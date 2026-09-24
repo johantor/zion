@@ -4,7 +4,9 @@ description: Run the diff-aware pre-PR review gate (code/security/design + build
 
 Run the pre-PR **review gate** and return a single **GO** / **NO-GO** summary. The gate is
 both the consolidated review (code quality, security, design conformance) **and** the
-executable checks (build, tests, lint) — one gate, run before `/crew:pr`.
+executable checks (build, tests, lint) — one gate, run before `/crew:pr`. Load the
+`review-gate` skill with the Skill tool first: its rules govern every executable gate below,
+whether `morpheus` or this command dispatches it.
 
 You own git, so **scope the gate to the diff**: determine which lanes the branch actually
 changed, then run only the executable gates that change can affect. Don't run a full e2e or
@@ -26,14 +28,19 @@ Compute the files changed on this branch vs. the resolved base branch
 (`git diff --name-only <base>...HEAD`, plus any staged/unstaged changes), then
 classify each path — same split the lane guard uses:
 
-- **Frontend lane** — `*.ts`, `*.tsx`, `*.jsx`, `*.js`, `*.mjs`, `*.scss`, `*.css`, `*.html`
-  (and `*.cshtml` in server-rendered mode, where trinity owns the markup).
-- **Backend lane** — every other changed file that is not documentation (`*.md`, `docs/**`,
-  `.github/**`, `LICENSE`): sources, manifests, lockfiles and gate configuration alike, since a
-  gate's own configuration decides what the build and lint do. `*.cshtml` carries server-side
-  logic, so it counts here too. When in doubt, backend: an extra build costs minutes, a skipped
-  gate costs a bad merge. No list to keep in step with `lane-guard.sh` — the guard decides who
-  may *edit* a file, this step only decides which gates *run*.
+- **Frontend lane** — its sources (`*.ts`, `*.tsx`, `*.jsx`, `*.js`, `*.mjs`, `*.scss`, `*.css`,
+  `*.html`, and `*.cshtml` in server-rendered mode, where trinity owns the markup) and its
+  manifests and tool configuration: `package.json` and its lockfile, `tsconfig*.json`, the
+  bundler, e2e, unit-test, lint and style configs (`vite.config.*`, `next.config.*`,
+  `playwright.config.*`, `cypress.config.*`, `.eslintrc*`, `biome.json`, `postcss.config.*`,
+  `tailwind.config.*`, …), since a gate's own configuration decides what the build and lint do.
+- **Backend lane** — every other changed file that is not documentation (`*.md` outside
+  `.claude/`, `docs/**`, `.github/**`, `LICENSE`): sources, manifests, lockfiles and gate
+  configuration alike. `*.cshtml` carries server-side logic, so it counts here too. When in
+  doubt, backend: an extra build costs minutes, a skipped gate costs a bad merge. No list to keep
+  in step with `lane-guard.sh` — the guard decides who may *edit* a file, this step only decides
+  which gates *run*.
+- **Both lanes** — `.claude/crew.md`: a changed gate command changes what both lanes' gates do.
 - **Node is the exception.** The whole JS/TS set — `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`,
   `.mts`, `.cts` — belongs to whichever lane the **Backend/Frontend lane path(s)** put it in (the
   same split `lane-guard.sh` falls back to), and to the backend alone when **Frontend stack** is
@@ -89,30 +96,25 @@ d=<path>; p=$(head -c 16 "$d/pid"); kill -TERM -- -"$p"; for i in $(seq 60); do 
 ```
 
 Report it with the gate's name and `$d`, never as a code failure; `still-running` goes to the user
-as is. A build timeout follows `morpheus`'s gate step 6; a hung test, e2e or lint run goes to the
+as is. A build timeout follows `review-gate` rule 4; a hung test, e2e or lint run goes to the
 user as its own timeout, not rerun as contention.
 
 **Independent of each other is not independent of the build outputs.** Same-lane gates write the
-same build location (a test or lint run compiles too), so a lane's gates run **one at a time**
-unless its stack skill's **Parallel gates** recipe applies and its conditions hold — `morpheus`
-§*Builds and full test suites are a final gate*, rule 3, has the rule; today only
-`backend-dotnet` has a recipe. Record the recipe's tree-check result beside the gate's SHA, and
-put each gate's own `<location>/<lane>/<gate>` path and the recipe's exact flags in its handoff,
-`oracle`'s included: a worker that did not load the stack skill cannot derive them. Two lanes
-writing different outputs still run concurrently.
+same build location, so they run as `review-gate` rule 1 says: one at a time, or together only
+under the stack skill's **Parallel gates** recipe with its conditions checked and recorded. Two
+lanes writing different outputs still run concurrently.
 
 1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
 2. **Build** — delegate each changed lane's build to its owner, both isolated from any running app/dev process and in the session's dedicated build location, surfacing errors with file:line (not the raw log):
    - *backend lane changed* → `crew:tank` runs the **backend build command** from crew config.
    - *frontend lane changed* → `crew:trinity` runs the **frontend build command** from crew config (e.g. `tsc --noEmit` / `vite build`).
 
-   Each build runs as `morpheus` §*Builds and full test suites are a final gate* rules 4–6 say:
-   one-shot and bounded, as configured with its warnings in the findings, contention told from a
-   code failure. This command adds the routing: a warning in a file this branch changed is
-   `## Blocking` (this branch owns that file), one anywhere else is a `## Warnings` item, so a
-   project that already builds warning-dirty doesn't fail the gate on its backlog. A weakening in
-   the **configured command itself** is `## Blocking`, naming the flag and pointing at
-   `/crew:init` — run the build anyway, a compile error is still an error.
+   Each build runs as `review-gate` rules 2–4 say: one-shot and bounded, as configured with its
+   warnings in the findings, contention told from a code failure. Rule 3's routing lands in the
+   output as: a warning in a file this branch changed is `## Blocking`, one anywhere else a
+   `## Warnings` item, so a project that already builds warning-dirty doesn't fail the gate on
+   its backlog; a weakening in the **configured command itself** is `## Blocking`, naming the
+   flag and pointing at `/crew:init` — run the build anyway, a compile error is still an error.
 3. **Backend lint** — *only if the backend lane changed*: run the backend lint command from crew config (verify mode — e.g. `dotnet format --verify-no-changes`, plus `dotnet csharpier check` when a `.csharpierrc` is present); surface lint/format violations.
 4. **Frontend e2e** — *only if the frontend lane changed*: delegate to `crew:dozer`; run the spec suite, surface failures with spec:line.
 5. **Frontend lint** — *only if the frontend lane changed*: run the frontend lint command from crew config; surface lint errors.

@@ -16,10 +16,10 @@ that is there rather than importing a layout from another project.
 ## Crew config
 
 `/crew:init` proposes: build is the static gate — `mypy .` from a `[tool.mypy]`/`mypy.ini`,
-`pyright` from a `[tool.pyright]`/`pyrightconfig.json`, `unset` when neither is configured; test
-`pytest` when the project has it (a `[tool.pytest.ini_options]` table, a `pytest.ini`, or pytest
-in the dependencies), `python -m unittest discover` for a `unittest`-only project, `unset` when
-neither; lint `ruff check .` / `flake8` plus `black --check .` where configured. Every command is
+`pyright` from a `[tool.pyright]`/`pyrightconfig.json`, `none` when neither is configured (a
+confirmed absence, not an open question); test `pytest` when the project has it (a
+`[tool.pytest.ini_options]` table, a `pytest.ini`, or pytest in the dependencies),
+`python -m unittest discover` for a `unittest`-only project, `none` when neither; lint `ruff check .` / `flake8` plus `black --check .` where configured. Every command is
 prefixed with the project's runner when it has one (`poetry run`, `uv run`, `pdm run`, `pipenv
 run`) — a bare `pytest` resolves against whatever interpreter is active.
 

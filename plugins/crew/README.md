@@ -312,8 +312,8 @@ one that isn't installed, so it just reports the server as unavailable.
   `/crew:pr`, `/crew:address`, `/crew:triage`, `/crew:loop`, `/crew:notify`.
 - **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor,
   dispatch-denied advisor (see *Permission mode*).
-- **Skills:** always on for every agent: `context-discipline`. For `morpheus`: `loop-engineering`
-  and `operator-voice`. For the implementers `tank`, `trinity` and `neo`: `engineering-principles`.
+- **Skills:** always on for every agent: `context-discipline`. For `morpheus`: `loop-engineering`,
+  `operator-voice` and `review-gate` (the gate rules, which `/crew:review` loads too). For the implementers `tank`, `trinity` and `neo`: `engineering-principles`.
   For the five workers with a shell: `worker-contract` (the rules every dispatch follows). For
   every worker: `mid-run-direction` (how to treat a steer that arrives mid-run), and
   `design-tokens` for the agent doing design conformance.

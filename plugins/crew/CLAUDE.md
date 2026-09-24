@@ -40,7 +40,9 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 - `skills/` — `<name>/SKILL.md`, frontmatter `name:` + `description:` only (the description
   carries the triggers).
   - `morpheus`'s preloads: `context-discipline`, `loop-engineering`, `operator-voice`
-    (ASD-STE-100; operator messages only, never plans, ledgers or commits).
+    (ASD-STE-100; operator messages only, never plans, ledgers or commits), `review-gate` (the
+    build/test/lint gate rules; `/crew:review` loads it too, since a standalone run never sees
+    `morpheus.md`).
   - Debt lane, loaded on demand: `debt-lane` (open mode — the flow, the fixer rules each handoff
     carries, the `<plan-dir>/debt-<slug>.md` ledger with its per-batch `snapshot:`),
     `debt-taxonomy` (rubric, gate, tiers), and `debt-taxonomy-dotnet`/`-typescript`
@@ -122,8 +124,9 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 - `omitClaudeMd: true` only on `sentinel` and `seraph` (read-only, fully briefed). Never on an
   implementer: the project's `CLAUDE.md` holds its conventions. Not on `keymaker` either: the
   project's `CLAUDE.md` may carry the debt policy section it has to honor.
-- `morpheus` has `loaded-lines-cap: 595`, 4 lines of slack. Skills it loads on demand (`debt-lane`)
-  do not count.
+- `morpheus` has `loaded-lines-cap: 609`, 4 lines of slack (raised from 595 when the gate rules
+  moved into the preloaded `review-gate` skill, whose frontmatter and heading count). Skills it
+  loads on demand (`debt-lane`) do not count.
 
 ## Gotchas
 

@@ -27,5 +27,5 @@ Rules:
   back to confirm a specific fix, run only the spec(s) that were previously failing, not the
   whole suite — the full suite is the gate `worker-contract` describes. If you weren't told
   which specs failed, ask `morpheus` for the list rather than defaulting to a full run.
-- Apply `context-discipline`: surface only failing specs and errors; keep full run logs in
-  your own context.
+- Apply `context-discipline`: surface the failing specs and their errors plus the skipped and
+  zero-spec counts, never the passing output; keep full run logs in your own context.

@@ -17,7 +17,8 @@ the project's own (`test`/`test:unit`) or `npx jest`.
   plain `jest.fn()` / `jest.spyOn()` for unit mocks and `jest.mock()` for module mocks.
 - Prefer queries that reflect how users perceive the UI (`getByRole`, `getByLabelText`,
   `getByText`) over implementation-detail selectors (`getByTestId`, CSS class).
-- **Targeted rerun:** the test file path or `--testPathPattern`.
+- **Targeted rerun:** the test file path or `--testPathPattern` as the path filter, plus
+  `-t`/`--testNamePattern` to match by test name.
 - **Discovery:** `npx jest --listTests` (files only). A file the list misses has a `testMatch`
   problem.
 - **Skip mechanism:** `it.skip`/`describe.skip`, `xit`.

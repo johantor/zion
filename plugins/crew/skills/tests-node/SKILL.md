@@ -15,8 +15,9 @@ Detect the test framework from its config file:
 Run tests using the repository's backend test command from crew config, whichever framework
 it resolves to.
 
-- **Targeted rerun:** the test file path, plus `-t`/`--testNamePattern` (Vitest) or
-  `--testPathPattern` (Jest) to match by name.
+- **Targeted rerun:** the test file path as the path filter, plus `-t`/`--testNamePattern` to
+  match by test name — both frameworks take both. Jest's `--testPathPattern` filters paths,
+  never names.
 - **Discovery:** Vitest lists test cases with `npx vitest list <file>`; Jest lists the files it
   would run with `npx jest --listTests` (files only — a listed file whose tests don't appear in
   the run summary has a `describe`/`it` problem, not a discovery one). A run that reports no

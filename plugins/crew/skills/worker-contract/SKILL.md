@@ -22,13 +22,15 @@ to its tool.
   server lifecycle. If you think a build or a test run is warranted earlier, say so in your
   summary and let `morpheus` decide.
 - **Run the gate as configured.** No narrowed target, no relaxed analyzer or lint level, no
-  lowered verbosity, no flag that routes around a broken file — your stack skill lists the
-  flags that weaken its tool. If the command you were given already carries one, don't rewrite
-  it and don't report clean: name the weakening as your first finding. A zero exit code is not
-  "clean": read the summary, and a run that compiled or collected nothing proves nothing.
-  Return **concise findings**, never the raw log (`context-discipline`): for a build, every
-  error **and warning** as its id, `file:line` and a count per id — `morpheus` grades the
-  warnings; for a test suite, only the failing tests and their messages. A file-lock or in-use
+  flag that routes around a broken file — your stack skill lists the flags that weaken its
+  tool, a verbosity flag that hides a build's warnings included. If the command you were given
+  already carries one, don't rewrite it and don't report clean: name the weakening as your
+  first finding. A zero exit code is not "clean": read the summary, and a run that compiled or
+  collected nothing proves nothing. Return **concise findings**, never the raw log
+  (`context-discipline`): for a build, every error **and warning** as `file:line` and message,
+  with the diagnostic id and a count per id where the tool has ids — `morpheus` grades the
+  warnings; for a test suite, the failing tests and their messages plus the skipped and
+  zero-test counts, never the passing output. A file-lock or in-use
   error is **environmental**, not a code error — unless two crew gates shared an output path,
   which you report as such; your stack skill has the signature.
 - **Never end your turn while a command you started still runs** — that late report can miss

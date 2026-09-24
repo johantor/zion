@@ -19,7 +19,10 @@ You write and run frontend e2e tests, working under `worker-contract`.
 Rules:
 - Use the frontend e2e tool `morpheus` provides in the delegation (it resolves it) and load
   the matching e2e skill via the Skill tool — e.g. `tests-cypress`, `tests-playwright`.
-- Edit test files only; never modify production code.
+- Edit test files only; never modify production code. Never make a spec pass with the tool's
+  skip mechanism, and never widen an assertion to whatever the page currently renders. If the
+  app is wrong, say so and hand it back.
+- A run that reports zero specs is a failure to report, not a pass.
 - **Re-verifying a fix is a targeted rerun, not a full suite run.** When `morpheus` sends you
   back to confirm a specific fix, run only the spec(s) that were previously failing, not the
   whole suite — the full suite is the gate `worker-contract` describes. If you weren't told

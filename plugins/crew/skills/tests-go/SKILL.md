@@ -39,27 +39,17 @@ binary or a golden file puts it there rather than in the package directory.
 
 ## Running
 
-Run tests using the repository's backend test command from crew config — typically
-`go test ./...`.
+The backend test command from crew config is typically `go test ./...`.
 
-A **targeted rerun** uses `-run`, anchored so it matches one test and not its prefixes:
-
-- `go test ./pkg/foo -run '^TestName$'` — one test.
-- `go test ./pkg/foo -run '^TestName$/^case_name$'` — one subtest (spaces in a subtest name become
-  underscores in the `-run` path).
-
-Confirm a new test is discovered with `go test ./pkg/foo -list '.*'`, which prints the matching
-test names without running them; a test missing from that list has a name or build-tag problem in
-the source, not in the compiled package.
-
-Notes on reading a run:
-
-- `go test` **caches** passing results. A rerun that prints `(cached)` did not execute the test;
-  when you need a real run, `-count=1` defeats the cache.
-- `?   <package>   [no test files]` is not a pass — the `?` marks a package with no tests at
-  all, and it does not affect the run's exit code. Report it as a gap rather than as green.
-- `-race` is a different build. If the project's command carries it, keep it: a race the detector
-  finds does not reproduce without it. Never drop `-race` to make a run finish faster.
-
-Never make a test pass with `t.Skip`, and never loosen an assertion to whatever the code currently
-returns. If the production code is wrong, say so and hand it back.
+- **Targeted rerun:** `-run`, anchored so it matches one test and not its prefixes:
+  `go test ./pkg/foo -run '^TestName$'` for one test,
+  `go test ./pkg/foo -run '^TestName$/^case_name$'` for one subtest (spaces in a subtest name
+  become underscores in the `-run` path).
+- **Discovery:** `go test ./pkg/foo -list '.*'` prints the matching test names without running
+  them; a test missing from that list has a name or build-tag problem in the source.
+- **Reading a run:** `go test` **caches** passing results — a rerun that prints `(cached)` did not
+  execute the test; `-count=1` defeats the cache. `?   <package>   [no test files]` is the
+  zero-tests gap for that package, and it does not affect the exit code. `-race` is a different
+  build: if the project's command carries it, keep it — a race the detector finds does not
+  reproduce without it.
+- **Skip mechanism:** `t.Skip`.

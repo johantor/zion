@@ -47,7 +47,9 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   - Also: `engineering-principles` (the code rules `/crew:review` grades a user's project
     against; this repo's own review rubric is `.github/skills/code-review`), and the preloads
     `worker-contract` (the rules shared by the five workers with a shell — `tank`, `trinity`,
-    `oracle`, `dozer`, `neo` — so each prompt states only what is specific to its role),
+    `oracle`, `dozer`, `neo` — so each prompt states only what is specific to its role, and each
+    stack skill only what is specific to its tool: watch commands, weakening flags, the lock
+    signature, filter and discovery syntax, the skip mechanism),
     `mid-run-direction` (all eight workers, not `morpheus`) and `design-tokens` (`seraph`).
   - Loaded once resolved: frontend mode, stack and test-tool skills. Backends `backend-dotnet`
     (+ `cms-optimizely`), `-node`, `-python`, `-go`, `-rust`, `-java`, `-shell`, each paired with

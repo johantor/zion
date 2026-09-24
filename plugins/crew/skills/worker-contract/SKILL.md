@@ -1,12 +1,13 @@
 ---
 name: worker-contract
-description: "The rules every crew worker with a shell follows on any dispatch from morpheus: never run git, ask rather than guess what the delegation left out, treat the build and full suites as morpheus's final gate rather than a self-check, never leave a command running at hand-back, hand back with a completion marker and a remaining: line, name an MCP server you expected but cannot see, and keep local memory. Preloaded by tank, trinity, oracle, dozer and neo; not for standalone use."
+description: "The rules every crew worker with a shell follows on any dispatch from morpheus: never run git, ask rather than guess what the delegation left out, treat the build and full suites as morpheus's final gate and run them as configured, never leave a command running at hand-back, hand back with a completion marker and a remaining: line, name an MCP server you expected but cannot see, use a docs MCP over memory, and keep local memory. Preloaded by tank, trinity, oracle, dozer and neo; not for standalone use."
 ---
 
 # Worker contract
 
 You work one delegation from `crew:morpheus` and hand back. These rules hold on every dispatch;
-your own prompt adds what is specific to your role.
+your own prompt adds what is specific to your role, and your stack skill adds what is specific
+to its tool.
 
 - **Never run `git`.** `crew:morpheus` owns branching and commits. A rename is a hand-back, not
   a `git mv`.
@@ -14,15 +15,22 @@ your own prompt adds what is specific to your role.
   the mode, the test tool, the list of failing tests — ask `morpheus` rather than guessing.
 - **The build and the full test suite are the final review gate, not a self-check.** Verify
   your work with reasoning, targeted reads and the edit/lint feedback loop. Run the build or the
-  full suite only when `morpheus` delegates it, once the work queue is drained: in the session's
-  dedicated build location, isolated from any running app or dev process, with the **one-shot
-  command `morpheus` hands you** — never a watch/dev/serve command, those never terminate — run
-  as configured, with no narrowed target and no relaxed analyzers. Return **concise findings**,
-  never the raw log (`context-discipline`): for a build, its errors **and warnings** with
-  `file:line` — `morpheus` grades the warnings; for a test suite, only the failing tests and
-  their messages. A file-lock or in-use error is **environmental**, not a code error; your
-  stack skill has the signature. If you think a build or a test run is warranted earlier, say
-  so in your summary and let `morpheus` decide.
+  full suite only when `morpheus` delegates it, once the work queue is drained, with the
+  **one-shot command `morpheus` hands you** — never a watch/dev/serve command, those never
+  terminate; your stack skill names them. A build runs in the session's dedicated build
+  location, isolated from any running app or dev process; an e2e suite's command owns its own
+  server lifecycle. If you think a build or a test run is warranted earlier, say so in your
+  summary and let `morpheus` decide.
+- **Run the gate as configured.** No narrowed target, no relaxed analyzer or lint level, no
+  lowered verbosity, no flag that routes around a broken file — your stack skill lists the
+  flags that weaken its tool. If the command you were given already carries one, don't rewrite
+  it and don't report clean: name the weakening as your first finding. A zero exit code is not
+  "clean": read the summary, and a run that compiled or collected nothing proves nothing.
+  Return **concise findings**, never the raw log (`context-discipline`): for a build, every
+  error **and warning** as its id, `file:line` and a count per id — `morpheus` grades the
+  warnings; for a test suite, only the failing tests and their messages. A file-lock or in-use
+  error is **environmental**, not a code error — unless two crew gates shared an output path,
+  which you report as such; your stack skill has the signature.
 - **Never end your turn while a command you started still runs** — that late report can miss
   `morpheus`. Never `run_in_background` a build or a suite; the gate handoff gives the wait
   recipe.
@@ -38,4 +46,7 @@ your own prompt adds what is specific to your role.
   (`mcp__plugin_<plugin>_<server>`) and simply not in your `tools:`. Report it by name in your
   hand-back rather than silently working without it. From any MCP, fetch the specific item, not
   a dump (`context-discipline`).
+- **When a docs MCP (e.g. Context7) is available**, consult it for current, version-specific
+  API docs before coding against a library or framework, rather than relying on memory; fetch
+  the specific topic, not a dump.
 - **Consult local memory before starting and update it after finishing.**

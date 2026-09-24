@@ -76,18 +76,14 @@ In cold code, clarity wins — do not contort a one-off script to save a fork.
 ## Build and lint
 
 There is no build, so the crew-config **backend build command** is the static gate the project
-configures — almost always `shellcheck`, sometimes with `bash -n` beside it. Run it as configured:
+configures — almost always `shellcheck`, sometimes with `bash -n` beside it.
 
-- **Never narrow the file list** to make a failure go away, and never lower `--severity`.
-- **A `# shellcheck disable=` names its code and says why**, on the line it applies to. A blanket
-  disable at the top of a file, or one with no reason, is a finding — report it rather than adding
-  one.
-- `shfmt -d` (diff mode) is the formatting check; the `-w` form is not a gate.
-
-`shellcheck` exits non-zero on findings, but read the findings themselves: the code (`SC2086`),
-`file:line`, and a count per code, not the raw output (`context-discipline`).
+What weakens the gate: a narrowed file list, or a lowered `--severity`. A
+`# shellcheck disable=` names its code and says why, on the line it applies to; a blanket disable
+at the top of a file, or one with no reason, is a finding — report it rather than adding one.
+`shfmt -d` (diff mode) is the formatting check; the `-w` form is not a gate. Report findings as
+the code (`SC2086`), `file:line`, and a count per code.
 
 ## Docs
 
-The authority for a shellcheck code is its own wiki page, and for a builtin the bash manual. Fetch
-the specific code or builtin, not a dump (`context-discipline`).
+The authority for a shellcheck code is its own wiki page, and for a builtin the bash manual.

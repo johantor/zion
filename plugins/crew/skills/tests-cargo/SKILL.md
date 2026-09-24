@@ -39,31 +39,19 @@ live in the production file too, so the same split applies.
 
 ## Running
 
-Run tests using the repository's backend test command from crew config — typically `cargo test`.
-If the project has `cargo-nextest` configured, use it as the project does; note that nextest does
-**not** run doc tests, so a project on nextest usually runs `cargo test --doc` beside it.
+The backend test command from crew config is typically `cargo test`. If the project has
+`cargo-nextest` configured, use it as the project does; nextest does **not** run doc tests, so a
+project on nextest usually runs `cargo test --doc` beside it.
 
-A **targeted rerun** is a filter, not a full run:
-
-- `cargo test <substring>` — every test whose full path contains the substring.
-- `cargo test --test <file_stem>` — one integration test crate.
-- `cargo test --lib <substring>` — unit tests only.
-- `cargo test -p <member>` — one workspace member.
-- Add `-- --exact <full::path>` when a substring would match more than you want.
-
-Confirm a new test is discovered with `cargo test --test <file_stem> -- --list`, which prints the
-test names in that crate without running them; a test missing from the list has a `#[test]`,
-`cfg`, or module-path problem in the source, not in the built binary.
-
-Notes on reading a run:
-
-- The summary is **per test binary**. A workspace prints one `test result:` line per crate, so
-  read them all — an early `ok` says nothing about the next binary.
-- `0 passed; 0 failed` for a target means it has no tests, not that it is green. Report it as a gap.
-- Output from passing tests is captured by default; `-- --nocapture` shows it when you are
-  diagnosing.
-- `cargo test` builds first, so a compile error is a build failure, not a test failure — report it
-  as one.
-
-Never make a test pass with `#[ignore]`, and never weaken an assertion to whatever the code
-currently returns. If the production code is wrong, say so and hand it back.
+- **Targeted rerun:** `cargo test <substring>` (every test whose full path contains it),
+  `cargo test --test <file_stem>` (one integration test crate), `cargo test --lib <substring>`
+  (unit tests only), `cargo test -p <member>` (one workspace member); add `-- --exact
+  <full::path>` when a substring would match more than you want.
+- **Discovery:** `cargo test --test <file_stem> -- --list` prints the test names in that crate
+  without running them; a test missing from the list has a `#[test]`, `cfg`, or module-path
+  problem in the source.
+- **Reading a run:** the summary is **per test binary** — a workspace prints one `test result:`
+  line per crate, so read them all. `0 passed; 0 failed` for a target is the zero-tests gap.
+  Output from passing tests is captured by default; `-- --nocapture` shows it. `cargo test`
+  builds first, so a compile error is a build failure, not a test failure.
+- **Skip mechanism:** `#[ignore]`.

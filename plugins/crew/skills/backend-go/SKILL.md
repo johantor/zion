@@ -31,37 +31,26 @@ out of `internal/` is an API change, not a tidy-up.
 
 ## Build
 
-Use the one-shot backend build command from crew config — typically `go build ./...`, usually
-with `go vet ./...` beside it. Never run a watch/dev command (`air`, `reflex`, `gow`) as the
-build; those never terminate.
+The gate is typically `go build ./...`, usually with `go vet ./...` beside it. Watch/dev forms
+that never terminate: `air`, `reflex`, `gow`.
 
-Run it as strict as the project configures:
+What weakens the gate:
 
-- **Never narrow the package pattern.** `go build ./cmd/...` compiles less than `./...` and can
-  report clean while another package is broken. If the configured command says `./...`, keep it.
-- **`go build` alone is not the whole gate.** It does not run `go vet`'s checks. When the
-  configured command pairs them, run both and report both.
-- **Silence is success.** A clean `go build` prints nothing, so no output is the pass, not a
-  sign that nothing ran. The cache is content-addressed against the current tree, so a cached
-  result is a real result — use `-v` or `-x` only when you have a concrete reason to see which
-  packages compiled.
-- **Never pass `-tags` the project doesn't configure** to route around a broken file. Build tags
-  select which files compile — adding one hides the failure rather than fixing it.
+- **A narrowed package pattern.** `go build ./cmd/...` compiles less than `./...` and can
+  report clean while another package is broken.
+- **Dropping `vet`.** `go build` does not run `go vet`'s checks. When the configured command
+  pairs them, run both and report both.
+- **A `-tags` the project doesn't configure.** Build tags select which files compile — adding one
+  hides a failure rather than fixing it.
 
-If the command **you were given** already narrows the pattern or drops `vet`, don't rewrite it and
-don't report the build clean: name the weakening as your first finding.
-
-Report failures as the compiler emits them — `file:line:col: message`, deduplicated with a count
-per message — not the raw log (`context-discipline`).
+**Silence is success.** A clean `go build` prints nothing, so no output is the pass, not a sign
+that nothing ran. The cache is content-addressed against the current tree, so a cached result is
+a real result — use `-v` or `-x` only when you have a concrete reason to see which packages
+compiled. Failures come as `file:line:col: message`; report them deduplicated with a count per
+message.
 
 ## Lint and format
 
 `gofmt -l .` / `gofumpt -l .` list unformatted files and exit 0, so read the output, not the exit
 code. `golangci-lint run` is the usual verify command. Never run the `-w`/`--fix` write forms as
 a gate.
-
-## Docs
-
-When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API docs
-for the router or driver you are coding against rather than relying on memory; fetch the specific
-topic, not a dump (`context-discipline`).

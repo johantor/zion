@@ -40,29 +40,23 @@ to live in your file.
 
 ## Build
 
-Use the one-shot backend build command from crew config — typically `cargo check` or
-`cargo build`, usually with `cargo clippy` beside it. Never run `cargo watch` as the build; it
-never terminates.
+The gate is typically `cargo check` or `cargo build`, usually with `cargo clippy` beside it.
+`cargo watch` never terminates.
 
-Run it as strict as the project configures:
+What weakens the gate:
 
-- **Warnings are the point.** `cargo build` exits 0 with warnings present unless the project sets
-  `-D warnings`. Read the warning summary, not the exit code, and report every warning: the lint
-  name, `file:line`, and a count per lint.
-- **Never relax the lint level.** Don't pass `--cap-lints`, don't add an `#[allow(...)]` to
-  silence a finding you were asked to fix, and don't drop `-D warnings` from a configured
-  `RUSTFLAGS`. Lint configuration belongs to `Cargo.toml`/`clippy.toml`.
-- **Never narrow the target set.** `--lib` or `-p <one-member>` compiles less than the workspace;
-  `--all-targets` includes tests and benches, which is usually what the gate wants. Keep the
-  configured shape.
-- **`cargo check` is not `cargo build`.** It skips codegen, so it will not catch a monomorphization
-  or link error. If the project gates on `check`, that is its choice — but don't substitute
-  `check` for a configured `build` to finish faster.
-- **Features change what compiles.** Don't add `--no-default-features` or a feature flag the
-  project doesn't configure to route around a broken module.
+- **A relaxed lint level.** `--cap-lints`, an `#[allow(...)]` added to silence a finding you were
+  asked to fix, or a `-D warnings` dropped from a configured `RUSTFLAGS`. Lint configuration
+  belongs to `Cargo.toml`/`clippy.toml`.
+- **A narrowed target set.** `--lib` or `-p <one-member>` compiles less than the workspace;
+  `--all-targets` includes tests and benches, which is usually what the gate wants.
+- **`check` in place of a configured `build`.** `cargo check` skips codegen, so it will not catch
+  a monomorphization or link error. If the project gates on `check`, that is its choice.
+- **A feature flag the project doesn't configure**, `--no-default-features` included, to route
+  around a broken module.
 
-If the command **you were given** already carries one of these weakenings, don't rewrite it and
-don't report the build clean: name it as your first finding.
+`cargo build` exits 0 with warnings present unless the project sets `-D warnings`. Report every
+warning as the lint name, `file:line`, and a count per lint.
 
 ## `target/` is per-writer state
 
@@ -71,9 +65,3 @@ you will see "Blocking waiting for file lock on build directory". That is conten
 error, and not the user's dev server. If another crew build may be live against the same package,
 either wait for it or set `CARGO_TARGET_DIR` to your own path before you start, and say which you
 did in your findings.
-
-## Docs
-
-When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API docs
-for the runtime or framework crate rather than relying on memory; fetch the specific topic, not a
-dump (`context-discipline`).

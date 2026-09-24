@@ -5,10 +5,8 @@ description: Vitest component/unit test conventions — test authoring with Reac
 
 # Frontend unit tests: Vitest
 
-Write and run frontend component and unit tests using Vitest conventions. Run them with the
-project's own unit-test script if it defines one (e.g. a `test` / `test:unit` npm script that
-invokes Vitest); otherwise invoke Vitest directly (`npx vitest run`). The `Frontend test
-command` slot is the **e2e** command — don't use it for unit tests.
+Write and run frontend component and unit tests using Vitest conventions. The unit-test script
+is the project's own (`test`/`test:unit`) or `npx vitest run`.
 
 - Test files are typically co-located with their source file (`Button.test.tsx` next to
   `Button.tsx`) or collected under `src/__tests__/`. Check the project's `vitest.config.ts`
@@ -18,9 +16,8 @@ command` slot is the **e2e** command — don't use it for unit tests.
   unit mocks and `vi.mock()` for module mocks.
 - Prefer queries that reflect how users perceive the UI (`getByRole`, `getByLabelText`,
   `getByText`) over implementation-detail selectors (`getByTestId`, CSS class).
-- On re-verify, run only the failing test(s) — pass the test file path and/or `-t` /
-  `--testNamePattern` to match by name — not the whole suite. `--reporter` only changes output
-  format; it does not filter which tests run.
-- Confirm a new test is discovered with `npx vitest list <file>`, which prints the test cases
-  without running them. An empty list means the `include` pattern misses the file — fix the
-  name or report the config, never dig through build output.
+- **Targeted rerun:** the test file path and/or `-t`/`--testNamePattern`. `--reporter` only
+  changes output format; it does not filter which tests run.
+- **Discovery:** `npx vitest list <file>` prints the test cases without running them. An empty
+  list means the `include` pattern misses the file.
+- **Skip mechanism:** `it.skip`/`describe.skip`.

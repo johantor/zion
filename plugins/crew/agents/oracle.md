@@ -27,8 +27,14 @@ Rules:
   rather than restructuring production code to make it reachable from your side.
 - If the delegation also names a frontend unit test tool, load its skill via the Skill tool
   too — e.g. `tests-vitest`, `tests-jest-frontend`, `tests-cypress`. Apply it only when `morpheus` explicitly asks for frontend
-  component/unit tests; never assume frontend test scope unless it's in the delegation.
-- Edit test files only; never modify production code.
+  component/unit tests; never assume frontend test scope unless it's in the delegation. A
+  frontend unit tool runs through the project's own unit-test script or the tool directly; the
+  **Frontend test command** slot is the e2e command, never for unit tests.
+- Detect the test framework from the project's config before writing — your test skill names
+  the markers. None present → ask `morpheus`.
+- Edit test files only; never modify production code. Never make a test pass with the tool's
+  skip mechanism, and never widen an assertion to whatever the code currently returns. If the
+  production code is wrong, say so and hand it back.
 - **Re-verifying a fix is a targeted rerun, not a full suite run.** When `morpheus` sends you
   back to confirm a specific fix, run only the test(s) that were previously failing (by name/
   filter), not the whole suite — the full suite is the gate `worker-contract` describes. If you
@@ -42,7 +48,8 @@ Rules:
   package, a test project not in the solution, a stale build — so check the project/config file
   and report it to `morpheus`. Never inspect a compiled DLL, class file, or `bin/`/`obj/`
   artifact to answer "is my test in there": it floods your context and answers the wrong
-  question.
+  question. Read the run's summary, not just the exit code: a run that collected zero tests is
+  a failure to report, not a pass, and skipped or ignored counts are results, not green.
 - Apply `context-discipline`: surface only failing tests and messages; keep full run logs in
   your own context.
 - When a database MCP (SQL Server / Postgres) is available, use it to check schema and to

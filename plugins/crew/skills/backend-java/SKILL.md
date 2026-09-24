@@ -40,13 +40,13 @@ new module is not picked up until it is declared there.
 
 ## Build
 
-Use the one-shot backend build command from crew config — typically `./mvnw -B verify` or
-`./gradlew build`. Never run a watch/serve command as the build: `mvn spring-boot:run`,
-`./gradlew bootRun`, `./gradlew --continuous`/`-t`, and `quarkus:dev` never terminate.
+The gate is typically `./mvnw -B verify` or `./gradlew build`. Watch/serve forms that never
+terminate: `mvn spring-boot:run`, `./gradlew bootRun`, `./gradlew --continuous`/`-t`,
+`quarkus:dev`.
 
-Run it as strict as the project configures:
+What weakens the gate:
 
-- **Never skip a non-test check.** `-Dcheckstyle.skip`, `-Dspotbugs.skip`, `-Denforcer.skip` and
+- **A skipped non-test check.** `-Dcheckstyle.skip`, `-Dspotbugs.skip`, `-Denforcer.skip` and
   friends each remove a part of the gate you were asked to run.
   `-DskipTests`/`-Dmaven.test.skip=true`/`-x test` are the exception: the crew runs tests through
   the separate **backend test command**, which `oracle` owns, so a build command that excludes
@@ -54,23 +54,17 @@ Run it as strict as the project configures:
   one it does have as a weakening. Note that `-Dmaven.test.skip=true` also skips *compiling* the
   tests, so a test that no longer compiles stays invisible until `oracle` runs — say so if you
   see it where `-DskipTests` would do.
-- **Never narrow the reactor.** `-pl <module>` builds one module of many and can report clean
-  while a sibling is broken. `-am`/`-amd` change which modules build too. Keep the configured shape.
-- **Never go below the default log level.** Maven's `-q` hides warnings; Gradle's `-q` does the
-  same. Keep the configured verbosity or raise it.
-- **A Gradle up-to-date build proves nothing.** Gradle's incremental tasks report `UP-TO-DATE` and
-  re-emit no warnings, so an unchanged tree can print a clean build a real compile would not. If
-  the output shows the compile tasks were up to date, report that — not a clean build.
-- **`-Dmaven.compiler.failOnWarning=false`, a lowered `--release`, or a disabled
-  `-Werror`** are project settings, not invocation flags. Don't add them.
+- **A narrowed reactor.** `-pl <module>` builds one module of many and can report clean while a
+  sibling is broken. `-am`/`-amd` change which modules build too.
+- **A log level below the default.** Maven's `-q` hides warnings; Gradle's `-q` does the same.
+- **A Gradle up-to-date build.** Gradle's incremental tasks report `UP-TO-DATE` and re-emit no
+  warnings, so an unchanged tree can print a clean build a real compile would not. If the output
+  shows the compile tasks were up to date, report that — not a clean build.
+- **`-Dmaven.compiler.failOnWarning=false`, a lowered `--release`, or a disabled `-Werror`** are
+  project settings, not invocation flags.
 
-If the command **you were given** already carries one of these, don't rewrite it and don't report
-the build clean: name the weakening as your first finding.
-
-**A zero exit code is not "clean".** Javac warnings, Checkstyle/SpotBugs/PMD findings, and
-deprecation notes all coexist with a successful build unless the project fails on them. Read the
-warning summary and report each finding as its rule id, `file:line`, and a count per id — not the
-raw log (`context-discipline`).
+Javac warnings, Checkstyle/SpotBugs/PMD findings, and deprecation notes all coexist with a
+successful build unless the project fails on them. Report each finding as its rule id.
 
 ## `target/` and `build/` are per-writer state
 
@@ -80,9 +74,3 @@ half-written outputs. If another crew build/test/lint run may be live against th
 either wait for it or get your own output directory before starting, and say which you did in your
 findings. The **shared, read-mostly** part is the dependency cache (`~/.m2/repository`,
 `GRADLE_USER_HOME`) — point every build at one rather than isolating it.
-
-## Docs
-
-When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API docs
-for the framework or driver rather than relying on memory; fetch the specific topic, not a dump
-(`context-discipline`).

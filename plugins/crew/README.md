@@ -312,8 +312,10 @@ one that isn't installed, so it just reports the server as unavailable.
   `/crew:pr`, `/crew:address`, `/crew:triage`, `/crew:loop`, `/crew:notify`.
 - **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor,
   dispatch-denied advisor (see *Permission mode*).
-- **Skills:** always on: `engineering-principles`, `context-discipline`, `loop-engineering`. Always
-  on for workers only: `mid-run-direction` (how to treat a steer that arrives mid-run), and
+- **Skills:** always on for every agent: `context-discipline`. For `morpheus`: `loop-engineering`
+  and `operator-voice`. For the implementers `tank`, `trinity` and `neo`: `engineering-principles`.
+  For the five workers with a shell: `worker-contract` (the rules every dispatch follows). For
+  every worker: `mid-run-direction` (how to treat a steer that arrives mid-run), and
   `design-tokens` for the agent doing design conformance.
   Loaded once the stack is resolved: per frontend mode, per backend stack (.NET, Node, Python,
   Go, Rust, JVM, shell — plus Optimizely on top of .NET), per frontend stack (React, Next.js),

@@ -57,7 +57,9 @@ per plugin. Read the section before you touch its area:
 ## Reading and editing files
 
 Reads and writes in this repository go through the `Read`, `Edit` and `Write` tools, not
-through the shell. A guard hook enforces it, so the glance-level habit fails here:
+through the shell. A guard hook enforces it (start a session here with
+`claude --plugin-dir plugins/crew`, which loads the crew hooks), so the glance-level habit fails
+here:
 
 - **Reading a file**: use `Read`. A bare `cat <file>` is refused in *every* session — a shell
   read reaches no `PreToolUse(Read)` hook, so the size bound in `read-guard.sh` never applies

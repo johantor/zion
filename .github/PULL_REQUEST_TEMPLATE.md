@@ -16,19 +16,15 @@ See AGENTS.md, "Conventions". -->
 
 ## Version / changelog
 
-<!-- Per AGENTS.md "Releasing": bump by default. The test is whether a user who runs
-`claude plugin update` would notice, not whether the change is big — if yes, bump `version` in
-the affected plugin's `.claude-plugin/plugin.json` and add a matching `CHANGELOG.md` entry.
-Park a bullet under `## [Unreleased]` only for a change no user can observe (a comment inside a
-shipped file, whitespace). CI (`scripts/check-changelog.sh`) blocks a shipped change with
-neither, and a bump that leaves bullets parked. Only changes that reach no user through
-`claude plugin update` are N/A. Entries are one line, two at most: what changed, not why —
-the why is in the commit message. -->
+<!-- Per AGENTS.md "Releasing": a shipped change bumps the version. If this PR touches anything
+under the plugin except tests/, CLAUDE.md, VERIFICATION.md and the changelog itself, bump
+`version` in the plugin's `.claude-plugin/plugin.json` and add a matching `CHANGELOG.md` entry.
+CI (`scripts/check-changelog.sh`) blocks a shipped change without a bump. Only changes that
+reach no user through `claude plugin update` are N/A. Entries are one line, two at most: what
+changed, not why — the why is in the commit message. -->
 
 - [ ] Bumped `plugins/<name>/.claude-plugin/plugin.json` version + matching `CHANGELOG.md` entry
 - [ ] Each changelog bullet is one line, two at most
-- [ ] Parked a bullet under `## [Unreleased]` instead (nothing a user can observe)
-- [ ] Folded any previously parked `## [Unreleased]` bullets into this bump
 - [ ] N/A — nothing shipped changed (CI, root docs, tests)
 
 ## Test plan

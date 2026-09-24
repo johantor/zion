@@ -42,8 +42,7 @@ subagent="$guard_trusted"
 
 # Namespace match, deliberately not a hardcoded roster: an installed plugin's
 # workers are always `crew:<name>`, so this can't drift as agents are added or
-# renamed the way the guards' rosters can (validator §9 exists for those). It is
-# therefore inert in this repo's own dev wiring, where agents are not namespaced.
+# renamed the way the guards' rosters can (validator §9 exists for those).
 case "$subagent" in
   crew:?*) worker="${subagent#crew:}" ;;
   *) exit 0 ;;

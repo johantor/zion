@@ -213,27 +213,6 @@ while IFS= read -r manifest; do
   else
     err "$plugin_dir version $plugin_version != newest $changelog entry (${newest_entry:-none}); bump the manifest and add its CHANGELOG entry together"
   fi
-
-  # 2i. Every changelog carries an `## [Unreleased]` heading above its newest
-  #     version entry: the slot where a shipped change no user can observe is
-  #     parked until the next bump folds it in — everything a user WOULD notice
-  #     bumps instead (AGENTS.md, "Releasing"). Without the heading there is
-  #     nowhere to write such a note,
-  #     and it goes unrecorded — the leak this section exists to prevent.
-  #     Position matters: below the newest version it would read as belonging to
-  #     an already-released version. §2h's `grep -m1` keys on the numeric heading
-  #     shape, so Unreleased is invisible to it and never mistaken for a version;
-  #     auto-release's extractor starts at the numeric heading for the same
-  #     reason, so parked notes can't leak into the wrong release's notes.
-  unreleased_ln="$(grep -n -m1 -E '^## \[Unreleased\]' "$changelog" | cut -d: -f1 || true)"
-  newest_ln="$(grep -n -m1 -E '^## \[[0-9]+\.[0-9]+\.[0-9]+\]' "$changelog" | cut -d: -f1 || true)"
-  if [ -z "$unreleased_ln" ]; then
-    err "$changelog has no '## [Unreleased]' heading; add one above the newest version entry (it is where a shipped change without its own bump is parked)"
-  elif [ -n "$newest_ln" ] && [ "$unreleased_ln" -gt "$newest_ln" ]; then
-    err "$changelog has '## [Unreleased]' below the newest version entry (line $unreleased_ln > $newest_ln); it belongs at the top, above the newest release"
-  else
-    ok "$changelog has an '## [Unreleased]' slot at the top"
-  fi
 done < <(git ls-files 'plugins/*/.claude-plugin/plugin.json')
 
 # 3. Hook shell files are syntactically valid and carry the file mode their role
@@ -330,40 +309,6 @@ while IFS= read -r hooks_json; do
     fi
   done < <(git ls-files "$plugin_dir/hooks/*.sh")
 done < <(git ls-files 'plugins/*/hooks/hooks.json')
-
-# 7. This repo's dev-time hook wiring (.claude/settings.json) must mirror the
-#    installed-plugin wiring (plugins/crew/hooks/hooks.json), modulo the root
-#    variable each resolves through (CLAUDE_PROJECT_DIR vs CLAUDE_PLUGIN_ROOT)
-#    -- see AGENTS.md for why both exist.
-dev_hooks=".claude/settings.json"
-plugin_hooks="plugins/crew/hooks/hooks.json"
-if [ ! -f "$dev_hooks" ]; then
-  err "$dev_hooks is missing -- expected to mirror $plugin_hooks (see AGENTS.md)"
-elif [ ! -f "$plugin_hooks" ]; then
-  err "$plugin_hooks is missing -- required for the crew plugin's hooks to load"
-elif ! jq empty "$dev_hooks" >/dev/null 2>&1; then
-  err "$dev_hooks is not valid JSON; cannot verify it mirrors $plugin_hooks"
-elif ! jq empty "$plugin_hooks" >/dev/null 2>&1; then
-  err "$plugin_hooks is not valid JSON; cannot verify $dev_hooks mirrors it"
-else
-  hook_sig() {
-    jq -r --arg strip "$2" '
-      .hooks | to_entries[] | .key as $event | .value[] |
-      .matcher as $matcher | .hooks[] |
-      [$event, $matcher, (.command | ltrimstr($strip)), (.timeout // "none")] | @tsv
-    ' "$1" | sort
-  }
-  # Single-quoted: literal, unexpanded "${VAR}" text as it appears in the JSON.
-  # shellcheck disable=SC2016
-  dev_sig="$(hook_sig "$dev_hooks" '"${CLAUDE_PROJECT_DIR}"/plugins/crew/hooks/')"
-  # shellcheck disable=SC2016
-  plugin_sig="$(hook_sig "$plugin_hooks" '"${CLAUDE_PLUGIN_ROOT}"/hooks/')"
-  if [ "$dev_sig" = "$plugin_sig" ]; then
-    ok "hook wiring in sync: $dev_hooks == $plugin_hooks (modulo root variable)"
-  else
-    err "hook wiring drift: $dev_hooks no longer mirrors $plugin_hooks -- compare PreToolUse/PostToolUse matchers, script paths, and timeouts"
-  fi
-fi
 
 # 8. Turn-budget table <-> agent frontmatter lockstep: a plugin that ships
 #    hooks/turn-budget.sh keeps a per-agent budget table (`<name>) budget=<n> ;;`

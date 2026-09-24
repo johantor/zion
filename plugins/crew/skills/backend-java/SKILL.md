@@ -21,6 +21,16 @@ the project).
 wrapper pins the version the project builds with, and a system tool of a different major version
 produces failures that are about the tool, not the code.
 
+## Crew config
+
+`/crew:init` proposes, through the committed wrapper: Maven build `./mvnw -B verify -DskipTests`,
+lint `./mvnw -B checkstyle:check` where the plugin is configured, test `./mvnw -B verify` — **not**
+`./mvnw -B test`, which stops before the `integration-test`/`verify` phases where Failsafe runs,
+so every `*IT` class would be skipped by both gates. Gradle build `./gradlew build -x test`, lint
+`./gradlew check -x test`, test `./gradlew test` plus any separate integration-test task the build
+script declares — Gradle has no Failsafe equivalent by default, so read the source sets. Read the
+actual plugin/task set rather than assuming these exist.
+
 ## Layout
 
 `src/main/java` (production), `src/main/resources` (config, templates), `src/test/java` (tests —

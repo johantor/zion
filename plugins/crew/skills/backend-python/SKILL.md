@@ -13,6 +13,16 @@ Read the project's own layout before adding to it. A `src/<package>/` layout, a 
 the repo root, and a Django project with per-app directories are all valid shapes — match the one
 that is there rather than importing a layout from another project.
 
+## Crew config
+
+`/crew:init` proposes: build is the static gate — `mypy .` from a `[tool.mypy]`/`mypy.ini`,
+`pyright` from a `[tool.pyright]`/`pyrightconfig.json`, `unset` when neither is configured; test
+`pytest` when the project has it (a `[tool.pytest.ini_options]` table, a `pytest.ini`, or pytest
+in the dependencies), `python -m unittest discover` for a `unittest`-only project, `unset` when
+neither; lint `ruff check .` / `flake8` plus `black --check .` where configured. Every command is
+prefixed with the project's runner when it has one (`poetry run`, `uv run`, `pdm run`, `pipenv
+run`) — a bare `pytest` resolves against whatever interpreter is active.
+
 ## Packaging and the environment
 
 The dependency manifest tells you which tool the project uses; use that one and no other:

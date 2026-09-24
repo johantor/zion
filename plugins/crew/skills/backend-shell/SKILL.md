@@ -9,6 +9,13 @@ You are working in a shell codebase: scripts, hooks, CI helpers, or a tool whose
 the shell. There is no compile step and often no application beside it — the scripts are the
 product.
 
+## Crew config
+
+`/crew:init` proposes: build is the static gate — `shellcheck <globs>`, taking the globs from CI
+since the shell's `*` does not cross directory separators and one pattern usually misses a
+subdirectory, optionally with `bash -n`; test the project's own runner (`bash tests/run.sh`,
+`bats tests/`); lint `shellcheck` plus `shfmt -d` where shfmt is configured.
+
 ## Decide which shell a file may assume
 
 The shebang is a contract, and the file has to keep it:

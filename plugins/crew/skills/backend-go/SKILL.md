@@ -14,6 +14,12 @@ are conventions, not requirements; a flat single-package tool is a valid shape. 
 enforced by the compiler — code outside the module cannot import it, so moving a package in or
 out of `internal/` is an API change, not a tidy-up.
 
+## Crew config
+
+`/crew:init` proposes: build `go build ./...` (with `go vet ./...` when the repo runs it), test
+`go test ./...` (keeping `-race` if a CI workflow uses it), lint `golangci-lint run` when a
+`.golangci.yml` exists, else `gofmt -l .`.
+
 ## Idiom
 
 - Return errors, don't panic. A `panic` in library code is a bug; reserve it for genuinely

@@ -16,11 +16,10 @@ later rule reopens the question.
    peers and stop. Nothing is sent. `list` is a mode, not a token to strip out of a longer
    argument: anything else falls to rule 2 or 3, so a message that merely begins with the word
    "list" is still a message.
-2. **A ` -- ` is present** → **split on the FIRST one**. Everything before it is the user's own
-   typed options; everything after it, to the end, is the **message**, sent verbatim. Split on the
-   first occurrence and never a later one, so a ` -- ` inside the message text lands in the message
-   where it belongs and cannot manufacture an option (`AGENTS.md`, *Recurring review findings*).
-   **Before the delimiter, recognize only `to=`.** Anything else there — `list` included: name it
+2. **A ` -- ` is present** → **split on the FIRST one**, never a later one (`AGENTS.md`,
+   *Recurring review findings*: anchor the split on the trusted field). Everything before it is
+   the user's own typed options; everything after it, to the end, is the **message**, sent
+   verbatim. **Before the delimiter, recognize only `to=`.** Anything else there — `list` included: name it
    as unrecognized and drop it.
 3. **No ` -- ` anywhere** → the whole of `$ARGUMENTS` is the message and no peer is named. Resolve
    the target at step 2 rather than guessing one.

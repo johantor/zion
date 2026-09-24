@@ -67,16 +67,13 @@ stop and ask the user rather than picking one. Then decide:
 exact error — as `/crew:feature` does. No tick ran, so don't bump `iterations:` and don't leave
 `in-flight:` set: clear it and end.
 
-**Pre-check — a crashed prior tick.** Because the outer-loop note runs each tick's workers in
-the **foreground**, a tick returns only when nothing is still running — so ticks are genuinely
-**synchronous** and two never overlap. An `in-flight:` marker still present at a firing's start
-therefore means the previous tick **crashed** mid-run (or hit `maxTurns`), never that a worker is
-still live. Do **not** gate this on `in-progress` steps — reconciling those is `morpheus`'s job
-on its next resume (re-verify against the tree, then commit or reset), and refusing to launch
-while they exist would **deadlock**: the tick that would reconcile them is exactly the one you'd
-suppress. And because the crashed tick's foreground workers died with it, nothing is running to
-double-dispatch. So clear the stale `in-flight:` and run a normal tick — `morpheus` resumes and
-reconciles whatever the crash left (its resume re-verifies before re-dispatching).
+**Pre-check — a crashed prior tick.** Ticks are synchronous (the outer-loop note), so an
+`in-flight:` marker still present at a firing's start means the previous tick **crashed**
+mid-run or hit `maxTurns`, never that a worker is still live (`AGENTS.md`, *The plan file is
+durable state*). Clear it and run a normal tick: `morpheus`'s resume re-verifies and reconciles
+whatever the crash left. Do **not** gate this on `in-progress` steps — reconciling those is that
+resume's job, and refusing to launch while they exist would **deadlock**: the tick that would
+reconcile them is exactly the one you'd suppress.
 
 **Exit checks (first match ends the loop and surfaces — never auto-push or open a PR):**
 
@@ -97,8 +94,7 @@ writers never overlap.
 
 **`in-flight:` lifecycle.** `in-flight: tick=<n>` marks that a `morpheus` tick is executing —
 presence only, no other payload. Set it before launching a tick; clear it when `morpheus`
-returns (and on launch failure). Because ticks are synchronous, finding it still set at the next
-firing means that tick crashed — the pre-check above handles it.
+returns and on launch failure. Still set at the next firing → the pre-check above.
 
 Schedule the next tick with the native `/loop` dynamic-mode wakeup only while the loop is still
 live. When an exit check fires, stop scheduling and give the user the consolidated status.

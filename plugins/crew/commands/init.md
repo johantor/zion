@@ -30,52 +30,41 @@ Do the detection read-only first, then confirm with the user before writing anyt
 
 ## 1. Canonical configuration slots
 
-These are the slots the crew reads, each with the `.claude/crew.md` key that carries it. This
-list is the source of truth for what "complete" means — reconcile fills any of these that are
-missing, and CI keeps it in lockstep with this repo's own `.claude/crew.md`:
+The slots the crew reads, each with its `.claude/crew.md` key. This list is the source of truth
+for what "complete" means — reconcile fills any that are missing, and CI keeps it in lockstep
+with this repo's own `.claude/crew.md`. Every slot marked *pin-only* is optional: `unset` lets
+`morpheus` resolve it per project.
 
-- **Frontend mode** (`frontendMode`) — `headless` or `server-rendered`. Optional/pin-only; leave
-  `unset` to let `morpheus` resolve it per project.
+- **Frontend mode** (`frontendMode`) — `headless` or `server-rendered`. Pin-only.
 - **Backend stack** (`backendStack`) — `dotnet`, `node`, `python`, `go`, `rust`, `java`, or
-  `shell`. Optional/pin-only; leave `unset` to let `morpheus` resolve it per project.
-- **Frontend stack** (`frontendStack`) — `react`, `nextjs`, or `none` when the project has no
-  client-facing surface at all (a library, a headless service, a script pack). **A TUI, or a CLI
-  whose rendered output is designed, is a view** — that is `trinity`'s lane, so it is not `none`.
-  No stack value covers it yet, so stop and surface unsupported instead of writing `none` or
-  leaving `unset` for a later prompt. `none` is a statement, not an absence:
-  it stops `morpheus` asking about frontend mode, e2e and unit-test tooling, and stops it
-  dispatching the frontend workers. Optional/pin-only otherwise; leave `unset` to let `morpheus`
-  resolve it per project.
-- **Frontend e2e tool** (`frontendE2eTool`) — `cypress` or `playwright`. Optional/pin-only; leave
-  `unset` to let `morpheus` resolve it per project.
-- **Frontend unit test tool** (`frontendUnitTestTool`) — `vitest`, `jest`, or `cypress`.
-  Optional/pin-only; leave `unset` to let `morpheus` resolve it per project (or if the project has
-  no frontend unit tests).
-- **Backend lane path(s)** (`backendLanePaths`) — one or more path prefixes (comma-separated), e.g.
-  `apps/api/`. Only meaningful when backend and frontend stacks are the same language (e.g. Node
-  backend + Next.js frontend) — `lane-guard.sh` can't tell `tank`'s and `trinity`'s files apart by
-  extension in that case and falls back to these paths. Leave `unset` otherwise.
-- **Frontend lane path(s)** (`frontendLanePaths`) — one or more path prefixes (comma-separated),
-  e.g. `apps/web/`. Same same-language caveat as Backend lane path(s).
+  `shell`. Pin-only.
+- **Frontend stack** (`frontendStack`) — `react`, `nextjs`, or `none`. Pin-only, except that
+  `none` is a statement: the project has no client-facing surface (a library, a headless service,
+  a script pack), so `morpheus` skips frontend mode, e2e and unit-tool resolution and never
+  dispatches the frontend workers. **A TUI, or a CLI whose rendered output is designed, is a
+  view** in `trinity`'s lane with no supported value yet — stop and surface unsupported rather
+  than writing `none` or `unset`.
+- **Frontend e2e tool** (`frontendE2eTool`) — `cypress` or `playwright`. Pin-only.
+- **Frontend unit test tool** (`frontendUnitTestTool`) — `vitest`, `jest`, or `cypress`. Pin-only;
+  also `unset` when the project has no frontend unit tests.
+- **Backend lane path(s)** (`backendLanePaths`) — comma-separated path prefixes, e.g. `apps/api/`.
+  Only when backend and frontend stacks are the same language (Node backend + Next.js): by
+  extension `lane-guard.sh` cannot tell `tank`'s and `trinity`'s files apart and falls back to
+  these. `unset` otherwise.
+- **Frontend lane path(s)** (`frontendLanePaths`) — e.g. `apps/web/`; same caveat.
 - **Backend test command** (`backendTestCommand`) — e.g. `dotnet test`.
-- **Frontend test command** (`frontendTestCommand`) — the **e2e** suite only (e.g.
-  `npx playwright test`). Unit/component runs are not driven by this slot: `oracle` derives them
-  from the resolved **Frontend unit test tool** (a project `test`/`test:unit` script if present,
-  else the tool directly — `vitest run`, `jest`, `cypress run --component`).
+- **Frontend test command** (`frontendTestCommand`) — the **e2e** suite only (e.g. `npx playwright
+  test`); `oracle` derives unit/component runs from the Frontend unit test tool instead.
 - **Backend build command** (`backendBuildCommand`) — e.g. `dotnet build`.
 - **Frontend build command** (`frontendBuildCommand`) — e.g. `tsc --noEmit` / `vite build`.
-- **Backend lint command** (`backendLintCommand`) — verify mode (e.g.
-  `dotnet format --verify-no-changes`, plus `dotnet csharpier check` when a `.csharpierrc` is
-  present).
-- **Frontend lint command** (`frontendLintCommand`) — the project's lint script in report/verify
-  mode (`eslint`, `biome check`, `stylelint`, …).
+- **Backend lint command** (`backendLintCommand`) — verify mode, e.g. `dotnet format
+  --verify-no-changes`.
+- **Frontend lint command** (`frontendLintCommand`) — the lint script in report/verify mode.
 - **Base branch** (`baseBranch`) — the branch `morpheus` branches off (`main` / `develop` / trunk).
-- **Branch naming** (`branchNaming`) — convention for feature branches (e.g.
-  `feature/<ticket>-<slug>`).
+- **Branch naming** (`branchNaming`) — e.g. `feature/<ticket>-<slug>`.
 - **Run/dev URL** (`runUrl`) — the local dev URL, if the project serves one.
-- **Plan directory** (`planDirectory`) — where `morpheus` writes `plan-<feature>.md`. Optional;
-  leave `unset` to use the `.claude/` fallback. Set it (e.g. `docs/plans/`) to keep plans in a
-  repo-specific, committed location.
+- **Plan directory** (`planDirectory`) — where `morpheus` writes `plan-<feature>.md`; `unset` uses
+  the `.claude/` fallback. Set it (e.g. `docs/plans/`) for a committed location.
 
 Free-text notes for the crew are not a slot: they go in the file's **body**, below the
 frontmatter — why a slot is set the way it is, a caveat on a command, which areas of the app are
@@ -112,103 +101,33 @@ Notes the crew should carry: npm scripts run from `src/Site`, not the repo root.
 Inspect the repo and propose a value for each slot. Cite where each came from so the user can
 trust or correct it; never invent a command you can't see configured.
 
-- **Backend (.NET):** a `*.sln`/`*.csproj` implies build `dotnet build`, test `dotnet test`,
-  lint `dotnet format --verify-no-changes` (add `dotnet csharpier check` if a `.csharpierrc`
-  exists).
-- **Backend (Python):** there is no compile step, so the build slot is the project's static gate —
-  a `[tool.mypy]`/`mypy.ini` implies `mypy .`, a `[tool.pyright]`/`pyrightconfig.json` implies
-  `pyright`. Test `pytest` when the project has it (a `[tool.pytest.ini_options]` table, a
-  `pytest.ini`, or pytest in the dependencies) — a `unittest`-only project need not have pytest
-  installed, so propose `python -m unittest discover` there instead, and leave the slot `unset`
-  when neither is present. Lint
-  `ruff check .` / `flake8` plus `black --check .` where configured. Prefix every command with
-  the project's runner when it has one (`poetry run`, `uv run`, `pdm run`, `pipenv run`) — a bare `pytest`
-  resolves against whatever interpreter is active. If no type checker is configured, say so and
-  leave the build slot `unset` rather than inventing one.
-- **Backend (shell):** there is no build, so the build slot is the project's static gate —
-  `shellcheck <globs>` (take the globs from CI, since the shell's `*` does not cross directory
-  separators and a single pattern usually misses a subdirectory), optionally `bash -n`. Test the
-  project's own runner (`bash tests/run.sh`, `bats tests/`); lint `shellcheck` plus `shfmt -d`
-  where shfmt is configured.
-- **Backend (Go):** build `go build ./...` (add `go vet ./...` when the repo runs it), test
-  `go test ./...` (keep `-race` if a CI workflow uses it), lint `golangci-lint run` when a
-  `.golangci.yml` exists, else `gofmt -l .`.
-- **Backend (Rust):** build `cargo check --all-targets` or `cargo build` — read which the repo's
-  CI runs rather than picking; add `cargo clippy --all-targets -- -D warnings` where clippy is
-  configured. Test `cargo test` (`cargo nextest run` when `nextest.toml`/the tool is configured);
-  lint `cargo fmt --check`.
-- **Backend (JVM):** prefer the committed wrapper. Maven (`pom.xml`) implies build `./mvnw -B
-  verify -DskipTests`, lint `./mvnw -B checkstyle:check` where the plugin is configured, and test
-  `./mvnw -B verify` — **not** `./mvnw -B test`, which stops before the `integration-test`/`verify`
-  phases where Failsafe runs, so every `*IT` class would be skipped by both gates. Gradle
-  (`build.gradle*`) implies build `./gradlew build -x test`, lint `./gradlew check -x test`, and
-  test `./gradlew test` plus any separate integration-test task the build script declares — Gradle
-  has no Failsafe equivalent by default, so read the source sets rather than assuming one task
-  covers both. Read the actual plugin/task set rather than assuming these exist.
-- **Frontend (Node):** read `package.json` `scripts` — map `build`/`typecheck` → frontend
-  build, `test`/`e2e`/a Playwright config → frontend test, `lint` → frontend lint. Use the
-  scripts that exist; don't assume an `npx` download.
-- **Monorepo / nested app:** when a script only runs from a subdirectory, say so in the slot
-  value (e.g. `npm run build (from src/Site)`). The command alone is deducible from
-  `package.json`; the working directory is the part that isn't.
-- **Base branch:** the remote's default (`git symbolic-ref refs/remotes/origin/HEAD`), falling
-  back to an existing `main`/`develop`. If ambiguous, ask — `origin/HEAD` is often unset or
-  stale, and a wrong base branch is expensive.
-- **Frontend mode:** infer from the stack — a React/Vite/Next SPA build → `headless`; Razor
-  `.cshtml` views without an SPA bundle → `server-rendered`. If it's genuinely mixed or
-  unclear, leave `unset` and note that `morpheus` will resolve it, or ask. A genuinely mixed repo
-  stays `unset` with the split described in the body notes, so `morpheus` resolves per feature.
-- **Backend stack:** a `*.csproj`/`*.sln` → `dotnet`; a `package.json` with a server-framework
-  dependency (NestJS/Express/Fastify) and no SPA-only bundle config → `node`; a `pyproject.toml`
-  (or `requirements*.txt`/`setup.py`/`Pipfile`) → `python`; a `go.mod` → `go`; a `Cargo.toml` → `rust`; a
-  `pom.xml` or `build.gradle`/`build.gradle.kts` **together with Java sources**
-  (`src/main/java`, or a `java`/`java-library` plugin in the build script) → `java`. A Gradle or
-  Maven file on its own is not enough: Kotlin, Scala and Android builds carry the same marker and
-  none of them is a supported stack — ask rather than resolving `java` from the build tool alone; `*.sh`/`*.bats` with no other
-  backend marker → `shell` (a repo whose deliverable is the scripts themselves — not any repo
-  that merely has a build script). If ambiguous or absent, leave `unset`
-  for `morpheus` to resolve. A repo with markers for two backends is ambiguous, not a tie to
-  break — ask which one the crew should treat as the backend.
-- **Frontend stack:** a `next.config.*` → `nextjs`; a React/Vite SPA build with no
-  `next.config.*` → `react`; no client-facing surface at all → propose `none` (say why, since it
-  turns off the frontend half of the crew). A TUI or a designed CLI output is a view, not `none`,
-  and this slot has no supported value for it yet — stop and surface unsupported.
-  If ambiguous for other reasons, leave `unset` for `morpheus` to resolve.
-- **Frontend e2e tool:** a `cypress.config.*` (or a `cypress/` directory) → `cypress`; a
-  `playwright.config.*` → `playwright`. If ambiguous or absent, leave `unset` for `morpheus` to
-  resolve.
-- **Frontend unit test tool:** a `vitest.config.*` → `vitest`; a `jest.config.*` (or a `jest`
-  key in `package.json`) with no `vitest.config.*` → `jest`; a `cypress.config.*` with a
-  `component` key and no `vitest.config.*` or `jest.config.*` → `cypress`. If absent, leave
-  `unset` — the project may have no frontend unit tests, and `morpheus` will not assume one exists.
-- **Backend lane path(s) / Frontend lane path(s):** never auto-detect — workspace boundaries
-  (which directory is the backend app vs. the frontend app) aren't reliably inferable from
-  marker files alone. Only propose these when the detected backend and frontend stacks are
-  the same language (e.g. Node + Next.js) — ask the user for the paths rather than guessing;
-  otherwise leave `unset`.
-- **Run/dev URL, branch naming:** propose from dev scripts / `launchSettings.json` / existing
-  branch names where visible; otherwise leave `unset`.
-- **Plan directory:** only propose a value if the repo has an obvious plans convention (an
-  existing `docs/plans/`, `plan-*.md` already tracked outside `.claude/`); otherwise leave
-  `unset` so the `.claude/` fallback applies. Don't invent a directory.
+| Slot | Detect from |
+|---|---|
+| Backend stack | `*.csproj`/`*.sln` → `dotnet`; `package.json` with a server framework (NestJS/Express/Fastify) and no SPA-only bundle config → `node`; `pyproject.toml` (or `requirements*.txt`/`setup.py`/`Pipfile`) → `python`; `go.mod` → `go`; `Cargo.toml` → `rust`; `pom.xml` or `build.gradle*` **with Java sources** (`src/main/java`, or a `java`/`java-library` plugin) → `java` — the build file alone also fits Kotlin, Scala and Android, none supported, so ask; `*.sh`/`*.bats` with no other backend marker → `shell` (the scripts are the deliverable, not a repo that merely has a build script). Two backends' markers → ask, don't break the tie. |
+| Backend build, test, lint | Load the detected stack's `backend-<stack>` skill and propose what its **Crew config** section says; it names the static gate for a stack with no compile step and the runner prefix a command needs. |
+| Frontend stack | `next.config.*` → `nextjs`; a React/Vite SPA build without it → `react`; no client-facing surface → propose `none` and say why. A TUI or designed CLI output → stop, unsupported. |
+| Frontend build, test, lint | `package.json` `scripts`: `build`/`typecheck` → build, `test`/`e2e`/a Playwright config → test, `lint` → lint. Use the scripts that exist; don't assume an `npx` download. A script that only runs from a subdirectory says so in the value: `npm run build (from src/Site)`. |
+| Frontend mode | React/Vite/Next SPA build → `headless`; Razor `.cshtml` views without an SPA bundle → `server-rendered`. Mixed or unclear → `unset` with the split described in the body notes. |
+| Frontend e2e tool | `cypress.config.*` or a `cypress/` directory → `cypress`; `playwright.config.*` → `playwright`. |
+| Frontend unit test tool | `vitest.config.*` → `vitest`; `jest.config.*` or a `jest` key with no vitest → `jest`; a `cypress.config.*` `component` key with neither → `cypress`. Absent → `unset`; `morpheus` will not assume one exists. |
+| Lane paths | Never auto-detect. Only when backend and frontend stacks are the same language, and then ask for the paths. |
+| Base branch | `git symbolic-ref refs/remotes/origin/HEAD`, else an existing `main`/`develop`. Ambiguous → ask; `origin/HEAD` is often unset or stale, and a wrong base is expensive. |
+| Run/dev URL, branch naming | Dev scripts, `launchSettings.json`, existing branch names; else `unset`. |
+| Plan directory | Only an obvious existing convention (`docs/plans/`, tracked `plan-*.md` outside `.claude/`); else `unset`. |
 
-When detection comes up empty, pick the placeholder by slot type — never write a value that
-makes the config unusable:
+When detection comes up empty, pick the placeholder by slot type — never a value that makes the
+config unusable:
 
-- **Tooling slots** (backend/frontend test, build, and lint commands; run/dev URL): if the
-  project genuinely has no such tooling, use `none`. Gates that need it then skip with that
-  note, and nobody is asked again.
-- **Project-identity slots** (base branch, branch naming, frontend mode, backend stack): never
-  `none` — a base branch always exists, so `none` would be wrong. Leave these `unset` so
-  `morpheus` resolves or asks (for base branch, prefer asking — see above).
-- **Frontend stack is the exception.** `none` there is a real answer, not a missing one: it says
-  the project has no view layer. Write it when that is confirmed — `unset` would send `morpheus`
-  asking a question a CLI or a script pack cannot answer.
+- **Tooling slots** (test, build and lint commands; run/dev URL): `none` when the project
+  genuinely has no such tooling. Gates that need it then skip with that note.
+- **Project-identity slots** (base branch, branch naming, frontend mode, backend stack): `unset`,
+  never `none` — a base branch always exists. `morpheus` resolves or asks.
+- **Frontend stack is the exception.** `none` is a real answer: write it when confirmed, since
+  `unset` would send `morpheus` asking a question a CLI or a script pack cannot answer.
 
 Write both placeholders as plain YAML values — `unset` and `none`, never quoted, never
-backticked — so reconcile recognizes them later. A key that is absent altogether reads as
-`unset`; write every key anyway, so a slot a newer plugin version added is visibly unadopted
-rather than merely missing. Don't guess to fill a blank.
+backticked — so reconcile recognizes them later. Write every key, so a slot a newer plugin
+version added is visibly unadopted rather than merely missing. Don't guess to fill a blank.
 
 ## 3. What belongs in `CLAUDE.md`
 
@@ -232,8 +151,9 @@ implementer edits them (`seraph`, `sentinel` and `keymaker` carry no edit tool),
 a summary. It is not remote execution, and it sends nothing outside the repository.
 
 The crew's guard hooks bound what a worker can do: only `morpheus` touches git, no agent commits on
-the base branch, each worker's edits are confined to its own lane, and destructive shell commands
-are refused. Nothing is pushed and no pull request is opened on its own — `/crew:pr` is the only
+the base branch, each worker's edits are confined to its own lane — through `Edit`/`Write`, and
+file-mutating Bash is refused so a write cannot route around the lane — and destructive shell
+commands are refused. Nothing is pushed and no pull request is opened on its own — `/crew:pr` is the only
 path out of the machine, and the user invokes it.
 ```
 

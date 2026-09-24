@@ -13,6 +13,12 @@ In a SaaS-headless project shape, the "backend" may be thin — a BFF layer or a
 routes wrapping Graph queries. Don't invent backend surface area the project doesn't have; a
 thin backend is a valid shape, not a gap to fill.
 
+## Crew config
+
+`/crew:init` proposes from `package.json` `scripts`: `build`/`typecheck` → build, `test` → test,
+`lint` → lint — the scripts that exist, never an assumed `npx` download. A script that only runs
+from a subdirectory carries it in the value: `npm run build (from apps/api)`.
+
 ## Route-handler ownership (Next.js frontend)
 
 When the frontend stack is Next.js, its route handlers (`app/**/route.ts`) physically live

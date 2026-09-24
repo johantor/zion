@@ -26,24 +26,14 @@ Compute the files changed on this branch vs. the resolved base branch
 (`git diff --name-only <base>...HEAD`, plus any staged/unstaged changes), then
 classify each path — same split the lane guard uses:
 
-- **Backend lane** — the resolved backend's sources and manifests: `*.cs`, `*.csproj`
-  (and `*.cshtml`: it carries server-side logic); `*.py`, `*.pyi`, `pyproject.toml`,
-  `requirements*.txt`, `setup.py`, `setup.cfg`, `tox.ini`, `Pipfile{,.lock}`, `poetry.lock`,
-  `uv.lock`, `pdm.lock`, `mypy.ini`/`.mypy.ini`, `pyrightconfig.json`, `pytest.ini`,
-  `ruff.toml`/`.ruff.toml`, `.flake8`;
-  `*.go`, `go.mod`, `go.sum`, `go.work`, `go.work.sum`, `.golangci.y{a,}ml`, `testdata/**`; `*.rs`,
-  `Cargo.toml`, `Cargo.lock`, `rustfmt.toml`/`.rustfmt.toml`, `clippy.toml`; `*.java`, `pom.xml`, `build.gradle{,.kts}`,
-  `settings.gradle{,.kts}`, `gradle.properties`, `gradle/libs.versions.toml`,
-  `gradle/wrapper/gradle-wrapper.properties`, `src/main/resources/application*` and `bootstrap*` **in `.properties`/`.yml`/`.yaml` only**
-  (matching the guard — `templates/` and `static/` under it are the view, and so is an
-  `application.html`), `src/test/**`;
-  `*.sh`, `*.bash`, `*.bats`, `.shellcheckrc`. A gate's own configuration counts: it decides what
-  the build and lint do, so a branch that changes only `mypy.ini` or `.golangci.yml` is a backend
-  branch.
-  This list mirrors `lane-guard.sh`'s deny union — they must not drift, or the gate skips what
-  the guard protects.
 - **Frontend lane** — `*.ts`, `*.tsx`, `*.jsx`, `*.js`, `*.mjs`, `*.scss`, `*.css`, `*.html`
   (and `*.cshtml` in server-rendered mode, where trinity owns the markup).
+- **Backend lane** — every other changed file that is not documentation (`*.md`, `docs/**`,
+  `.github/**`, `LICENSE`): sources, manifests, lockfiles and gate configuration alike, since a
+  gate's own configuration decides what the build and lint do. `*.cshtml` carries server-side
+  logic, so it counts here too. When in doubt, backend: an extra build costs minutes, a skipped
+  gate costs a bad merge. No list to keep in step with `lane-guard.sh` — the guard decides who
+  may *edit* a file, this step only decides which gates *run*.
 - **Node is the exception.** The whole JS/TS set — `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`,
   `.mts`, `.cts` — belongs to whichever lane the **Backend/Frontend lane path(s)** put it in (the
   same split `lane-guard.sh` falls back to), and to the backend alone when **Frontend stack** is
@@ -52,7 +42,7 @@ classify each path — same split the lane guard uses:
   lane in any mode: the frontend build/test/lint gates never run, and `seraph` is never dispatched
   for design conformance. That holds in `full` mode too — a project with no view has nothing for
   those gates to check.
-- **Neither** — docs, config, plugin files, etc.
+- **Neither** — the documentation set above.
 
 A diff can touch both lanes; `.cshtml` counts toward both.
 
@@ -103,36 +93,26 @@ as is. A build timeout follows `morpheus`'s gate step 6; a hung test, e2e or lin
 user as its own timeout, not rerun as contention.
 
 **Independent of each other is not independent of the build outputs.** Same-lane gates write the
-same build location: gates 1-3 all compile the backend (a test or lint run builds too), and a
-frontend build, e2e run and lint can share one bundler cache. So run a lane's gates **one at a
-time**, unless the lane's stack skill has a **Parallel gates** recipe (today only
-`backend-dotnet`) **and** you have checked, before launching any gate, that every resolved gate
-command is on the recipe's allow-list (for .NET: a plain `dotnet build`, `dotnet test` or
-`dotnet format --verify-no-changes`, no other flags) **and** the recipe's tree check has passed
-this session and not failed since. The first run in a session is serial; every run, serial or
-parallel, carries the check, and a parallel run that fails it is discarded and rerun serially,
-leaving the lane serial for the session. Record the result beside the gate's SHA. If any check
-fails or can't be made, stay serial. Otherwise dispatch them together and put each gate's own
-`<location>/<lane>/<gate>` path and the recipe's exact flags in its handoff, `oracle`'s test gate
-included: a worker that did not load the stack skill cannot derive them (`morpheus` §*One build
-location, one build writer at a time*). Two lanes writing different outputs still run concurrently.
+same build location (a test or lint run compiles too), so a lane's gates run **one at a time**
+unless its stack skill's **Parallel gates** recipe applies and its conditions hold — `morpheus`
+§*Builds and full test suites are a final gate*, rule 3, has the rule; today only
+`backend-dotnet` has a recipe. Record the recipe's tree-check result beside the gate's SHA, and
+put each gate's own `<location>/<lane>/<gate>` path and the recipe's exact flags in its handoff,
+`oracle`'s included: a worker that did not load the stack skill cannot derive them. Two lanes
+writing different outputs still run concurrently.
 
 1. **Backend tests** — *only if the backend lane changed*: delegate to `crew:oracle`; run the suite, surface failures with file:line.
 2. **Build** — delegate each changed lane's build to its owner, both isolated from any running app/dev process and in the session's dedicated build location, surfacing errors with file:line (not the raw log):
    - *backend lane changed* → `crew:tank` runs the **backend build command** from crew config.
    - *frontend lane changed* → `crew:trinity` runs the **frontend build command** from crew config (e.g. `tsc --noEmit` / `vite build`).
 
-   Each build runs **as crew config gives it**: a narrowed build target, a flag or property that
-   disables analyzers or type checks, or a verbosity below the default makes the gate weaker than
-   the developer's own build, which is worse than no gate. A zero exit code is not a pass on its
-   own — require the build's **warnings** in the worker's findings, then route them by the
-   changed-file list from §*1. Determine changed lanes*: a warning in a file this branch changed
-   is `## Blocking` (this branch owns that file), one anywhere else is a `## Warnings` item, so a
-   project that already builds warning-dirty doesn't fail the gate on its backlog. If the
-   **configured command itself** carries one of those weakenings, the gate can't be as strict as
-   the developer's build: run it anyway — a compile error is still an error — but report the
-   weakening as `## Blocking`, naming the flag and pointing at `/crew:init`. Never rewrite crew
-   config to strengthen it yourself.
+   Each build runs as `morpheus` §*Builds and full test suites are a final gate* rules 4–6 say:
+   one-shot and bounded, as configured with its warnings in the findings, contention told from a
+   code failure. This command adds the routing: a warning in a file this branch changed is
+   `## Blocking` (this branch owns that file), one anywhere else is a `## Warnings` item, so a
+   project that already builds warning-dirty doesn't fail the gate on its backlog. A weakening in
+   the **configured command itself** is `## Blocking`, naming the flag and pointing at
+   `/crew:init` — run the build anyway, a compile error is still an error.
 3. **Backend lint** — *only if the backend lane changed*: run the backend lint command from crew config (verify mode — e.g. `dotnet format --verify-no-changes`, plus `dotnet csharpier check` when a `.csharpierrc` is present); surface lint/format violations.
 4. **Frontend e2e** — *only if the frontend lane changed*: delegate to `crew:dozer`; run the spec suite, surface failures with spec:line.
 5. **Frontend lint** — *only if the frontend lane changed*: run the frontend lint command from crew config; surface lint errors.

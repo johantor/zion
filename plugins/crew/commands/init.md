@@ -1,30 +1,24 @@
 ---
-description: Detect the project's crew configuration and write it to .claude/crew.md, or with --local to an uncommitted file every worktree shares (idempotent — re-run to reconcile new settings, and to migrate a legacy CLAUDE.md block)
-argument-hint: "[--local]"
+description: Detect the project's crew configuration and write it to .claude/crew.md (idempotent — re-run to reconcile settings a newer plugin version added)
 ---
 
 Set up (or reconcile) the **crew configuration** the orchestrator reads. This command
 detects the project's build/test/lint commands, base branch, frontend mode, and backend/
 frontend stack, shows you what it found, and writes the agreed values to **`.claude/crew.md`**.
 It is **idempotent**: the first run bootstraps the file; a re-run reconciles it, adding any
-slots introduced by a newer plugin version **without overwriting values you've already set**;
-and it **migrates** a legacy **Crew configuration** block out of `CLAUDE.md` when it finds one.
+slots introduced by a newer plugin version **without overwriting values you've already set**.
 
 Two destinations, split by **audience** — not by tool:
 
 - **`.claude/crew.md`** — every slot in §1. Committed, so a teammate who installs the plugin
   inherits them, and reviewable in a pull request. This is machine configuration for a
-  dispatcher: it is read on demand, not auto-loaded into every session.
+  dispatcher: it is read on demand, not auto-loaded into every session. It is the only place
+  the crew reads configuration from.
 - **`CLAUDE.md`** — the `## Crew orchestration` prose (§3, which has a reader that sees only
   `CLAUDE.md`) plus the few repo conventions a careful reader would get **wrong** (§3's bar),
-  in tool-neutral wording. Slot values never go here.
-
-**Local mode** (`$ARGUMENTS` contains `--local`, or the user picks it in §4) changes nothing in
-the repo: the slots go to `crew.md` in the shared git dir (`git rev-parse --git-common-dir`,
-so every worktree of the clone reads it and git never commits it), and the §3 orchestration prose
-goes to `~/.claude/CLAUDE.md` once, reading "in this repo" as "in any repo where crew runs".
-Propose no convention lines; report them instead. A committed `.claude/crew.md` wins over the
-local file, so when one exists, say so and stop.
+  in tool-neutral wording. Slot values never go here. A `## Crew configuration` section left
+  by a plugin older than 3.21.0 is not read: say so, and propose removing it once its values
+  are in `.claude/crew.md`.
 
 Do the detection read-only first, then confirm with the user before writing anything.
 
@@ -186,13 +180,9 @@ anyone working in the repo, including teammates who have never installed this pl
 
 Show two tables — the §1 slots (slot · proposed value · source) and any proposed `CLAUDE.md` lines
 (line · why a glance misleads) — and let the user confirm or edit each before anything is written.
-Say plainly where the slots go: `.claude/crew.md` is committed and shared with the repo; in local
-mode, the file in the shared git dir stays on this machine and is never committed.
+Say plainly where the slots go: `.claude/crew.md` is committed and shared with the repo.
 
-If the user would rather keep crew configuration out of the repo, use local mode. It writes to
-protected paths (`.git/`, `~/.claude/`), so expect a permission prompt for each write.
-
-## 5. Write, reconcile, migrate
+## 5. Write and reconcile
 
 - **Nothing yet** → create `.claude/crew.md` with every slot from §1 and the confirmed values,
   and apply the confirmed `CLAUDE.md` additions from §3.
@@ -200,28 +190,11 @@ protected paths (`.git/`, `~/.claude/`), so expect a permission prompt for each 
   if present but still a placeholder (`unset` / `none`) and a value was detected and confirmed.
   **Never overwrite a key the user has set to a real value** — show those as "kept" rather than
   changing them. Preserve the body notes verbatim.
-- **Legacy `CLAUDE.md` block (migrate)** → when `CLAUDE.md` carries a **Crew configuration**
-  block (earlier versions wrote the slots there as `- **Slot:** value` bullets):
-  1. Read every slot value out of it, including any it holds that §1 has no key for — carry those
-     into the new file's body notes rather than dropping them. Treat italic *unset* as `unset` and
-     plain none as `none`.
-  2. Write `.claude/crew.md` from those values; a value the user had set wins over a freshly
-     detected one.
-  3. Judge whatever else that section carried (a *Notable conventions* entry, usually) against
-     §3's bar: keep what earns a line — reworded tool-neutral — and name what you are dropping as
-     deducible.
-  4. Remove the **Crew configuration** section from `CLAUDE.md`. Leave `## Crew orchestration`
-     in place — it belongs there (§3). In local mode, skip steps 3–4 and leave `CLAUDE.md`
-     untouched: the local file wins over the legacy block.
-
-In local mode, every bullet above targets the local file in place of `.claude/crew.md`, and the
-§3 prose goes to `~/.claude/CLAUDE.md`; nothing is written to the project `CLAUDE.md`.
 
 Before writing, show the exact set of additions and removals — a short diff of slots, plus the
-`CLAUDE.md` lines kept, reworded, and dropped — and apply only after the user confirms. Migration
-is a one-way move: get that confirmation before touching `CLAUDE.md`. Afterwards, report what was
-added, filled, kept, migrated, and dropped, and note that re-running reconciles again after future
-plugin updates.
+`CLAUDE.md` lines kept, reworded, and dropped — and apply only after the user confirms.
+Afterwards, report what was added, filled, kept, and dropped, and note that re-running reconciles
+again after future plugin updates.
 
 ## 6. MCP namespace check (report-only)
 

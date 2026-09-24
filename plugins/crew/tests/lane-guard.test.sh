@@ -5,7 +5,7 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 HOOK="lane-guard.sh"
 
-# --- Default extension regime (no CLAUDE.md, stacks unresolved) ----------------
+# --- Default extension regime (no .claude/crew.md, stacks unresolved) ----------
 # In an empty cwd there are no markers, so tank/trinity fall back to file
 # extensions: tank owns frontend-shaped files' opposite (backend), etc.
 assert_block "tank denied a .tsx file"   "$HOOK" "$(payload_file tank Foo.tsx)"  "out of"
@@ -155,7 +155,7 @@ assert_block "frontmatter: quoted lane paths still confine tank" \
   "$HOOK" "$(payload_file tank src/web/page.cs)" "out of" "$fm_quoted"
 
 # A YAML inline comment is not part of the value. /crew:init writes none, but the
-# file is hand-editable and the legacy block had its own comment convention.
+# file is hand-editable.
 fm_comment="$(make_crew_md 'backendStack: node
 frontendStack: nextjs
 backendLanePaths: src/api # the service
@@ -209,81 +209,33 @@ assert_allow "frontmatter: dozer allowed an e2e spec inside its frontend lane" \
 assert_block "frontmatter: dozer denied an e2e spec outside its frontend lane" \
   "$HOOK" "$(payload_file dozer apps/api/tests/checkout.spec.ts)" "outside" "$fm_dozer"
 
-# --- Same-language (Node) ambiguity, legacy CLAUDE.md block -------------------
-# Configuration written by an earlier /crew:init, before #198 moved the slots.
-# Still read when .claude/crew.md is absent, so an unmigrated project is unaffected.
-node_fe="$(make_claude_md '- **Backend stack:** node
-- **Frontend stack:** nextjs')"
-assert_block "legacy: node backend + frontend, no lane paths → fail closed" \
-  "$HOOK" "$(payload_file tank src/app.ts)" "can't tell them apart" "$node_fe"
-
-# Both lane paths configured → route by directory, not extension.
-both_lanes="$(make_claude_md '- **Backend stack:** node
-- **Frontend stack:** nextjs
-- **Backend lane path(s):** src/api
-- **Frontend lane path(s):** src/web')"
-assert_allow "legacy: tank allowed in its backend lane" "$HOOK" "$(payload_file tank src/api/handler.ts)" "$both_lanes"
-assert_block "legacy: tank denied in the frontend lane" "$HOOK" "$(payload_file tank src/web/page.ts)" "out of" "$both_lanes"
-
-# Only one lane path set → ambiguous → fail closed.
-one_lane="$(make_claude_md '- **Backend stack:** node
-- **Frontend stack:** nextjs
-- **Backend lane path(s):** src/api')"
-assert_block "legacy: only one lane path configured → fail closed" \
-  "$HOOK" "$(payload_file tank src/api/handler.ts)" "only one of" "$one_lane"
-
-# --- Precedence: .claude/crew.md wins over a stale legacy block ----------------
-# Migration removes the CLAUDE.md block, but a project can carry both — a partial
-# migration, or a branch that restored the old file. The lanes must come from the
-# file /crew:init writes, so the two fixtures below swap src/api and src/web.
-both_files="$(make_crew_md 'backendStack: node
-frontendStack: nextjs
-backendLanePaths: src/api
-frontendLanePaths: src/web')"
-printf '%s\n' '- **Backend stack:** node
+# --- Retired config locations are not read (5.0.0, #248) -----------------------
+# A legacy `## Crew configuration` block in CLAUDE.md and the `--local` crew.md in
+# the git dir both used to configure lanes. Neither may: each fixture below puts
+# src/web in tank's lane and src/api out of it, so if it were read tank's .tsx
+# under src/web would pass and its .cs under src/api would be blocked. The
+# extension regime's verdicts prove the file was ignored.
+stale_block="$(make_tree 'CLAUDE.md:- **Backend stack:** node
 - **Frontend stack:** nextjs
 - **Backend lane path(s):** src/web
-- **Frontend lane path(s):** src/api' > "$both_files/CLAUDE.md"
-assert_allow "frontmatter wins over a stale legacy block" \
-  "$HOOK" "$(payload_file tank src/api/handler.ts)" "$both_files"
-assert_block "the stale legacy block does not widen tank's lane" \
-  "$HOOK" "$(payload_file tank src/web/page.ts)" "out of" "$both_files"
+- **Frontend lane path(s):** src/api')"
+assert_block "a legacy CLAUDE.md block no longer configures lanes" \
+  "$HOOK" "$(payload_file tank src/web/Foo.tsx)" "out of" "$stale_block"
+assert_allow "a legacy CLAUDE.md block no longer confines tank" \
+  "$HOOK" "$(payload_file tank src/api/Foo.cs)" "$stale_block"
 
-# --- Local config in the shared git dir (/crew:init --local) -------------------
-# The same lanes as $fm_both, stored uncommitted. A linked worktree must read the
-# main clone's copy, so the worktree case is the one that proves the lookup.
-local_lanes='---
-backendStack: node
-frontendStack: nextjs
-backendLanePaths: src/api
-frontendLanePaths: src/web
----'
 local_clone="$(make_git_branch main)"
-printf '%s\n' "$local_lanes" > "$local_clone/.git/crew.md"
-assert_allow "local: tank allowed in its backend lane" \
-  "$HOOK" "$(payload_file tank src/api/handler.ts)" "$local_clone"
-assert_block "local: tank denied in the frontend lane" \
-  "$HOOK" "$(payload_file tank src/web/page.cs)" "out of" "$local_clone"
-
-git -C "$local_clone" -c user.name=t -c user.email=t@t commit -q --allow-empty -m init
-local_wt="$(new_tmpdir)/wt"
-git -C "$local_clone" worktree add -q "$local_wt" -b wt 2>/dev/null
-assert_block "local: a linked worktree reads the shared config" \
-  "$HOOK" "$(payload_file tank src/web/page.cs)" "out of" "$local_wt"
-
-# A committed file is the team's config and wins; its lanes are swapped here.
-mkdir -p "$local_clone/.claude"
 printf '%s\n' '---
 backendStack: node
 frontendStack: nextjs
 backendLanePaths: src/web
 frontendLanePaths: src/api
----' > "$local_clone/.claude/crew.md"
-assert_allow "local: a committed .claude/crew.md wins over the local file" \
-  "$HOOK" "$(payload_file tank src/web/page.ts)" "$local_clone"
+---' > "$local_clone/.git/crew.md"
+assert_allow "a crew.md in the git dir no longer confines tank" \
+  "$HOOK" "$(payload_file tank src/api/Foo.cs)" "$local_clone"
 
 # --- Marker detection when the stacks are unset --------------------------------
-# With no CLAUDE.md, the guard walks the repo for markers to decide whether the
+# With no .claude/crew.md, the guard walks the repo for markers to decide whether the
 # extension regime can separate tank from trinity at all. A miss there fails
 # silently — the same-language guard just doesn't fire — so the probe needs its
 # own coverage rather than being inferred from the pinned-stack cases above.

@@ -125,10 +125,8 @@ A formatter or linter that reports **zero files checked** did not run: report th
 failed (*zero files checked*), never as clean (a worktree under `.claude/worktrees/` can hide
 the whole tree from it).
 
-Crew config is `.claude/crew.md`; when that file is absent, `crew.md` in
-`git rev-parse --git-common-dir` (the local file), then a legacy **Crew configuration** block in
-`CLAUDE.md`. If a gate's command is `unset` / `none` there, skip it with that note (not a
-failure).
+Crew config is `.claude/crew.md`. If a gate's command is `unset` / `none` there, skip it with
+that note (not a failure).
 
 ## 3. Run the review
 

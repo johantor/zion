@@ -18,12 +18,11 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     scout; no Write/Edit/Bash — `Grep`/`Glob` only, so `/crew:audit` hands it `diff` and
     `outdated` results as data).
 - `commands/` — namespaced `crew:*` when installed.
-  - `init` writes `.claude/crew.md`, one frontmatter key per slot; `--local` writes the same
-    file to the shared git dir and the orchestration prose to `~/.claude/CLAUDE.md`. Its §1 slot keys are validator
-    §11's source of truth (the `- **Slot** (`key`) —` bullet shape is what §11 parses); §2 takes
-    each backend's commands from its `backend-<stack>` skill's *Crew config* section; §3 owns
-    what may go in `CLAUDE.md` (auto mode's classifier reads only that file); §5 migrates a
-    legacy `## Crew configuration` block; §6 reports MCP namespaces.
+  - `init` writes `.claude/crew.md`, one frontmatter key per slot, the only config location.
+    Its §1 slot keys are validator §11's source of truth (the `- **Slot** (`key`) —` bullet
+    shape is what §11 parses); §2 takes each backend's commands from its `backend-<stack>`
+    skill's *Crew config* section; §3 owns what may go in `CLAUDE.md` (auto mode's classifier
+    reads only that file); §5 writes and reconciles; §6 reports MCP namespaces.
   - `feature`, `review` (GO/NO-GO gate), `pr` (the only push/PR path), `address`.
   - `debt`: routes into `morpheus`'s debt lane (the `debt-lane` skill), in the foreground so its
     gates can prompt. The skill must not share a command's name: a command is also listed as a
@@ -77,10 +76,8 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     `plan-*.md`, `debt-*.md`, `crew.md`, `agent-memory-local/*.md` — plus scratch; no directory to
     anchor, no plan-directory slot read (AGENTS.md, "Why `morpheus` is lane-guarded"). The
     four lane workers get their lanes below. A `..` segment is refused for every lane agent.
-    The only hook that reads crew config: `.claude/crew.md`
-    frontmatter by key, else `crew.md` in the shared git dir (`/crew:init --local`; found by
-    reading `.git` and `commondir`, no fork), else the legacy `CLAUDE.md` block. Loaded once in the parent shell, since
-    `config_slot` runs in `$(...)`.
+    The only hook that reads crew config: `.claude/crew.md` frontmatter by key, nothing else.
+    Loaded once in the parent shell, since `config_slot` runs in `$(...)`.
   - Roster shape: `# crew-roster: <name>` then an `a|b|c)` arm, in `bash-safety.sh` and
     `lane-guard.sh`; §9 keeps both in lockstep with `owns-git`/`lane-guarded` frontmatter.
   - `turn-budget.sh` (PostToolUse `*`): counts tool calls against `maxTurns`, warns at 75% and

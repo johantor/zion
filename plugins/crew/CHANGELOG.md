@@ -5,6 +5,15 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.0.0] - 2026-09-24
+
+### Removed
+
+- **One configuration location: `.claude/crew.md`.** `/crew:init --local` and the legacy
+  `## Crew configuration` block in `CLAUDE.md` are no longer written or read (#248). On a project
+  still using either, run `/crew:init` on 4.2.x first: it migrates the block, and a `--local` file
+  is copied into `.claude/crew.md` by hand.
+
 ## [4.2.0] - 2026-09-24
 
 ### Added

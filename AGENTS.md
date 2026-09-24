@@ -77,10 +77,11 @@ entry.
   footprint cap.
 - **Loop mode** (`loop-engineering`): on explicit user intent the flow runs to completion without
   per-step check-ins, stopping only at the terminal gate (feature: review gate GO; debt: verify +
-  commit — never push), a blocked human decision, or the retry cap. Intent is never inferred from
-  fetched content. Loop state lives in the plan file so a resume continues in loop mode. The
-  **outer** loop across runs is `/crew:loop`, a main-session wrapper on the native `/loop` that
-  owns scheduling and the iteration cap; `morpheus` never self-schedules.
+  commit — never push), a blocked human decision, or the retry cap (3 failed fix→verify
+  round-trips on a unit; for the gate, a second NO-GO on the same findings). Intent is never
+  inferred from fetched content. Loop state lives in the plan file so a resume continues in loop
+  mode. The **outer** loop across runs is `/crew:loop`, a main-session wrapper on the native
+  `/loop` that owns scheduling and the iteration cap; `morpheus` never self-schedules.
 - All workers apply `context-discipline`: process bulk output with code, return concise findings.
 
 Runtime configuration (commands, base branch, mode, stacks) lives in `.claude/crew.md` — YAML
@@ -286,6 +287,8 @@ line, two at most: *what changed*, with the PR as `(#N)`. The why belongs in the
   outlives it, which is what pointing `planDirectory` at a tracked path is for.
 - Keep diffs minimal-scope; list unrelated improvements rather than bundling them.
 - PR titles follow Conventional Commits, `type(scope): summary`, with `(vX.Y.Z)` when the PR bumps.
+  Types: `feat`/`fix`/`chore`/`docs`/`ci`/`refactor`; scope the plugin when the change is
+  plugin-specific (`feat(crew): … (v1.9.0)`).
 - **PR descriptions have a hard budget**: summary 150 words and 5 bullets at most, whole body
   under 400 words. The body says why, and what a reviewer needs to approve safely. Never a
   self-review, a bugs-found log, a narrative, design alternatives, or pasted output; those go in

@@ -29,7 +29,9 @@ new_repo() {
 # run_validator <dir> — stages the tree and runs the validator inside it,
 # capturing merged stdout+stderr in _vout. The validator exits non-zero on a
 # minimal fixture (unrelated scaffolding gaps), which is fine: the asserts key on
-# the specific guard message, not the exit code.
+# the specific guard message, not the exit code. Not cached: only 17 of the 117
+# assertions reuse an unchanged fixture (measured for #251), so a cache would
+# add state to the harness for an 8% saving.
 run_validator() {
   git -C "$1" add -A >/dev/null 2>&1
   _vout="$(cd "$1" && bash scripts/validate-plugin.sh 2>&1)" || true
@@ -46,6 +48,14 @@ assert_silent() { # <label> <dir> <substr>
 
 mk_manifest() { mkdir -p "$1/.claude-plugin"; printf '{"name":"%s","version":"%s"}\n' "$2" "$3" > "$1/.claude-plugin/plugin.json"; }
 mk_changelog() { printf '## [%s]\n- note\n' "$2" > "$1/CHANGELOG.md"; }
+# new_repo_foo -> new_repo plus a valid plugin foo 1.0.0 (manifest + changelog):
+# the scaffold most cases start from, so §2 and §2h stay silent under them.
+new_repo_foo() {
+  local d
+  d="$(new_repo)"
+  mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+  printf '%s' "$d"
+}
 
 # Raw-JSON writers for the shapes the two above can't express: a manifest missing
 # a key, declaring component paths, or carrying a description; a marketplace.
@@ -84,7 +94,7 @@ wired_lib='\"${CLAUDE_PLUGIN_ROOT}\"/hooks/lib/guard-lib.sh'
 # --- §2h: manifest version must match the newest CHANGELOG entry ---------------
 d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 9.9.9; mk_changelog "$d/plugins/foo" 1.0.0
 assert_emits "§2h bites on version/changelog mismatch" "$d" "!= newest"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 assert_silent "§2h silent when they match" "$d" "!= newest"
 
 # --- §2g: an agent's skills: ref must resolve to a real skill -----------------
@@ -92,10 +102,10 @@ mk_agent() {  # <plugin_dir> <skill_ref>
   mkdir -p "$1/agents"
   printf -- '---\nname: bar\ndescription: d\nskills:\n  - %s\n---\nbody\n' "$2" > "$1/agents/bar.md"
 }
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_agent "$d/plugins/foo" nonexistent-skill
 assert_emits "§2g bites on an unresolved skill ref" "$d" "does not resolve"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mkdir -p "$d/plugins/foo/skills/real"; printf -- '---\nname: real\ndescription: d\n---\n' > "$d/plugins/foo/skills/real/SKILL.md"
 mk_agent "$d/plugins/foo" real
 assert_silent "§2g silent when the skill exists" "$d" "does not resolve"
@@ -115,17 +125,17 @@ mk_turn_budget() {  # <plugin_dir> <case-table-body>
   # shellcheck disable=SC2016
   printf '{"hooks":{"PostToolUse":[{"matcher":"*","hooks":[{"type":"command","command":"\\"${CLAUDE_PLUGIN_ROOT}\\"/hooks/turn-budget.sh"}]}]}}\n' > "$1/hooks/hooks.json"
 }
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_turns_agent "$d/plugins/foo" bar 40; mk_turn_budget "$d/plugins/foo" '  bar) budget=30 ;;'
 assert_emits "§8 bites on a budget != maxTurns" "$d" "!= plugins/foo/agents/bar.md maxTurns"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_turns_agent "$d/plugins/foo" bar 40; mk_turn_budget "$d/plugins/foo" '  baz) budget=40 ;;'
 assert_emits "§8 bites on a missing agent entry" "$d" "no budget entry for agent 'bar'"
 assert_emits "§8 bites on a stale table row" "$d" "budget entry 'baz' does not match any"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_turns_agent "$d/plugins/foo" bar 40; mk_turn_budget "$d/plugins/foo" '  # no table lines'
 assert_emits "§8 bites on an unparseable table" "$d" "no parseable budget table"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_turns_agent "$d/plugins/foo" bar 40; mk_turn_budget "$d/plugins/foo" '  bar) budget=40 ;;'
 assert_silent "§8 silent when table matches maxTurns" "$d" "keep the table in lockstep"
 
@@ -147,7 +157,7 @@ mk_roster_hook() {  # <plugin_dir> <hook-basename> <roster-name> <arm-alternatio
   return 0
 }
 # A Bash-capable non-owner missing from the no-git roster would run git unguarded.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" hand "Read, Bash" false false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'other'
@@ -157,25 +167,25 @@ assert_emits "§9 bites on a stale no-git roster name" "$d" \
   "roster entry 'other' does not match any"
 
 # Listing the git owner in the no-git roster would block the one agent that must commit.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'boss'
 assert_emits "§9 bites when the git owner is in the no-git roster" "$d" \
   "lists the git owner 'boss'"
 
 # Exactly one owner: neither zero nor two.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" a "Read, Bash" false false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'a'
 assert_emits "§9 bites when no agent owns git" "$d" "exactly one agent with 'owns-git: true'"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" a "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" b "Read, Bash" true false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'none'
 assert_emits "§9 bites on two git owners" "$d" "found 2"
 
 # A new agent that declares neither fact is the drift this section exists to catch.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'none'
 printf -- '---\nname: newbie\ndescription: d\ntools: Read, Bash\n---\nbody\n' > "$d/plugins/foo/agents/newbie.md"
@@ -183,13 +193,13 @@ assert_emits "§9 bites on an agent declaring no owns-git" "$d" \
   "plugins/foo/agents/newbie.md has no 'owns-git'"
 
 # Dropping the marker must fail loudly, not silently disable the check.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mkdir -p "$d/plugins/foo/hooks"; printf '#!/usr/bin/env bash\nexit 0\n' > "$d/plugins/foo/hooks/bash-safety.sh"
 assert_emits "§9 bites on a missing no-git marker" "$d" "has no parseable '# crew-roster: no-git'"
 
 # No hook file at all must report, not abort the validator under `set -e`.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 assert_emits "§9 bites when the hook file is absent entirely" "$d" \
   "has no parseable '# crew-roster: no-git'"
@@ -197,7 +207,7 @@ assert_emits "§9 keeps running after an absent hook" "$d" "Plugin validation fa
 
 # A reformatted arm must fail loudly, not silently resolve to another case
 # statement further down the hook (bash-safety has a `main|master|develop)` arm).
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mkdir -p "$d/plugins/foo/hooks"
 # shellcheck disable=SC2016
@@ -208,14 +218,14 @@ assert_emits "§9 bites on a reformatted arm instead of scanning on" "$d" \
 assert_silent "§9 does not adopt a later case statement's arm" "$d" "'main'"
 
 # A duplicated roster name is a copy-paste error, not a silent dedupe.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" hand "Read, Bash" false false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'hand|hand'
 assert_emits "§9 bites on a duplicated roster name" "$d" "names 'hand' more than once"
 
 # lane-guarded, both directions.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" laned "Read, Bash" false true
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'laned'
@@ -224,7 +234,7 @@ assert_emits "§9 bites when a lane-guarded agent is missing from the roster" "$
   "roster omits 'laned'"
 assert_emits "§9 bites on a stale lane roster name" "$d" \
   "lane roster entry 'other' does not match any"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" laned "Read, Bash" false true
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'laned'
@@ -233,7 +243,7 @@ assert_emits "§9 bites on a duplicated lane roster name" "$d" \
   "lane roster names 'laned' more than once"
 
 # An empty `owns-git:` must fail loudly, not skip §9 for the whole plugin.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mkdir -p "$d/plugins/foo/agents"
 printf -- '---\nname: boss\ndescription: d\ntools: Read, Bash\nowns-git:\nlane-guarded: false\n---\nbody\n' \
   > "$d/plugins/foo/agents/boss.md"
@@ -242,7 +252,7 @@ assert_emits "§9 opt-in keys on presence, not value" "$d" \
   "plugins/foo/agents/boss.md has no 'owns-git'"
 
 # A Bash-less agent in the no-git roster is a dead entry: it can never run git.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" looker "Read, Grep" false false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'looker'
@@ -250,14 +260,14 @@ assert_emits "§9 bites on a Bash-less agent in the no-git roster" "$d" \
   "has no Bash tool; remove the dead entry"
 
 # An inline YAML comment on a declaration is valid YAML, not a broken value.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mkdir -p "$d/plugins/foo/agents"
 printf -- '---\nname: boss\ndescription: d\ntools: Read, Bash\nowns-git: true  # sole git owner\nlane-guarded: false\n---\nbody\n' \
   > "$d/plugins/foo/agents/boss.md"
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'none'
 assert_silent "§9 accepts an inline comment after a declaration" "$d" "expected true or false"
 
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" free "Read, Bash" false false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'free'
@@ -268,18 +278,18 @@ assert_emits "§9 bites when the roster lists a lane-guarded: false agent" "$d" 
 # The floor's `git mv` allowance keys on `git_owner=<name>` in bash-safety.sh. A
 # missing or stale name there fails closed for the one agent that may rename, so
 # §9 pins it to the agent declaring `owns-git: true`.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'none'
 assert_emits "§9 bites when bash-safety names no git_owner" "$d" "add git_owner=boss"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_hook "$d/plugins/foo" bash-safety.sh no-git 'none' oldboss
 assert_emits "§9 bites on a stale git_owner name" "$d" \
   "sets 'git_owner=oldboss' but the agent with 'owns-git: true' is 'boss'"
 
 # A Bash-less agent needs no no-git entry, and the control must stay silent.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_roster_agent "$d/plugins/foo" boss "Read, Bash" true false
 mk_roster_agent "$d/plugins/foo" laned "Read, Bash" false true
 mk_roster_agent "$d/plugins/foo" looker "Read, Grep" false false
@@ -292,7 +302,7 @@ assert_silent "§9 silent: no owner complaint in lockstep" "$d" "exactly one age
 assert_silent "§9 silent: git_owner agrees with owns-git" "$d" "git_owner="
 
 # A plugin whose agents declare neither field is skipped entirely.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_turns_agent "$d/plugins/foo" plain 40
 assert_silent "§9 silent for a plugin that hasn't opted in" "$d" "crew-roster"
 
@@ -305,7 +315,7 @@ assert_silent "§1 silent on well-formed JSON" "$d" "invalid JSON: plugins/foo/b
 # --- §2a: manifest identity fields ---------------------------------------------
 d="$(new_repo)"; mk_manifest_json "$d/plugins/foo" '{"name":"foo"}'; mk_changelog "$d/plugins/foo" 1.0.0
 assert_emits "§2a bites on a manifest missing version" "$d" "missing required key: version"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 assert_silent "§2a silent when identity keys are present" "$d" "missing required key"
 
 # --- §2b: declared component paths must exist ----------------------------------
@@ -324,22 +334,22 @@ assert_emits "§2c bites when the manifest declares hooks/hooks.json" "$d" "decl
 d="$(new_repo)"; mk_manifest_json "$d/plugins/foo" '{"name":"foo","version":"1.0.0","hooks":"hooks/extra.sh"}'
 mk_changelog "$d/plugins/foo" 1.0.0
 assert_emits "§2c bites on an additional hook file that is missing" "$d" "hooks -> hooks/extra.sh declared in"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 assert_silent "§2c silent when the manifest omits it" "$d" "declares the auto-loaded hooks/hooks.json"
 
 # --- §2d: an agents/ directory must hold agent files ---------------------------
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mkdir -p "$d/plugins/foo/agents"; printf 'notes\n' > "$d/plugins/foo/agents/notes.txt"
 assert_emits "§2d bites on an agents/ dir with no .md files" "$d" "agents/ exists but has no .md agent files"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mkdir -p "$d/plugins/foo/agents"; printf -- '---\nname: bar\ndescription: d\n---\nbody\n' > "$d/plugins/foo/agents/bar.md"
 assert_silent "§2d silent when agents/ holds an agent" "$d" "agents/ exists but has no .md agent files"
 
 # --- §2e: a hooks/ directory must carry the auto-loaded hooks.json -------------
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_hook "$d/plugins/foo" x.sh 'exit 0'
 assert_emits "§2e bites on a hooks/ dir with no hooks.json" "$d" "hooks/ exists but hooks/hooks.json missing"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_hook "$d/plugins/foo" x.sh 'exit 0'; mk_hooks_json "$d/plugins/foo" "$wired_x"
 assert_silent "§2e silent when hooks.json is present" "$d" "hooks/ exists but hooks/hooks.json missing"
 
@@ -354,7 +364,7 @@ d="$(new_repo)"; mkdir -p "$d/plugins/foo"; printf 'placeholder\n' > "$d/plugins
 mk_marketplace "$d" '{"name":"m","plugins":[{"name":"foo","source":"./plugins/foo"}]}'
 assert_emits "§2f bites on a source with no manifest" "$d" "plugins/foo/.claude-plugin/plugin.json missing"
 
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_marketplace "$d" '{"name":"m","plugins":[{"name":"bar","source":"./plugins/foo"}]}'
 assert_emits "§2f bites on an entry name != manifest name" "$d" "!= plugin.json name"
 
@@ -371,14 +381,14 @@ mk_marketplace "$d" '{"name":"m","plugins":[{"name":"foo","source":"./plugins/fo
 assert_silent "§2f silent when the entry matches its manifest" "$d" "description differs from"
 
 # --- §3: hook scripts are valid bash and executable ----------------------------
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mkdir -p "$d/plugins/foo/hooks"; printf '#!/usr/bin/env bash\nif [ 1\n' > "$d/plugins/foo/hooks/x.sh"
 chmod +x "$d/plugins/foo/hooks/x.sh"   # chmod so only the syntax guard can fire
 assert_emits "§3 bites on a bash syntax error" "$d" "bash syntax error: plugins/foo/hooks/x.sh"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mkdir -p "$d/plugins/foo/hooks"; printf '#!/usr/bin/env bash\nexit 0\n' > "$d/plugins/foo/hooks/x.sh"
 assert_emits "§3 bites on a non-executable hook" "$d" "not executable (chmod +x): plugins/foo/hooks/x.sh"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_hook "$d/plugins/foo" x.sh 'exit 0'
 # Two asserts, each on its own FAIL text: the bare path also appears in this
 # section's `ok:` lines, so matching on it alone would never go silent.
@@ -387,14 +397,14 @@ assert_silent "§3 silent on an executable hook" "$d" "not executable"
 
 # hooks/lib/*.sh is the other kind of file in a hooks/ directory: sourced by the
 # entry points, never executed, so §3 inverts the mode rule for it.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_lib "$d/plugins/foo" guard-lib.sh 'echo lib'; chmod +x "$d/plugins/foo/hooks/lib/guard-lib.sh"
 assert_emits "§3 bites on an executable sourced library" "$d" "sourced library is executable (chmod -x): plugins/foo/hooks/lib/guard-lib.sh"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_lib "$d/plugins/foo" guard-lib.sh 'echo lib'
 assert_silent "§3 silent on a non-executable library" "$d" "chmod"
 # A library still has to parse — §3's syntax guard covers both kinds.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_lib "$d/plugins/foo" guard-lib.sh 'if [ 1'
 assert_emits "§3 bites on a syntax error in a library" "$d" "bash syntax error: plugins/foo/hooks/lib/guard-lib.sh"
 
@@ -430,7 +440,7 @@ mk_prose_agent() {  # <plugin_dir> <name> <body>
   mkdir -p "$1/agents"
   printf -- '---\nname: %s\ndescription: d\n---\n%s\n' "$2" "$3" > "$1/agents/$2.md"
 }
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 # Backticks below are Markdown code spans in fixture prose, not substitution:
 # these refs are nearly always written as `crew:tank`, so §10 must see that form.
 # shellcheck disable=SC2016
@@ -439,7 +449,7 @@ assert_emits "§10 bites on a prose ref to a nonexistent agent" "$d" \
   "references 'foo:ghost' but no plugins/foo/agents/ghost.md"
 
 # A ref that resolves to a command, not an agent, is equally valid.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 # shellcheck disable=SC2016
 mk_prose_agent "$d/plugins/foo" bar 'Run `/foo:ship` to finish.'
 mkdir -p "$d/plugins/foo/commands"; printf -- '---\nname: ship\ndescription: d\n---\nbody\n' > "$d/plugins/foo/commands/ship.md"
@@ -447,12 +457,12 @@ assert_silent "§10 silent when the ref resolves to a command" "$d" "but no plug
 
 # A plugin name embedded in a longer word is not a reference. Guards the
 # delimiter group that stands in for `\b` (a GNU extension we can't use).
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_prose_agent "$d/plugins/foo" bar 'The xfoo:ghost marker is not a reference.'
 assert_silent "§10 ignores a plugin name embedded in a longer word" "$d" "ghost"
 
 # An unknown namespace is another marketplace's business, not ours.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 # shellcheck disable=SC2016
 mk_prose_agent "$d/plugins/foo" bar 'See `other:thing` for details.'
 assert_silent "§10 ignores a namespace no plugin here declares" "$d" "other:thing"
@@ -552,29 +562,29 @@ mk_sized_skill() {
 }
 
 # The footprint is reported for every agent, capped or not.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_capped_agent "$d/plugins/foo" plain "" 5
 assert_emits "§12 reports an uncapped agent's footprint" "$d" "plain.md loaded footprint: 9 lines"
 
 # A cap is enforced, and the preloaded skills count toward it: the agent body
 # alone fits under 12, the agent plus its 6-line skill does not.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_sized_skill "$d/plugins/foo" heavy 2
 mk_capped_agent "$d/plugins/foo" fat 12 5 heavy
 assert_emits "§12 bites when the footprint exceeds its cap" "$d" \
   "fat.md loaded footprint 18 exceeds its 'loaded-lines-cap: 12'"
 assert_emits "§12 counts preloaded skills toward the footprint" "$d" "(agent 12 + skills 6)"
 
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_sized_skill "$d/plugins/foo" heavy 2
 mk_capped_agent "$d/plugins/foo" lean 40 5 heavy
 assert_silent "§12 silent when the footprint is within its cap" "$d" "exceeds its"
 
 # A cap that can't be parsed must fail loudly, not silently stop enforcing.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_capped_agent "$d/plugins/foo" bad "not-a-number" 5
 assert_emits "§12 bites on a non-numeric cap" "$d" "expected a plain line count"
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_capped_agent "$d/plugins/foo" empty "" 5
 # Written by hand: mk_capped_agent omits the key entirely when the cap is empty,
 # but a present-with-no-value key is the case that must not skip the check.
@@ -584,7 +594,7 @@ assert_emits "§12 bites on a present-but-empty cap" "$d" "has an empty 'loaded-
 
 # An unresolved skill ref is §2g's failure; §12 must not double-report it, and
 # must still report the agent's own footprint.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_capped_agent "$d/plugins/foo" typo 40 5 ghost-skill
 assert_emits "§12 still reports a footprint when a skill ref is unresolved" "$d" \
   "typo.md loaded footprint: 12 lines (agent 12 + skills 0)"
@@ -598,7 +608,7 @@ assert_emits_prestaged() {  # <label> <dir> <substr>
   _vout="$(cd "$2" && bash scripts/validate-plugin.sh 2>&1)" || true
   if [[ "$_vout" == *"$3"* ]]; then _pass; else _fail "$1: validator did not emit '$3' — output: $_vout"; fi
 }
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_capped_agent "$d/plugins/foo" gone "" 5
 git -C "$d" add -A >/dev/null 2>&1; rm "$d/plugins/foo/agents/gone.md"
 assert_emits_prestaged "§12 bites on a staged-but-deleted agent file" "$d" \
@@ -606,7 +616,7 @@ assert_emits_prestaged "§12 bites on a staged-but-deleted agent file" "$d" \
 assert_emits_prestaged "§12 keeps running after an unreadable agent file" "$d" \
   "Plugin validation failed."
 
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_sized_skill "$d/plugins/foo" heavy 2
 mk_capped_agent "$d/plugins/foo" fine 12 5 heavy
 git -C "$d" add -A >/dev/null 2>&1; rm "$d/plugins/foo/skills/heavy/SKILL.md"
@@ -629,13 +639,13 @@ mk_tools_agent() {
 }
 
 # A bare server key alone leaves the plugin-install path unmatched.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" lonely "Read, mcp__figma"
 assert_emits "§13 bites on a bare server key with no plugin form" "$d" \
   "add the plugin form 'mcp__plugin_<plugin>_figma'"
 
 # ...and the reverse: a plugin form alone leaves .mcp.json-keyed installs out.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" scoped_only "Read, mcp__plugin_figma_figma"
 assert_emits "§13 bites on a plugin form with no bare key" "$d" \
   "'mcp__plugin_figma_figma' names a server no bare key covers"
@@ -643,7 +653,7 @@ assert_emits "§13 bites on a plugin form with no bare key" "$d" \
 # A plugin and the server it bundles are keyed independently — the real
 # chrome-devtools-mcp plugin ships a server called chrome-devtools — so the
 # halves pair by suffix, not by being equal.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" asym \
   "Read, mcp__chrome-devtools, mcp__plugin_chrome-devtools-mcp_chrome-devtools"
 assert_emits "§13 pairs a plugin whose name differs from its server" "$d" \
@@ -652,13 +662,13 @@ assert_silent "§13 doesn't demand a same-name plugin form" "$d" \
   "add the plugin form"
 
 # The suffix must be the server half, not any substring of the plugin half.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" wrong_half "Read, mcp__chrome-devtools, mcp__plugin_chrome-devtools_ohno"
 assert_emits "§13 bites when only the plugin half matches the bare key" "$d" \
   "'mcp__chrome-devtools' covers only a server keyed in .mcp.json"
 
 # A tool-scoped grant withholds the rest of the server's tools.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" narrow "Read, mcp__figma__get_design_context"
 assert_emits "§13 bites on a tool-scoped MCP grant" "$d" \
   "grants a single MCP tool; allowlist the whole server as 'mcp__figma'"
@@ -667,7 +677,7 @@ assert_silent "§13 doesn't re-report a malformed entry as an unpaired key" "$d"
   "mcp__plugin_figma__get_design_context"
 
 # A paired agent is silent, and `mcp__x__*` is the same grant as `mcp__x`.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" paired "Read, mcp__figma__*, mcp__plugin_figma_figma"
 assert_silent "§13 silent when both install paths are granted" "$d" \
   "add the plugin form"
@@ -675,14 +685,14 @@ assert_emits "§13 treats mcp__x__* as the server grant" "$d" \
   "paired.md tools -> mcp__figma has its plugin form"
 
 # Hosted connectors can't be plugin-installed, so they're exempt by name.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" hosted "Read, mcp__claude_ai_Figma"
 assert_emits "§13 exempts a connector-only namespace" "$d" \
   "mcp__claude_ai_Figma is connector-only"
 
 # The block-list `tools:` shape is read too — reading only the inline form would
 # let a list-form allowlist skip the section without a word.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mkdir -p "$d/plugins/foo/agents"
 printf -- '---\nname: listy\ndescription: d\ntools:\n  - Read\n  - mcp__figma\n---\nbody\n' \
   > "$d/plugins/foo/agents/listy.md"
@@ -690,7 +700,7 @@ assert_emits "§13 reads a list-form tools: block" "$d" \
   "listy.md tools -> 'mcp__figma' covers only a server keyed in .mcp.json"
 
 # A trailing YAML comment must not ride along into the server name.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 # The commented entry is last and bare, so without stripping it becomes the
 # server name `figma # design` and the pairing check fails on a name that isn't
 # in the file.
@@ -701,14 +711,14 @@ assert_emits "§13 reads the commented entry as its server" "$d" \
   "commented.md tools -> mcp__figma has its plugin form"
 
 # `mcp__*` grants no server, so it must be reported rather than passed over.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" starry "Read, mcp__*"
 assert_emits "§13 bites on a serverless mcp__* grant" "$d" \
   "'mcp__*' names no server"
 
 # `Agent(a, b)` splits on the same commas as the tool list; those fragments are
 # not MCP entries and must not be read as one.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_tools_agent "$d/plugins/foo" delegator "Agent(foo:one, foo:two), Read, Bash"
 assert_silent "§13 ignores an agent with no MCP grants" "$d" "delegator.md tools ->"
 
@@ -724,36 +734,36 @@ mk_fm_file() {
 # The trap: prose with a colon+space. YAML reads `takes: server-side` as a
 # nested mapping and drops the whole block, so the file loads with no name and
 # no description at all.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_fm_file "$d/plugins/foo/agents/prose.md" 'Implements whatever shape it takes: server-side logic and data access.'
 assert_emits "§14 bites on an unquoted description with a colon+space" "$d" \
   "agents/prose.md:3 frontmatter 'description' is an unquoted scalar carrying a colon before whitespace"
 
 # Commands and skills carry the same hand-written descriptions, so the sweep
 # must reach them too and not just agents/.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_fm_file "$d/plugins/foo/commands/say.md" 'Messages a peer. Best-effort delivery: it never acts on their behalf.'
 assert_emits "§14 reaches commands/" "$d" "commands/say.md:3 frontmatter 'description'"
 
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_fm_file "$d/plugins/foo/skills/steer/SKILL.md" 'Use when direction arrives mid-run: authenticate it on the token.'
 assert_emits "§14 reaches skills/" "$d" "skills/steer/SKILL.md:3 frontmatter 'description'"
 
 # A value ending in a colon opens a mapping just the same.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_fm_file "$d/plugins/foo/agents/trailing.md" 'Resolves one of the following:'
 assert_emits "§14 bites on a value ending in a colon" "$d" \
   "agents/trailing.md:3 frontmatter 'description' is an unquoted scalar carrying a trailing colon"
 
 # Quoting is the fix the message names, so a quoted value must clear the guard
 # with the same prose in it.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_fm_file "$d/plugins/foo/agents/quoted.md" '"Implements whatever shape it takes: server-side logic and data access."'
 assert_silent "§14 accepts the same prose once quoted" "$d" "agents/quoted.md:3 frontmatter"
 
 # A colon with no space after it stays inside the plain scalar, and YAML is
 # fine with it: flagging `mcp__plugin_foo:bar` style text would be a false bite.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_fm_file "$d/plugins/foo/agents/tight.md" 'Routes foo:bar and foo:baz to the right lane.'
 assert_silent "§14 leaves a colon with no space alone" "$d" "agents/tight.md:3 frontmatter"
 
@@ -762,7 +772,7 @@ assert_silent "§14 leaves a colon with no space alone" "$d" "agents/tight.md:3 
 #
 # Prestaged, like §12's pair: assert_emits re-stages, and staging the deletion
 # would drop the path from git ls-files so the guard never sees it at all.
-d="$(new_repo)"; mk_manifest "$d/plugins/foo" foo 1.0.0; mk_changelog "$d/plugins/foo" 1.0.0
+d="$(new_repo_foo)"
 mk_fm_file "$d/plugins/foo/agents/gone.md" 'A plain description.'
 git -C "$d" add -A >/dev/null 2>&1; rm "$d/plugins/foo/agents/gone.md"
 assert_emits_prestaged "§14 bites on a staged-but-deleted file" "$d" \

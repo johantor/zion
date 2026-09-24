@@ -10,11 +10,13 @@ description: "How the crew runs a build, test or lint gate: one build location w
    worktree — and reuse it in **every** build delegation so caches stay warm. Inside it the
    intermediates are a shared artifact, and a test or lint run that compiles is a writer too:
    never dispatch two writers of one project's outputs at once. Run a lane's gates **one at a
-   time**, unless its stack skill has a **Parallel gates** recipe whose conditions you checked
-   first (today only `backend-dotnet`): then dispatch them together, each with its own
-   `<location>/<lane>/<gate>` path and the recipe's exact flags in its handoff, `oracle`'s
-   included — a worker that did not load the stack skill cannot derive them. Record the recipe's
-   tree-check result beside the gate's SHA. Require the location **isolated from any running
+   time**, unless the lane's stack skill has a **Parallel gates** recipe: load that skill
+   (`backend-<stack>`) with the Skill tool before deciding — its recipe holds the allow-list,
+   the tree check and the flags — and stay serial if it cannot be loaded or has no recipe (today
+   only `backend-dotnet` has one). When its conditions hold, dispatch the gates together, each
+   with its own `<location>/<lane>/<gate>` path and the recipe's exact flags in its handoff,
+   `oracle`'s included — a worker that did not load the stack skill cannot derive them. Record
+   the recipe's tree-check result beside the gate's SHA. Require the location **isolated from any running
    app/dev process** so builds can't contend on locked `bin`/`obj`, `dist`, bundler caches; an
    e2e suite's command owns its own server lifecycle instead.
 2. **One-shot, bounded.** Use the project's **build** command, never a watch/dev/serve command

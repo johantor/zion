@@ -42,9 +42,11 @@ classify each path — same split the lane guard uses:
   which gates *run*.
 - **Both lanes** — `.claude/crew.md`: a changed gate command changes what both lanes' gates do.
 - **Node is the exception.** The whole JS/TS set — `.ts`, `.tsx`, `.js`, `.jsx`, `.mjs`, `.cjs`,
-  `.mts`, `.cts` — belongs to whichever lane the **Backend/Frontend lane path(s)** put it in (the
-  same split `lane-guard.sh` falls back to), and to the backend alone when **Frontend stack** is
-  `none`. Classifying by extension would skip the backend gates on a backend-only Node repo.
+  `.mts`, `.cts` — **and the manifests, lockfiles and tool configs above** belong to whichever
+  lane the **Backend/Frontend lane path(s)** put them in (the same split `lane-guard.sh` falls
+  back to), so `apps/api/package.json` is backend under a backend lane path; and to the backend
+  alone when **Frontend stack** is `none`. Classifying by extension would skip the backend gates
+  on a backend-only Node repo.
 - **No view layer, no frontend gates.** When **Frontend stack** is `none` there is no frontend
   lane in any mode: the frontend build/test/lint gates never run, and `seraph` is never dispatched
   for design conformance. That holds in `full` mode too — a project with no view has nothing for

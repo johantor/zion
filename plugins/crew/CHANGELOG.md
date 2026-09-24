@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **`worker-contract` states the gate rule once**: run a gate only as the handoff gives it; the
-  specifics live in the stack skills and `morpheus`'s gate rules (#250).
+  handoff's rules are `review-gate`'s and the tool specifics the stack skills' (#250).
 - **`/crew:review` classifies lanes without a copy of the guard's list**: frontend extensions or
   documentation, everything else is backend. It points at `morpheus`'s gate rules instead of
   restating them.

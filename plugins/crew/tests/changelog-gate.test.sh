@@ -1,16 +1,23 @@
 #!/usr/bin/env bash
-# Self-tests for scripts/check-changelog.sh, the PR gate: a change to a plugin's
-# shipped files must bump its version. Diff-driven, so each case builds a
-# throwaway repo with real commits rather than a static tree — that history *is*
-# the input. Assert on the message, not the exit code, so it is clear which
-# guard fired.
+# Self-tests for the two release scripts:
+#
+#   scripts/check-changelog.sh — the PR gate: a change to a plugin's shipped
+#     files must bump its version. Diff-driven, so each case builds a throwaway
+#     repo with real commits rather than a static tree — that history *is* the
+#     input.
+#   scripts/release-notes.sh   — the notes extractor: one version's CHANGELOG
+#     section, which auto-release.yml turns into the GitHub Release.
+#
+# Assert on the message, not the exit code, so it is clear which guard fired.
 #
 # shellcheck source=tests/hooks/lib.sh
 # shellcheck disable=SC1090,SC1091
 source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-[ -f "$REPO_ROOT/scripts/check-changelog.sh" ] || { echo "FATAL: scripts/check-changelog.sh not found" >&2; exit 1; }
+for s in check-changelog.sh release-notes.sh; do
+  [ -f "$REPO_ROOT/scripts/$s" ] || { echo "FATAL: scripts/$s not found" >&2; exit 1; }
+done
 
 # new_gate_repo -> echoes a repo on `main` carrying the script and one plugin
 # (foo v1.0.0) already committed, with a `work` branch checked out. The base
@@ -93,5 +100,19 @@ printf 'readme v2\n' > "$d/plugins/foo/README.md"; gate_commit "$d" "docs: on ma
 git -C "$d" checkout -q work; mkdir -p "$d/plugins/foo/tests"; printf 'x\n' > "$d/plugins/foo/tests/t.sh"
 gate_commit "$d" "test: add a case"
 run_gate "$d"; assert_no_out "silent when only main moved" "$NOBUMP"
+
+# --- The notes extractor: one version's section, nothing else -----------------
+run_notes() { _out="$(bash "$REPO_ROOT/scripts/release-notes.sh" "$1" "$2" 2>&1)" || true; }
+
+d="$(new_tmpdir)"; mkdir -p "$d/p"
+printf '# Changelog\n\n## [1.0.10] - 2026-03-03\n- ten\n\n## [1.0.1] - 2026-02-02\n\n### Fixed\n- one\n\n## [1.0.0] - 2026-01-01\n- initial\n' \
+  > "$d/p/CHANGELOG.md"
+run_notes "$d/p" 1.0.1
+assert_out "notes carry the version's heading" "## [1.0.1]"
+assert_out "notes carry the version's bullets" "- one"
+assert_no_out "notes stop at the next heading" "- initial"
+assert_no_out "1.0.1 does not match the 1.0.10 section above it" "- ten"
+run_notes "$d/p" 9.9.9
+assert_out "a missing section is an error, not empty notes" "no '## [9.9.9]' section"
 
 finish

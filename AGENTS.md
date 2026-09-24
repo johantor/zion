@@ -66,6 +66,8 @@ a plugin is additive — create `plugins/<name>/` and add an entry to `marketpla
     Tree-only: no base ref, so it runs anywhere.
   - `check-changelog.sh` — the release gate: a change to shipped files must bump the plugin's
     version (see *Releasing*). Diff-based, so it takes the base branch to compare against.
+  - `release-notes.sh` — prints one version's changelog section, the GitHub Release notes.
+    Called by `auto-release.yml`; a script so the tests cover it before a merge.
 - `tests/hooks/` — the harness the plugin test suites share (`lib.sh`) and their runner
   (`run.sh`); see *Validating changes*.
 - `.claude/crew.md` — this repo's own crew configuration, written by `/crew:init`. The repo
@@ -505,8 +507,8 @@ release:
    newest `## [X.Y.Z]` entry in that plugin's changelog, so the two always move together.
 2. Merge to `main`. `.github/workflows/auto-release.yml` runs on the push, sees the new
    version has no `<plugin>/v<version>` tag yet, and creates the tag and GitHub Release
-   automatically, with that version's changelog section as the notes. No
-   matching changelog entry → it skips with a warning. No manual tagging is needed
+   automatically, with that version's changelog section as the notes
+   (`scripts/release-notes.sh`). No matching changelog entry → it skips with a warning. No manual tagging is needed
    (`claude plugin tag` exists for tagging by hand, but here the workflow owns it).
 
 ### A shipped change bumps the version

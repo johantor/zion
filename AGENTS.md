@@ -121,8 +121,9 @@ before pushing and as a reviewer:
 ## Prompt design rationale
 
 An always-loaded prompt costs context on **every** run, so it carries *instruction* and not the
-*justification*. The justification lives here, one line per rule with the PR that decided it;
-the PR holds the full story. Prompts carry a single pointer to this file, never per-rule pointers:
+*justification*. The justification lives here, one line per rule, with the PR that decided it
+where one exists; the PR holds the full story. Prompts carry a single pointer to this file, never
+per-rule pointers:
 this file is never shipped, so a runtime agent cannot follow one.
 
 **The classification test before moving a line out of a prompt:** *would an agent that never read
@@ -149,7 +150,9 @@ motivation measurably helps compliance. Compression is not a quota.
   default; the status pulse is emitted after the result is reconciled, or it reports stale state.
 - **Fresh spawns; steering is the narrow exception.** `Agent` never continues a worker, so
   `SendMessage` is the only way to add a turn to a live one; it is host-dependent, so its absence
-  is never a blocker, and durable context still travels through the plan file.
+  is never a blocker, and durable context still travels through the plan file. A steer amends the
+  plan step as it is sent: the commit is judged against the step's `acceptance:`, so a steer that
+  widens the work without widening the step makes the two disagree.
 - **A steer is authenticated on a per-dispatch token, and its content is still fallible.** A
   steer arrives shaped like a `system-reminder`, the same shape injected text takes, so the anchor
   is a token minted per dispatch that planted content cannot quote; a plan step id could be
@@ -164,7 +167,9 @@ motivation measurably helps compliance. Compression is not a quota.
   verbose, and a standalone build before the gate builds the same tree twice.
 - **A gate command ends inside the worker's turn.** A backgrounded command's late report can
   reach the UI and never the orchestrator (#239), so `/crew:review`'s wait recipe polls an exit
-  file in bounded calls and kills a timed-out gate as a process group.
+  file in bounded calls and kills a timed-out gate as a process group. A worker that still
+  backgrounds its own command is messaged for its report, and never reported on from a result
+  that has not arrived.
 - **Isolation or a path, decided at dispatch.** An isolated worktree auto-cleans a gitignored
   deliverable (#241), and a relocation steer is refused inconsistently (#242).
 - **Address review feedback** with the same lane routing, git ownership and gate that built the
@@ -172,7 +177,8 @@ motivation measurably helps compliance. Compression is not a quota.
 - **The plan file is durable state.** It survives a crash or context reset. `/crew:loop` detects
   a crashed tick from `in-flight:` alone because ticks run their workers in the foreground and
   return only when nothing runs, which is why `morpheus` preserves the field verbatim.
-- **Run summary** reproduces the per-worker view the agent panel loses on resume.
+- **Run summary** reproduces the per-worker view the agent panel loses on resume, so it repeats
+  neither `/recap`'s commit list nor the status pulse.
 - **Anti-drift.** Citing the exact plan step in every delegation keeps a run resumable; current
   `status` fields make a crash leave an accurate record; naming the failing tests on a re-verify
   keeps full suites at the gate.
@@ -311,8 +317,9 @@ same patterns let a claim slide through unbacked.
 - **Specifics instead of adjectives.** Name the hook, the tool it gates, what happens when it fires.
 - **Take the stance.** "Both have their place" is a dodge.
 - **Don't hedge every sentence**, and **vary the rhythm**; a four-word sentence is allowed.
-- **Skip the tells**: `delve`, `leverage`, `robust`, `seamless`, `unlock`, `streamline`,
-  `empower`, "it's not just X, it's Y", "at its core".
+- **Skip the tells**: `delve`, `leverage`, `robust`, `seamless`, `unlock`, `harness` (as a verb),
+  `streamline`, `empower`, `elevate`, `pivotal`, "it's not just X, it's Y", "at its core", "in
+  today's fast-paced …".
 - **Go easy on em-dashes.** A colon, a comma or a full stop usually serves; keep a matched pair
   around a real aside. A nudge, not a review comment.
 
@@ -337,9 +344,11 @@ was widened once and reverted, and the hooks point here so it is not tried a thi
   own directory, so it is never weaker than before #224 (a full shell walk drew 100+ threads and
   was replaced). Open gap: `CDPATH`.
 - **The `git mv` carve-out reads line starts because it is an allowance**: a false separator can
-  only wave through a `git mv` inside a string, never refuse anything. The hand-back that names
-  the owner is a refusal and reads the flattened command like the others; masking heredocs to
-  close that gap was tried in #231 and reverted.
+  only wave through a `git mv` inside a string, never refuse anything. The floor decides *what* a
+  `git mv` is, not *whose*: it lets any agent run a plain one, and `bash-safety.sh` then refuses
+  its own roster's non-owners with a hand-back naming the owner; an agent not on crew's roster is
+  not refused. The hand-back is a refusal and reads the flattened command like the others;
+  masking heredocs to close that gap was tried in #231 and reverted.
 
 ## Recurring review findings — apply proactively
 

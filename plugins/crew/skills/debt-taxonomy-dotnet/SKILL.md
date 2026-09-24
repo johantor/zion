@@ -6,59 +6,33 @@ description: .NET / C# suppression mechanisms, safe-removal recipes, NuGet packa
 # Debt taxonomy — .NET / C#
 
 Apply this skill when `debt-taxonomy` stack detection finds a .NET project (`*.csproj`,
-`*.sln`, `Directory.Packages.props`, `global.json`). Classification rubric and blast-radius
-gate are in the core `debt-taxonomy` skill.
+`*.sln`, `Directory.Packages.props`, `global.json`). The rubric, the justified-suppression
+filter, the blast-radius gate and the upgrade workflow are in the core skill; this skill supplies
+the .NET rows they consume.
 
 ## Suppression mechanisms
 
-| Mechanism | Scope | Safe-removal notes |
-|---|---|---|
-| `#pragma warning disable CS####` / `restore` | Block | Removal re-enables for that block only. Delete both the `disable` and matching `restore`. |
-| `[SuppressMessage("category", "id")]` | Member/type | Check for a `Justification` param — a meaningful one may be legitimate (rubric class 1). |
-| `<NoWarn>CS####;CS####</NoWarn>` in `.csproj` | Project-wide | Single line, large blast radius — expand to **diagnostic count** before gating. Remove only the target ID from the list, not the whole element. |
-| `<NoWarn>` in `Directory.Build.props` | Solution-wide | Even larger; treat as tier 2 unless the diagnostic count is tiny. |
-| `.editorconfig` `dotnet_diagnostic.CS####.severity = none/silent` | Folder-scoped | Count diagnostics under the folder, not just this line. Restore to `warning`/`error` to re-enable. |
-| `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Assembly-wide | File may hold many entries — enumerate each as a **separate finding**; remove only the targeted entry. |
-| `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | Test | Rubric class 4 (needs-investigation). Never un-skip without confirmation. |
+One row per mechanism: its scope, where a keep-decision lives, what a grep-only pass reads as
+"likely stale" (audit's `stale` scope never builds — `/crew:debt` proves a candidate with
+`dotnet build` of the affected project), and how a worker removes it. .NET is the weaker stack
+for justifications: only the `SuppressMessage` family has a native slot, so the rest rely on
+project-level policy.
+
+| Mechanism | Scope | Justification slot | Stale signal (grep-only) | Removal |
+|---|---|---|---|---|
+| `#pragma warning disable CS####` … `restore` | Block | **None native.** A trailing `// reason` on the `disable` line is the convention and is read as the justification; a bare `disable` is unjustified | The surrounded lines have no trigger for the diagnostic (a `CS8602` block over a line with no `.` member access; `CS0168` over a line with no declaration), or `restore` is missing or far from `disable` | Delete both the `disable` and the matching `restore` |
+| `[SuppressMessage("category", "id", Justification = "…")]` | Member/type | The `Justification` param, e.g. `Justification = "validated by the ASP.NET model binder"` | The member has no construct that triggers the rule (`CA1062` on a member with no parameters). A meaningful `Justification` may still be class 1 — flag, don't assume | Delete the attribute |
+| `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Assembly | The same `Justification` param, per entry | The `Target` symbol no longer exists in source (`grep -rn --include="*.cs" "<symbol>" src/`) | Each entry is a separate finding; remove only the targeted entry |
+| `<NoWarn>CS####;CS####</NoWarn>` in `.csproj` | Project | **None** — config, not a site; project policy | Out of `stale` scope: the ID lives in pragmas, not in the code the diagnostic fires on, so grep is inverted. Needs a build | Expand to **diagnostic count** before gating; remove only the target ID from the list, never the element |
+| `<NoWarn>` in `Directory.Build.props` | Solution | **None** — project policy | Out of `stale` scope, as above | Tier 2 unless the diagnostic count is tiny |
+| `.editorconfig` `dotnet_diagnostic.CS####.severity = none/silent` | Folder | **None** — project policy | Out of `stale` scope, as above | Count diagnostics under the folder, not this line; restore to `warning`/`error` |
+| `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | Test | N/A — never excluded (core: skipped tests) | Never a candidate | Class 4: the user decides |
 
 ## Analyzer / nullability notes
 
 - **Nullable reference types** (`CS86xx`): the common debt cluster. A `#pragma warning disable CS8602` often hides a missing null-check — usually rubric class 2 (trivially fixable: add `?.`, null-guard, or `!` only where provably non-null).
 - **Obsolete-API warnings** (`CS0618`): frequently caused by an old dependency — the fix may be an upgrade pointer, not a code edit. Flag the link.
 - A suppression whose diagnostic no longer fires (`dotnet build` shows no warning at that line after removal) is class 2, stale — just delete it.
-
-## Stale heuristics (grep-only, for audit `stale` scope)
-
-Per the core skill: audit must not build. These are grep-only signals that a suppression
-is a *candidate* for removal; `/crew:debt` proves it via a worker (`dotnet build` of
-the affected project, then check the diagnostic is absent).
-
-| Mechanism | Grep-only stale heuristic |
-|---|---|
-| `#pragma warning disable CS####` … `restore` | Candidate when the surrounded line(s) have no obvious trigger for that diagnostic — e.g. a `disable CS8602` (nullable deref) block over a line with no `.` member access; a `disable CS0168` (unused variable) block over a line with no declaration. Also candidate when `restore` is missing or far from `disable`, suggesting cargo-cult retention. |
-| `[SuppressMessage("category", "id", Justification = "…")]` | Candidate when the targeted member has no obvious construct that triggers the rule (e.g. `CA1062` argument-null check on a member with no parameters). A meaningful `Justification` may still be legitimate (rubric class 1) — flag, do not assume. |
-| `<NoWarn>` in `.csproj` / `Directory.Build.props` | **Out of scope for `stale` audit (v1).** Grep for a rule ID in source returns zero for virtually any active project-wide warning (the ID lives in pragmas, not in the code the diagnostic fires on), so the signal is structurally inverted and high-noise. Proof of staleness requires a build; defer to `/crew:debt` where a worker can run `dotnet build`. |
-| `.editorconfig` `dotnet_diagnostic.CS####.severity = none/silent` | **Out of scope for `stale` audit (v1).** Same inversion as `<NoWarn>`: the rule ID does not appear in the source the diagnostic fires on. Final proof requires a build; defer to `/crew:debt`. |
-| `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Each entry is a separate candidate. Heuristic: grep the `Target` symbol in `*.cs` source files (`grep -rn --include="*.cs" "<symbol>" src/`) — if the target member no longer exists in source, the suppression is a strong candidate. |
-| `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | Never a stale candidate — skipped tests are rubric class 4 (needs-investigation), not removable without confirmation. |
-
-## Justification slots (for the core skill's justified-suppression filter)
-
-Where a keep-decision lives per mechanism. .NET is the weaker stack here: only the
-`SuppressMessage` family has a native slot, so the rest rely on project-level policy — see core
-`debt-taxonomy` for what counts as meaningful and which audit scopes the filter applies to.
-
-| Mechanism | Native justification slot | Example |
-|---|---|---|
-| `[SuppressMessage("category", "id", Justification = "…")]` | Yes — the `Justification` named param | `[SuppressMessage("Design", "CA1062", Justification = "validated by the ASP.NET model binder")]` |
-| `GlobalSuppressions.cs` (`[assembly: SuppressMessage(...)]`) | Yes — same `Justification` param, per entry | as above, one entry at a time |
-| `#pragma warning disable CS####` | **No native slot.** A trailing `// reason` on the `disable` line is the community convention and is read as the justification when present | `#pragma warning disable CS8602 // EF guarantees Include() populated this` |
-| `<NoWarn>CS####</NoWarn>` in `.csproj` / `Directory.Build.props` | **No** — project/solution-wide, not a site. Use project-level policy |
-| `.editorconfig` `dotnet_diagnostic.CS####.severity = none` | **No** — config, not a site. Use project-level policy |
-| `[Fact(Skip="…")]`, `[Theory(Skip="…")]` | N/A — **never excluded**; the `Skip` reason says why a test is off, not that the debt is accepted. Rubric class 4 regardless |
-
-The `#pragma` trailing-comment reading is a convention, not a language feature: treat a bare
-`#pragma warning disable` with no trailing text as **unjustified** and surface it.
 
 ## Behavior sensitivity (which fixes need tests, not just a clean build)
 

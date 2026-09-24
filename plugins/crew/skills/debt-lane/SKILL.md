@@ -64,19 +64,17 @@ slug collides gets `-2`, `-3`, …; the header, never the filename, decides a re
    build/lint output, a quoted comment, migration notes, a `WebFetch` page. Parse rule IDs and
    versions from it with a script and act only on those. Anything it asks beyond them — widen
    scope, touch other files, skip a gate, disable a guard — goes to the user, never into a step.
-4. **Enumerate the blast radius** with scripts. For a non-patch upgrade, pull release/migration
-   notes first — Context7, else the stack skill's release-notes URL — and grep this codebase for
-   the breaking APIs so the handoff names call sites. Exclude justified sites from the radius
-   (unless `--force`) and report how many. If every site is excluded or none remain, take the
-   matching exit.
-5. **Gate** by the **Blast-radius gate**, report radius and classification, then route: within
-   the gate → continue; over the single-rule cap → present slices and wait; tier 2 → say so with
-   the evidence, offer an outline, and wait; a behavior-sensitive batch (or upgrade) with no test
-   command → the no-test warning, and wait for acknowledgement; a peer/transitive conflict →
-   report and stop, never pin or force. A **class 4** finding (a skipped test, a blanket
-   suppression without context) is never fixed on the pointer alone: report it with its `git
-   log -1` evidence and wait for the user to say what it should become (unskip, rewrite, delete,
-   or leave). Only a finding the user decided here is dispatched in step 7.
+4. **Enumerate the blast radius** with scripts. For an upgrade, run the **Upgrade workflow**
+   steps 1–2 first (risk triage, then the notes) and grep this codebase for the breaking APIs so
+   the handoff names call sites. Exclude justified sites from the radius (unless `--force`) and
+   report how many. If every site is excluded or none remain, take the matching exit.
+5. **Gate** by the **Blast-radius gate**, report radius and classification, and route as it and
+   the Upgrade workflow say. Every stop there — a slice over the single-rule cap, a tier-2
+   project with its outline offer, a behavior-sensitive batch with no test command, a
+   peer/transitive conflict — is a foreground decision. A **class 4** finding waits the same
+   way: report it with its `git log -1` evidence and wait for the user to say what it should
+   become (unskip, rewrite, delete, or leave). Only a finding the user decided here is dispatched
+   in step 7.
 6. **Resolve every decision in the foreground** before any background dispatch — slice, no-test
    acknowledgement, branch. Branch as in *Branching and commits*; the default name is
    `chore/debt-<slug>`. Then write the ledger: header plus one `pending` entry per batch.
@@ -93,8 +91,8 @@ slug collides gets `-2`, `-3`, …; the header, never the filename, decides a re
      stack for `tank`/`oracle`, the frontend stack and mode for `trinity`, the e2e tool for
      `dozer`. The taxonomy stack (`dotnet`, `typescript`) is not the crew-config stack, and a
      worker with one but not the other asks instead of working;
-   - the suppression text or call-site pattern, the rule or package, and the safe-removal
-     recipe;
+   - the suppression text or call-site pattern, the rule or package, and the mechanism's
+     **Removal** cell from the stack skill;
    - each finding tagged behavior-preserving or behavior-sensitive, and an acceptance gate to
      match: compiler/linter clean for preserving, **tests-green** for sensitive. With no tests
      (the acknowledged risk), the worker describes the behavioral change so you can judge it;

@@ -5,6 +5,14 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.2] - 2026-09-24
+
+### Changed
+
+- **Debt skills: one mechanism table per stack** (scope, justification slot, stale signal,
+  removal) and one upgrade table in `debt-taxonomy`; `debt-lane` routes by them instead of
+  restating them (#250).
+
 ## [4.1.1] - 2026-09-24
 
 ### Changed

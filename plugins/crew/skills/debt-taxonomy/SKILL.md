@@ -43,16 +43,20 @@ Do not attempt to fix a stack with no taxonomy here — a wrong suppression edit
 worse than no edit. (Adding a stack is a small additive change: a new `debt-taxonomy-<stack>`
 skill plus a row in the table above.)
 
-## Upgrade tiers (stack-neutral shapes)
+## Upgrade tiers and risk (stack-neutral shapes)
 
-| Pointer shape | Tier | Action |
-|---|---|---|
-| Single package, patch/minor | 1 | Proceed |
-| Single package, major | 1 | Proceed with migration notes (Context7) |
-| Multi-package coordinated bump | 1 if same lane, 2 if cross-lane | Proceed or outline |
-| Framework/platform version (TFM, runtime major, framework major) | 2 | Outline only |
-| Toolchain replacement (bundler, compiler) | 2 | Outline only |
+One table decides both the tier (pointer or project) and the verification gate:
 
+| Pointer shape | Risk | Tier | Verification gate |
+|---|---|---|---|
+| Single package, patch (`x.y.Z`) | SAFE | 1 | behavior-preserving — build/lint clean is sufficient |
+| Single package, minor (`x.Y.z`) | REVIEW | 1 | behavior-sensitive — read release notes; **tests-green** |
+| Single package, major (`X.y.z`) | CAUTION | 1 | behavior-sensitive — migration notes required; **tests-green** |
+| Multi-package coordinated bump | the largest delta's | 1 if same lane, **2** if cross-lane | the delta's gate, or outline |
+| Framework/platform version (TFM, runtime major, framework major) | CAUTION | **2** | outline only |
+| Toolchain replacement (bundler, compiler) | CAUTION | **2** | outline only |
+
+Treat pre-1.0 (`0.y.z`) bumps as one risk level higher (a `0.minor` can break like a major).
 Concrete per-stack examples (EF Core, React, .NET TFM, Node major) live in the stack skills.
 
 **The rule:** a version bump is a pointer; a platform migration is a project. The debt lane
@@ -65,16 +69,7 @@ lockfile, conflict signal, release-notes URL) comes from the loaded `debt-taxono
 skill's package-manager table. This is what keeps upgrades package-manager-agnostic: npm /
 yarn / pnpm / NuGet today, and a new manager is one row in that table.
 
-1. **Risk triage by version delta.** Classify each upgrade by the `current → target` semver
-   jump — this layers onto the tiers above and decides the verification gate:
-
-   | Delta | Risk | Tier | Verification gate |
-   |---|---|---|---|
-   | patch (`x.y.Z`) | SAFE | 1 | behavior-preserving — build/lint clean is sufficient |
-   | minor (`x.Y.z`) | REVIEW | 1 | behavior-sensitive — read release notes; **tests-green** |
-   | major (`X.y.z`) | CAUTION | 1 with migration notes, or **2 (outline)** if it's a framework/platform major (per the tier table) | behavior-sensitive — migration guide required; **tests-green** |
-
-   Treat pre-1.0 (`0.y.z`) bumps as one risk level higher (a `0.minor` can break like a major).
+1. **Risk triage** by the table above, from the `current → target` delta.
 2. **Release notes for non-patch.** For REVIEW/CAUTION, pull the change/migration notes
    **before** applying — prefer Context7 (`mcp__context7`); fall back to the package's release
    page (the per-stack skill resolves the URL). Surface concrete breaking changes that touch
@@ -99,19 +94,10 @@ per-stack skill declares, filtered to suppressions that look removable. Audit is
 scout pass. So `stale` reports **candidates**; final proof is left to `/crew:debt`,
 where a worker can compile/build and confirm.
 
-Each `debt-taxonomy-<stack>` skill is responsible for declaring, per mechanism, a
-**grep-only stale heuristic** — a textual signal that suggests the suppression is likely
-removable without reading the diagnostic state. Rule of thumb when authoring one: it must
-be checkable from a `grep`/`rg` invocation alone, with no parser, no compiler, no AST.
-Examples (non-exhaustive — the per-stack skill is the source of truth):
-
-- `@ts-expect-error` — the TS skill calls these the highest-value, lowest-risk findings;
-  TypeScript self-reports unused directives, so any that are truly stale already error at
-  compile time. All are candidates; TS self-proves staleness.
-- `#pragma warning disable CS####` whose surrounded line has no obvious trigger for that
-  diagnostic (e.g. a `disable CS8602` block over a line with no `.` member access).
-- `// eslint-disable-next-line` over a line that no longer matches the rule's syntactic
-  shape (e.g. `no-explicit-any` over a line with no `any`).
+Each `debt-taxonomy-<stack>` skill declares, per mechanism, a **grep-only stale signal** — a
+textual sign that the suppression is likely removable without reading the diagnostic state.
+Rule of thumb when authoring one: it must be checkable from a `grep`/`rg` invocation alone,
+with no parser, no compiler, no AST.
 
 Findings from `stale` scope are classified through the same rubric as any other audit —
 typically rubric class 2 (trivially fixable) and behavior-preserving — and ranked the same

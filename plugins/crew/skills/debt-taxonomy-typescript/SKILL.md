@@ -8,43 +8,27 @@ description: TypeScript / JavaScript suppression mechanisms, safe-removal recipe
 Apply this skill when `debt-taxonomy` stack detection finds a JS/TS project (`package.json`,
 `tsconfig.json`, `.eslintrc*`, `biome.json`) — this covers any JavaScript/TypeScript code,
 whether a React frontend or a Node backend/CLI. The React-specific rows below apply only when
-React is present. Classification rubric and blast-radius gate are in the core `debt-taxonomy`
-skill.
+React is present. The rubric, the justified-suppression filter, the blast-radius gate and the
+upgrade workflow are in the core skill; this skill supplies the JS/TS rows they consume.
 
 ## Suppression mechanisms
 
-| Mechanism | Scope | Safe-removal notes |
-|---|---|---|
-| `// eslint-disable-next-line rule-name` | Next line | Delete the comment; re-lint the file to confirm the rule passes. |
-| `// eslint-disable rule-name` … `// eslint-enable` | Block | Delete both markers. |
-| `/* eslint-disable */` (no rule) | File | Broad — expand to **diagnostic count** before gating. Prefer replacing with targeted per-line disables only where genuinely needed, then remove the rest. |
-| `// biome-ignore lint/category/rule: reason` | Next line | A meaningful `reason` may be legitimate (rubric class 1). |
-| `@ts-ignore` | Next line | Worst kind — suppresses **all** errors on the next line. Removal may surface multiple distinct errors; enumerate them before fixing. Prefer replacing with `@ts-expect-error` if one specific error remains. |
-| `@ts-expect-error` | Next line | **Cheap-win detector**: if the underlying issue was already fixed, removal compiles clean (TS reports the directive as unused → just delete it). If not, the error is now explicit. **Always safe to attempt.** |
-| `it.skip` / `test.skip` / `xit` / `xdescribe` | Test | Rubric class 4 (needs-investigation). Never un-skip without confirmation. |
-| `tsconfig.json` `"strict": false` or disabled checks (`noImplicitAny`, `strictNullChecks`) | Project-wide | Tier 2 — outline only. Flipping these surfaces a flood of errors. |
-| ESLint `rules: { "rule": "off" }` in config | Project-wide | Like a blanket disable — expand to **diagnostic count** before gating. |
+One row per mechanism: its scope, where a keep-decision lives, what a grep-only pass reads as
+"likely stale" (audit's `stale` scope never compiles — `/crew:debt` proves a candidate with a
+lint or `tsc --noEmit` pass), and how a worker removes it. Most JS/TS mechanisms have a native
+justification slot, so no crew-specific syntax is needed.
 
-## Justification slots (for the core skill's justified-suppression filter)
-
-Where a keep-decision lives per mechanism. Most JS/TS mechanisms have a **native** slot, so no
-crew-specific syntax is needed — see core `debt-taxonomy` for what counts as meaningful and
-which audit scopes the filter applies to.
-
-| Mechanism | Native justification slot | Example |
-|---|---|---|
-| `// eslint-disable-next-line <rule>` | Yes — ESLint's `--` description (v7+) | `// eslint-disable-next-line no-explicit-any -- vendor payload is genuinely untyped` |
-| `// eslint-disable <rule>` … `// eslint-enable` | Yes — same `--` description on the `disable` | `/* eslint-disable no-console -- CLI writes to stdout by design */` |
-| `// biome-ignore lint/category/rule: reason` | Yes — the `reason` is **required** by biome | `// biome-ignore lint/style/noVar: emitted by codegen` |
-| `@ts-expect-error` | Yes — trailing text after the directive | `// @ts-expect-error upstream types wrong until DT#1234 lands` |
-| `@ts-ignore` | Yes — trailing text after the directive | `// @ts-ignore generated client has no types` |
-| `/* eslint-disable */` (no rule, file scope) | **No** — file-wide, nothing to attach a per-rule reason to. Stays surfaced; use project-level policy instead |
-| ESLint `rules: { "rule": "off" }` in config | **No** — config, not a site. Use project-level policy |
-| `it.skip` / `test.skip` / `xit` / `xdescribe` | N/A — **never excluded**; rubric class 4 regardless of any comment |
-
-Note the interaction with the stale heuristics below: a justified `@ts-expect-error` is still
-**always** a stale candidate. TypeScript self-reports unused directives, so if the underlying
-issue is fixed the directive must go whatever its text says.
+| Mechanism | Scope | Justification slot | Stale signal (grep-only) | Removal |
+|---|---|---|---|---|
+| `// eslint-disable-next-line <rule>` | Next line | ESLint's `--` description (v7+): `// eslint-disable-next-line no-explicit-any -- vendor payload is genuinely untyped` | The next line no longer contains the rule's syntactic trigger (`no-explicit-any` over a line with no `any`; `no-unused-vars` over an identifier referenced elsewhere in the file) | Delete the comment; re-lint the file |
+| `// eslint-disable <rule>` … `// eslint-enable` | Block | The same `--` description on the `disable` | The surrounded block has no occurrence of the rule's trigger | Delete both markers |
+| `/* eslint-disable */` (no rule) | File | **None** — file-wide, nothing to attach a per-rule reason to; project policy | Not a candidate from grep alone — covers every rule; needs a lint pass | Expand to **diagnostic count** before gating; replace with targeted per-line disables only where needed, then remove the rest |
+| `// biome-ignore lint/category/rule: reason` | Next line | The `reason`, **required** by biome: `// biome-ignore lint/style/noVar: emitted by codegen` | The next line no longer contains the rule's trigger. A meaningful `reason` may still be class 1 — flag, don't assume | Delete the comment; re-lint |
+| `@ts-ignore` | Next line | Trailing text after the directive | The next line has no type-error shape (no member access, call or JSX). Riskier than `@ts-expect-error`: removal does not self-report when stale, so `/crew:debt` verifies with `tsc --noEmit` | Worst kind — it suppresses **all** errors on the line, so removal may surface several; enumerate them first. Prefer `@ts-expect-error` if one specific error remains |
+| `@ts-expect-error` | Next line | Trailing text after the directive | **Always a candidate**, whatever its text: TypeScript reports an unused directive as an error, so a stale one self-proves. Rank these first | Delete it; if the error is still real it is now explicit. **Always safe to attempt** |
+| `it.skip` / `test.skip` / `xit` / `xdescribe` | Test | N/A — never excluded (core: skipped tests) | Never a candidate | Class 4: the user decides |
+| `tsconfig.json` `"strict": false` or a disabled check (`noImplicitAny`, `strictNullChecks`) | Project | **None** — config; project policy | Not a candidate | Tier 2 — outline only; flipping these surfaces a flood of errors |
+| ESLint `rules: { "rule": "off" }` in config | Project | **None** — config; project policy | Not a candidate | Like a blanket disable — expand to **diagnostic count** before gating |
 
 ## Behavior sensitivity (which rules need tests, not just lint)
 
@@ -62,24 +46,8 @@ acknowledgement:
 
 ## TypeScript notes
 
-- `@ts-expect-error` removals are the highest-value, lowest-risk findings — always enumerate them first in an audit; many are stale.
 - `any` introduced to silence `no-explicit-any`: usually rubric class 2–3 (replace with a real type or `unknown` + narrowing).
 - After edits, run the project's **own** lint/typecheck on the touched files only — `tsc --noEmit` for the project, or the configured `lint` script scoped to the changed paths. Capture output to a file and grep (`context-discipline`).
-
-## Stale heuristics (grep-only, for audit `stale` scope)
-
-Per the core skill: audit must not compile. These are grep-only signals that a suppression
-is a *candidate* for removal; `/crew:debt` proves it via a worker.
-
-| Mechanism | Grep-only stale heuristic |
-|---|---|
-| `@ts-expect-error` | **Always a candidate** — TS reports unused directives as errors, so removal is always safe to attempt. Highest-value, lowest-risk. Rank these first. |
-| `@ts-ignore` | Candidate when the next line has no obvious type-error shape (no member access, no call, no JSX). Riskier than `@ts-expect-error` because removal does not self-report when stale; `/crew:debt` must verify via `tsc --noEmit`. |
-| `// eslint-disable-next-line <rule>` | Candidate when the next line no longer contains the rule's syntactic trigger — e.g. `no-explicit-any` over a line with no `any`, `no-unused-vars` over a line whose identifier is referenced elsewhere in the file. |
-| `// eslint-disable <rule>` … `// eslint-enable` | Candidate when the surrounded block has no occurrence of the rule's syntactic trigger. |
-| `/* eslint-disable */` (no rule, file scope) | Not a stale candidate from grep alone — covers every rule; defer to a real lint pass via `/crew:debt`. |
-| `// biome-ignore lint/category/rule: reason` | Candidate when the next line no longer contains the rule's syntactic trigger. A meaningful `reason` may still be legitimate (rubric class 1) — flag, do not assume. |
-| `it.skip` / `test.skip` / `xit` / `xdescribe` | Never a stale candidate — skipped tests are rubric class 4 (needs-investigation), not removable without confirmation. |
 
 ## Package-manager variance
 

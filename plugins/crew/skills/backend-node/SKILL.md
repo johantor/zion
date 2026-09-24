@@ -24,13 +24,5 @@ these paths from your directory-based deny for this reason.
 
 ## Build
 
-Use the one-shot backend build command from crew config, never a watch/dev command
-(`nodemon`, a framework's dev server) — those never terminate. A file-lock/in-use error
-(`EBUSY`/`EPERM`/`EACCES`, a locked `dist`/build output) is **environmental** (a running dev
-process is locking outputs), not a code error — report it as such.
-
-## Docs
-
-When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API
-docs for the service framework or Graph client before coding against them rather than relying
-on memory; fetch the specific topic, not a dump (`context-discipline`).
+Watch/dev forms that never terminate: `nodemon`, a framework's dev server. The lock signature is
+`EBUSY`/`EPERM`/`EACCES`, or a locked `dist`/build output.

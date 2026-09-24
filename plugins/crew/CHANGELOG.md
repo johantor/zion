@@ -5,6 +5,19 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [4.1.2] - 2026-09-24
+
+### Changed
+
+- **Debt skills: one mechanism table per stack** (scope, justification slot, stale signal,
+  removal) and one upgrade table in `debt-taxonomy`; `debt-lane` routes by them instead of
+  restating them (#250).
+- **Stack and test skills state only what is specific to their tool.** The docs-MCP rule, the
+  run-as-configured rule and the never-skip rule live once, in `worker-contract`, `oracle` and
+  `dozer` (#250).
+- **`worker-contract`: an e2e suite's command owns its own server**; only a build is isolated from
+  a running app.
+
 ## [4.1.0] - 2026-09-24
 
 ### Added

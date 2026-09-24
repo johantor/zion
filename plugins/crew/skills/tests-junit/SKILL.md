@@ -5,8 +5,7 @@ description: JVM backend test conventions — JUnit 5 in src/test/java, Surefire
 
 # Backend tests: JUnit (JVM)
 
-Detect the JUnit generation from the project's dependencies before writing — the two are not
-source-compatible:
+Detect the JUnit generation from the project's dependencies — the two are not source-compatible:
 
 - `junit-jupiter` / `org.junit.jupiter.api.Test` → **JUnit 5 (Jupiter)**. `@Test`,
   `@BeforeEach`/`@AfterEach`, `@Disabled`, `@ParameterizedTest`, `Assertions.assertX`.
@@ -59,31 +58,19 @@ source sets and filters declare, so read the build script rather than assuming.
 
 ## Running
 
-Run tests using the repository's backend test command from crew config, through the committed
-wrapper (`./mvnw`, `./gradlew`) when there is one.
+Run the backend test command from crew config through the committed wrapper (`./mvnw`,
+`./gradlew`) when there is one.
 
-A **targeted rerun** is a filter, not a full build:
-
-- Maven: `./mvnw test -Dtest=FooTest` · `-Dtest=FooTest#methodName` · `-Dtest='FooTest#a+b'`.
-  Failsafe's equivalent is `-Dit.test=FooIT`.
-- Gradle: `./gradlew test --tests 'com.example.FooTest'` ·
-  `--tests 'com.example.FooTest.methodName'`.
-
-Notes on reading a run:
-
-- **Gradle caches and skips.** A `test` task reported `UP-TO-DATE` or `FROM-CACHE` did not execute
-  anything; use `--rerun-tasks` (or `cleanTest test`) when you need a real run, and never read an
-  up-to-date task as a pass.
-- **A build failure is not a test failure.** A compile error in `src/test/java` fails the build
-  before any test runs — report it as a build failure.
-- Read the surefire/failsafe summary, not just the exit code, and report skipped counts rather
-  than folding them into "green".
-- **There is no list-tests command.** Confirm a new test is discovered by running it targeted
-  (`-Dtest=FooTest` / `--tests 'com.example.FooTest'`) and reading its `Tests run:` line, or the
-  per-class report under `target/surefire-reports/` or `build/test-results/test/`. A class the
-  runner never mentions has a naming problem (the Surefire/Failsafe patterns above), a module
-  problem, or a missing engine dependency — check the build file; never inspect `target/classes`
-  or `build/classes` to look for it.
-
-Never make a test pass with `@Disabled`/`@Ignore`, and never weaken an assertion to whatever the
-code currently returns. If the production code is wrong, say so and hand it back.
+- **Targeted rerun:** Maven `./mvnw test -Dtest=FooTest` · `-Dtest=FooTest#methodName` ·
+  `-Dtest='FooTest#a+b'` (Failsafe: `-Dit.test=FooIT`); Gradle `./gradlew test --tests
+  'com.example.FooTest'` · `--tests 'com.example.FooTest.methodName'`.
+- **Discovery:** there is no list-tests command. Run the new test targeted and read its `Tests
+  run:` line, or the per-class report under `target/surefire-reports/` or
+  `build/test-results/test/`. A class the runner never mentions has a naming problem (the
+  Surefire/Failsafe patterns above), a module problem, or a missing engine dependency — check the
+  build file; never inspect `target/classes` or `build/classes` to look for it.
+- **Reading a run:** a Gradle `test` task reported `UP-TO-DATE` or `FROM-CACHE` did not execute
+  anything — `--rerun-tasks` (or `cleanTest test`) forces a real run. A compile error in
+  `src/test/java` fails the build before any test runs — a build failure, not a test failure.
+  Read the surefire/failsafe summary; skipped counts are results.
+- **Skip mechanism:** `@Disabled` (Jupiter), `@Ignore` (JUnit 4).

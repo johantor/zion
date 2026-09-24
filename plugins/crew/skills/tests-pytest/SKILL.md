@@ -5,14 +5,13 @@ description: Python backend test conventions — pytest layout and naming, conft
 
 # Backend tests: pytest (Python)
 
-Detect the test framework from the project before writing anything — don't guess:
+Detect the test framework from the project:
 
 - `pytest.ini`, a `[tool.pytest.ini_options]` table in `pyproject.toml`, a `[pytest]` section in
   `setup.cfg`/`tox.ini`, or a `conftest.py` → **pytest**.
 - Only `unittest.TestCase` subclasses and no pytest configuration → the project is on stdlib
   `unittest`. Write `unittest` tests; pytest can still run them, but don't introduce pytest-only
   constructs into a suite that doesn't use it.
-- Neither present → ask rather than picking one.
 
 ## Naming and layout
 
@@ -40,21 +39,11 @@ one test — a loop reports one failure and hides the rest.
 
 ## Running
 
-Run tests using the repository's backend test command from crew config.
-
-A **targeted rerun** is a node id or a `-k` expression, not the whole suite:
-
-- `pytest path/to/test_mod.py::test_name` — one test.
-- `pytest path/to/test_mod.py::TestClass::test_name` — one method.
-- `pytest -k 'expression'` — by substring/boolean match on the name.
-
-Confirm a new test is discovered with `pytest --collect-only -q path/to/test_mod.py`, which lists
-the node ids pytest would run without running them; a file or function the pattern misses shows up
-here as an empty list, and the fix is the name or the config, not the bytecode.
-
-Read the summary line, not just the exit code: pytest exits non-zero on failures, but a run that
-collected **zero** tests is also a failure to report (exit code 5), not a pass. `xfail`/`xpass` and
-`skip` counts in the summary are results too — report them rather than folding them into "green".
-
-Never make a test pass by marking it `skip` or `xfail`, and never widen an assertion to match
-whatever the code currently returns. If the production code is wrong, say so and hand it back.
+- **Targeted rerun:** a node id or a `-k` expression — `pytest path/to/test_mod.py::test_name`,
+  `pytest path/to/test_mod.py::TestClass::test_name`, or `pytest -k 'expression'`.
+- **Discovery:** `pytest --collect-only -q path/to/test_mod.py` lists the node ids pytest would
+  run without running them; a file or function the pattern misses shows up as an empty list, and
+  the fix is the name or the config.
+- **Summary line:** a run that collected zero tests exits 5 — the zero-tests failure. `xfail`,
+  `xpass` and `skip` counts are results too.
+- **Skip mechanism:** `skip`/`xfail` marks.

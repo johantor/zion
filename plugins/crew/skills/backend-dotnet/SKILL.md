@@ -18,8 +18,8 @@ rather than reworking the markup yourself. In headless mode, Razor is entirely y
 
 ## Build
 
-Use the one-shot backend build command from crew config (e.g. `dotnet build`), never a
-watch/run command (`dotnet watch`, `dotnet run`) — those never terminate.
+The gate is the crew-config backend build command, e.g. `dotnet build`. Watch/run forms that
+never terminate: `dotnet watch`, `dotnet run`.
 
 ### `obj/` is per-writer state, not a shared cache
 
@@ -67,46 +67,30 @@ Use the recipe only when **all** of these hold; otherwise run the gates one at a
   nothing else. Any other flag (`--no-build`, `--no-restore`, `-c Release`, …) or a wrapper script
   means serial. The list is closed on purpose: a flag it does not name is never judged safe.
 
-### A lock error is not automatically the user's environment
+### The lock signature
 
-A file-lock/in-use error (`MSB3027`/`MSB3026`, "being used by another process"), or corrupted or
-truncated `obj/` state, has two possible causes: a running app/dev process holding the outputs,
+A file-lock/in-use error is `MSB3027`/`MSB3026`, "being used by another process", or corrupted or
+truncated `obj/` state. It has two possible causes: a running app/dev process holding the outputs,
 **or** two crew builds sharing `obj/`. Report the failure, the path it names, and whether you had
 the intermediate path to yourself — and don't assert the user's dev server is at fault when you
 were building against a location you were not given exclusively.
 
-### Run it as strict as the project configures
+### What weakens the gate
 
-A gate weaker than the build a developer runs locally is worse than no gate: it reports clean,
-and their next build comes back dirty. Run the configured command **as configured** — never
-narrow or soften it to finish faster:
-
-- **No narrowed target.** `-t:CoreCompile` — or any `-t:`/`/t:` (`--target:` under `dotnet
+- **A narrowed target.** `-t:CoreCompile` — or any `-t:`/`/t:` (`--target:` under `dotnet
   msbuild`) other than the default — skips the analyzer-bearing part of the build, so it
   reports 0 warnings while analyzers fire.
-- **No relaxed analysis.** Don't pass `-p:EnforceCodeStyleInBuild=false`, `-p:RunAnalyzers=false`,
+- **Relaxed analysis.** `-p:EnforceCodeStyleInBuild=false`, `-p:RunAnalyzers=false`,
   `-p:TreatWarningsAsErrors=false`, or any other property that loosens what the project sets.
   Analyzer and code-style settings belong to the project, not to the build invocation.
-- **No `--no-restore`.** It reuses whatever restore assets are already on disk (and fails
+- **`--no-restore`.** It reuses whatever restore assets are already on disk (and fails
   outright when there are none), so a stale `project.assets.json` builds against a different
   analyzer set than the developer's own build resolves. Let the gate restore.
-- **Verbosity at the default or above.** `dotnet build`'s default (`minimal`) prints warnings;
-  `-v q`/`--verbosity quiet` hides them. Never go below the default.
-- **A no-op build proves nothing.** MSBuild does not re-emit warnings for projects it finds up
-  to date, so rebuilding an unchanged tree can print 0 warnings a real compile would print. If
-  the output shows nothing compiled, report that — not a clean build.
+- **Verbosity below the default.** `dotnet build`'s default (`minimal`) prints warnings;
+  `-v q`/`--verbosity quiet` hides them.
+- **A no-op build.** MSBuild does not re-emit warnings for projects it finds up to date, so
+  rebuilding an unchanged tree can print 0 warnings a real compile would print. If the output
+  shows nothing compiled, report that — not a clean build.
 
-If the command **you were given** already carries one of these, don't rewrite it and don't report
-the build clean: name the weakening as your first finding. `morpheus` needs to know the gate was
-weaker than the developer's build more than it needs the build's result.
-
-**A zero exit code is not "clean".** `dotnet build` exits 0 with warnings present, so read the
-warning summary rather than the exit code. Report every warning — compiler (`CSxxxx`), analyzer,
-and code-style (`IDExxxx`) — in your findings: the id, `file:line`, and a count per id, not the
-raw log (`context-discipline`). Report zero warnings only when the build printed none.
-
-## Docs
-
-When a docs MCP (e.g. Context7) is available, consult it for current, version-specific .NET
-API docs before coding against them rather than relying on memory; fetch the specific topic,
-not a dump (`context-discipline`).
+`dotnet build` exits 0 with warnings present. Report every warning — compiler (`CSxxxx`),
+analyzer, and code-style (`IDExxxx`) — and report zero warnings only when the build printed none.

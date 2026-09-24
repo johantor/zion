@@ -82,6 +82,12 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   poll call (e.g. `sleep 700 && make build`) → the worker polls the wait recipe's exit file until
   it appears and hands back in the same turn; `morpheus` gets the report with no "waiting on its
   own background work" notice. Past the handoff's budget, it is reported as a gate timeout.
+- [ ] **An e2e gate starts its own server** — a frontend diff whose e2e command owns the app's
+  lifecycle (Playwright `webServer`, or a script that starts the app and runs Cypress against it)
+  and no app running → `dozer` runs the suite inside its turn and hands back spec results; it
+  never refuses for want of isolation from a running app, and the build gate beside it still
+  runs in the dedicated build location. With the app already running, the same command reuses or
+  refuses it as the tool configures — `dozer` reports which, and does not stop the operator's app.
 
 ### Worker location (`isolation`)
 

@@ -10,13 +10,5 @@ HTML, and SCSS/CSS.
 
 ## Build
 
-A file-lock/in-use error (`EBUSY`/`EPERM`/`EACCES`, a locked `dist`/bundler cache) during the
-one-shot build is **environmental** (a running dev server/watcher is locking outputs), not a
-code error — report it as such. Never run a watch/dev/serve command (`npm run dev`, `vite`,
-`tsc --watch`) as the build — those never terminate.
-
-## Docs
-
-When a docs MCP (e.g. Context7) is available, consult it for current, version-specific API
-docs for React, Redux, or a component library before coding against them; fetch the specific
-topic, not a dump (`context-discipline`).
+Watch/dev/serve forms that never terminate: `npm run dev`, `vite`, `tsc --watch`. The lock
+signature is `EBUSY`/`EPERM`/`EACCES`, or a locked `dist`/bundler cache.

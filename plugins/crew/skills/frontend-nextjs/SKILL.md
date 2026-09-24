@@ -27,13 +27,5 @@ stacks); don't rely on that alone — the rule holds regardless of enforcement m
 
 ## Build
 
-A file-lock/in-use error (`EBUSY`/`EPERM`/`EACCES`, a locked `.next`/bundler cache) during the
-one-shot build is **environmental** (a running dev server/watcher is locking outputs), not a
-code error — report it as such. Never run a watch/dev/serve command (`npm run dev`,
-`next dev`) as the build — those never terminate.
-
-## Docs
-
-When a docs MCP (e.g. Context7) is available, consult it for current, version-specific
-Next.js API docs before coding against them; fetch the specific topic, not a dump
-(`context-discipline`).
+Watch/dev/serve forms that never terminate: `npm run dev`, `next dev`. The lock signature is
+`EBUSY`/`EPERM`/`EACCES`, or a locked `.next`/bundler cache.

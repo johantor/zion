@@ -5,14 +5,13 @@ description: Shell test conventions — bats where the project uses it, a plain-
 
 # Backend tests: shell (bats / plain-bash harness)
 
-Detect the shape before writing — shell projects use one of two, and they are not interchangeable:
+Detect the shape — shell projects use one of two, and they are not interchangeable:
 
 - **`*.bats` files, or `bats` in CI** → [bats-core]. `@test "name" { … }`, `run <cmd>` then assert
   on `$status` and `$output`, `setup`/`teardown` per test, `setup_file`/`teardown_file` per file.
 - **A plain-bash harness** (a `tests/` directory of `*.test.sh` plus a `lib.sh` of assertions, run
   by a `run.sh`) → follow the harness that is there. Read its assertion helpers first and use
   them; do not introduce bats beside it.
-- Neither → ask rather than choosing a framework for the project.
 
 ## What a shell test asserts
 
@@ -40,27 +39,17 @@ that tool, or the test passes or fails by accident of the machine.
 
 ## Running
 
-Run tests using the repository's backend test command from crew config — the harness's `run.sh`,
-or `bats tests/`.
+The backend test command from crew config is the harness's `run.sh`, or `bats tests/`.
 
-A targeted rerun:
-
-- bats: `bats tests/foo.bats -f 'name filter'`, or the single file.
-- A plain harness: the single `*.test.sh` file, if its runner takes one; read the runner rather
-  than assuming.
-
-Notes on reading a run:
-
-- **A harness that reports "0 tests" is a failure to report**, not a pass — usually a discovery
-  glob that no longer matches. Confirm a new test is discovered with `bats --count tests/foo.bats`
-  (bats) or by reading the runner's glob (a plain harness) — the answer is in the file name and
-  the glob, never in anything compiled.
-- A test that runs the shell under test through `bash -c` loses `set -e` semantics from the outer
-  script; assert on the child's exit code, not the parent's.
-- Keep the suite offline and build-free: no network, no package install, no LLM. A shell suite
-  that needs any of those has stopped being a unit test.
-
-Never make a test pass by deleting its assertion or narrowing it to what the code currently
-prints. If the script is wrong, say so and hand it back.
+- **Targeted rerun:** bats `bats tests/foo.bats -f 'name filter'`, or the single file; a plain
+  harness, the single `*.test.sh` file if its runner takes one — read the runner rather than
+  assuming.
+- **Discovery:** `bats --count tests/foo.bats` (bats), or the runner's glob (a plain harness) —
+  the answer is in the file name and the glob, never in anything compiled. A harness that
+  reports "0 tests" is the zero-tests failure, usually a discovery glob that no longer matches.
+- **Reading a run:** a test that runs the shell under test through `bash -c` loses `set -e`
+  semantics from the outer script; assert on the child's exit code, not the parent's. Keep the
+  suite offline and build-free: no network, no package install, no LLM.
+- **Skip mechanism:** `skip` (bats), or a deleted or narrowed assertion in a plain harness.
 
 [bats-core]: https://github.com/bats-core/bats-core

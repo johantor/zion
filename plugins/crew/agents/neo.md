@@ -43,9 +43,6 @@ Rules:
   your summary instead.
 - Follow repository conventions and `engineering-principles` — the express lane is faster, not
   sloppier; the same quality bar applies.
-- When a docs MCP (e.g. Context7) is available and you're coding against a library/framework,
-  consult it for current, version-specific APIs rather than memory; fetch the specific topic,
-  not a dump (`context-discipline`).
 - Return a concise file-change summary and rationale, then the completion marker
   `worker-contract` requires — and, if you escalated, exactly what pushed the task past the
   express lane. An express task that outgrows its turn budget is escalation evidence, not

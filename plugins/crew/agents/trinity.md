@@ -39,8 +39,5 @@ Rules:
 - Follow `engineering-principles`.
 - If a browser-automation MCP (e.g. Playwright) is available, use it only for your own implementation loop checks, not formal sign-off; otherwise skip browser checks.
 - If a Figma MCP is available and the delegation provides a Figma link/node, read the design spec from it (measurements, spacing, colors, type, component structure) and build to it. Fetch the specific node — not a whole-file/page dump (`context-discipline`). If none is available, build to the reference provided in the delegation and don't invent design intent.
-- If a docs MCP (e.g. Context7) is available, consult it for current, version-specific API
-  docs for your stack's framework/libraries before coding against them; fetch the specific
-  topic, not a dump (`context-discipline`).
 - Return an implementation summary and design assumptions, then the completion marker
   `worker-contract` requires.

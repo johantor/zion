@@ -17,9 +17,10 @@ to its tool.
   your work with reasoning, targeted reads and the edit/lint feedback loop. Run the build or the
   full suite only when `morpheus` delegates it, once the work queue is drained, with the
   **one-shot command `morpheus` hands you** — never a watch/dev/serve command, those never
-  terminate; your stack skill names them. A build runs in the session's dedicated build
-  location, isolated from any running app or dev process; an e2e suite's command owns its own
-  server lifecycle. If you think a build or a test run is warranted earlier, say so in your
+  terminate; your stack skill names them. A build, and any suite whose run compiles (`dotnet
+  test`, `cargo test`, a Gradle `test` task), runs in the session's dedicated build location,
+  isolated from any running app or dev process; an e2e suite's command owns its own server
+  lifecycle. If you think a build or a test run is warranted earlier, say so in your
   summary and let `morpheus` decide.
 - **Run the gate as configured.** No narrowed target, no relaxed analyzer or lint level, no
   flag that routes around a broken file — your stack skill lists the flags that weaken its

@@ -76,15 +76,19 @@ worker's turn — a worker that ends its turn on its own background work can rep
 report can miss you. Start the command detached, with its exit code written to a file (the
 literal `/tmp/` prefix keeps the redirects inside `bash-safety.sh`'s exempt sinks; the braces
 capture every part of a compound command; `set -m` gives it its own process group, whose id goes to
-`pid`):
+`pid`). You mint `<id>` for each handoff: the lane plus 8 random lowercase hex characters
+(`backend-3f9a61c2`), written into the recipe as literal text. A `$$` there needs a permission
+prompt that a headless or background worker cannot answer, and `mkdir` fails on a reused name.
 
 ```sh
-set -m; mkdir -m 700 /tmp/gate.$$ && { ( { <command>; } >/tmp/gate.$$/log 2>&1; echo $? >/tmp/gate.$$/exit ) >/dev/null 2>&1 & echo $! >/tmp/gate.$$/pid; } && echo /tmp/gate.$$
+set -m; mkdir -m 700 /tmp/crew-gate-<id> && { ( { <command>; } >/tmp/crew-gate-<id>/log 2>&1; echo $? >/tmp/crew-gate-<id>/exit ) >/dev/null 2>&1 & echo $! >/tmp/crew-gate-<id>/pid; }
 ```
 
-Then repeat this call, with the printed path as `d` and Bash `timeout: 600000`, until it prints an
-exit code instead of `running`; grep `$d/log` for the findings (a bare `cat` is refused). Never
-`run_in_background`.
+Then repeat this call, with `/tmp/crew-gate-<id>` as `d` and Bash `timeout: 600000`, until it
+prints an exit code instead of `running`; grep `$d/log` for the findings (a bare `cat` is
+refused). Never `run_in_background`. **If any step of this recipe is refused, report the refusal
+and stop; do not improvise another form** — a hand-made variant loses the bound and the process
+group, and `bash-safety` refuses the obvious ones (a quoted or `mktemp` target).
 
 ```sh
 d=<path>; for i in $(seq 110); do [ -f "$d/exit" ] && break; sleep 5; done; head -c 8 "$d/exit" 2>/dev/null || echo running

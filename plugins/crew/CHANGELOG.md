@@ -5,6 +5,13 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.2] - 2026-09-25
+
+### Fixed
+
+- `/crew:review`'s wait recipe uses a minted `/tmp/crew-gate-<id>` instead of `$$`, which needed
+  a permission prompt, and tells the worker to report a refused step, not improvise (#245).
+
 ## [5.2.1] - 2026-09-25
 
 ### Fixed

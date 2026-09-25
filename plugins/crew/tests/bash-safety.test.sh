@@ -232,7 +232,11 @@ assert_block "tank git mv out through .."       "$HOOK" "$(payload_bash 'git mv 
 assert_block "tank git mv into ~"               "$HOOK" "$(payload_bash 'git mv a ~/a' tank)" "$nogit"
 # shellcheck disable=SC2016  # the `$HOME` is command text, not to expand here
 assert_block "tank git mv with an expansion"    "$HOOK" "$(payload_bash 'git mv a "$HOME/a"' tank)" "$nogit"
-assert_block "tank env git mv"                  "$HOOK" "$(payload_bash 'env git mv a b' tank)" "$nogit"
+assert_block "tank git mv with a glob"          "$HOOK" "$(payload_bash 'git mv */config.yml archive/' tank)" "$nogit"
+assert_block "tank git mv with a ? glob"        "$HOOK" "$(payload_bash 'git mv a?.cs b/' tank)" "$nogit"
+assert_block "tank git mv with a bracket glob"  "$HOOK" "$(payload_bash 'git mv a[12].cs b/' tank)" "$nogit"
+assert_block "tank git mv with a brace expansion" "$HOOK" "$(payload_bash 'git mv src/{a,b}.cs' tank)" "$nogit"
+assert_block "tank env git mv"               "$HOOK" "$(payload_bash 'env git mv a b' tank)" "$nogit"
 assert_block "tank git mv then git on a new line" "$HOOK" "$(payload_bash "git mv a b${nl}git push" tank)" "$nogit"
 assert_block "tank git commit behind a git mv"  "$HOOK" "$(payload_bash 'git mv a b && git commit -m x' tank)" "$nogit"
 assert_block "tank git mv -f is a write first"  "$HOOK" "$(payload_bash 'git mv -f a b' tank)" "$force"

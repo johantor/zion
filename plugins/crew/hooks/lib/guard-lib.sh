@@ -394,10 +394,11 @@ guard_block_file_writes() {
 
 # guard_is_plain_git_mv -- true when the whole command, as typed, is one
 # `git mv [-k|-n|-v] <operands>` with relative operands: no `-C`, no `cd`, no
-# second command or line, no quoting or expansion, no absolute, `~` or `..` path.
-# A worker may run exactly that, so a rename stays in the tree it was dispatched
-# to. Open gap: a cwd the worker moved with an earlier `cd` call.
-_g_mvop='[^-/~[:space:];&|<>$`()"'"'"'\\][^[:space:];&|<>$`()"'"'"'\\]*'
+# second command or line, no quoting, variable, glob or brace expansion, no
+# absolute, `~` or `..` path. A worker may run exactly that, so a rename stays in
+# the tree it was dispatched to. Open gap: a cwd the worker moved with an earlier
+# `cd` call. (`]` leads each class so it is literal, `-` trails the first.)
+_g_mvop='[^]/~[:space:];&|<>$`()"'"'"'\\*?[{}-][^][:space:];&|<>$`()"'"'"'\\*?[{}]*'
 GUARD_RE_PLAIN_GIT_MV='^[[:blank:]]*git[[:blank:]]+mv([[:blank:]]+(-[knv]+|--dry-run|--verbose))*([[:blank:]]+'"${_g_mvop}"'){2,}[[:blank:]]*$'
 guard_is_plain_git_mv() {
   [[ $guard_cmd_raw =~ $GUARD_RE_PLAIN_GIT_MV ]] && [[ $guard_cmd_raw != *..* ]]

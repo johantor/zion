@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `bash-safety` refuses a bare `cat <file>` in agent sessions only; your own session may `cat`
+  (#249).
 - Workers may run a plain `git mv`; `bash-safety` still refuses any other git and a forced
   `git mv` (#249).
 

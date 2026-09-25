@@ -329,7 +329,8 @@ same patterns let a claim slide through unbacked.
 `bash-safety.sh` refuses a few command shapes. Two rules read like enforcement and are not; each
 was widened once and reverted, and the hooks point here so it is not tried a third time.
 
-- **The raw-read rule is a habit redirect.** It blocks `cat f` and names `Read`; `grep . f`,
+- **The raw-read rule is a habit redirect**, so it applies to agent sessions only (#249). It
+  blocks `cat f` and names `Read`; `grep . f`,
   `awk`, `tail -n 999999`, `python3 -c` dump the same file and are allowed. A missed read costs
   nothing, a wrong refusal costs a turn, so the pattern is one line and any pipe or redirect ends
   the match. Following bytes through redirects needs bash's tokenizer (#226: two regressions in

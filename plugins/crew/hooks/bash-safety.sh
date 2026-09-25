@@ -30,14 +30,16 @@ fi
 agent_type="$guard_trusted"
 guard_normalize "$guard_untrusted"
 
-# The floor, in this order. Destructive ops are refused for everyone; the
-# watch/dev/serve and file-write blocks are scoped to agent sessions, since the
+# The floor, in this order. Destructive ops, pagers and `tail -f` are refused for
+# everyone; the watch/dev/serve, `cat` and file-write blocks are scoped to agent
+# sessions, since the
 # user's own session may legitimately run a dev server, and is not write-guarded
 # on the Edit|Write path either. The file-write block lets any agent run a plain
 # `git mv`.
 guard_block_destructive
 [ -n "$agent_type" ] && guard_block_watch_commands
 guard_block_raw_reads
+[ -n "$agent_type" ] && guard_block_cat
 [ -n "$agent_type" ] && guard_block_file_writes
 
 # Workers run no git but a plain `git mv` -- morpheus is the sole git owner (see

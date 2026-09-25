@@ -69,7 +69,8 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     One carve-out: a plain `git mv`, for any agent, matched on the raw command so a later line
     counts; `-f`/`--force` stays refused. The no-git arm checks `guard_strip_git_mv`'s copy of
     the command, so a worker's plain `git mv` passes and any other git beside it is refused.
-    Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
+    Raw reads (`cat f`) are refused for agent sessions: a habit redirect, not a boundary.
+    Pagers and `tail -f` are refused for every session, since they never end.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
   - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on a filename shape at any depth —
     `plan-*.md`, `debt-*.md`, `crew.md`, `agent-memory-local/*.md` — plus scratch; no directory to

@@ -239,6 +239,11 @@ guard_block_raw_reads() {
     echo "Blocked: streaming raw output is disallowed — it never ends, and a raw Bash read reaches no Read hook either. Capture/filter and surface only the needed result." >&2
     exit 2
   fi
+}
+
+# A habit redirect for agents; callers scope it to agent sessions, since the
+# operator reading a file with `cat` bypasses nothing they rely on.
+guard_block_cat() {
   if [[ $guard_cmd =~ $GUARD_RE_CAT ]]; then
     echo "Blocked: unbounded cat reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or pipe/filter with grep/rg/jq." >&2
     exit 2

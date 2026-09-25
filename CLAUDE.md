@@ -61,7 +61,7 @@ through the shell. A guard hook enforces it (start a session here with
 `claude --plugin-dir plugins/crew`, which loads the crew hooks), so the glance-level habit fails
 here:
 
-- **Reading a file**: use `Read`. A bare `cat <file>` is refused in *every* session — a shell
+- **Reading a file**: use `Read`. A bare `cat <file>` is refused in agent sessions — a shell
   read reaches no `PreToolUse(Read)` hook, so the size bound in `read-guard.sh` never applies
   to it. Bounded shell reads stay available and are the right tool for a slice: `head`,
   `sed -n '10,40p'`, `grep`, `jq`, and any `cat` whose output is piped into a filter.

@@ -111,9 +111,12 @@ assert_block "cat a file"     "$HOOK" "$(payload_bash 'cat foo.txt' tank)"      
 assert_block "cat then another command" "$HOOK" "$(payload_bash 'cat foo.txt; ls' tank)" "unbounded cat"
 assert_block "less a file"    "$HOOK" "$(payload_bash 'less foo.txt' tank)"     "interactive raw reads"
 assert_block "tail -f a log"  "$HOOK" "$(payload_bash 'tail -f app.log' tank)"  "streaming raw output"
-# Raw reads are refused in EVERY session: guard_block_raw_reads is called
-# unconditionally, unlike the agent-only write and watch blocks.
-assert_block "bare cat with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')" "unbounded cat"
+# Pagers and `tail -f` hang any session, so they are refused in every one. The
+# `cat` redirect is for agents only: the operator's own `cat` bypasses nothing.
+assert_allow "bare cat with no agent_type" "$HOOK" "$(payload_bash 'cat foo.txt')"
+assert_block "less with no agent_type"     "$HOOK" "$(payload_bash 'less foo.txt')"    "interactive raw reads"
+assert_block "tail -f with no agent_type"  "$HOOK" "$(payload_bash 'tail -f app.log')" "streaming raw output"
+assert_block "morpheus cat"                "$HOOK" "$(payload_bash 'cat foo.txt' morpheus)" "unbounded cat"
 # A wrapper the command-position policy already knows must not walk a read past
 # the guard, on any of the three rules.
 assert_block "env cat"       "$HOOK" "$(payload_bash 'env cat foo.txt' tank)"     "unbounded cat"

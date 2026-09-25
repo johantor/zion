@@ -100,8 +100,8 @@ entering auto mode.
 
 **Headless and background gates.** Review gates run through `scripts/gate.sh`, one simple command
 per call. For a gate worker that cannot prompt (`claude -p`, CI, a background dispatch), allow it
-by its installed absolute path — a `*` inside the path does not match:
-`"Bash(bash /abs/path/to/crew/scripts/gate.sh:*)"`. Without it, the worker reports the refusal and
+by its installed absolute path, quoted as the recipe quotes it — a `*` inside the path does not
+match: `Bash(bash "/abs/path/to/crew/scripts/gate.sh":*)`. Without it, the worker reports the refusal and
 stops; it does not improvise another form.
 
 </details>

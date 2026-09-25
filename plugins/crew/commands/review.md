@@ -81,7 +81,7 @@ answer (#245). You mint `<id>` for each handoff: the lane plus 8 random lowercas
 refuses a reused `<id>`; a `'` inside `<command>` is written `'\''`):
 
 ```sh
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh start <id> '<command>'
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh" start <id> '<command>'
 ```
 
 Then repeat this call, with Bash `timeout: 600000`, until it prints an exit code instead of
@@ -91,14 +91,14 @@ it and stop; do not improvise another form** — a hand-made variant loses the b
 group, and `bash-safety` refuses the obvious ones (a quoted or `mktemp` target).
 
 ```sh
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh poll <id>
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh" poll <id>
 ```
 
 Give the handoff a wall-clock budget. Still `running` past it is a **gate timeout**: stop the whole
 group and confirm it is gone before you report, so nothing keeps writing build outputs.
 
 ```sh
-bash ${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh stop <id>
+bash "${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh" stop <id>
 ```
 
 Report it with the gate's name and `/tmp/crew-gate-<id>`, never as a code failure; `still-running` goes to the user

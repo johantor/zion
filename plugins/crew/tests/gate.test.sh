@@ -18,6 +18,8 @@ check() {  # <name> <expected> <actual>
 check "start prints the gate dir" "/tmp/crew-gate-$id" "$(bash "$GATE" start "$id" 'echo built; exit 4')"
 check "poll reports the command's exit code" "4" "$(bash "$GATE" poll "$id")"
 check "the log holds the command's output" "built" "$(grep -o built "/tmp/crew-gate-$id/log")"
+# The exit code lands by rename, so no half-written temp file is left behind.
+check "no temp exit file remains" "absent" "$([ -e "/tmp/crew-gate-$id/exit.tmp" ] && echo present || echo absent)"
 
 bash "$GATE" start "$id" 'true' >/dev/null 2>&1
 check "a reused id is refused" "3" "$?"

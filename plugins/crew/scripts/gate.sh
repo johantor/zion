@@ -28,20 +28,21 @@ case "$op" in
     # Job control gives the background job its own process group, so stop can
     # kill the whole tree the command starts.
     set -m
-    ( bash -c "$3" >"$d/log" 2>&1; echo $? >"$d/exit" ) >/dev/null 2>&1 &
+    # The code lands via a rename, so poll never reads a half-written file.
+    ( bash -c "$3" >"$d/log" 2>&1; echo $? >"$d/exit.tmp"; mv "$d/exit.tmp" "$d/exit" ) >/dev/null 2>&1 &
     echo $! >"$d/pid"
     echo "$d"
     ;;
   poll)
     [ -d "$d" ] || { echo "gate.sh: no gate $d" >&2; exit 3; }
-    for _ in $(seq 110); do [ -f "$d/exit" ] && break; sleep 5; done
-    head -c 8 "$d/exit" 2>/dev/null || echo running
+    for ((i = 0; i < 110; i++)); do [ -s "$d/exit" ] && break; sleep 5; done
+    if [ -s "$d/exit" ]; then head -c 8 "$d/exit"; else echo running; fi
     ;;
   stop)
     [ -f "$d/pid" ] || { echo "gate.sh: no gate $d" >&2; exit 3; }
     p="$(head -c 16 "$d/pid")"
     kill -TERM -- "-$p" 2>/dev/null
-    for _ in $(seq 60); do kill -0 -- "-$p" 2>/dev/null || break; sleep 1; done
+    for ((i = 0; i < 60; i++)); do kill -0 -- "-$p" 2>/dev/null || break; sleep 1; done
     if kill -0 -- "-$p" 2>/dev/null; then echo still-running; else echo stopped; fi
     ;;
   *) usage ;;

@@ -173,8 +173,8 @@ assert_block "mv inside the tree"     "$HOOK" "$(payload_bash 'mv src/a.cs src/b
 assert_block "patch"                  "$HOOK" "$(payload_bash 'patch -p1 < fix.diff' tank)"  "$gap"
 # `git mv` is a rename recorded in the index, not a write: no bytes change, so no
 # lane guard or formatter has anything to inspect, and the rename lands in a
-# commit, where it is reviewed. The floor lets any agent run it; crew's own
-# no-git arm refuses its workers' like any other git. Bare `mv`/`cp` stay refused for
+# commit, where it is reviewed. The floor lets any agent run it, and crew's own
+# no-git arm lets its workers run a plain one too. Bare `mv`/`cp` stay refused for
 # everyone, and so does a forced `git mv`, which can clobber.
 force="git mv -f/--force can overwrite"
 assert_allow "morpheus git mv"                 "$HOOK" "$(payload_bash 'git mv BishopsArms.Members src/BishopsArms.Members' morpheus)"
@@ -218,16 +218,23 @@ assert_block "git -C dir and mv on separate lines" "$HOOK" "$(payload_bash "git 
 # The floor does not decide WHOSE rename it is: an agent not on crew's roster is
 # not crew's to refuse.
 assert_allow "an agent not on crew's roster may git mv" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' general-purpose)"
-# A worker may run a plain `git mv`; any other git beside it is still refused.
+# A worker may run one plain `git mv` with relative paths, alone in the command,
+# so the rename stays in the tree it was dispatched to. Anything wider is refused.
 assert_allow "tank git mv"                      "$HOOK" "$(payload_bash 'git mv a b' tank)"
-assert_allow "neo git -C dir mv"                "$HOOK" "$(payload_bash 'git -C src mv a.cs b.cs' neo)"
-assert_allow "tank git mv after cd"             "$HOOK" "$(payload_bash 'cd src && git mv a.cs b.cs' tank)"
-assert_allow "tank two git mvs"                 "$HOOK" "$(payload_bash 'git mv a b; git mv c d' tank)"
-assert_allow "tank git mv with a glob in a flag value" "$HOOK" "$(payload_bash 'git -C "*" mv a b' tank)"
+assert_allow "neo git mv of nested paths"       "$HOOK" "$(payload_bash 'git mv src/a.cs src/b.cs' neo)"
+assert_allow "tank git mv -k into a directory"  "$HOOK" "$(payload_bash 'git mv -k a.cs b.cs old/' tank)"
+assert_allow "tank git mv of a dotted path"     "$HOOK" "$(payload_bash 'git mv .github/a.yml .github/b.yml' tank)"
+assert_block "tank git -C another repo mv"      "$HOOK" "$(payload_bash 'git -C /tmp/other mv a b' tank)" "$nogit"
+assert_block "tank cd then git mv"              "$HOOK" "$(payload_bash 'cd /tmp/other && git mv a b' tank)" "$nogit"
+assert_block "tank two git mvs in one command"  "$HOOK" "$(payload_bash 'git mv a b; git mv c d' tank)" "$nogit"
+assert_block "tank git mv of an absolute path"  "$HOOK" "$(payload_bash 'git mv /tmp/other/a b' tank)" "$nogit"
+assert_block "tank git mv out through .."       "$HOOK" "$(payload_bash 'git mv a ../other/a' tank)" "$nogit"
+assert_block "tank git mv into ~"               "$HOOK" "$(payload_bash 'git mv a ~/a' tank)" "$nogit"
+# shellcheck disable=SC2016  # the `$HOME` is command text, not to expand here
+assert_block "tank git mv with an expansion"    "$HOOK" "$(payload_bash 'git mv a "$HOME/a"' tank)" "$nogit"
+assert_block "tank env git mv"                  "$HOOK" "$(payload_bash 'env git mv a b' tank)" "$nogit"
+assert_block "tank git mv then git on a new line" "$HOOK" "$(payload_bash "git mv a b${nl}git push" tank)" "$nogit"
 assert_block "tank git commit behind a git mv"  "$HOOK" "$(payload_bash 'git mv a b && git commit -m x' tank)" "$nogit"
-assert_block "tank git add behind a git mv"     "$HOOK" "$(payload_bash 'git mv a b; git add -A' tank)" "$nogit"
-assert_block "tank git status before a git mv"  "$HOOK" "$(payload_bash 'git status && git mv a b' tank)" "$nogit"
-assert_block "tank env git mv then git push"    "$HOOK" "$(payload_bash 'env git mv a b | env git push' tank)" "$nogit"
 assert_block "tank git mv -f is a write first"  "$HOOK" "$(payload_bash 'git mv -f a b' tank)" "$force"
 assert_block "tank bare mv behind a git mv"     "$HOOK" "$(payload_bash 'git mv a b && mv c d' tank)" "$gap"
 # The no-git check reads the flattened command, so a line of data is never refused.

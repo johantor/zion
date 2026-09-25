@@ -52,9 +52,8 @@ guard_block_raw_reads
 # the `a|b|c)` arm on the very next line.
 case "$agent_type" in
   tank|trinity|oracle|dozer|neo)
-    guard_strip_git_mv
-    if [[ $guard_cmd_no_mv =~ $GUARD_RE_GIT_AT_CMD ]]; then
-      echo "Blocked: ${agent_type} runs no git but a plain \`git mv\` — morpheus owns branching and commits. Return your result; morpheus commits verified steps." >&2
+    if ! guard_is_plain_git_mv && [[ $guard_cmd =~ $GUARD_RE_GIT_AT_CMD ]]; then
+      echo "Blocked: ${agent_type} runs no git but a plain \`git mv <from> <to>\`, alone in the command, with relative paths — morpheus owns branching and commits. Return your result; morpheus commits verified steps." >&2
       exit 2
     fi ;;
 esac

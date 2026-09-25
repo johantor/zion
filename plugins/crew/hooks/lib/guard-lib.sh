@@ -333,7 +333,7 @@ GUARD_GIT_MV_MASK='@gitmv@'
 # records the rename in the index; no bytes change, so there is nothing for a
 # lane guard or a formatter to inspect, and the rename lands in a commit, where
 # it is reviewed. Which agents may run git at all is the roster's policy, after
-# the floor; guard_strip_git_mv lets its no-git check skip a plain `git mv`.
+# the floor; guard_is_plain_git_mv is the one git a worker may run.
 # `-f`/`--force` stays
 # refused for everyone: it can clobber an existing destination, which IS a write.
 #
@@ -392,17 +392,15 @@ guard_block_file_writes() {
   done
 }
 
-# guard_strip_git_mv -- sets $guard_cmd_no_mv to $guard_cmd with each `git mv`
-# (its separator kept, the command up to `mv` masked) replaced, so a no-git check
-# run on it still sees any other git in the command. A forced `git mv` never gets
-# here: the floor refuses it first.
-guard_strip_git_mv() {
-  local c="$guard_cmd" m
-  while [[ $c =~ $GUARD_RE_GIT_MV ]]; do
-    m="${BASH_REMATCH[0]}"
-    c="${c/"$m"/"${m%%[![:space:];&|]*}${GUARD_GIT_MV_MASK} "}"
-  done
-  guard_cmd_no_mv="$c"
+# guard_is_plain_git_mv -- true when the whole command, as typed, is one
+# `git mv [-k|-n|-v] <operands>` with relative operands: no `-C`, no `cd`, no
+# second command or line, no quoting or expansion, no absolute, `~` or `..` path.
+# A worker may run exactly that, so a rename stays in the tree it was dispatched
+# to. Open gap: a cwd the worker moved with an earlier `cd` call.
+_g_mvop='[^-/~[:space:];&|<>$`()"'"'"'\\][^[:space:];&|<>$`()"'"'"'\\]*'
+GUARD_RE_PLAIN_GIT_MV='^[[:blank:]]*git[[:blank:]]+mv([[:blank:]]+(-[knv]+|--dry-run|--verbose))*([[:blank:]]+'"${_g_mvop}"'){2,}[[:blank:]]*$'
+guard_is_plain_git_mv() {
+  [[ $guard_cmd_raw =~ $GUARD_RE_PLAIN_GIT_MV ]] && [[ $guard_cmd_raw != *..* ]]
 }
 
 # guard_block_protected_branch_commit <agent_type> <advice>

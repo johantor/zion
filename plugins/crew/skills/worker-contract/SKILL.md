@@ -10,8 +10,9 @@ your own prompt adds what is specific to your role, and your stack skill adds wh
 to its tool.
 
 - **Never run `git`, except a plain `git mv`.** `crew:morpheus` owns branching and commits. A
-  rename your step needs is `git mv <from> <to>` (never `-f`), inside your lane; say it in your
-  summary so the commit carries it. Never recreate the file under the new path instead.
+  rename your step needs is `git mv <from> <to>` inside your lane: alone in the command, paths
+  relative to the worktree, never `-f`, `-C` or `cd`. Say it in your summary so the commit
+  carries it. Never recreate the file under the new path instead.
 - **Ask, don't guess.** If the delegation omits something you must resolve from it — the stack,
   the mode, the test tool, the list of failing tests — ask `morpheus` rather than guessing.
 - **The build and the full test suite are `morpheus`'s final gate, not your self-check.** Verify

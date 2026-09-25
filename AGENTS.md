@@ -347,10 +347,11 @@ was widened once and reverted, and the hooks point here so it is not tried a thi
   was replaced). Open gap: `CDPATH`.
 - **The `git mv` carve-out reads line starts because it is an allowance**: a false separator can
   only wave through a `git mv` inside a string, never refuse anything. The floor decides *what* a
-  `git mv` is, not *whose*: it lets any agent run a plain one, and `bash-safety.sh`'s no-git
-  roster skips it too, so a worker renames in place rather than handing the rename back (#249).
-  Catch: no lane guard sees a `git mv`, so a worker can move a file out of its lane; `morpheus`
-  checks renames in the staged diff before it commits.
+  `git mv` is, not *whose*: it lets any agent run a plain one. `bash-safety.sh`'s no-git roster
+  lets a worker run only a `git mv` alone in the command with relative paths (no `-C`, `cd` or
+  `..`), so the rename stays in the tree it was dispatched to (#249, #263). Open gaps: no lane
+  guard sees a `git mv`, so `morpheus` checks renames in the staged diff; a cwd a worker moved
+  with an earlier `cd` call is not checked.
 
 ## Recurring review findings — apply proactively
 

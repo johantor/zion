@@ -345,6 +345,12 @@ was widened once and reverted, and the hooks point here so it is not tried a thi
   or the literal directory of `git -C <dir>` / `cd <dir> &&`; other shapes also check the hook's
   own directory, so it is never weaker than before #224 (a full shell walk drew 100+ threads and
   was replaced). Open gap: `CDPATH`.
+- **A redirect outside the project is exempt** (#240): lanes and formatting guard only the
+  checkout, and an out-of-tree build root is where builds write. The check reads
+  `$CLAUDE_PROJECT_DIR` without a fork, ignores case and drive-letter spelling, and treats a
+  relative path, a `..` segment, `/dev` or an unset project dir as inside. Open gaps: a symlink
+  outside the project that points into it (as with `/tmp` before), and a main checkout written
+  from a worktree session.
 - **The `git mv` carve-out reads line starts because it is an allowance**: a false separator can
   only wave through a `git mv` inside a string, never refuse anything. The floor decides *what* a
   `git mv` is, not *whose*: it lets any agent run a plain one. `bash-safety.sh`'s no-git roster

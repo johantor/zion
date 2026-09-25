@@ -98,8 +98,10 @@ _g_comb='-[A-Za-z]*([rR][A-Za-z]*f|f[A-Za-z]*[rR])[A-Za-z]*'  # both in one toke
 # Recursive+force rm of /, ~ or * -- flags combined in either order (-rf, -fr) or
 # separate/long (-r -f, --recursive --force), with other flag tokens and
 # arguments (including `--`) before the dangerous target. `\b` is a backspace in
-# ERE, so `rm` is anchored on a separator rather than a word boundary.
-_g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+(/|~|\*)'
+# ERE, so `rm` is anchored on a separator rather than a word boundary. The target
+# is matched as a whole token (`/`, `/*`, `~`, `~/`, `~/*`, `*`), so an absolute
+# path such as `/d/repos/build` is not read as `/` (#240).
+_g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+(/\*?|~/?\*?|\*)([[:space:];&|)]|$)'
 
 # The rest of the destructive set: force-push via --force or short -f (but not
 # the safe --force-with-lease / --force-if-includes -- `-[A-Za-z]*f` cannot cross
@@ -263,7 +265,8 @@ GUARD_QUOTED='@quoted@'
 
 # guard_write_sink_exempt <target> -- true for a target a write may reach without
 # escaping the Edit|Write guards: the null/std streams, an fd dup (which captures
-# as the empty string), and the temp locations agents use for scratch output.
+# as the empty string), the temp locations agents use for scratch output, and an
+# absolute path outside the project (guard_outside_project).
 # Anything else counts as a path in the checkout, relative paths included:
 # resolving one costs a fork, and a guard that guesses permissively is the hole
 # it exists to close. `-` is NOT exempt -- `> -` writes a file named `-`.
@@ -278,8 +281,38 @@ guard_write_sink_exempt() {
     /dev/fd/*|/proc/self/fd/*) return 0 ;;
     /tmp/*|/private/tmp/*|/var/folders/*|/private/var/folders/*) return 0 ;;
     "${TMPDIR:-/tmp}"/*) return 0 ;;
+    /dev/*|/proc/*) return 1 ;;
   esac
-  return 1
+  guard_outside_project "$1"
+}
+
+# guard_outside_project <path> -- true for an absolute path outside
+# $CLAUDE_PROJECT_DIR, such as an out-of-tree build root (#240): the lane and
+# format hooks guard only the checkout. Unset project dir, a relative path or a
+# `..` segment counts as inside. `C:\x`, `C:/x` and Git Bash `/c/x` compare equal,
+# and the compare ignores case, so a mismatch errs toward "inside" (refused).
+guard_outside_project() {
+  local p root inside=1 had_nocase=0
+  [ -n "${CLAUDE_PROJECT_DIR:-}" ] || return 1
+  case "$1" in *..*) return 1 ;; esac
+  _guard_posix_path "$1"; p="$_guard_path"
+  _guard_posix_path "$CLAUDE_PROJECT_DIR"; root="${_guard_path%/}"
+  case "$p" in /*) ;; *) return 1 ;; esac
+  [ -n "$root" ] || return 1
+  shopt -q nocasematch && had_nocase=1
+  shopt -s nocasematch
+  [[ $p == "$root" || $p == "$root"/* ]] || inside=0
+  [ "$had_nocase" -eq 1 ] || shopt -u nocasematch
+  [ "$inside" -eq 0 ]
+}
+
+# _guard_posix_path <path> -- sets $_guard_path: backslashes to slashes, `X:` to
+# `/X`. Assigns rather than echoing, so a caller pays no `$(...)` fork.
+_guard_posix_path() {
+  _guard_path="${1//\\//}"
+  if [[ $_guard_path =~ ^([A-Za-z]):(.*)$ ]]; then
+    _guard_path="/${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+  fi
 }
 
 # guard_mask_quotes <cmd> -- sets $guard_masked to <cmd> with every single- or
@@ -377,7 +410,8 @@ guard_block_file_writes() {
   guard_mask_quotes "$guard_cmd"
   rest="$guard_masked"
   while [[ $rest =~ $GUARD_RE_REDIRECT ]]; do
-    target="${BASH_REMATCH[2]}"
+    # Saved first: the exempt check runs its own `=~`, which resets BASH_REMATCH.
+    m="${BASH_REMATCH[0]}"; target="${BASH_REMATCH[2]}"
     if ! guard_write_sink_exempt "$target"; then
       # Never report the mask back as if it were the path itself -- a target can
       # also merely contain it (`b"` in `echo "a \" > b" > f`).
@@ -388,7 +422,7 @@ guard_block_file_writes() {
     # metacharacter in the matched text (`> /tmp/out[1]`) stays literal and the
     # trim lands where the match ended; unquoted it would match nothing and loop
     # forever. Every match is at least one character, so this terminates.
-    rest="${rest#*"${BASH_REMATCH[0]}"}"
+    rest="${rest#*"$m"}"
   done
 }
 

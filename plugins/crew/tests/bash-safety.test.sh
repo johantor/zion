@@ -43,6 +43,13 @@ assert_block "rm -fr ~"        "$HOOK" "$(payload_bash 'rm -fr ~' tank)"        
 assert_block "rm -rf *"        "$HOOK" "$(payload_bash 'rm -rf *' tank)"        "unsafe command"
 assert_block "rm -r -f /"      "$HOOK" "$(payload_bash 'rm -r -f /' tank)"      "unsafe command"
 assert_allow "rm -rf ./build (scoped)" "$HOOK" "$(payload_bash 'rm -rf ./build' tank)"
+# The target is a whole token: an absolute path is not `/` (#240).
+assert_allow "rm -rf of an absolute build dir" "$HOOK" "$(payload_bash 'rm -rf /d/repos/build-scratch/app/20233' tank)"
+assert_allow "rm -rf of a path under ~"        "$HOOK" "$(payload_bash 'rm -rf ~/build-scratch' tank)"
+assert_block "rm -rf /*"       "$HOOK" "$(payload_bash 'rm -rf /*' tank)"       "unsafe command"
+assert_block "rm -rf ~/"       "$HOOK" "$(payload_bash 'rm -rf ~/' tank)"       "unsafe command"
+assert_block "rm -rf / then more" "$HOOK" "$(payload_bash 'rm -rf / && ls' tank)" "unsafe command"
+assert_block "rm -rf a then /"  "$HOOK" "$(payload_bash 'rm -rf build /' tank)"  "unsafe command"
 
 # --- Force-push ----------------------------------------------------------------
 # Force-push detection is agentless here (uses a non-worker agent so the generic
@@ -153,6 +160,21 @@ assert_block "redirect into a file"   "$HOOK" "$(payload_bash 'echo x > src/Foo.
 assert_block "glued redirect"         "$HOOK" "$(payload_bash 'echo x>src/Foo.cs' tank)"    "$gap"
 assert_block "append redirect"        "$HOOK" "$(payload_bash 'printf x >> README.md' tank)" "$gap"
 assert_block "quoted redirect target" "$HOOK" "$(payload_bash 'echo x > "src/Foo.cs"' tank)" "quoted path"
+# An absolute path outside the project is not guarded by the lane or format
+# hooks, so a redirect there (an out-of-tree build log, #240) is allowed. Inside
+# the project, unset project dir, `..`, and /dev stay refused.
+export CLAUDE_PROJECT_DIR=/home/dev/proj
+assert_allow "redirect to an out-of-tree build root" "$HOOK" "$(payload_bash 'dotnet build > /d/repos/build-scratch/app/build.log 2>&1' tank)"
+assert_allow "redirect to a Windows drive path"      "$HOOK" "$(payload_bash 'dotnet build > D:/build/log.txt' tank)"
+assert_block "absolute redirect into the project"    "$HOOK" "$(payload_bash 'echo x > /home/dev/proj/src/Foo.cs' tank)" "$gap"
+assert_block "absolute redirect, other case"         "$HOOK" "$(payload_bash 'echo x > /HOME/dev/Proj/src/Foo.cs' tank)" "$gap"
+assert_block "absolute redirect climbing back in"    "$HOOK" "$(payload_bash 'echo x > /home/dev/other/../proj/a' tank)" "$gap"
+assert_block "redirect to /dev/tcp"                  "$HOOK" "$(payload_bash 'echo x > /dev/tcp/h/80' tank)" "$gap"
+CLAUDE_PROJECT_DIR='C:\work\proj'
+assert_block "Git Bash path into a Windows project"  "$HOOK" "$(payload_bash 'echo x > /c/work/proj/a.cs' tank)" "$gap"
+assert_allow "Git Bash path outside a Windows project" "$HOOK" "$(payload_bash 'echo x > /c/build/a.log' tank)"
+unset CLAUDE_PROJECT_DIR
+assert_block "absolute redirect with no project dir" "$HOOK" "$(payload_bash 'echo x > /d/build/log' tank)" "$gap"
 # `>|` is the noclobber override, a redirect like any other. Without the `\|?` in
 # the pattern its target hides behind the `|` and the redirect reads as
 # targetless, i.e. as an exempt sink.

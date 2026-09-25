@@ -176,8 +176,7 @@ it allows.
   around the lane or skip formatting.
 - **Destructive and hanging commands are refused.** Recursive force-`rm` of `/`/`~`/`*`,
   force-push, redirects into `.env` or `.git/`, and never-terminating watch/dev/serve commands.
-- **Context stays bounded.** Raw reads over 64 KiB are blocked in favour of grep/jq, and agents
-  are warned near their turn cap so oversized work ends as an orderly hand-back, not a truncation.
+- **Context stays bounded.** Raw reads over 64 KiB are blocked in favour of grep/jq.
 
 All git, watch, and lane rules are scoped by `agent_type`, so **your own main session is never
 intercepted**.

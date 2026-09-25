@@ -9,7 +9,8 @@ GATE="$(dirname "${BASH_SOURCE[0]}")/../scripts/gate.sh"
 
 # Ids are unique per run so parallel suites never share a /tmp directory.
 id="t-$$-$RANDOM"; id2="${id}-b"
-trap 'rm -rf "/tmp/crew-gate-$id" "/tmp/crew-gate-$id2"' EXIT
+# Extends the harness's EXIT trap (which removes FIXTURE_ROOT) rather than replacing it.
+trap 'rm -rf "$FIXTURE_ROOT" "/tmp/crew-gate-$id" "/tmp/crew-gate-$id2"' EXIT
 
 check() {  # <name> <expected> <actual>
   if [ "$2" = "$3" ]; then _pass; else _fail "$1: expected [$2], got [$3]"; fi

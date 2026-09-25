@@ -174,7 +174,10 @@ motivation measurably helps compliance. Compression is not a quota.
   reach the UI and never the orchestrator (#239), so `/crew:review`'s wait recipe polls an exit
   file in bounded calls and kills a timed-out gate as a process group. The recipe lives in
   `scripts/gate.sh` because Claude's permission check refuses an inline compound recipe (`$$`,
-  then `{ … }`), and a headless worker cannot answer the prompt (#245). A worker that still
+  then `{ … }`), and a headless worker cannot answer the prompt (#245). It takes the command as a
+  string, so its allow rule is as wide as allowing all Bash; reading a fixed crew-config slot
+  instead was declined, because a narrowed gate (named failing tests) could not use it. A worker
+  that still
   backgrounds its own command is messaged for its report, and never reported on from a result
   that has not arrived.
 - **Isolation or a path, decided at dispatch.** An isolated worktree auto-cleans a gitignored

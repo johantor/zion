@@ -102,7 +102,8 @@ entering auto mode.
 per call. For a gate worker that cannot prompt (`claude -p`, CI, a background dispatch), allow it
 by its installed absolute path, quoted as the recipe quotes it — a `*` inside the path does not
 match: `Bash(bash "/abs/path/to/crew/scripts/gate.sh":*)`. Without it, the worker reports the refusal and
-stops; it does not improvise another form.
+stops; it does not improvise another form. **This rule is as wide as allowing all Bash:** `start`
+runs whatever command string it is given, so grant it only to a headless run you trust with that.
 
 </details>
 

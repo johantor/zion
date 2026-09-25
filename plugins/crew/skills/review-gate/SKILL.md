@@ -7,7 +7,9 @@ description: "How the crew runs a build, test or lint gate: one build location w
 
 1. **One build location, one build writer at a time.** Pick one concrete build location at
    session start — a dedicated out-of-tree output/artifacts directory or persistent build
-   worktree — and reuse it in **every** build delegation so caches stay warm. Inside it the
+   worktree — and reuse it in **every** build delegation so caches stay warm. Name it as a plain
+   absolute path (no `$`, `~`, `.` or `..` segment) so a worker's log redirect into it passes
+   `bash-safety`; a worker clears it with `rm -r`, never `rm -rf`. Inside it the
    intermediates are a shared artifact, and a test or lint run that compiles is a writer too:
    never dispatch two writers of one project's outputs at once. Run a lane's gates **one at a
    time**, unless the lane's stack skill has a **Parallel gates** recipe: load that skill

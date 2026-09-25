@@ -98,11 +98,11 @@ _g_comb='-[A-Za-z]*([rR][A-Za-z]*f|f[A-Za-z]*[rR])[A-Za-z]*'  # both in one toke
 # Recursive+force rm of /, ~ or * -- flags combined in either order (-rf, -fr) or
 # separate/long (-r -f, --recursive --force), with other flag tokens and
 # arguments (including `--`) before the dangerous target. `\b` is a backspace in
-# ERE, so `rm` is anchored on a separator rather than a word boundary. The target
-# is a whole token made only of `/ ~ . *` (`/`, `/*/`, `//`, `~/*`, `*`, `.`), so
-# every root-, home- or cwd-wide spelling is caught by one class rather than a
-# list, and a path with a real name in it (`/d/repos/build`) is not (#240).
-_g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+[/~.*]+([[:space:];&|)<>]|$)'
+# ERE, so `rm` is anchored on a separator rather than a word boundary. Any target
+# that STARTS with `/`, `~` or `*` is refused, absolute build dirs included: a
+# narrower match was tried in #264 and every version let a root-wide spelling
+# through (`/*/`, `/tmp/../*`). Out-of-tree cleanup uses `rm -r` without `-f`.
+_g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+(/|~|\*)'
 
 # The rest of the destructive set: force-push via --force or short -f (but not
 # the safe --force-with-lease / --force-if-includes -- `-[A-Za-z]*f` cannot cross
@@ -289,18 +289,19 @@ guard_write_sink_exempt() {
 
 # guard_outside_project <path> -- true for an absolute path outside
 # $CLAUDE_PROJECT_DIR, such as an out-of-tree build root (#240): the lane and
-# format hooks guard only the checkout. Unset project dir, a relative path or a
-# `..` segment counts as inside. On Windows shells `C:\x`, `C:/x` and Git Bash
-# `/c/x` compare equal; elsewhere they are relative names. The compare ignores
-# case, so a mismatch errs toward "inside" (refused). Unquoted targets only: a
-# quoted one is masked before it gets here.
+# format hooks guard only the checkout. An allow-list, so it fails closed: the
+# path must be absolute and every segment plain (`[A-Za-z0-9_-][A-Za-z0-9._-]*`),
+# so `$VAR`, a backtick, a glob, `.`, `..`, `//` or a hidden segment counts as
+# inside. Parsing what bash would expand was tried in #264 and leaked. On Windows
+# shells `C:\x`, `C:/x` and Git Bash `/c/x` compare equal; elsewhere they are
+# relative names. The compare ignores case, so a mismatch errs toward "inside".
+# Unquoted targets only: a quoted one is masked before it gets here.
 guard_outside_project() {
   local p root inside=1 had_nocase=0
   [ -n "${CLAUDE_PROJECT_DIR:-}" ] || return 1
-  case "$1" in *..*) return 1 ;; esac
   _guard_posix_path "$1"; p="$_guard_path"
   _guard_posix_path "$CLAUDE_PROJECT_DIR"; root="${_guard_path%/}"
-  case "$p" in /*) ;; *) return 1 ;; esac
+  [[ $p =~ ^(/[A-Za-z0-9_-][A-Za-z0-9._-]*)+$ ]] || return 1
   [ -n "$root" ] || return 1
   shopt -q nocasematch && had_nocase=1
   shopt -s nocasematch

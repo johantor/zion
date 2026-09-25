@@ -119,7 +119,7 @@ _g_cmdpos='(^|[;&|][&|]?[[:space:]]*)'
 # assignments, `env`, `command`.
 _g_pfx='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*'
 
-# Any git invocation at a command position (for the workers that never run git).
+# Any git invocation at a command position (for the workers' no-git check).
 GUARD_RE_GIT_AT_CMD="${_g_cmdpos}${_g_pfx}"'git([[:space:]]|$)'
 # git global flags before a subcommand (`git -c k=v commit`, `git -C dir mv`): a
 # flag token, optionally followed by its value token.
@@ -239,6 +239,11 @@ guard_block_raw_reads() {
     echo "Blocked: streaming raw output is disallowed — it never ends, and a raw Bash read reaches no Read hook either. Capture/filter and surface only the needed result." >&2
     exit 2
   fi
+}
+
+# A habit redirect for agents; callers scope it to agent sessions, since the
+# operator reading a file with `cat` bypasses nothing they rely on.
+guard_block_cat() {
   if [[ $guard_cmd =~ $GUARD_RE_CAT ]]; then
     echo "Blocked: unbounded cat reads are disallowed — a raw Bash read reaches no Read hook, so read-guard's size bound never applies. Use the Read tool for a file in the checkout, or pipe/filter with grep/rg/jq." >&2
     exit 2
@@ -327,9 +332,8 @@ GUARD_GIT_MV_MASK='@gitmv@'
 # `git mv` is the one carve-out, for every agent. It renames a tracked path and
 # records the rename in the index; no bytes change, so there is nothing for a
 # lane guard or a formatter to inspect, and the rename lands in a commit, where
-# it is reviewed. WHOSE commit is the roster's policy, not the floor's: the hook
-# refuses its own non-owners' `git mv` after the floor, with
-# guard_block_git_mv_handback; an agent not on crew's roster is not refused here.
+# it is reviewed. Which agents may run git at all is the roster's policy, after
+# the floor; guard_is_plain_git_mv is the one git a worker may run.
 # `-f`/`--force` stays
 # refused for everyone: it can clobber an existing destination, which IS a write.
 #
@@ -388,18 +392,16 @@ guard_block_file_writes() {
   done
 }
 
-# guard_block_git_mv_handback <git_owner> -- for a plugin's own agent that does
-# not own git: refuse a `git mv` naming whose rename it is and what to hand back,
-# rather than the generic write message that sends the agent looking for a
-# synonym. A refusal, so it reads the flattened $guard_cmd like every other
-# refusal: a `git mv` on a later line is the newline gap in guard_normalize, not
-# caught here. Called after the floor, so the hook only ever answers for its own
-# roster; a forced `git mv` never reaches it, the floor having refused
-# that already.
-guard_block_git_mv_handback() {
-  [[ $guard_cmd =~ $GUARD_RE_GIT_MV ]] || return 0
-  echo "Blocked: git mv is a git operation — ${1} owns git, and a rename is recorded in its commit. Hand the rename back: name the exact \`git mv <from> <to>\` in your result and stop; do not recreate the file under the new path." >&2
-  exit 2
+# guard_is_plain_git_mv -- true when the whole command, as typed, is one
+# `git mv [-k|-n|-v] <operands>` with relative operands: no `-C`, no `cd`, no
+# second command or line, no quoting, variable, glob or brace expansion, no
+# absolute, `~` or `..` path. A worker may run exactly that, so a rename stays in
+# the tree it was dispatched to. Open gap: a cwd the worker moved with an earlier
+# `cd` call. (`]` leads each class so it is literal, `-` trails the first.)
+_g_mvop='[^]/~[:space:];&|<>$`()"'"'"'\\*?[{}-][^][:space:];&|<>$`()"'"'"'\\*?[{}]*'
+GUARD_RE_PLAIN_GIT_MV='^[[:blank:]]*git[[:blank:]]+mv([[:blank:]]+(-[knv]+|--dry-run|--verbose))*([[:blank:]]+'"${_g_mvop}"'){2,}[[:blank:]]*$'
+guard_is_plain_git_mv() {
+  [[ $guard_cmd_raw =~ $GUARD_RE_PLAIN_GIT_MV ]] && [[ $guard_cmd_raw != *..* ]]
 }
 
 # guard_block_protected_branch_commit <agent_type> <advice>

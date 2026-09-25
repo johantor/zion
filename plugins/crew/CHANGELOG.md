@@ -5,6 +5,19 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.2.0] - 2026-09-25
+
+### Changed
+
+- `bash-safety` refuses a bare `cat <file>` in agent sessions only; your own session may `cat`
+  (#249).
+- Workers may run one plain `git mv` with relative paths; any other git, a `-C`/`cd`/`..` form
+  and a forced `git mv` stay refused (#249).
+
+### Removed
+
+- The worker `git mv` hand-back refusal and `bash-safety`'s `git_owner=` line (#249).
+
 ## [5.1.0] - 2026-09-25
 
 ### Removed

@@ -34,7 +34,7 @@ entry.
     skills; the stack skills `backend-*`, `frontend-*`, `cms-optimizely`, `tests-*`, loaded once
     `morpheus` resolves the project's stack and tools.
   - `hooks/` — `bash-safety.sh`, `read-guard.sh`, `lane-guard.sh`, `format.sh`,
-    `turn-budget.sh`, `dispatch-denied.sh`, `plan-guard.sh`, wired in `hooks/hooks.json`. The
+    `dispatch-denied.sh`, `plan-guard.sh`, wired in `hooks/hooks.json`. The
     top-level `*.sh` are entry points (`+x`, wired); `hooks/lib/*.sh` are sourced libraries (not
     `+x`, not wired) — validator §3 and §6 enforce the split. The plugin map describes each hook.
   - `CHANGELOG.md`, `README.md` (user-facing), `VERIFICATION.md` (the manual scenario matrix),
@@ -161,6 +161,8 @@ motivation measurably helps compliance. Compression is not a quota.
   lane, guards or git posture, surface anything unanchored.
 - **A truncated return is not a finished step.** Completeness is judged on content, the only
   signal always present; the reconcile path is the durable-resume rule under another trigger.
+  It is the one mechanism for a worker cut off at `maxTurns`: a warning hook with a budget table
+  lockstepped to the agents duplicated it and went in 5.1.0 (#249).
 - **Right-size the model per delegation.** Run-and-report steps get speed; everywhere else the
   override is omitted, since a wrong fast result costs more than the seconds saved.
 - **Builds and full suites are one delegated final gate**, not a per-step check: expensive and
@@ -174,9 +176,9 @@ motivation measurably helps compliance. Compression is not a quota.
   deliverable (#241), and a relocation steer is refused inconsistently (#242).
 - **Address review feedback** with the same lane routing, git ownership and gate that built the
   feature, not a second looser flow.
-- **The plan file is durable state.** It survives a crash or context reset. `/crew:loop` detects
-  a crashed tick from `in-flight:` alone because ticks run their workers in the foreground and
-  return only when nothing runs, which is why `morpheus` preserves the field verbatim.
+- **The plan file is durable state.** It survives a crash or context reset. `/crew:loop` keeps
+  no crash marker: ticks run their workers in the foreground and return only when nothing runs,
+  so the next tick's resume reconciles whatever a crashed one left (#249).
 - **Run summary** reproduces the per-worker view the agent panel loses on resume, so it repeats
   neither `/recap`'s commit list nor the status pulse.
 - **Anti-drift.** Citing the exact plan step in every delegation keeps a run resumable; current
@@ -221,16 +223,15 @@ bash tests/hooks/run.sh
 the tree-only `validate-plugin.sh`. See *Releasing*.
 
 `validate-plugin.sh`'s sections, cited as `§N`: manifests §2, marketplace sync §2f, `skills:`
-resolution §2g, version ↔ changelog §2h, hook file modes §3, wiring §6 (§4–§5 and §7 are
-unused), turn-budget §8, rosters §9, prose refs §10, `crew.md` keys §11, footprint §12, MCP
+resolution §2g, version ↔ changelog §2h, hook file modes §3, wiring §6 (§4–§5, §7 and §8 are
+unused), rosters §9, prose refs §10, `crew.md` keys §11, footprint §12, MCP
 pairs §13, YAML frontmatter §14. §2g and §12 index skills through `git ls-files`, so stage a
 new or renamed skill file before running the validator.
 
 `plugins/<plugin>/tests/` is a bash suite — `jq` and `git` only, no LLM, no network — exercising
 the hooks' behavior: each guard is a pure `stdin JSON → exit 0/2` function. The harness lives
 once in `tests/hooks/`; `run.sh` discovers every suite and **fails when a plugin ships `hooks/`
-with no suite beside it**. `turn-budget.sh` is covered through its counter file and `format.sh`
-through faked formatters in `node_modules/.bin`. **A change to a guard's logic adds or adjusts a
+with no suite beside it**. `format.sh` is covered through faked formatters in `node_modules/.bin`. **A change to a guard's logic adds or adjusts a
 case, covering both the allow and the block side.**
 
 The suite also self-tests the validator: **every section carries a negative fixture and a silent

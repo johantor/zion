@@ -132,8 +132,7 @@ claim the signal made and let the user decide.
 
 Add the **regression test that would have caught this**, in one line.
 
-Apply `context-discipline`: fetch the specific item, commit, or diff — never a dump. A `Turn
-budget` warning means stop investigating **now**: return the candidates you have and name what
-you didn't reach in `remaining:`. With or without a warning, a report that stops short of a step
-it was meant to finish ends with that `remaining:` line. A cap or a degraded exit above is a
+Apply `context-discipline`: fetch the specific item, commit, or diff — never a dump. A report that
+stops short of a step it was meant to finish ends with a `remaining:` line naming what you didn't
+reach. A cap or a degraded exit above is a
 finished step, not a remainder.

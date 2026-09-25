@@ -161,8 +161,8 @@ another plugin's command of the same short name.
 
 ## Safety guarantees
 
-Three `PreToolUse` guards enforce the boundaries and **fail closed**; four advisory hooks
-(formatting, turn budget, denied dispatches, plan-mode dispatches) fail open — `plan-guard` does
+Three `PreToolUse` guards enforce the boundaries and **fail closed**; three advisory hooks
+(formatting, denied dispatches, plan-mode dispatches) fail open — `plan-guard` does
 block a dispatch, but only one plan mode would have refused anyway, and on any path it can't read
 it allows.
 
@@ -215,11 +215,6 @@ intercepted**.
   standalone formatter, each run only when found on `PATH`. Single-file formatters only —
   whole-project tools (`cargo fmt`, Spotless) load the project on every call, so they stay at the
   review gate. Anything else is skipped cleanly. Best-effort: fails open.
-- **turn-budget** counts an agent's tool calls as a conservative stand-in for turns and warns
-  **once at 75%** (wind down) and **once at 90%** (stop now) of that agent's `maxTurns`. On any
-  path where it can't count (unknown agent, unwritable state, malformed payload) it stays
-  silent rather than blocking. The per-agent budget table is kept in lockstep with the agents'
-  frontmatter by the repo validator, so the two can't drift.
 - **dispatch-denied** runs on `PermissionDenied` for `Agent`/`Task` calls and reacts only to a
   `crew:<worker>` dispatch. The first denial of a worker in a session asks for one retry — the
   retried call goes back through the classifier, which still decides — and every later one
@@ -309,7 +304,7 @@ one that isn't installed, so it just reports the server as unavailable.
   `morpheus` or a command delegates.
 - **Commands:** `/crew:init`, `/crew:feature`, `/crew:debt`, `/crew:audit`, `/crew:review`,
   `/crew:pr`, `/crew:address`, `/crew:triage`, `/crew:loop`, `/crew:notify`.
-- **Hooks:** lane guard, read guard, bash safety, formatter entrypoint, turn-budget advisor,
+- **Hooks:** lane guard, read guard, bash safety, formatter entrypoint,
   dispatch-denied advisor (see *Permission mode*).
 - **Skills:** always on for every agent: `context-discipline`. For `morpheus`: `loop-engineering`,
   `operator-voice` and `review-gate` (the gate rules, which `/crew:review` loads too). For the implementers `tank`, `trinity` and `neo`: `engineering-principles`.

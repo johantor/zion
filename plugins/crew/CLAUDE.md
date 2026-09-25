@@ -60,7 +60,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     `frontendStack: none` is a stated absence: `morpheus` skips frontend, e2e and unit-tool
     resolution and dispatches only `tank`/`oracle`. That gate sits above the resolution table.
 - `hooks/` — wired in `hooks/hooks.json`, the one copy; in this repo they load through
-  `claude --plugin-dir plugins/crew`. `bash-safety` and `lane-guard` fail closed; `read-guard`, `format`, `turn-budget`,
+  `claude --plugin-dir plugins/crew`. `bash-safety` and `lane-guard` fail closed; `read-guard`, `format`,
   `dispatch-denied` and `plan-guard` fail open.
   - `bash-safety.sh`: workers never run git; protected-branch commit backstop (reads the
     payload's `cwd`, not the hook's directory; AGENTS.md has the shapes); watch/dev
@@ -80,8 +80,6 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     Loaded once in the parent shell, since `config_slot` runs in `$(...)`.
   - Roster shape: `# crew-roster: <name>` then an `a|b|c)` arm, in `bash-safety.sh` and
     `lane-guard.sh`; §9 keeps both in lockstep with `owns-git`/`lane-guarded` frontmatter.
-  - `turn-budget.sh` (PostToolUse `*`): counts tool calls against `maxTurns`, warns at 75% and
-    90%. Its `<agent>) budget=<n> ;;` table is lockstepped with `maxTurns` by §8.
   - `format.sh`: six lanes by extension, each under `CREW_FORMAT_TIMEOUT` (default 20s,
     unbounded without `timeout`/`gtimeout`). `dotnet`/`web` use project tools and root config
     only (a nested `.prettierrc` is missed); `python`/`go`/`rust`/`java` use `PATH` tools and
@@ -97,7 +95,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   - `lib/guard-lib.sh`: payload plumbing, `guard_normalize`, `GUARD_RE_*`, the `guard_block_*`
     helpers, quote masking, protected branches, read-guard limits, state files.
 - `tests/` — a guard is `stdin JSON → exit 0/2`: assert allow/block plus a stderr substring.
-  Exceptions: `turn-budget` is stateful (`CREW_TURN_BUDGET_DIR`), `format` asserts its stderr
+  Exceptions: `format` asserts its stderr
   report through fake tools, `dispatch-denied` asserts its stdout JSON with `jq`, and
   `plan-guard` uses real agents, then fixtures via `CREW_AGENTS_DIR`. Every validator section has
   a negative fixture and a silent control (assert on the FAIL message).
@@ -108,7 +106,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 - Durable run state: `<plan-dir>/plan-<feature>.md`, schema in `agents/morpheus.md`
   §"The plan file is durable state" — header `feature:`/`base-branch:`/`feature-branch:` +
   inner-loop fields (`loop:`, `exit-conditions:`, `gate:`) + outer-loop bookkeeping
-  (`iterations: n/max`, `in-flight:`, written by the `/crew:loop` wrapper, not morpheus);
+  (`iterations: n/max`, written by the `/crew:loop` wrapper, not morpheus);
   steps carry `id:`/`status:`/`depends-on:`/`acceptance:`/`worker:`/`attempts:`/`evidence:`, plus
   `agent-id:` while in flight (cleared when the step leaves `in-progress`). The `steer-token:`
   **never** lands in the plan file, since a plan dir can be committed; a resumed run

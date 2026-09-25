@@ -5,6 +5,15 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.1.0] - 2026-09-25
+
+### Removed
+
+- The `turn-budget` hook and its per-agent budget table; a worker cut off at `maxTurns` is
+  resumed through `morpheus`'s truncated-return reconcile path (#249).
+- `/crew:loop`'s `in-flight:` plan-file marker; the next tick's resume reconciles a crashed one
+  (#249).
+
 ## [5.0.0] - 2026-09-24
 
 ### Removed

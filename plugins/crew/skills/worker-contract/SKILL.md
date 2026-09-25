@@ -29,8 +29,6 @@ to its tool.
   never let silence read as "all green". If the task is larger than one clean pass, stop at a
   safe boundary (a coherent, self-consistent change) and hand back the rest the same way;
   `morpheus` resumes it.
-- **A `Turn budget` warning from the harness means that boundary is now.** Finish only the
-  sub-task in flight, then hand back with your completion marker. Never start another.
 - **A server you expected but cannot see** may be plugin-installed
   (`mcp__plugin_<plugin>_<server>`) and simply not in your `tools:`. Report it by name in your
   hand-back rather than silently working without it. From any MCP, fetch the specific item, not

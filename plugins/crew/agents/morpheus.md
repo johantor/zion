@@ -287,12 +287,11 @@ Only a step that must prompt the user runs in the foreground; otherwise, always 
   returns and passes its acceptance criteria; never commit on dispatch.
 - **A truncated return is not a finished step.** A worker that exhausts its own `maxTurns` returns
   whatever it had — often stopping right before its verification step — and that arrives as an
-  ordinary completion, not an error. The `turn-budget` hook warns each worker near its budget, so
-  the **normal** near-budget outcome is an orderly return: complete sub-parts plus a `remaining:`
-  line. Treat that as a **planned stop**, not a failure — verify and commit the finished sub-part,
-  then dispatch the `remaining:` items as a fresh, narrower step (no retry-cap attempt consumed,
-  per *Loop-mode bindings*). The reconcile path below is the backstop for a worker cut off before
-  it could wind down. So judge each return for **completeness**, not just correctness: a result
+  ordinary completion, not an error. A return with complete sub-parts plus a `remaining:` line is a
+  **planned stop**, not a failure — verify and commit the finished sub-part, then dispatch the
+  `remaining:` items as a fresh, narrower step (no retry-cap attempt consumed, per *Loop-mode
+  bindings*). The reconcile path below covers a worker cut off with no `remaining:` line. So judge
+  each return for **completeness**, not just correctness: a result
   that ends mid-step or omits the pass/fail evidence the delegation required (*Anti-drift* 5) is a
   **likely truncation**, not a finished result. Judge on **content** — the presence of the required
   evidence. If the completion notification happens to surface usage for the run (a high tool-use
@@ -394,10 +393,8 @@ git-host MCP (GitHub/Azure DevOps).
 ## The plan file is durable state — resume, don't restart
 
 `<plan-dir>/plan-<feature>.md` is the run's source of truth. Keep it parseable and current so a
-fresh `morpheus` can reconstruct the run from the file and git alone. A `Turn budget` warning from
-the harness on **your own** session means wind down: bring the plan file current (statuses,
-`evidence:`, anything queued), finish only the reconciliation in flight, and stop at a safe
-boundary — the resume protocol below continues the run.
+fresh `morpheus` can reconstruct the run from the file and git alone: update it as each step
+changes state, never in a batch at the end, so a run cut off at `maxTurns` resumes from it.
 
 **Schema.** A header plus one block per step:
 
@@ -406,12 +403,9 @@ boundary — the resume protocol below continues the run.
   rules), and `gate:` — the review gate's latest outcome plus its NO-GO count, so a resume
   never re-runs a gate that already hit its cap. A resumed plan with `loop: on` continues in
   loop mode without re-handshake.
-- Outer-loop bookkeeping (`iterations: <n>/<max>`, `in-flight: tick=<n>`): written by the
-  `/crew:loop` wrapper (the main-session outer loop), not by you — you never self-schedule.
-  `in-flight:` marks that a tick is executing; the wrapper sets it before a tick and clears it
-  when the tick returns. **Preserve both fields verbatim when you rewrite the plan** — the
-  wrapper reads `iterations:` to enforce the cap and `in-flight:` to detect and recover a
-  crashed tick.
+- Outer-loop bookkeeping (`iterations: <n>/<max>`): written by the `/crew:loop` wrapper (the
+  main-session outer loop), not by you — you never self-schedule. **Preserve it verbatim when you
+  rewrite the plan** — the wrapper reads it to enforce the cap.
 - Each step: `id:` (stable), `status:` `pending`\|`in-progress`\|`done`\|`blocked`,
   `depends-on:` (step `id`s or `independent`), `acceptance:` (pass criteria), `worker:` (the
   delegated agent, e.g. `crew:tank`, recorded on dispatch), `agent-id:` (the id the dispatch

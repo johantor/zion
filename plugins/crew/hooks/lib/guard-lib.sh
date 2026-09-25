@@ -98,7 +98,10 @@ _g_comb='-[A-Za-z]*([rR][A-Za-z]*f|f[A-Za-z]*[rR])[A-Za-z]*'  # both in one toke
 # Recursive+force rm of /, ~ or * -- flags combined in either order (-rf, -fr) or
 # separate/long (-r -f, --recursive --force), with other flag tokens and
 # arguments (including `--`) before the dangerous target. `\b` is a backspace in
-# ERE, so `rm` is anchored on a separator rather than a word boundary.
+# ERE, so `rm` is anchored on a separator rather than a word boundary. Any target
+# that STARTS with `/`, `~` or `*` is refused, absolute build dirs included: a
+# narrower match was tried in #264 and every version let a root-wide spelling
+# through (`/*/`, `/tmp/../*`). Out-of-tree cleanup uses `rm -r` without `-f`.
 _g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+(/|~|\*)'
 
 # The rest of the destructive set: force-push via --force or short -f (but not
@@ -263,7 +266,8 @@ GUARD_QUOTED='@quoted@'
 
 # guard_write_sink_exempt <target> -- true for a target a write may reach without
 # escaping the Edit|Write guards: the null/std streams, an fd dup (which captures
-# as the empty string), and the temp locations agents use for scratch output.
+# as the empty string), the temp locations agents use for scratch output, and an
+# absolute path outside the project (guard_outside_project).
 # Anything else counts as a path in the checkout, relative paths included:
 # resolving one costs a fork, and a guard that guesses permissively is the hole
 # it exists to close. `-` is NOT exempt -- `> -` writes a file named `-`.
@@ -278,8 +282,46 @@ guard_write_sink_exempt() {
     /dev/fd/*|/proc/self/fd/*) return 0 ;;
     /tmp/*|/private/tmp/*|/var/folders/*|/private/var/folders/*) return 0 ;;
     "${TMPDIR:-/tmp}"/*) return 0 ;;
+    /dev/*|/proc/*) return 1 ;;
   esac
-  return 1
+  guard_outside_project "$1"
+}
+
+# guard_outside_project <path> -- true for an absolute path outside
+# $CLAUDE_PROJECT_DIR, such as an out-of-tree build root (#240): the lane and
+# format hooks guard only the checkout. An allow-list, so it fails closed: the
+# path must be absolute and every segment plain (`[A-Za-z0-9_-][A-Za-z0-9._-]*`),
+# so `$VAR`, a backtick, a glob, `.`, `..`, `//` or a hidden segment counts as
+# inside. Parsing what bash would expand was tried in #264 and leaked. On Windows
+# shells `C:\x`, `C:/x` and Git Bash `/c/x` compare equal; elsewhere they are
+# relative names. The compare ignores case, so a mismatch errs toward "inside".
+# Unquoted targets only: a quoted one is masked before it gets here.
+guard_outside_project() {
+  local p root inside=1 had_nocase=0
+  [ -n "${CLAUDE_PROJECT_DIR:-}" ] || return 1
+  _guard_posix_path "$1"; p="$_guard_path"
+  _guard_posix_path "$CLAUDE_PROJECT_DIR"; root="${_guard_path%/}"
+  [[ $p =~ ^(/[A-Za-z0-9_-][A-Za-z0-9._-]*)+$ ]] || return 1
+  [ -n "$root" ] || return 1
+  shopt -q nocasematch && had_nocase=1
+  shopt -s nocasematch
+  [[ $p == "$root" || $p == "$root"/* ]] || inside=0
+  [ "$had_nocase" -eq 1 ] || shopt -u nocasematch
+  [ "$inside" -eq 0 ]
+}
+
+# _guard_posix_path <path> -- sets $_guard_path. On a Windows shell only,
+# backslashes become slashes and `X:/` becomes `/X/`; a drive-relative `X:foo`
+# stays relative. Elsewhere the path is unchanged: there `D:/x` and `a\b` are
+# relative names. CREW_OSTYPE is a test override. Assigns rather than echoing,
+# so a caller pays no `$(...)` fork.
+_guard_posix_path() {
+  _guard_path="$1"
+  case "${CREW_OSTYPE:-${OSTYPE:-}}" in msys*|cygwin*|win*) ;; *) return 0 ;; esac
+  _guard_path="${_guard_path//\\//}"
+  if [[ $_guard_path =~ ^([A-Za-z]):(/.*)$ ]]; then
+    _guard_path="/${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
+  fi
 }
 
 # guard_mask_quotes <cmd> -- sets $guard_masked to <cmd> with every single- or
@@ -377,7 +419,8 @@ guard_block_file_writes() {
   guard_mask_quotes "$guard_cmd"
   rest="$guard_masked"
   while [[ $rest =~ $GUARD_RE_REDIRECT ]]; do
-    target="${BASH_REMATCH[2]}"
+    # Saved first: the exempt check runs its own `=~`, which resets BASH_REMATCH.
+    m="${BASH_REMATCH[0]}"; target="${BASH_REMATCH[2]}"
     if ! guard_write_sink_exempt "$target"; then
       # Never report the mask back as if it were the path itself -- a target can
       # also merely contain it (`b"` in `echo "a \" > b" > f`).
@@ -388,7 +431,7 @@ guard_block_file_writes() {
     # metacharacter in the matched text (`> /tmp/out[1]`) stays literal and the
     # trim lands where the match ended; unquoted it would match nothing and loop
     # forever. Every match is at least one character, so this terminates.
-    rest="${rest#*"${BASH_REMATCH[0]}"}"
+    rest="${rest#*"$m"}"
   done
 }
 

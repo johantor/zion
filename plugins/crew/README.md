@@ -200,7 +200,9 @@ intercepted**.
   spelling, force-push via `--force` or `-f`, redirects into `.env`, redirects or `rm` into
   `.git/`) and raw/streaming reads (`cat`, `less`, `tail -f`). For agent sessions it also refuses
   file-mutating Bash — an in-place `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, and any
-  redirect whose target is not an exempt sink (`/dev/null`, an fd dup, the temp directories) — and
+  redirect whose target is not an exempt sink (`/dev/null`, an fd dup, the temp directories, an
+  unquoted absolute path of plain segments outside the project, such as an out-of-tree build
+  root) — and
   names `Edit`/`Write` instead. That half is a floor, not a sandbox: a build's own code generator
   still writes files, and a write hidden inside a quoted `bash -c` string is not read as one. What
   it closes is the routine path, the one auto mode's own notice recommends. `seraph` has no Bash

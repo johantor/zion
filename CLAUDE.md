@@ -68,7 +68,7 @@ here:
 - **Changing a file**: use `Edit` or `Write`. An in-place `sed`/`perl`, a `tee`, a `cp`/`mv`,
   or a redirect into the checkout is refused in agent sessions, because such a write reaches
   no `PreToolUse(Edit|Write)` hook and would skip both the write lanes and the formatter.
-  Scratch output under `/tmp` is exempt.
+  Scratch output under `/tmp`, and an unquoted absolute path outside the project, is exempt.
 
 Both rules close the same gap: a shell that edges around the tool the hooks are wired to.
 The refusal message names the tool to use instead, so a blocked command has a one-step fix.

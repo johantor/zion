@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - `bash-safety` no longer reads `rm -rf /any/absolute/path` as `rm -rf /` (#240).
-- A Bash redirect to an absolute path outside the project, such as an out-of-tree build root, is
-  no longer refused (#240).
+- A Bash redirect to an unquoted absolute path outside the project, such as an out-of-tree build
+  root, is no longer refused (#240).
 
 ## [5.2.0] - 2026-09-25
 

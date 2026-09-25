@@ -50,6 +50,11 @@ assert_block "rm -rf /*"       "$HOOK" "$(payload_bash 'rm -rf /*' tank)"       
 assert_block "rm -rf ~/"       "$HOOK" "$(payload_bash 'rm -rf ~/' tank)"       "unsafe command"
 assert_block "rm -rf / then more" "$HOOK" "$(payload_bash 'rm -rf / && ls' tank)" "unsafe command"
 assert_block "rm -rf a then /"  "$HOOK" "$(payload_bash 'rm -rf build /' tank)"  "unsafe command"
+# shellcheck disable=SC2088  # the `~` is command text for the hook, not to expand here
+for t in '/*/' '//' '/.' '/./*' '~/*/' '~/.' '.' '..' '**'; do
+  assert_block "rm -rf $t (root, home or cwd wide)" "$HOOK" "$(payload_bash "rm -rf $t" tank)" "unsafe command"
+done
+assert_allow "rm -rf of a dotted build dir"   "$HOOK" "$(payload_bash 'rm -rf ./.build' tank)"
 assert_block "rm -rf / glued to a redirect"  "$HOOK" "$(payload_bash 'rm -rf --no-preserve-root />/tmp/log' tank)" "unsafe command"
 assert_block "rm -rf / glued to an input redirect" "$HOOK" "$(payload_bash 'rm -rf /</dev/null' tank)" "unsafe command"
 

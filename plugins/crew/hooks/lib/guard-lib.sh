@@ -99,9 +99,10 @@ _g_comb='-[A-Za-z]*([rR][A-Za-z]*f|f[A-Za-z]*[rR])[A-Za-z]*'  # both in one toke
 # separate/long (-r -f, --recursive --force), with other flag tokens and
 # arguments (including `--`) before the dangerous target. `\b` is a backspace in
 # ERE, so `rm` is anchored on a separator rather than a word boundary. The target
-# is matched as a whole token (`/`, `/*`, `~`, `~/`, `~/*`, `*`), so an absolute
-# path such as `/d/repos/build` is not read as `/` (#240).
-_g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+(/\*?|~/?\*?|\*)([[:space:];&|)<>]|$)'
+# is a whole token made only of `/ ~ . *` (`/`, `/*/`, `//`, `~/*`, `*`, `.`), so
+# every root-, home- or cwd-wide spelling is caught by one class rather than a
+# list, and a path with a real name in it (`/d/repos/build`) is not (#240).
+_g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+[/~.*]+([[:space:];&|)<>]|$)'
 
 # The rest of the destructive set: force-push via --force or short -f (but not
 # the safe --force-with-lease / --force-if-includes -- `-[A-Za-z]*f` cannot cross

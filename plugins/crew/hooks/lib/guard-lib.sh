@@ -101,7 +101,7 @@ _g_comb='-[A-Za-z]*([rR][A-Za-z]*f|f[A-Za-z]*[rR])[A-Za-z]*'  # both in one toke
 # ERE, so `rm` is anchored on a separator rather than a word boundary. The target
 # is matched as a whole token (`/`, `/*`, `~`, `~/`, `~/*`, `*`), so an absolute
 # path such as `/d/repos/build` is not read as `/` (#240).
-_g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+(/\*?|~/?\*?|\*)([[:space:];&|)]|$)'
+_g_rm_rf="rm[[:space:]]+(${_g_flag}[[:space:]]+)*(${_g_comb}|${_g_rec}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_frc}|${_g_frc}[[:space:]]+(${_g_flag}[[:space:]]+)*${_g_rec})([[:space:]]+${_g_word})*"'[[:space:]]+(/\*?|~/?\*?|\*)([[:space:];&|)<>]|$)'
 
 # The rest of the destructive set: force-push via --force or short -f (but not
 # the safe --force-with-lease / --force-if-includes -- `-[A-Za-z]*f` cannot cross
@@ -289,8 +289,10 @@ guard_write_sink_exempt() {
 # guard_outside_project <path> -- true for an absolute path outside
 # $CLAUDE_PROJECT_DIR, such as an out-of-tree build root (#240): the lane and
 # format hooks guard only the checkout. Unset project dir, a relative path or a
-# `..` segment counts as inside. `C:\x`, `C:/x` and Git Bash `/c/x` compare equal,
-# and the compare ignores case, so a mismatch errs toward "inside" (refused).
+# `..` segment counts as inside. On Windows shells `C:\x`, `C:/x` and Git Bash
+# `/c/x` compare equal; elsewhere they are relative names. The compare ignores
+# case, so a mismatch errs toward "inside" (refused). Unquoted targets only: a
+# quoted one is masked before it gets here.
 guard_outside_project() {
   local p root inside=1 had_nocase=0
   [ -n "${CLAUDE_PROJECT_DIR:-}" ] || return 1
@@ -306,11 +308,16 @@ guard_outside_project() {
   [ "$inside" -eq 0 ]
 }
 
-# _guard_posix_path <path> -- sets $_guard_path: backslashes to slashes, `X:` to
-# `/X`. Assigns rather than echoing, so a caller pays no `$(...)` fork.
+# _guard_posix_path <path> -- sets $_guard_path. On a Windows shell only,
+# backslashes become slashes and `X:/` becomes `/X/`; a drive-relative `X:foo`
+# stays relative. Elsewhere the path is unchanged: there `D:/x` and `a\b` are
+# relative names. CREW_OSTYPE is a test override. Assigns rather than echoing,
+# so a caller pays no `$(...)` fork.
 _guard_posix_path() {
-  _guard_path="${1//\\//}"
-  if [[ $_guard_path =~ ^([A-Za-z]):(.*)$ ]]; then
+  _guard_path="$1"
+  case "${CREW_OSTYPE:-${OSTYPE:-}}" in msys*|cygwin*|win*) ;; *) return 0 ;; esac
+  _guard_path="${_guard_path//\\//}"
+  if [[ $_guard_path =~ ^([A-Za-z]):(/.*)$ ]]; then
     _guard_path="/${BASH_REMATCH[1]}${BASH_REMATCH[2]}"
   fi
 }

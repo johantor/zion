@@ -50,6 +50,8 @@ assert_block "rm -rf /*"       "$HOOK" "$(payload_bash 'rm -rf /*' tank)"       
 assert_block "rm -rf ~/"       "$HOOK" "$(payload_bash 'rm -rf ~/' tank)"       "unsafe command"
 assert_block "rm -rf / then more" "$HOOK" "$(payload_bash 'rm -rf / && ls' tank)" "unsafe command"
 assert_block "rm -rf a then /"  "$HOOK" "$(payload_bash 'rm -rf build /' tank)"  "unsafe command"
+assert_block "rm -rf / glued to a redirect"  "$HOOK" "$(payload_bash 'rm -rf --no-preserve-root />/tmp/log' tank)" "unsafe command"
+assert_block "rm -rf / glued to an input redirect" "$HOOK" "$(payload_bash 'rm -rf /</dev/null' tank)" "unsafe command"
 
 # --- Force-push ----------------------------------------------------------------
 # Force-push detection is agentless here (uses a non-worker agent so the generic
@@ -165,14 +167,24 @@ assert_block "quoted redirect target" "$HOOK" "$(payload_bash 'echo x > "src/Foo
 # the project, unset project dir, `..`, and /dev stay refused.
 export CLAUDE_PROJECT_DIR=/home/dev/proj
 assert_allow "redirect to an out-of-tree build root" "$HOOK" "$(payload_bash 'dotnet build > /d/repos/build-scratch/app/build.log 2>&1' tank)"
-assert_allow "redirect to a Windows drive path"      "$HOOK" "$(payload_bash 'dotnet build > D:/build/log.txt' tank)"
+# Off Windows, `D:/x` and `\x` are relative names in the checkout.
+assert_block "drive-looking path off Windows"        "$HOOK" "$(payload_bash 'dotnet build > D:/build/log.txt' tank)" "$gap"
+assert_block "backslash path off Windows"            "$HOOK" "$(payload_bash 'echo x > \tmp\x' tank)" "$gap"
 assert_block "absolute redirect into the project"    "$HOOK" "$(payload_bash 'echo x > /home/dev/proj/src/Foo.cs' tank)" "$gap"
 assert_block "absolute redirect, other case"         "$HOOK" "$(payload_bash 'echo x > /HOME/dev/Proj/src/Foo.cs' tank)" "$gap"
 assert_block "absolute redirect climbing back in"    "$HOOK" "$(payload_bash 'echo x > /home/dev/other/../proj/a' tank)" "$gap"
 assert_block "redirect to /dev/tcp"                  "$HOOK" "$(payload_bash 'echo x > /dev/tcp/h/80' tank)" "$gap"
 CLAUDE_PROJECT_DIR='C:\work\proj'
+export CREW_OSTYPE=msys
 assert_block "Git Bash path into a Windows project"  "$HOOK" "$(payload_bash 'echo x > /c/work/proj/a.cs' tank)" "$gap"
+assert_block "drive path into a Windows project"     "$HOOK" "$(payload_bash 'echo x > C:/work/proj/a.cs' tank)" "$gap"
 assert_allow "Git Bash path outside a Windows project" "$HOOK" "$(payload_bash 'echo x > /c/build/a.log' tank)"
+assert_allow "drive path outside a Windows project"  "$HOOK" "$(payload_bash 'dotnet build > D:/build/log.txt' tank)"
+assert_block "drive-relative path on Windows"        "$HOOK" "$(payload_bash 'echo x > D:src/Foo.cs' tank)" "$gap"
+unset CLAUDE_PROJECT_DIR CREW_OSTYPE
+# A quoted target is masked before the exempt check, so it stays refused.
+export CLAUDE_PROJECT_DIR=/home/dev/proj
+assert_block "quoted out-of-tree target"             "$HOOK" "$(payload_bash 'dotnet build > "/d/build root/log.txt"' tank)" "quoted path"
 unset CLAUDE_PROJECT_DIR
 assert_block "absolute redirect with no project dir" "$HOOK" "$(payload_bash 'echo x > /d/build/log' tank)" "$gap"
 # `>|` is the noclobber override, a redirect like any other. Without the `\|?` in

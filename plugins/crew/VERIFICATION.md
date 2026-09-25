@@ -38,7 +38,7 @@ small task.
 - [ ] **Editing worker refused** — in plan mode, a `crew:tank` dispatch is refused by `plan-guard`
   with a message naming plan mode; a `crew:sentinel` dispatch in the same session launches.
 - [ ] **Loop and address refuse** — `/crew:loop <goal>` and `/crew:address` in plan mode → one line
-  saying so, no plan file written, no `in-flight:` set.
+  saying so, no plan file written.
 
 ### Stack resolution
 
@@ -100,11 +100,10 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
 
 ### Partial hand-back (`remaining:`)
 
-- [ ] **No budget warning needed** — with `turn-budget.sh` failing open (`CREW_TURN_BUDGET_DIR`
-  unwritable), hand `oracle` a step it cannot finish (tests for two scripts, one needing a binary
+- [ ] **Worker names its remainder** — hand `oracle` a step it cannot finish (tests for two scripts, one needing a binary
   that is not installed) → it ends with a `remaining:` line naming the blocked part, and
   `morpheus` reports the step as partly done, not done.
-- [ ] **Each worker names its own remainder** — same hook setup, one step each: `dozer` with one
+- [ ] **Each worker names its own remainder** — one step each: `dozer` with one
   spec that needs a service that is not running, `seraph` with one state it cannot reach →
   `remaining:` names the spec or state. Two finished steps carry **no** `remaining:` item:
   `sentinel` with four plausible commits (it inspects three; the cap is the limit), and `seraph`
@@ -172,9 +171,8 @@ stack-neutral; run it once per stack.
 - [ ] **Ends on GO / blocked / cap** — the loop stops and surfaces on all-`done`+GO, on a blocked
   decision, and on hitting `iterations: n/max`; it never auto-pushes.
 - [ ] **Foreground ticks, crash recovery** — a tick runs `morpheus`'s workers in the foreground, so
-  it returns only when nothing is running; kill a tick mid-run and the next firing finds the stale
-  `in-flight:` marker, clears it, and re-launches `morpheus` to reconcile — no deadlock, no
-  double-dispatch.
+  it returns only when nothing is running; kill a tick mid-run and the next firing re-launches
+  `morpheus`, which reconciles the `in-progress` steps — no deadlock, no double-dispatch.
 - [ ] **`max` parsing** — `max=5` caps at 5; a malformed `max=0`/`max=abc` is left in the goal and
   the cap defaults to 10 (deterministic, no guess).
 

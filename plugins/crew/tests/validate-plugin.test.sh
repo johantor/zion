@@ -110,35 +110,6 @@ mkdir -p "$d/plugins/foo/skills/real"; printf -- '---\nname: real\ndescription: 
 mk_agent "$d/plugins/foo" real
 assert_silent "§2g silent when the skill exists" "$d" "does not resolve"
 
-# --- §8: turn-budget table must be in lockstep with agent maxTurns -------------
-mk_turns_agent() {  # <plugin_dir> <name> <maxTurns>
-  mkdir -p "$1/agents"
-  printf -- '---\nname: %s\ndescription: d\nmaxTurns: %s\n---\nbody\n' "$2" "$3" > "$1/agents/$2.md"
-}
-mk_turn_budget() {  # <plugin_dir> <case-table-body>
-  mkdir -p "$1/hooks"
-  # Both formats intentionally emit their `$`-expressions as literal text into
-  # the generated fixture — that's the shape §8 and §6 parse — so they must not
-  # expand here.
-  # shellcheck disable=SC2016
-  printf '#!/usr/bin/env bash\ncase "$agent_type" in\n%s\n  *) exit 0 ;;\nesac\n' "$2" > "$1/hooks/turn-budget.sh"
-  # shellcheck disable=SC2016
-  printf '{"hooks":{"PostToolUse":[{"matcher":"*","hooks":[{"type":"command","command":"\\"${CLAUDE_PLUGIN_ROOT}\\"/hooks/turn-budget.sh"}]}]}}\n' > "$1/hooks/hooks.json"
-}
-d="$(new_repo_foo)"
-mk_turns_agent "$d/plugins/foo" bar 40; mk_turn_budget "$d/plugins/foo" '  bar) budget=30 ;;'
-assert_emits "§8 bites on a budget != maxTurns" "$d" "!= plugins/foo/agents/bar.md maxTurns"
-d="$(new_repo_foo)"
-mk_turns_agent "$d/plugins/foo" bar 40; mk_turn_budget "$d/plugins/foo" '  baz) budget=40 ;;'
-assert_emits "§8 bites on a missing agent entry" "$d" "no budget entry for agent 'bar'"
-assert_emits "§8 bites on a stale table row" "$d" "budget entry 'baz' does not match any"
-d="$(new_repo_foo)"
-mk_turns_agent "$d/plugins/foo" bar 40; mk_turn_budget "$d/plugins/foo" '  # no table lines'
-assert_emits "§8 bites on an unparseable table" "$d" "no parseable budget table"
-d="$(new_repo_foo)"
-mk_turns_agent "$d/plugins/foo" bar 40; mk_turn_budget "$d/plugins/foo" '  bar) budget=40 ;;'
-assert_silent "§8 silent when table matches maxTurns" "$d" "keep the table in lockstep"
-
 # --- §9: hook rosters must be in lockstep with agent owns-git/lane-guarded -----
 mk_roster_agent() {  # <plugin_dir> <name> <tools> <owns-git> <lane-guarded>
   mkdir -p "$1/agents"
@@ -303,7 +274,8 @@ assert_silent "§9 silent: git_owner agrees with owns-git" "$d" "git_owner="
 
 # A plugin whose agents declare neither field is skipped entirely.
 d="$(new_repo_foo)"
-mk_turns_agent "$d/plugins/foo" plain 40
+mkdir -p "$d/plugins/foo/agents"
+printf -- '---\nname: plain\ndescription: d\n---\nbody\n' > "$d/plugins/foo/agents/plain.md"
 assert_silent "§9 silent for a plugin that hasn't opted in" "$d" "crew-roster"
 
 # --- §1: every tracked .json must parse ----------------------------------------

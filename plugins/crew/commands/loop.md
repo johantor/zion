@@ -55,7 +55,7 @@ stop and ask the user rather than picking one. Then decide:
    `loop:`/`exit-conditions:` header, and runs the plan checkpoint **once** — loop intent
    authorizes the *run*, not the *plan*, so you never skip that gate. When it returns, seed the
    outer-loop counter you own: `iterations: 1/<max>`. Then evaluate the checks below.
-2. **Plan exists.** Run the pre-check, then the exit checks. If none fires, launch
+2. **Plan exists.** Run the exit checks. If none fires, launch
    `crew:morpheus` again with `<goal>` and the outer-loop note — it resumes from the plan
    per its durable-resume protocol (a plan with `loop: on` continues in loop mode; it does
    **not** re-plan or re-checkpoint) — then bump `iterations:` **in the header** and re-evaluate.
@@ -64,16 +64,12 @@ stop and ask the user rather than picking one. Then decide:
    `1` — that would bypass the cap; surface it and ask rather than looping blind.
 
 **If launching `crew:morpheus` fails** (agent won't start / "not found"), stop and surface the
-exact error — as `/crew:feature` does. No tick ran, so don't bump `iterations:` and don't leave
-`in-flight:` set: clear it and end.
+exact error — as `/crew:feature` does. No tick ran, so don't bump `iterations:`; end.
 
-**Pre-check — a crashed prior tick.** Ticks are synchronous (the outer-loop note), so an
-`in-flight:` marker still present at a firing's start means the previous tick **crashed**
-mid-run or hit `maxTurns`, never that a worker is still live (`AGENTS.md`, *The plan file is
-durable state*). Clear it and run a normal tick: `morpheus`'s resume re-verifies and reconciles
-whatever the crash left. Do **not** gate this on `in-progress` steps — reconciling those is that
-resume's job, and refusing to launch while they exist would **deadlock**: the tick that would
-reconcile them is exactly the one you'd suppress.
+**A crashed prior tick needs nothing special.** `morpheus`'s resume re-verifies and reconciles
+whatever a crash left. Do **not** gate a tick on `in-progress` steps: reconciling those is that
+resume's job, and refusing to launch while they exist would **deadlock**, since the tick that
+would reconcile them is exactly the one you'd suppress.
 
 **Exit checks (first match ends the loop and surfaces — never auto-push or open a PR):**
 
@@ -86,15 +82,10 @@ reconcile them is exactly the one you'd suppress.
 
 ## Ownership
 
-You are the sole writer of the plan file's **outer-loop** bookkeeping only — `iterations:` and
-the `in-flight:` marker. `morpheus` owns the rest (steps, `loop:`, `exit-conditions:`, `gate:`)
-and preserves your two fields when it rewrites the plan. Ticks are **synchronous** — launch
-`crew:morpheus`, wait for it to return, then update the header and decide — so the two
-writers never overlap.
-
-**`in-flight:` lifecycle.** `in-flight: tick=<n>` marks that a `morpheus` tick is executing —
-presence only, no other payload. Set it before launching a tick; clear it when `morpheus`
-returns and on launch failure. Still set at the next firing → the pre-check above.
+You are the sole writer of the plan file's **outer-loop** bookkeeping only — `iterations:`.
+`morpheus` owns the rest (steps, `loop:`, `exit-conditions:`, `gate:`) and preserves your field
+when it rewrites the plan. Ticks are **synchronous** — launch `crew:morpheus`, wait for it to
+return, then update the header and decide — so the two writers never overlap.
 
 Schedule the next tick with the native `/loop` dynamic-mode wakeup only while the loop is still
 live. When an exit check fires, stop scheduling and give the user the consolidated status.

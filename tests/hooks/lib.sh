@@ -2,9 +2,7 @@
 # Shared harness for the crew hook tests. Guards are pure PreToolUse functions:
 # JSON payload on stdin, allow (exit 0) or block (exit 2 + stderr). Feed a
 # crafted payload, assert the exit code and an expected stderr substring. No
-# LLM, no network. turn-budget.sh is the one exception -- a stateful PostToolUse
-# advisor (driven via CREW_TURN_BUDGET_DIR) where exit 2 means "warned", not
-# "blocked", though the same assertions apply.
+# LLM, no network.
 #
 # Sourced by plugins/<plugin>/tests/*.test.sh; tests/hooks/run.sh drives them.
 # See plugins/crew/CLAUDE.md.

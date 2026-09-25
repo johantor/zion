@@ -433,7 +433,7 @@ guard_block_protected_branch_commit() {
 
 # ---------------------------------------------------------------- state files
 #
-# Advisory hooks (turn-budget, dispatch-denied) keep a tiny per-session counter.
+# Advisory hooks (dispatch-denied) keep a tiny per-session counter.
 # A non-zero return means "cannot count", never a reason to block.
 
 # guard_state_path <dir> <name-prefix> <key-source> <tag>
@@ -467,8 +467,8 @@ guard_state_path() {
 
 # guard_read_counter <file> -- sets $guard_count and $guard_stage from the file's
 # first two whitespace-separated fields, normalising a missing file, a short line
-# or anything non-numeric to zero. Assigns rather than echoing: turn-budget calls
-# it after every tool call, and `$(...)` would cost a fork for two integers.
+# or anything non-numeric to zero. Assigns rather than echoing, so a caller pays
+# no `$(...)` fork for two integers.
 guard_read_counter() {
   guard_count=0 guard_stage=0
   if [ -f "$1" ]; then

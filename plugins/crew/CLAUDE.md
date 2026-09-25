@@ -96,10 +96,13 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
     `tools:` shapes; `CREW_AGENTS_DIR` is the test override.
   - `lib/guard-lib.sh`: payload plumbing, `guard_normalize`, `GUARD_RE_*`, the `guard_block_*`
     helpers, quote masking, protected branches, read-guard limits, state files.
+- `scripts/gate.sh` — the review-gate runner: `start <id> '<cmd>'`, `poll <id>`, `stop <id>`,
+  state in `/tmp/crew-gate-<id>/`. `/crew:review` and `morpheus` name it by
+  `${CLAUDE_PLUGIN_ROOT}`, which Claude Code substitutes in command and agent bodies.
 - `tests/` — a guard is `stdin JSON → exit 0/2`: assert allow/block plus a stderr substring.
   Exceptions: `format` asserts its stderr
-  report through fake tools, `dispatch-denied` asserts its stdout JSON with `jq`, and
-  `plan-guard` uses real agents, then fixtures via `CREW_AGENTS_DIR`. Every validator section has
+  report through fake tools, `dispatch-denied` asserts its stdout JSON with `jq`,
+  `plan-guard` uses real agents, then fixtures via `CREW_AGENTS_DIR`, and `gate` runs the script. Every validator section has
   a negative fixture and a silent control (assert on the FAIL message).
   `changelog-gate.test.sh` builds real git history.
 

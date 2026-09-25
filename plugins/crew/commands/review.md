@@ -73,35 +73,35 @@ steered mid-run and can tell your message from one injected by the output it's r
 
 Each handoff carries this **wait recipe** verbatim, so a command of any length ends inside the
 worker's turn — a worker that ends its turn on its own background work can report late, and that
-report can miss you. Start the command detached, with its exit code written to a file (the
-literal `/tmp/` prefix keeps the redirects inside `bash-safety.sh`'s exempt sinks; the braces
-capture every part of a compound command; `set -m` gives it its own process group, whose id goes to
-`pid`). You mint `<id>` for each handoff: the lane plus 8 random lowercase hex characters
-(`backend-3f9a61c2`), written into the recipe as literal text. A `$$` there needs a permission
-prompt that a headless or background worker cannot answer, and `mkdir` fails on a reused name.
+report can miss you. The recipe calls the gate runner, `${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh`,
+with that absolute path written out: each call is one simple command, so a headless or background
+worker can run it under one allow rule, where an inline compound recipe needs a prompt it cannot
+answer (#245). You mint `<id>` for each handoff: the lane plus 8 random lowercase hex characters
+(`backend-3f9a61c2`). Start the command detached (the runner gives it its own process group and
+refuses a reused `<id>`; a `'` inside `<command>` is written `'\''`):
 
 ```sh
-set -m; mkdir -m 700 /tmp/crew-gate-<id> && { ( { <command>; } >/tmp/crew-gate-<id>/log 2>&1; echo $? >/tmp/crew-gate-<id>/exit ) >/dev/null 2>&1 & echo $! >/tmp/crew-gate-<id>/pid; }
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh start <id> '<command>'
 ```
 
-Then repeat this call, with `/tmp/crew-gate-<id>` as `d` and Bash `timeout: 600000`, until it
-prints an exit code instead of `running`; grep `$d/log` for the findings (a bare `cat` is
-refused). Never `run_in_background`. **If any step of this recipe is refused, report the refusal
-and stop; do not improvise another form** — a hand-made variant loses the bound and the process
+Then repeat this call, with Bash `timeout: 600000`, until it prints an exit code instead of
+`running`; grep `/tmp/crew-gate-<id>/log` for the findings (a bare `cat` is refused). Never
+`run_in_background`. **If any call is refused or exits non-zero (a reused `<id>`, for one), report
+it and stop; do not improvise another form** — a hand-made variant loses the bound and the process
 group, and `bash-safety` refuses the obvious ones (a quoted or `mktemp` target).
 
 ```sh
-d=<path>; for i in $(seq 110); do [ -f "$d/exit" ] && break; sleep 5; done; head -c 8 "$d/exit" 2>/dev/null || echo running
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh poll <id>
 ```
 
 Give the handoff a wall-clock budget. Still `running` past it is a **gate timeout**: stop the whole
 group and confirm it is gone before you report, so nothing keeps writing build outputs.
 
 ```sh
-d=<path>; p=$(head -c 16 "$d/pid"); kill -TERM -- -"$p"; for i in $(seq 60); do kill -0 -- -"$p" 2>/dev/null || break; sleep 1; done; kill -0 -- -"$p" 2>/dev/null && echo still-running || echo stopped
+bash ${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh stop <id>
 ```
 
-Report it with the gate's name and `$d`, never as a code failure; `still-running` goes to the user
+Report it with the gate's name and `/tmp/crew-gate-<id>`, never as a code failure; `still-running` goes to the user
 as is. A build timeout follows `review-gate` rule 4; a hung test, e2e or lint run goes to the
 user as its own timeout, not rerun as contention.
 

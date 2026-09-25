@@ -349,7 +349,8 @@ Before triggering that gate:
 3. Run every gate by the `review-gate` skill's rules: one build location with one writer at a
    time (*One writer per file; one owner per shared artifact*), one-shot and bounded, as
    configured with warnings as findings, contention told from a code failure, findings routed to
-   the implementer.
+   the implementer. The gate runner is `${CLAUDE_PLUGIN_ROOT}/scripts/gate.sh`; write that
+   absolute path into every gate handoff's wait recipe.
 
 If a step genuinely needs a build to be verifiable before the end, decide that deliberately
 and note it in the plan — it's the exception, not the per-step default.

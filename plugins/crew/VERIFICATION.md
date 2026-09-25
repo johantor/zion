@@ -82,6 +82,9 @@ cannot show that `morpheus` resolved a stack or that a worker loaded a skill.
   poll call (e.g. `sleep 700 && make build`) → the worker polls the wait recipe's exit file until
   it appears and hands back in the same turn; `morpheus` gets the report with no "waiting on its
   own background work" notice. Past the handoff's budget, it is reported as a gate timeout.
+- [ ] **The wait recipe runs headless** — `claude -p "/crew:review" --plugin-dir plugins/crew`
+  with `Bash(bash "<abs>/scripts/gate.sh":*)` allowed → every gate call runs with no prompt. Without
+  the rule → the worker reports the refusal and runs no hand-made variant (#245).
 - [ ] **An e2e gate starts its own server** — a frontend diff whose e2e command owns the app's
   lifecycle (Playwright `webServer`, or a script that starts the app and runs Cypress against it)
   and no app running → `dozer` runs the suite inside its turn and hands back spec results; it

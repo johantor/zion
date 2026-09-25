@@ -27,7 +27,7 @@ jobs:
       # sourced libraries under hooks/lib/ need their own pattern here — without
       # it they would go unlinted while still running inside every guard.
       - name: Lint hook & script shell files
-        run: shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh
+        run: shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/scripts/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh
 
   plugin:
     permissions:

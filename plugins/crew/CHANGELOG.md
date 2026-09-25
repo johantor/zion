@@ -5,6 +5,18 @@ All notable changes to the `crew` plugin are documented here.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.3.0] - 2026-09-25
+
+### Added
+
+- `scripts/gate.sh` runs a review gate in one simple command per call, so a headless worker can
+  run it under a single allow rule (#245).
+
+### Changed
+
+- `/crew:review`'s wait recipe calls `gate.sh`, and a worker reports a refused or failed call
+  instead of improvising another form (#245).
+
 ## [5.2.1] - 2026-09-25
 
 ### Fixed

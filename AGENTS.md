@@ -37,6 +37,8 @@ entry.
     `dispatch-denied.sh`, `plan-guard.sh`, wired in `hooks/hooks.json`. The
     top-level `*.sh` are entry points (`+x`, wired); `hooks/lib/*.sh` are sourced libraries (not
     `+x`, not wired) — validator §3 and §6 enforce the split. The plugin map describes each hook.
+  - `scripts/gate.sh` — the review-gate runner the wait recipe calls (shipped, unlike the
+    repo-level `scripts/` below).
   - `CHANGELOG.md`, `README.md` (user-facing), `VERIFICATION.md` (the manual scenario matrix),
     `CLAUDE.md` (the plugin map for agents working on it).
 - `scripts/` — repo tooling, never shipped: `validate-plugin.sh` (tree-only structural checks,
@@ -170,7 +172,12 @@ motivation measurably helps compliance. Compression is not a quota.
   verbose, and a standalone build before the gate builds the same tree twice.
 - **A gate command ends inside the worker's turn.** A backgrounded command's late report can
   reach the UI and never the orchestrator (#239), so `/crew:review`'s wait recipe polls an exit
-  file in bounded calls and kills a timed-out gate as a process group. A worker that still
+  file in bounded calls and kills a timed-out gate as a process group. The recipe lives in
+  `scripts/gate.sh` because Claude's permission check refuses an inline compound recipe (`$$`,
+  then `{ … }`), and a headless worker cannot answer the prompt (#245). It takes the command as a
+  string, so its allow rule is as wide as allowing all Bash; reading a fixed crew-config slot
+  instead was declined, because a narrowed gate (named failing tests) could not use it. A worker
+  that still
   backgrounds its own command is messaged for its report, and never reported on from a result
   that has not arrived.
 - **Isolation or a path, decided at dispatch.** An isolated worktree auto-cleans a gitignored
@@ -214,7 +221,7 @@ motivation measurably helps compliance. Compression is not a quota.
 This repo has no app build. Before opening a PR, run what CI runs:
 
 ```bash
-shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh
+shellcheck plugins/*/hooks/*.sh plugins/*/hooks/lib/*.sh plugins/*/scripts/*.sh plugins/*/tests/*.sh scripts/*.sh tests/hooks/*.sh
 bash scripts/validate-plugin.sh
 bash scripts/check-changelog.sh          # takes the base branch; defaults to main
 bash tests/hooks/run.sh

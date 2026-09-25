@@ -119,7 +119,7 @@ _g_cmdpos='(^|[;&|][&|]?[[:space:]]*)'
 # assignments, `env`, `command`.
 _g_pfx='([A-Za-z_][A-Za-z0-9_]*=[^[:space:]]*[[:space:]]+|env[[:space:]]+|command[[:space:]]+)*'
 
-# Any git invocation at a command position (for the workers that never run git).
+# Any git invocation at a command position (for the workers' no-git check).
 GUARD_RE_GIT_AT_CMD="${_g_cmdpos}${_g_pfx}"'git([[:space:]]|$)'
 # git global flags before a subcommand (`git -c k=v commit`, `git -C dir mv`): a
 # flag token, optionally followed by its value token.
@@ -327,9 +327,8 @@ GUARD_GIT_MV_MASK='@gitmv@'
 # `git mv` is the one carve-out, for every agent. It renames a tracked path and
 # records the rename in the index; no bytes change, so there is nothing for a
 # lane guard or a formatter to inspect, and the rename lands in a commit, where
-# it is reviewed. WHOSE commit is the roster's policy, not the floor's: the hook
-# refuses its own non-owners' `git mv` after the floor, with
-# guard_block_git_mv_handback; an agent not on crew's roster is not refused here.
+# it is reviewed. Which agents may run git at all is the roster's policy, after
+# the floor; guard_strip_git_mv lets its no-git check skip a plain `git mv`.
 # `-f`/`--force` stays
 # refused for everyone: it can clobber an existing destination, which IS a write.
 #
@@ -388,18 +387,17 @@ guard_block_file_writes() {
   done
 }
 
-# guard_block_git_mv_handback <git_owner> -- for a plugin's own agent that does
-# not own git: refuse a `git mv` naming whose rename it is and what to hand back,
-# rather than the generic write message that sends the agent looking for a
-# synonym. A refusal, so it reads the flattened $guard_cmd like every other
-# refusal: a `git mv` on a later line is the newline gap in guard_normalize, not
-# caught here. Called after the floor, so the hook only ever answers for its own
-# roster; a forced `git mv` never reaches it, the floor having refused
-# that already.
-guard_block_git_mv_handback() {
-  [[ $guard_cmd =~ $GUARD_RE_GIT_MV ]] || return 0
-  echo "Blocked: git mv is a git operation — ${1} owns git, and a rename is recorded in its commit. Hand the rename back: name the exact \`git mv <from> <to>\` in your result and stop; do not recreate the file under the new path." >&2
-  exit 2
+# guard_strip_git_mv -- sets $guard_cmd_no_mv to $guard_cmd with each `git mv`
+# (its separator kept, the command up to `mv` masked) replaced, so a no-git check
+# run on it still sees any other git in the command. A forced `git mv` never gets
+# here: the floor refuses it first.
+guard_strip_git_mv() {
+  local c="$guard_cmd" m
+  while [[ $c =~ $GUARD_RE_GIT_MV ]]; do
+    m="${BASH_REMATCH[0]}"
+    c="${c/"$m"/"${m%%[![:space:];&|]*}${GUARD_GIT_MV_MASK} "}"
+  done
+  guard_cmd_no_mv="$c"
 }
 
 # guard_block_protected_branch_commit <agent_type> <advice>

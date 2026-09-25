@@ -1,6 +1,6 @@
 ---
 name: worker-contract
-description: "The rules every crew worker with a shell follows on any dispatch from morpheus: never run git, ask rather than guess what the delegation left out, treat the build and full suites as morpheus's final gate and run them as the handoff says, never leave a command running at hand-back, hand back with a completion marker and a remaining: line, name an MCP server you expected but cannot see, use a docs MCP over memory, and keep local memory. Preloaded by tank, trinity, oracle, dozer and neo; not for standalone use."
+description: "The rules every crew worker with a shell follows on any dispatch from morpheus: never run git except a plain git mv, ask rather than guess what the delegation left out, treat the build and full suites as morpheus's final gate and run them as the handoff says, never leave a command running at hand-back, hand back with a completion marker and a remaining: line, name an MCP server you expected but cannot see, use a docs MCP over memory, and keep local memory. Preloaded by tank, trinity, oracle, dozer and neo; not for standalone use."
 ---
 
 # Worker contract
@@ -9,8 +9,9 @@ You work one delegation from `crew:morpheus` and hand back. These rules hold on 
 your own prompt adds what is specific to your role, and your stack skill adds what is specific
 to its tool.
 
-- **Never run `git`.** `crew:morpheus` owns branching and commits. A rename is a hand-back, not
-  a `git mv`.
+- **Never run `git`, except a plain `git mv`.** `crew:morpheus` owns branching and commits. A
+  rename your step needs is `git mv <from> <to>` (never `-f`), inside your lane; say it in your
+  summary so the commit carries it. Never recreate the file under the new path instead.
 - **Ask, don't guess.** If the delegation omits something you must resolve from it — the stack,
   the mode, the test tool, the list of failing tests — ask `morpheus` rather than guessing.
 - **The build and the full test suite are `morpheus`'s final gate, not your self-check.** Verify

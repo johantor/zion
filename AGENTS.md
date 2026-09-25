@@ -52,7 +52,8 @@ entry.
 ## How the crew works
 
 - `morpheus` plans and delegates; it writes no production code and is the **sole owner of git**:
-  it branches off the resolved base and commits each verified step. Workers never run git. The
+  it branches off the resolved base and commits each verified step. Workers run no git but a
+  plain `git mv`. The
   crew stops at the local review gate; `/crew:pr` pushes.
 - The plan at `<plan-dir>/plan-<feature>.md` (the `planDirectory` slot, else `.claude/`) carries
   per-step acceptance criteria and is presented once for the user's go-ahead before the branch
@@ -244,8 +245,7 @@ What the lockstep sections protect, one line each:
 - **§2g** — a `skills:` typo fails silently at runtime; the agent guesses.
 - **§9** — a name missing from a guard's roster **fails open**: unrestricted git, no lane. Each
   agent declares `owns-git` and `lane-guarded`; each roster carries a `# crew-roster:` marker in
-  the load-bearing `a|b|c)` arm shape; exactly one git owner, who is also `bash-safety.sh`'s
-  `git_owner=`.
+  the load-bearing `a|b|c)` arm shape; exactly one git owner.
 - **§10** — a `crew:` reference in prose that resolves to no agent or command fails late.
 - **§11** — `init.md` §1's `- **Slot** (`key`) —` bullets and `.claude/crew.md`'s keys agree both
   ways, paired on the key.
@@ -346,10 +346,10 @@ was widened once and reverted, and the hooks point here so it is not tried a thi
   was replaced). Open gap: `CDPATH`.
 - **The `git mv` carve-out reads line starts because it is an allowance**: a false separator can
   only wave through a `git mv` inside a string, never refuse anything. The floor decides *what* a
-  `git mv` is, not *whose*: it lets any agent run a plain one, and `bash-safety.sh` then refuses
-  its own roster's non-owners with a hand-back naming the owner; an agent not on crew's roster is
-  not refused. The hand-back is a refusal and reads the flattened command like the others;
-  masking heredocs to close that gap was tried in #231 and reverted.
+  `git mv` is, not *whose*: it lets any agent run a plain one, and `bash-safety.sh`'s no-git
+  roster skips it too, so a worker renames in place rather than handing the rename back (#249).
+  Catch: no lane guard sees a `git mv`, so a worker can move a file out of its lane; `morpheus`
+  checks renames in the staged diff before it commits.
 
 ## Recurring review findings — apply proactively
 

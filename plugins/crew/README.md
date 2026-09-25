@@ -150,7 +150,7 @@ another plugin's command of the same short name.
   plus one relevant test. Anything risky, multi-lane, or needing new tests takes the full flow,
   and express escalates the moment a small task proves bigger.
 - **Committed step by step.** `morpheus` branches off your base branch and commits each verified
-  step. Workers never run git.
+  step. Workers run no git but a plain `git mv`.
 - **You're heard mid-flight.** Workers run in the background, so the turn returns right away and
   you can keep talking while `tank` works. Corrections queue as new work, or steer the worker
   already running when they're small and in its lane.
@@ -166,8 +166,9 @@ Three `PreToolUse` guards enforce the boundaries and **fail closed**; three advi
 block a dispatch, but only one plan mode would have refused anyway, and on any path it can't read
 it allows.
 
-- **Workers can't touch git.** Blocked outright for `tank`/`trinity`/`oracle`/`dozer`/`neo`.
-  `morpheus` is the sole git owner, enforced in code. Every agent, `morpheus` included, is refused
+- **Workers can't touch git.** Blocked for `tank`/`trinity`/`oracle`/`dozer`/`neo`, except a
+  plain `git mv` to rename a file, which lands in `morpheus`'s next commit. `morpheus` is the sole
+  git owner, enforced in code. Every agent, `morpheus` included, is refused
   `git commit` while HEAD is `main`/`master`/`develop`.
 - **Each worker's edits stay in its lane.** `tank` and `trinity` are denied the other side's
   files; `oracle`/`dozer` are restricted to their test paths; `seraph` is read-only (`neo` is

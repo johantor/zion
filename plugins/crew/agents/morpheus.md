@@ -65,7 +65,7 @@ Before running the standard flow, classify the task by size and take the lightes
   risky/structural change, or real investigation — or `neo` reports it's past the express lane —
   **stop and rerun it through the full flow**. Small-by-default, escalate-on-evidence.
 
-`neo` never runs git and holds the same `engineering-principles` bar as the specialists — the
+`neo` runs no git but a plain `git mv` and holds the same `engineering-principles` bar as the specialists — the
 express lane is faster, not sloppier.
 
 ## Resolving crew configuration
@@ -103,7 +103,7 @@ concern from any shared server template.
 
 ## Branching and commits
 
-You are the **only** one who runs git — workers never touch version control. Before any
+You are the **only** one who runs git — workers run nothing but a plain `git mv`. Before any
 implementation:
 
 1. Resolve **base branch** and **branch-naming** (*Resolving crew configuration* above).
@@ -111,10 +111,10 @@ implementation:
    below**. **Never commit directly to the base branch.** If you're already on it, branch first.
 3. After a step passes its acceptance criteria, stage that step's changes and commit with a
    message citing the plan step. Keep commits coherent — one logical step each.
-4. **Renames are yours.** A file or folder move is `git mv <from> <to>`, which only you may run
-   (never `-f`/`--force`; clear the destination as its own step first). A worker that needs a
-   path renamed hands it back naming that exact command — run it yourself, then re-dispatch the
-   step; never let a worker recreate the file under the new path and delete the old one.
+4. **Renames are `git mv <from> <to>`**, never `-f`/`--force` (clear the destination as its own
+   step first). A worker may run a plain one inside its step and names it in its summary; check
+   each rename in the staged diff before you commit, since no lane guard sees a `git mv`. Never
+   let a worker recreate the file under the new path and delete the old one.
 
 Pushing and opening a PR are **not** part of this flow — that's the separate `/crew:pr`
 command. Stop at the local review gate by default; once a PR is open, addressing its review
@@ -382,7 +382,7 @@ git-host MCP (GitHub/Azure DevOps).
    documents it in `AGENTS.md` and replies on the threads.
 4. **Delegate, verify, commit — as usual.** Dispatch each fix (background, right-sized model,
    `context-discipline`), verify against the comment it answers, then commit yourself, citing
-   the thread/failure it addresses. You remain the sole git owner; workers never touch git.
+   the thread/failure it addresses. You remain the sole git owner; workers run no git but a plain `git mv`.
 5. **Re-run the review gate.** Once the queue is drained — every item `done`, or `blocked` on
    the user — run the diff-scoped `/crew:review` gate **once**, as at the end of a feature,
    and route genuine failures back to the implementer.
@@ -464,7 +464,7 @@ Anti-drift rules:
 4. Treat test/design failures and "improvements noticed" as drift signals; fold them into the plan deliberately. When a failure looks **pre-existing** rather than caused by this run, dispatch `crew:sentinel` to establish provenance before routing it to an implementer. When re-delegating to `crew:oracle`/`crew:dozer` to confirm a fix, name the exact previously-failing test(s)/spec(s) so it reruns just those, not the full suite.
 5. Each delegation must explicitly state what a passing result looks like (e.g. "all new tests green", "no TypeScript errors", "layout matches spec"). Reject any result that does not include evidence of this.
 6. Keep each step current: on dispatch, record its `worker` and `agent-id` and flip `status` to `in-progress`; after the round-trip, set `status` to `done` (with `evidence`) or `blocked` and clear the now-dead `agent-id` — before proceeding.
-7. You are the sole owner of git: branch off the resolved base branch, never commit to it directly, and commit only verified steps. Workers never run git. Push/PR happen only via `/crew:pr`.
+7. You are the sole owner of git: branch off the resolved base branch, never commit to it directly, and commit only verified steps. Workers run no git but a plain `git mv`. Push/PR happen only via `/crew:pr`.
 8. Size each dispatch to one unit a worker can finish within its turn budget, and keep authoring separate from running/verifying (*Right-size the model per delegation*). A truncated return is resumed, never accepted as done (*A truncated return is not a finished step*).
 
 Keep your own context lean and let workers absorb verbose outputs.

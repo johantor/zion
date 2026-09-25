@@ -5,13 +5,14 @@
 source "$(dirname "${BASH_SOURCE[0]}")/../../../tests/hooks/lib.sh"
 HOOK="bash-safety.sh"
 
-# --- Workers never run git -----------------------------------------------------
+# --- Workers run no git but a plain git mv -------------------------------------
+nogit="runs no git but a plain"
 for agent in tank trinity oracle dozer neo; do
-  assert_block "worker $agent blocked from git" "$HOOK" "$(payload_bash 'git status' "$agent")" "never runs git"
+  assert_block "worker $agent blocked from git" "$HOOK" "$(payload_bash 'git status' "$agent")" "$nogit"
 done
 assert_allow "git in a no-agent session" "$HOOK" "$(payload_bash 'git status')"
-assert_block "smuggled env git push (tank)" "$HOOK" "$(payload_bash 'env git push' tank)" "never runs git"
-assert_block "smuggled FOO=1 git (tank)" "$HOOK" "$(payload_bash 'FOO=1 git status' tank)" "never runs git"
+assert_block "smuggled env git push (tank)" "$HOOK" "$(payload_bash 'env git push' tank)" "$nogit"
+assert_block "smuggled FOO=1 git (tank)" "$HOOK" "$(payload_bash 'FOO=1 git status' tank)" "$nogit"
 
 # --- Protected-branch commit backstop -----------------------------------------
 main_repo="$(make_git_branch main)"
@@ -170,7 +171,7 @@ assert_block "patch"                  "$HOOK" "$(payload_bash 'patch -p1 < fix.d
 # `git mv` is a rename recorded in the index, not a write: no bytes change, so no
 # lane guard or formatter has anything to inspect, and the rename lands in a
 # commit, where it is reviewed. The floor lets any agent run it; crew's own
-# no-git arm refuses its workers' below. Bare `mv`/`cp` stay refused for
+# no-git arm refuses its workers' like any other git. Bare `mv`/`cp` stay refused for
 # everyone, and so does a forced `git mv`, which can clobber.
 force="git mv -f/--force can overwrite"
 assert_allow "morpheus git mv"                 "$HOOK" "$(payload_bash 'git mv BishopsArms.Members src/BishopsArms.Members' morpheus)"
@@ -214,12 +215,19 @@ assert_block "git -C dir and mv on separate lines" "$HOOK" "$(payload_bash "git 
 # The floor does not decide WHOSE rename it is: an agent not on crew's roster is
 # not crew's to refuse.
 assert_allow "an agent not on crew's roster may git mv" "$HOOK" "$(payload_bash 'git mv src/a.ts src/b.ts' general-purpose)"
-# A worker is told whose the rename is and what to hand back, rather than the
-# generic write message that sends it looking for a synonym.
-assert_block "tank git mv names the owner"      "$HOOK" "$(payload_bash 'git mv a b' tank)" "morpheus owns git"
-assert_block "tank git mv says hand it back"    "$HOOK" "$(payload_bash 'git mv a b' tank)" "Hand the rename back"
+# A worker may run a plain `git mv`; any other git beside it is still refused.
+assert_allow "tank git mv"                      "$HOOK" "$(payload_bash 'git mv a b' tank)"
+assert_allow "neo git -C dir mv"                "$HOOK" "$(payload_bash 'git -C src mv a.cs b.cs' neo)"
+assert_allow "tank git mv after cd"             "$HOOK" "$(payload_bash 'cd src && git mv a.cs b.cs' tank)"
+assert_allow "tank two git mvs"                 "$HOOK" "$(payload_bash 'git mv a b; git mv c d' tank)"
+assert_allow "tank git mv with a glob in a flag value" "$HOOK" "$(payload_bash 'git -C "*" mv a b' tank)"
+assert_block "tank git commit behind a git mv"  "$HOOK" "$(payload_bash 'git mv a b && git commit -m x' tank)" "$nogit"
+assert_block "tank git add behind a git mv"     "$HOOK" "$(payload_bash 'git mv a b; git add -A' tank)" "$nogit"
+assert_block "tank git status before a git mv"  "$HOOK" "$(payload_bash 'git status && git mv a b' tank)" "$nogit"
+assert_block "tank env git mv then git push"    "$HOOK" "$(payload_bash 'env git mv a b | env git push' tank)" "$nogit"
 assert_block "tank git mv -f is a write first"  "$HOOK" "$(payload_bash 'git mv -f a b' tank)" "$force"
-# The hand-back reads the flattened command, so a line of data is never refused.
+assert_block "tank bare mv behind a git mv"     "$HOOK" "$(payload_bash 'git mv a b && mv c d' tank)" "$gap"
+# The no-git check reads the flattened command, so a line of data is never refused.
 assert_allow "tank prints a git mv in a quoted string" "$HOOK" "$(payload_bash "printf '%s\\n' 'header${nl}git mv a b'" tank)"
 assert_allow "tank writes a git mv in a heredoc"       "$HOOK" "$(payload_bash "cat > /tmp/notes <<EOF${nl}git mv a b${nl}EOF" tank)"
 # A backslash-newline is joined before the force check, as bash joins it.

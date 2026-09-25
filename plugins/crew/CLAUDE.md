@@ -62,14 +62,13 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
 - `hooks/` — wired in `hooks/hooks.json`, the one copy; in this repo they load through
   `claude --plugin-dir plugins/crew`. `bash-safety` and `lane-guard` fail closed; `read-guard`, `format`,
   `dispatch-denied` and `plan-guard` fail open.
-  - `bash-safety.sh`: workers never run git; protected-branch commit backstop (reads the
+  - `bash-safety.sh`: workers run no git but a plain `git mv`; protected-branch commit backstop (reads the
     payload's `cwd`, not the hook's directory; AGENTS.md has the shapes); watch/dev
     commands refused; file-mutating Bash refused for agent sessions (in-place
     `sed`/`perl`/`ruby`/`awk`, `tee`, `patch`, `cp`/`mv`, a redirect to a non-exempt sink; #192).
     One carve-out: a plain `git mv`, for any agent, matched on the raw command so a later line
-    counts; `-f`/`--force` stays refused. *Whose* rename it is comes after the floor:
-    the no-git arm calls `guard_block_git_mv_handback "$git_owner"` (first line only, like every
-    refusal). `git_owner=morpheus` sits above the floor; §9 pins it to the `owns-git` agent.
+    counts; `-f`/`--force` stays refused. The no-git arm checks `guard_strip_git_mv`'s copy of
+    the command, so a worker's plain `git mv` passes and any other git beside it is refused.
     Raw reads (`cat f`) are refused for every session: a habit redirect, not a boundary.
   - `read-guard.sh`: raw reads over 64 KiB; an explicit `limit` ≤ 2000 lines passes.
   - `lane-guard.sh`: Edit/Write lanes. `morpheus` is `--allow` on a filename shape at any depth —
@@ -115,7 +114,7 @@ in the same commit.** Rules shared by every plugin: [AGENTS.md](../../AGENTS.md)
   success, second-NO-GO cap, `/crew:pr`, neo no-op) in `agents/morpheus.md` §"Loop-mode
   bindings". The outer loop is `commands/loop.md`.
 - Every crew agent carries `owns-git` and `lane-guarded` before `skills:` (§9); exactly one
-  (`morpheus`) owns git, and `bash-safety.sh`'s `git_owner=` names it.
+  (`morpheus`) owns git.
 - `omitClaudeMd: true` only on `sentinel` and `seraph` (read-only, fully briefed). Never on an
   implementer: the project's `CLAUDE.md` holds its conventions. Not on `keymaker` either: the
   project's `CLAUDE.md` may carry the debt policy section it has to honor.

@@ -13,7 +13,8 @@ first form that matches:
 
 **Reach.** `ListAgents` enumerates peers; `SendMessage` sends. Either may be missing on this host,
 and neither absence is an error or a fact about the peers:
-- No `SendMessage` → say so in one line, print the message for the user to deliver by hand, stop.
+- No `SendMessage` → say so in one line and stop, printing the message for the user to deliver by
+  hand only after the refusal and `steer-token:` rules below have been applied to it.
 - No `ListAgents` (a `claude --agent crew:morpheus` session) → require `to=`, send to it as typed,
   and say the name could not be checked. Never say there are no peers.
 

@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- `/crew:notify` is 38 lines instead of 117; every rule it enforced stays (#248).
+- `/crew:notify` is 39 lines instead of 117; every rule it enforced stays (#248).
 
 ## [5.3.0] - 2026-09-25
 
